@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using HtmlAgilityPack;
 
 namespace ServerScraper;
@@ -54,18 +55,22 @@ class Program
             return;
         }
         
+        //Displays all the server IPs fetched
         Console.WriteLine("List of fetched servers: ");
         serverList.ForEach(Console.WriteLine);
         
+        //Display the fetched server count
         Console.ForegroundColor = ConsoleColor.Green;
         Console.WriteLine($"Total servers fetched: {serverList.Count}");
         Console.ResetColor();
         
+        //Serialize the server list into JSON format
         Console.WriteLine("Serializing server list into JSON format.");
         var jsonString = JsonSerializer.Serialize(serverList);
-
+        
         try
         {
+            //Store the server list into the corresponding directory
             Console.WriteLine("Storing server list into \"/players2/favourites.json\"");
             await File.WriteAllTextAsync("./players2/favourites.json", jsonString);
         }
@@ -78,7 +83,23 @@ class Program
             return;
         }
         
-        Console.WriteLine("Operation Complete. Press any key to exit.");
-        Console.ReadLine();
+        //Launches the game if its is detected.
+        try
+        {
+            if (File.Exists("./h2m-mod.exe"))
+            {
+                using (Process process = new Process())
+                {
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.FileName = "./h2m-mod.exe";
+                    process.Start();
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            throw;
+        }
     }
 }
