@@ -57,6 +57,10 @@ class Program
         Console.WriteLine("List of fetched servers: ");
         serverList.ForEach(Console.WriteLine);
         
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"Total servers fetched: {serverList.Count}");
+        Console.ResetColor();
+        
         Console.WriteLine("Serializing server list into JSON format.");
         var jsonString = JsonSerializer.Serialize(serverList);
 
