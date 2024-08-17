@@ -21,7 +21,7 @@ The program will scrape the server list for H2M from https://master.iw4.zip/serv
 3. Open the terminal inside the project directory and run the following command to create a standalone executable:
 
 ```console
-dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true
+dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:PublishTrimmed=true
 ```
 
 4. The executable should now be found under `bin/Release/net8.0/win-x64/publish` and you can copy it into your game directory from there.
