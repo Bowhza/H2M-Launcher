@@ -1,6 +1,6 @@
 # H2M Launcher
 
-The H2M in-game server browser has a few bugs including not joining the correct server or not showing all of the servers.
+**The H2M in-game server browser has a few bugs including not joining the correct server or not showing all of the servers.**
 
 The launcher intends to fix these issues and more; here are the features:
 
@@ -8,6 +8,8 @@ The launcher intends to fix these issues and more; here are the features:
 - Displays the server count and the total players.
 - Scrapes all the servers from https://master.iw4.zip/servers and lets the user join them from the launcher instead of the in-game server browser.
 - Store the servers to a favourites.json file inside the /players2 folder.
+
+<img src="./Images/H2M-Launcher.png">
 
 ## Instructions
 
