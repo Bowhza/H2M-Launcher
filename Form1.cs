@@ -1,13 +1,14 @@
-using HtmlAgilityPack;
-using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Windows.Forms;
 
 namespace H2M_Launcher
 {
     public partial class Form1 : Form
     {
+        private static readonly CancellationTokenSource _cancellationTokenSource = new();
+
+        delegate void AddItemToListViewCallback(ListViewItem listViewItem);
+
         public const int WM_NCLBUTTONDOWN = 0xA1;
         public const int HT_CAPTION = 0x2;
 
@@ -31,7 +32,7 @@ namespace H2M_Launcher
             KeyPreview = true;
             KeyDown += Form1_KeyPress!;
             Focus();
-            FetchServers();
+            FetchServersAsync();
         }
 
         private void Form1_KeyPress(object sender, KeyEventArgs e)
@@ -42,7 +43,7 @@ namespace H2M_Launcher
             }
             else if (e.KeyCode == Keys.R)
             {
-                FetchServers();
+                FetchServersAsync();
             }
             else if (e.KeyCode == Keys.S)
             {
@@ -83,7 +84,7 @@ namespace H2M_Launcher
             }
         }
 
-        private void SendConnectCommand(string command)
+        private static void SendConnectCommand(string command)
         {
             IntPtr h2mModWindow = FindH2MModWindow();
 
@@ -113,7 +114,7 @@ namespace H2M_Launcher
             }
         }
 
-        private IntPtr FindH2MModWindow()
+        private static IntPtr FindH2MModWindow()
         {
             foreach (Process proc in Process.GetProcesses())
             {
@@ -126,24 +127,44 @@ namespace H2M_Launcher
             return IntPtr.Zero;
         }
 
-        private void FetchServers()
+        private void AddItemToListView(ListViewItem item)
         {
-            ServerListView.Items.Clear();
-            var ServersList = Servers.GetServers();
-            ServersLabel.Text = $"Servers: {ServersList.Count}";
-            PlayersLabel.Text = $"Players: {ServersList.Sum(x => int.Parse(x.ClientNum!))}";
+            if (ServerListView.InvokeRequired)
+            {
+                AddItemToListViewCallback cb = new(AddItemToListView);
+                Invoke(cb, [item]);
+            }
+            else
+                ServerListView.Items.Add(item);
+        }
 
-            foreach (var server in ServersList)
+        private async void FetchServersAsync()
+        {
+            // cancel (if exists) a previous server fetch
+            _cancellationTokenSource.TryReset();
+            ServerListView.Items.Clear();
+
+            var token = _cancellationTokenSource.Token;
+
+            List<ServerInfo> servers = await Servers.GetServerInfosAsync(token);
+
+            ServersLabel.Text = $"Servers: {servers.Count}";
+            PlayersLabel.Text = $"Players: {servers.Sum(x => int.Parse(x.ClientNum!))}";
+
+            await Parallel.ForEachAsync(servers, async (server, token) =>
             {
                 var item = new ListViewItem(server.Hostname);
                 item.SubItems.Add(server.Map);
                 item.SubItems.Add(server.GameType);
                 item.SubItems.Add($"{server.ClientNum}/{server.MaxClientNum}");
-
+                await server.PingHostAsync(token);
+                item.SubItems.Add($"{server.Ping}");
                 item.Tag = server.ToString();
 
-                ServerListView.Items.Add(item);
-            }
+                if (token.IsCancellationRequested)
+                    return;
+                AddItemToListView(item);
+            });
         }
 
         private void ServerListView_MouseDoubleClick(object sender, MouseEventArgs e)
