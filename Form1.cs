@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -5,7 +6,9 @@ namespace H2M_Launcher
 {
     public partial class Form1 : Form
     {
-        private static readonly CancellationTokenSource _cancellationTokenSource = new();
+        private static readonly ConcurrentDictionary<string, string> serverPings = [];
+
+        private static CancellationTokenSource _cancellationTokenSource = new();
 
         delegate void AddItemToListViewCallback(ListViewItem listViewItem);
 
@@ -135,14 +138,22 @@ namespace H2M_Launcher
                 Invoke(cb, [item]);
             }
             else
-                ServerListView.Items.Add(item);
+            {
+                if (!_cancellationTokenSource.IsCancellationRequested)
+                {
+                    ServerListView.Items.Add(item);
+                }
+            }
         }
 
         private async void FetchServersAsync()
         {
             // cancel (if exists) a previous server fetch
-            _cancellationTokenSource.TryReset();
+            await _cancellationTokenSource.CancelAsync();
+            _cancellationTokenSource.Dispose();
+
             ServerListView.Items.Clear();
+            _cancellationTokenSource = new CancellationTokenSource();
 
             var token = _cancellationTokenSource.Token;
 
@@ -157,7 +168,18 @@ namespace H2M_Launcher
                 item.SubItems.Add(server.Map);
                 item.SubItems.Add(server.GameType);
                 item.SubItems.Add($"{server.ClientNum}/{server.MaxClientNum}");
-                await server.PingHostAsync(token);
+
+                if (serverPings.TryGetValue(server.Ip!, out var ping))
+                {
+                    server.Ping = ping;
+                }
+
+                if (server.Ping == "N/A")
+                {
+                    await server.PingHostAsync(token);
+                    serverPings.TryAdd(server.Ip!, server.Ping);
+                } 
+
                 item.SubItems.Add($"{server.Ping}");
                 item.Tag = server.ToString();
 
