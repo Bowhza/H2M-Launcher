@@ -6,24 +6,38 @@ namespace H2M_Launcher
 {
     public partial class Form1 : Form
     {
+        //Dictionary to store server pings
         private static readonly ConcurrentDictionary<string, string> serverPings = [];
-
+        //CancellationTokenSource to cancel the server fetch
         private static CancellationTokenSource _cancellationTokenSource = new();
-
+        //Delegate to add items to the list view
         delegate void AddItemToListViewCallback(ListViewItem listViewItem);
 
-        public const int WM_NCLBUTTONDOWN = 0xA1;
-        public const int HT_CAPTION = 0x2;
+        //ListView sorting variables
+        private int SortedColumnIndex = -1;
+        private bool SortAscending = true;
 
+        //Windows API functions to send input to a window
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
         [DllImport("user32.dll")]
         public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
 
+        //Windows API constants
+        internal const int WM_NCLBUTTONDOWN = 0xA1;
+        internal const int HT_CAPTION = 0x2;
+        internal const int WM_CHAR = 0x0102; // Message code for sending a character
+        internal const int WM_KEYDOWN = 0x0100; // Message code for key down
+        internal const int WM_KEYUP = 0x0101;   // Message code for key up
+
         private void Form1_MouseDown(object sender, MouseEventArgs e)
         {
+            //Check if the left mouse button is pressed
             if (e.Button == MouseButtons.Left)
             {
+                //Release the capture and send the message to move the form
                 ReleaseCapture();
                 SendMessage(Handle, WM_NCLBUTTONDOWN, HT_CAPTION, 0);
             }
@@ -178,7 +192,7 @@ namespace H2M_Launcher
                 {
                     await server.PingHostAsync(token);
                     serverPings.TryAdd(server.Ip!, server.Ping);
-                } 
+                }
 
                 item.SubItems.Add($"{server.Ping}");
                 item.Tag = server.ToString();
@@ -207,18 +221,32 @@ namespace H2M_Launcher
             SendConnectCommand(serverAddress!);
         }
 
-        // Windows API functions to send input to a window
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        private const int WM_CHAR = 0x0102; // Message code for sending a character
-        private const int WM_KEYDOWN = 0x0100; // Message code for key down
-        private const int WM_KEYUP = 0x0101;   // Message code for key up
-
-        private void ServerListView_ColumnWidthChanging(object sender, ColumnWidthChangingEventArgs e)
+        private void ServerListView_ColumnClick(object sender, ColumnClickEventArgs e)
         {
-            e.Cancel = true;
-            e.NewWidth = ServerListView.Columns[e.ColumnIndex].Width;
+            //Check if the column is already sorted
+            if (SortedColumnIndex == e.Column)
+            {
+                //Toggle the sort direction
+                SortAscending = !SortAscending;
+            }
+            else
+            {
+                //Sort ascending if it's a new column
+                SortAscending = true;
+                SortedColumnIndex = e.Column;
+            }
+
+            //Sort the items in the list view
+            List<ListViewItem> sortedItems = ServerListView.Items.Cast<ListViewItem>()
+                .OrderBy(x => x.SubItems[e.Column].Text)
+                .ToList();
+
+            //Reverse the list if the sort direction is descending
+            if (!SortAscending) sortedItems.Reverse();
+
+            //Clear the list view and add the sorted items
+            ServerListView.Items.Clear();
+            ServerListView.Items.AddRange(sortedItems.ToArray());
         }
     }
 }

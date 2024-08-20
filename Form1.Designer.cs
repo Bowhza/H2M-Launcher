@@ -99,7 +99,7 @@ partial class Form1
         ServersLabel.BackColor = Color.Transparent;
         ServersLabel.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
         ServersLabel.ForeColor = Color.White;
-        ServersLabel.Location = new Point(684, 9);
+        ServersLabel.Location = new Point(785, 9);
         ServersLabel.Name = "ServersLabel";
         ServersLabel.Size = new Size(68, 19);
         ServersLabel.TabIndex = 5;
@@ -111,7 +111,7 @@ partial class Form1
         PlayersLabel.BackColor = Color.Transparent;
         PlayersLabel.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
         PlayersLabel.ForeColor = Color.White;
-        PlayersLabel.Location = new Point(684, 30);
+        PlayersLabel.Location = new Point(785, 30);
         PlayersLabel.Name = "PlayersLabel";
         PlayersLabel.Size = new Size(68, 19);
         PlayersLabel.TabIndex = 6;
@@ -137,7 +137,6 @@ partial class Form1
         ServerListView.Font = new Font("Gadugi", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
         ServerListView.ForeColor = Color.White;
         ServerListView.FullRowSelect = true;
-        ServerListView.HeaderStyle = ColumnHeaderStyle.Nonclickable;
         ServerListView.Location = new Point(12, 120);
         ServerListView.MultiSelect = false;
         ServerListView.Name = "ServerListView";
@@ -145,7 +144,7 @@ partial class Form1
         ServerListView.TabIndex = 8;
         ServerListView.UseCompatibleStateImageBehavior = false;
         ServerListView.View = View.Details;
-        ServerListView.ColumnWidthChanging += ServerListView_ColumnWidthChanging;
+        ServerListView.ColumnClick += ServerListView_ColumnClick;
         ServerListView.MouseDoubleClick += ServerListView_MouseDoubleClick;
         // 
         // Hostname
