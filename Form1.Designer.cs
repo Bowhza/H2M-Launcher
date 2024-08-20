@@ -43,6 +43,8 @@ partial class Form1
         GameType = new ColumnHeader();
         Players = new ColumnHeader();
         Ping = new ColumnHeader();
+        Filter_Tbx = new TextBox();
+        label5 = new Label();
         SuspendLayout();
         // 
         // label1
@@ -171,6 +173,28 @@ partial class Form1
         // 
         Ping.Text = "Ping";
         // 
+        // Filter_Tbx
+        // 
+        Filter_Tbx.BorderStyle = BorderStyle.FixedSingle;
+        Filter_Tbx.Font = new Font("Gadugi", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        Filter_Tbx.Location = new Point(647, 87);
+        Filter_Tbx.Name = "Filter_Tbx";
+        Filter_Tbx.Size = new Size(241, 25);
+        Filter_Tbx.TabIndex = 9;
+        Filter_Tbx.TextChanged += Filter_Tbx_TextChanged;
+        // 
+        // label5
+        // 
+        label5.AutoSize = true;
+        label5.BackColor = Color.Transparent;
+        label5.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+        label5.ForeColor = Color.White;
+        label5.Location = new Point(593, 90);
+        label5.Name = "label5";
+        label5.Size = new Size(52, 19);
+        label5.TabIndex = 10;
+        label5.Text = "Filter:";
+        // 
         // Form1
         // 
         AutoScaleDimensions = new SizeF(7F, 15F);
@@ -178,6 +202,8 @@ partial class Form1
         BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
         BackgroundImageLayout = ImageLayout.Stretch;
         ClientSize = new Size(900, 461);
+        Controls.Add(label5);
+        Controls.Add(Filter_Tbx);
         Controls.Add(ServerListView);
         Controls.Add(label7);
         Controls.Add(PlayersLabel);
@@ -212,4 +238,6 @@ partial class Form1
     private ColumnHeader GameType;
     private ColumnHeader Players;
     private ColumnHeader Ping;
+    private TextBox Filter_Tbx;
+    private Label label5;
 }

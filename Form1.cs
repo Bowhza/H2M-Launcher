@@ -7,15 +7,17 @@ namespace H2M_Launcher
     public partial class Form1 : Form
     {
         //Dictionary to store server pings
-        private static readonly ConcurrentDictionary<string, string> serverPings = [];
+        private static readonly ConcurrentDictionary<string, string> serverPings = new ConcurrentDictionary<string, string>();
         //CancellationTokenSource to cancel the server fetch
-        private static CancellationTokenSource _cancellationTokenSource = new();
+        private static CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
+        // List to store the original items in the list view
+        private List<ListViewItem> _originalItems = new List<ListViewItem>();
         //Delegate to add items to the list view
         delegate void AddItemToListViewCallback(ListViewItem listViewItem);
 
         //ListView sorting variables
-        private int SortedColumnIndex = -1;
-        private bool SortAscending = true;
+        private int _sortedColumnIndex = -1;
+        private bool _sortAscending = true;
 
         //Windows API functions to send input to a window
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -34,6 +36,9 @@ namespace H2M_Launcher
 
         private void Form1_MouseDown(object sender, MouseEventArgs e)
         {
+            //Set the active control to null
+            ActiveControl = null;
+
             //Check if the left mouse button is pressed
             if (e.Button == MouseButtons.Left)
             {
@@ -54,6 +59,9 @@ namespace H2M_Launcher
 
         private void Form1_KeyPress(object sender, KeyEventArgs e)
         {
+            if (ActiveControl is TextBox)
+                return;
+
             if (e.KeyCode == Keys.L)
             {
                 LaunchH2MMod();
@@ -64,7 +72,7 @@ namespace H2M_Launcher
             }
             else if (e.KeyCode == Keys.S)
             {
-                Servers.SaveServerList();
+                Servers.SaveServerListAsync();
             }
             else if (e.KeyCode == Keys.Escape)
             {
@@ -200,6 +208,7 @@ namespace H2M_Launcher
                 if (token.IsCancellationRequested)
                     return;
                 AddItemToListView(item);
+                _originalItems.Add(item);
             });
         }
 
@@ -224,16 +233,16 @@ namespace H2M_Launcher
         private void ServerListView_ColumnClick(object sender, ColumnClickEventArgs e)
         {
             //Check if the column is already sorted
-            if (SortedColumnIndex == e.Column)
+            if (_sortedColumnIndex == e.Column)
             {
                 //Toggle the sort direction
-                SortAscending = !SortAscending;
+                _sortAscending = !_sortAscending;
             }
             else
             {
                 //Sort ascending if it's a new column
-                SortAscending = true;
-                SortedColumnIndex = e.Column;
+                _sortAscending = true;
+                _sortedColumnIndex = e.Column;
             }
 
             //Sort the items in the list view
@@ -242,11 +251,35 @@ namespace H2M_Launcher
                 .ToList();
 
             //Reverse the list if the sort direction is descending
-            if (!SortAscending) sortedItems.Reverse();
+            if (!_sortAscending) sortedItems.Reverse();
 
             //Clear the list view and add the sorted items
             ServerListView.Items.Clear();
             ServerListView.Items.AddRange(sortedItems.ToArray());
+        }
+
+        private void Filter_Tbx_TextChanged(object sender, EventArgs e)
+        {
+            //Get the filter text
+            string filterText = Filter_Tbx.Text;
+
+            //Check if the filter text is empty
+            if (string.IsNullOrEmpty(filterText))
+            {
+                ServerListView.Items.Clear();
+                ServerListView.Items.AddRange(_originalItems.ToArray());
+                return;
+            }
+
+            //Filter the items in the list view
+            List<ListViewItem> filteredItems = ServerListView.Items.Cast<ListViewItem>()
+                .Where(x => x.SubItems.Cast<ListViewItem.ListViewSubItem>()
+                .Any(y => y.Text.Contains(Filter_Tbx.Text, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+
+            //Clear the list view and add the filtered items
+            ServerListView.Items.Clear();
+            ServerListView.Items.AddRange(filteredItems.ToArray());
         }
     }
 }

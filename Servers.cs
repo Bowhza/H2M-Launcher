@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -8,7 +9,7 @@ namespace H2M_Launcher
     internal static class Servers
     {
         private const string APILINK = "https://master.iw4.zip/servers";
-        private static readonly List<ServerInfo> serversInfos = [];
+        private static readonly List<ServerInfo> serversInfos = new List<ServerInfo>();
 
 
         internal static async Task<List<ServerInfo>> GetServerInfosAsync(CancellationToken cancellationToken)
@@ -25,8 +26,7 @@ namespace H2M_Launcher
             }
             catch (Exception ex)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(ex.Message);
+                Trace.WriteLine(ex.Message);
             }
 
             // Selects specific div with only H2M servers.
@@ -64,9 +64,9 @@ namespace H2M_Launcher
         }
 
 
-        internal async static void SaveServerList()
+        internal async static void SaveServerListAsync()
         {
-            Console.WriteLine("Serializing server list into JSON format.");
+            Trace.WriteLine("Serializing server list into JSON format.");
             // Create a list of "Ip:Port" strings
             var ipPortList = serversInfos.ConvertAll(server => $"{server.Ip}:{server.Port}");
 
@@ -76,14 +76,12 @@ namespace H2M_Launcher
             try
             {
                 //Store the server list into the corresponding directory
-                Console.WriteLine("Storing server list into \"/players2/favourites.json\"");
+                Trace.WriteLine("Storing server list into \"/players2/favourites.json\"");
                 await File.WriteAllTextAsync("./players2/favourites.json", jsonString);
             }
             catch (Exception e)
             {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(e.Message);
-                Console.ResetColor();
+                Trace.WriteLine(e.Message);
                 MessageBox.Show("Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
             }
         }
