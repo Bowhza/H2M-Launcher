@@ -42,6 +42,7 @@ partial class Form1
         Map = new ColumnHeader();
         GameType = new ColumnHeader();
         Players = new ColumnHeader();
+        Ping = new ColumnHeader();
         SuspendLayout();
         // 
         // label1
@@ -132,7 +133,7 @@ partial class Form1
         // 
         ServerListView.BackColor = SystemColors.InactiveCaptionText;
         ServerListView.BorderStyle = BorderStyle.FixedSingle;
-        ServerListView.Columns.AddRange(new ColumnHeader[] { Hostname, Map, GameType, Players });
+        ServerListView.Columns.AddRange(new ColumnHeader[] { Hostname, Map, GameType, Players, Ping });
         ServerListView.Font = new Font("Gadugi", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
         ServerListView.ForeColor = Color.White;
         ServerListView.FullRowSelect = true;
@@ -140,7 +141,7 @@ partial class Form1
         ServerListView.Location = new Point(12, 120);
         ServerListView.MultiSelect = false;
         ServerListView.Name = "ServerListView";
-        ServerListView.Size = new Size(780, 329);
+        ServerListView.Size = new Size(876, 329);
         ServerListView.TabIndex = 8;
         ServerListView.UseCompatibleStateImageBehavior = false;
         ServerListView.View = View.Details;
@@ -150,7 +151,7 @@ partial class Form1
         // Hostname
         // 
         Hostname.Text = "Host Name (Double Click to Join)";
-        Hostname.Width = 475;
+        Hostname.Width = 510;
         // 
         // Map
         // 
@@ -167,13 +168,17 @@ partial class Form1
         Players.Text = "Players";
         Players.Width = 65;
         // 
+        // Ping
+        // 
+        Ping.Text = "Ping";
+        // 
         // Form1
         // 
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
         BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
         BackgroundImageLayout = ImageLayout.Stretch;
-        ClientSize = new Size(804, 461);
+        ClientSize = new Size(900, 461);
         Controls.Add(ServerListView);
         Controls.Add(label7);
         Controls.Add(PlayersLabel);
@@ -184,8 +189,8 @@ partial class Form1
         Controls.Add(label1);
         FormBorderStyle = FormBorderStyle.None;
         Icon = (Icon)resources.GetObject("$this.Icon");
-        MaximumSize = new Size(804, 461);
-        MinimumSize = new Size(804, 461);
+        MaximumSize = new Size(900, 461);
+        MinimumSize = new Size(900, 461);
         Name = "Form1";
         Text = "H2M Launcher";
         KeyDown += Form1_KeyPress;
@@ -207,4 +212,5 @@ partial class Form1
     private ColumnHeader Map;
     private ColumnHeader GameType;
     private ColumnHeader Players;
+    private ColumnHeader Ping;
 }
