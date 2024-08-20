@@ -1,4 +1,5 @@
 ﻿using HtmlAgilityPack;
+using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -50,7 +51,7 @@ namespace H2M_Launcher
                     {
                         Ip = serverIp,
                         Port = serverPort,
-                        Hostname = row.SelectSingleNode(".//td[@data-hostname]")?.InnerText.Trim(),
+                        Hostname = WebUtility.HtmlDecode(row.SelectSingleNode(".//td[@data-hostname]")?.InnerText.Trim()),
                         Map = row.SelectSingleNode(".//td[@data-map]")?.InnerText.Trim(),
                         ClientNum = clientNum != null ? clientNum.Split('/')[0].Trim() : "0",
                         MaxClientNum = clientNum != null ? clientNum.Split('/')[1].Trim() : "0",
