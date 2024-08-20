@@ -9,7 +9,7 @@ The launcher intends to fix these issues and more; here are the features:
 - Scrapes all the servers from https://master.iw4.zip/servers and lets the user join them from the launcher instead of the in-game server browser.
 - Store the servers to a favourites.json file inside the /players2 folder.
 
-<img src="./Images/H2M-Launcher.png">
+<img src="./Images/H2MLauncher.png">
 
 ## Instructions
 
