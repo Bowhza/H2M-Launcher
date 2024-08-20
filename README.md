@@ -1,10 +1,10 @@
-# H2M Server Scraper
+# THIS IS THE LEGACY BRANCH FOR THE H2M SERVER SCRAPER
 
 The program will scrape the server list for H2M from https://master.iw4.zip/servers# and create a favourites.json file that can be used for the server browser in game.
 
 ## Instructions
 
-1. Download the latest server scraper release from **[HERE](https://github.com/Bowhza/H2M-ServerScraper/releases).**
+1. Download the latest server scraper release from **[HERE](https://github.com/Bowhza/H2M-ServerScraper/releases/tag/v1.0.2).**
 
 2. Paste the `ServerScraper.exe` inside the root of the game directory. It is the same directory where the `h2m-mod.exe` is located.
 
