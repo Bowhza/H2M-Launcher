@@ -45,6 +45,7 @@ partial class Form1
         Ping = new ColumnHeader();
         Filter_Tbx = new TextBox();
         label5 = new Label();
+        label6 = new Label();
         SuspendLayout();
         // 
         // label1
@@ -52,84 +53,91 @@ partial class Form1
         label1.AutoSize = true;
         label1.BackColor = Color.Transparent;
         label1.Font = new Font("Gadugi", 20.25F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        label1.ForeColor = Color.White;
+        label1.ForeColor = Color.FromArgb(128, 179, 0);
         label1.Location = new Point(9, 9);
         label1.Name = "label1";
         label1.Size = new Size(200, 32);
         label1.TabIndex = 1;
         label1.Text = "H2M Launcher";
+        label1.MouseDown += Form1_MouseDown;
         // 
         // label2
         // 
         label2.AutoSize = true;
         label2.BackColor = Color.Transparent;
         label2.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        label2.ForeColor = Color.White;
+        label2.ForeColor = Color.FromArgb(128, 179, 0);
         label2.Location = new Point(12, 41);
         label2.Name = "label2";
         label2.Size = new Size(183, 19);
         label2.TabIndex = 2;
         label2.Text = "Press L to Launch H2M.";
+        label2.MouseDown += Form1_MouseDown;
         // 
         // label3
         // 
         label3.AutoSize = true;
         label3.BackColor = Color.Transparent;
         label3.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        label3.ForeColor = Color.White;
+        label3.ForeColor = Color.FromArgb(128, 179, 0);
         label3.Location = new Point(12, 60);
         label3.Name = "label3";
         label3.Size = new Size(249, 19);
         label3.TabIndex = 3;
         label3.Text = "Press R to refresh the server list.";
+        label3.MouseDown += Form1_MouseDown;
         // 
         // label4
         // 
         label4.AutoSize = true;
         label4.BackColor = Color.Transparent;
         label4.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        label4.ForeColor = Color.White;
+        label4.ForeColor = Color.FromArgb(128, 179, 0);
         label4.Location = new Point(12, 79);
         label4.Name = "label4";
         label4.Size = new Size(330, 19);
         label4.TabIndex = 4;
         label4.Text = "Press S to save the server list to favourites.";
+        label4.MouseDown += Form1_MouseDown;
         // 
         // ServersLabel
         // 
         ServersLabel.AutoSize = true;
         ServersLabel.BackColor = Color.Transparent;
         ServersLabel.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        ServersLabel.ForeColor = Color.White;
-        ServersLabel.Location = new Point(785, 9);
+        ServersLabel.ForeColor = Color.FromArgb(128, 179, 0);
+        ServersLabel.Location = new Point(752, 20);
         ServersLabel.Name = "ServersLabel";
         ServersLabel.Size = new Size(68, 19);
         ServersLabel.TabIndex = 5;
         ServersLabel.Text = "Servers:";
+        ServersLabel.MouseDown += Form1_MouseDown;
         // 
         // PlayersLabel
         // 
         PlayersLabel.AutoSize = true;
         PlayersLabel.BackColor = Color.Transparent;
         PlayersLabel.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        PlayersLabel.ForeColor = Color.White;
-        PlayersLabel.Location = new Point(785, 30);
+        PlayersLabel.ForeColor = Color.FromArgb(128, 179, 0);
+        PlayersLabel.Location = new Point(752, 41);
         PlayersLabel.Name = "PlayersLabel";
         PlayersLabel.Size = new Size(68, 19);
         PlayersLabel.TabIndex = 6;
         PlayersLabel.Text = "Players:";
+        PlayersLabel.MouseDown += Form1_MouseDown;
         // 
         // label7
         // 
         label7.AutoSize = true;
         label7.BackColor = Color.Transparent;
         label7.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        label7.ForeColor = Color.White;
+        label7.ForeColor = Color.FromArgb(128, 179, 0);
         label7.Location = new Point(12, 98);
         label7.Name = "label7";
         label7.Size = new Size(211, 19);
         label7.TabIndex = 7;
         label7.Text = "Press ESC to Exit Launcher.";
+        label7.MouseDown += Form1_MouseDown;
         // 
         // ServerListView
         // 
@@ -188,20 +196,36 @@ partial class Form1
         label5.AutoSize = true;
         label5.BackColor = Color.Transparent;
         label5.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
-        label5.ForeColor = Color.White;
+        label5.ForeColor = Color.FromArgb(128, 179, 0);
         label5.Location = new Point(593, 90);
         label5.Name = "label5";
         label5.Size = new Size(52, 19);
         label5.TabIndex = 10;
         label5.Text = "Filter:";
+        label5.MouseDown += Form1_MouseDown;
+        // 
+        // label6
+        // 
+        label6.BackColor = Color.Transparent;
+        label6.Font = new Font("Gadugi", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
+        label6.ForeColor = Color.FromArgb(128, 179, 0);
+        label6.Location = new Point(276, 7);
+        label6.Name = "label6";
+        label6.RightToLeft = RightToLeft.No;
+        label6.Size = new Size(380, 32);
+        label6.TabIndex = 11;
+        label6.Text = "Info:";
+        label6.TextAlign = ContentAlignment.MiddleCenter;
+        label6.MouseDown += Form1_MouseDown;
         // 
         // Form1
         // 
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
-        BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
+        BackColor = Color.Black;
         BackgroundImageLayout = ImageLayout.Stretch;
         ClientSize = new Size(900, 461);
+        Controls.Add(label6);
         Controls.Add(label5);
         Controls.Add(Filter_Tbx);
         Controls.Add(ServerListView);
@@ -240,4 +264,5 @@ partial class Form1
     private ColumnHeader Ping;
     private TextBox Filter_Tbx;
     private Label label5;
+    private Label label6;
 }
