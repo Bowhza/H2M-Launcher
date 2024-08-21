@@ -1,0 +1,17 @@
+﻿<UserControl x:Class="H2MLauncher.UI.Dialog.Views.TextDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
+             mc:Ignorable="d" 
+             xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
+             d:DesignHeight="150" d:DesignWidth="300"
+             d:DataContext="{d:DesignInstance Type=dia:TextDialogViewModel}"
+             DataContext="{DynamicResource TextDialogViewModel}">
+    <StackPanel>
+        <TextBlock Text="{Binding DialogContent.Title}" FontWeight="Bold"/>
+        <TextBlock Text="{Binding DialogContent.Text}"/>
+        <Button Content="OK" Command="{Binding ContinueCommand}"/>
+    </StackPanel>
+</UserControl>

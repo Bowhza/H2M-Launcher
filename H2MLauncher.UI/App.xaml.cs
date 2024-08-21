@@ -2,14 +2,12 @@
 
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.Dialog;
 
 using Microsoft.Extensions.DependencyInjection;
 
 namespace H2MLauncher.UI
 {
-    /// <summary>
-    /// Interaction logic for App.xaml
-    /// </summary>
     public partial class App : Application
     {
         public IServiceProvider ServiceProvider { get; private set; } = null!;
@@ -36,6 +34,9 @@ namespace H2MLauncher.UI
             services.AddSingleton<H2MCommunicationService>();
 
             services.AddTransient<MainWindow>();
+            services.AddSingleton<DialogViewModel>();
+            services.AddSingleton<DialogWindow>();
+            services.AddSingleton<DialogService>();
 
             services.AddTransient<ServerBrowserViewModel>();
         }
