@@ -87,12 +87,13 @@
                 HorizontalScrollBarVisibility="Hidden"
                 Background="Black"
                 SelectionMode="Single"
+                CanUserResizeColumns="False"
                 Opacity="0.8"
                 VerticalScrollBarVisibility="Hidden"
                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
                 RowBackground="Transparent">
                 <DataGrid.Columns>
-                    <DataGridTemplateColumn Width="555">
+                    <DataGridTemplateColumn Width="550">
                         <DataGridTemplateColumn.Header>
                             <TextBlock Text="Hostname"/>
                         </DataGridTemplateColumn.Header>
