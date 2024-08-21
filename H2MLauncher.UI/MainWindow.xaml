@@ -76,7 +76,7 @@
                     <Separator Opacity="0" Width="15"/>
                 </StackPanel>
             </Grid>
-            <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" Margin="5" MinHeight="370" MaxHeight="370" Width="780" 
+            <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" Margin="5" MinHeight="360" MaxHeight="360" Width="780" 
                 CanUserReorderColumns="False" 
                 CanUserAddRows="False" 
                 CanUserDeleteRows="False" 
@@ -89,11 +89,12 @@
                 SelectionMode="Single"
                 CanUserResizeColumns="False"
                 Opacity="0.8"
+                HeadersVisibility="Column"
                 VerticalScrollBarVisibility="Hidden"
                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
                 RowBackground="Transparent">
                 <DataGrid.Columns>
-                    <DataGridTemplateColumn Width="550">
+                    <DataGridTemplateColumn Width="555">
                         <DataGridTemplateColumn.Header>
                             <TextBlock Text="Hostname"/>
                         </DataGridTemplateColumn.Header>

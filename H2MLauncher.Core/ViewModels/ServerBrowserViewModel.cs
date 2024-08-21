@@ -56,7 +56,7 @@ namespace H2MLauncher.Core.ViewModels
 
         private async Task CheckUpdateStatusAsync()
         {
-            bool isUpToDate = !await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None);
+            bool isUpToDate = await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None);
             UpdateStatus = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
         }
 
