@@ -13,13 +13,17 @@ namespace H2MLauncher.Core.ViewModels
         private readonly RaidMaxService _raidMaxService;
         private readonly GameServerCommunicationService _serverPingService;
         private readonly H2MCommunicationService _h2MCommunicationService;
+        private readonly H2MLauncherService _h2MLauncherService;
         private CancellationTokenSource _loadCancellation = new();
         private ServerViewModel? _serverViewModel;
         private int _totalServers = 0;
         private int _totalPlayers = 0;
         private string _filter = "";
+        private string _updateStatus = "UpToDate";
+        private string _updateColor;
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
+        public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
@@ -43,18 +47,42 @@ namespace H2MLauncher.Core.ViewModels
             get => _serverViewModel;
             set => SetProperty(ref _serverViewModel, value);
         }
+        public string UpdateStatus 
+        { 
+            get => _updateStatus;
+            set {
+                SetProperty(ref _updateStatus, value);
+                UpdateColor = _updateStatus == "UpToDate" ? "DarkGreen" : "DarkRed";
+            }  
+        }
+        public string UpdateColor 
+        { 
+            get => _updateColor;
+            set => SetProperty(ref _updateColor, value); 
+        }
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService, 
             GameServerCommunicationService serverPingService,
-            H2MCommunicationService h2MCommunicationService)
+            H2MCommunicationService h2MCommunicationService,
+            H2MLauncherService h2MLauncherService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _serverPingService = serverPingService ?? throw new ArgumentNullException(nameof(serverPingService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
+            _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
+            CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
+        }
+
+        private async Task CheckUpdateStatusAsync()
+        {
+            if (await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None))
+                UpdateStatus = "UpToDate";
+            else
+                UpdateStatus = "New version available!";
         }
 
         private async Task LoadServersAsync()
@@ -117,5 +145,9 @@ namespace H2MLauncher.Core.ViewModels
         {
             _h2MCommunicationService.LaunchH2MMod();
         }
+
+
+
+
     }
 }

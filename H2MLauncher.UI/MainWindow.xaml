@@ -14,7 +14,13 @@
         MouseDown="Window_MouseDown"
         KeyDown="Window_KeyDown"
         Icon="pack://application:,,,/H2MLauncher.UI;component/Assets/icon.ico"
+        xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         Title="MainWindow" Height="450" Width="800">
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding CheckUpdateStatusCommand}"/>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
     <Window.Resources>
         <Style TargetType="DataGridCell">
             <Setter Property="TextBlock.TextAlignment" Value="Left" />
@@ -41,7 +47,14 @@
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
         </Border.Background>
         <StackPanel Width="790">
-            <TextBlock Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
+                <TextBlock Grid.Column="1" Text="{Binding UpdateStatus, FallbackValue=UpTodate}" Foreground="{Binding UpdateColor}" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" />
+            </Grid>
             <Grid Width="790" Margin="5,0,5,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
