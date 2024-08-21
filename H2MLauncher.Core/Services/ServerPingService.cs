@@ -6,8 +6,10 @@ using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.Core.Services
 {
-    public class ServerPingService
+    public class ServerPingService : IAsyncDisposable
     {
+        private readonly GameServerCommunication _gameServerCommunication = new();
+
         public async Task PingAsync(RaidMaxServer pingMaxServer, CancellationToken cancellationToken)
         {
             using Ping pinger = new();
@@ -28,8 +30,6 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        private readonly GameServerCommunication gameServerCommunication = new();
-
         public async Task StartRetrievingGameServerInfo(
           IEnumerable<RaidMaxServer> servers,
           Action<RaidMaxServer, GameServerInfo> onServerInfoReceived,
@@ -42,7 +42,7 @@ namespace H2MLauncher.Core.Services
             //await using var gameServerCommunication = new GameServerCommunication();
 
             // handle info response
-            var handlerReg = gameServerCommunication.On("infoResponse", (e) =>
+            var handlerReg = _gameServerCommunication.On("infoResponse", (e) =>
             {
                 // get start timestamp
                 if (!queuedServers.TryRemove(e.RemoteEndPoint, out var startTime))
@@ -155,7 +155,7 @@ namespace H2MLauncher.Core.Services
                 try
                 {
                     // send 'getinfo' command
-                    await gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken);
+                    await _gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken);
                 }
                 catch
                 {
@@ -165,6 +165,11 @@ namespace H2MLauncher.Core.Services
             }
 
             cancellationToken.Register(handlerReg.Dispose);
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            return _gameServerCommunication.DisposeAsync();
         }
     }
 }

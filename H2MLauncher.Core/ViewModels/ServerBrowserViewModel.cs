@@ -17,7 +17,7 @@ namespace H2MLauncher.Core.ViewModels
         private int _totalPlayers = 0;
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
-        public ObservableCollection<RaidMaxServer> Servers { get; private set; } = [];
+        public ObservableCollection<ServerViewModel> Servers { get; private set; } = [];
 
         public int TotalServers
         {
@@ -48,16 +48,32 @@ namespace H2MLauncher.Core.ViewModels
             try
             {
                 Servers.Clear();
-
-                var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
-
                 TotalServers = 0;
                 TotalPlayers = 0;
 
+                // Get servers from the master
+                var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+
+                // Start by sending info requests to the game servers
                 await _serverPingService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
                 {
-                    server.Ping = gameServer.Ping;
-                    Servers.Add(server);
+                    // Game server responded -> online
+                    Servers.Add(new ServerViewModel()
+                    {
+                        Id = server.Id,
+                        Ip = server.Ip,
+                        Port = server.Port,
+                        HostName = server.HostName,
+                        ClientNum = server.ClientNum,
+                        MaxClientNum = server.MaxClientNum,
+                        Game = server.Game,
+                        GameType = gameServer.GameType,
+                        Map = gameServer.MapName,
+                        Version = server.Version,
+                        IsPrivate = gameServer.IsPrivate,
+                        Ping = gameServer.Ping,
+                        BotsNum = gameServer.Bots,
+                    });
 
                     TotalPlayers += server.ClientNum;
                     TotalServers++;
