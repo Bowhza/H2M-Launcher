@@ -12,6 +12,8 @@ namespace H2MLauncher.Core.Services
         public static extern int SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         //Windows API constants
         internal const int WM_CHAR = 0x0102; // Message code for sending a character
@@ -77,6 +79,9 @@ namespace H2MLauncher.Core.Services
                 SendMessage(h2mModWindow, WM_KEYUP, (IntPtr)13, IntPtr.Zero);
 
                 SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)192, IntPtr.Zero);
+
+                //Set H2M to foreground window
+                SetForegroundWindow(h2mModWindow);
             }
             else
             {
