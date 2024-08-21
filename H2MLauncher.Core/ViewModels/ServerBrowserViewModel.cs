@@ -1,17 +1,20 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
+
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace H2MLauncher.Core.ViewModels
 {
     public class ServerBrowserViewModel : ObservableObject
     {
         private readonly RaidMaxService _raidMaxService;
-        private List<RaidMaxServer> servers = [];
-        private int totalServers = 0;
-        private int totalPlayers = 0;
+        private readonly GameServerCommunicationService _serverPingService;
+        private int _totalServers = 0;
+        private int _totalPlayers = 0;
         private string filter = "";
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
@@ -23,30 +26,67 @@ namespace H2MLauncher.Core.ViewModels
         }
         public int TotalServers
         {
-            get => totalServers;
-            private set => SetProperty(ref totalServers, value);
+            get => _totalServers;
+            private set => SetProperty(ref _totalServers, value);
         }
         public int TotalPlayers
         {
-            get => totalPlayers;
-            private set => SetProperty(ref totalPlayers, value);
+            get => _totalPlayers;
+            private set => SetProperty(ref _totalPlayers, value);
         }
 
-        public ServerBrowserViewModel(RaidMaxService raidMaxService)
+        public ServerBrowserViewModel(RaidMaxService raidMaxService, GameServerCommunicationService serverPingService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
+            _serverPingService = serverPingService;
         }
+
+        private CancellationTokenSource _loadCancellation = new();
 
         private async Task LoadServersAsync()
         {
-            servers = await _raidMaxService.GetServerInfosAsync(CancellationToken.None);
-            Servers.Clear();
-            servers.ForEach(s => Servers.Add(s));
-            TotalServers = servers.Count;
-            TotalPlayers = servers.Sum(server => server.ClientNum);
+            await _loadCancellation.CancelAsync();
+            _loadCancellation = new();
 
-            OnPropertyChanged(nameof(Servers));
+            try
+            {
+                Servers.Clear();
+                TotalServers = 0;
+                TotalPlayers = 0;
+
+                // Get servers from the master
+                var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+
+                // Start by sending info requests to the game servers
+                await _serverPingService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
+                {
+                    // Game server responded -> online
+                    Servers.Add(new ServerViewModel()
+                    {
+                        Id = server.Id,
+                        Ip = server.Ip,
+                        Port = server.Port,
+                        HostName = server.HostName,
+                        ClientNum = server.ClientNum,
+                        MaxClientNum = server.MaxClientNum,
+                        Game = server.Game,
+                        GameType = gameServer.GameType,
+                        Map = gameServer.MapName,
+                        Version = server.Version,
+                        IsPrivate = gameServer.IsPrivate,
+                        Ping = gameServer.Ping,
+                        BotsNum = gameServer.Bots,
+                    });
+
+                    TotalPlayers += server.ClientNum;
+                    TotalServers++;
+                }, _loadCancellation.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                // canceled
+            }
         }
     }
 }

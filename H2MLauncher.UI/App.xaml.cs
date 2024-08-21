@@ -31,7 +31,7 @@ namespace H2MLauncher.UI
             services.AddTransient<RaidMaxService>();
             services.AddHttpClient<RaidMaxService>();
 
-            services.AddTransient<ServerPingService>();
+            services.AddTransient<GameServerCommunicationService>();
 
             services.AddTransient<MainWindow>();
 
