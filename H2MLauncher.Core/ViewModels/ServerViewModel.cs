@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
-
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace H2MLauncher.Core.ViewModels
 {
@@ -49,13 +41,11 @@ namespace H2MLauncher.Core.ViewModels
         private int _botsNum;
 
         [ObservableProperty]
-        [NotifyPropertyChangedFor(nameof(PingDisplay))]
-        private long _ping = -1;
+        private long _ping = 999;
 
         [ObservableProperty]
         private bool _isPrivate;
 
         public string Occupation => $"{ClientNum:D2}/{MaxClientNum:D2}";
-        public string PingDisplay => Ping == -1 ? "N/A" : $"{Ping:D3}";
     }
 }
