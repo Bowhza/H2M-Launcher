@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Runtime.Serialization;
 
 namespace H2MLauncher.Core.Models
 {
@@ -27,10 +26,5 @@ namespace H2MLauncher.Core.Models
         public required string GameType { get; set; }
         public required int ClientNum { get; set; }
         public required int MaxClientNum { get; set; }
-
-        public override string ToString()
-        {
-            return $"connect {Ip}:{Port}";
-        }
     }
 }

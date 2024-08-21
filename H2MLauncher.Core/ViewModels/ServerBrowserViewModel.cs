@@ -1,11 +1,10 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
-
-using System.Collections.ObjectModel;
-using System.Diagnostics;
 
 namespace H2MLauncher.Core.ViewModels
 {
@@ -13,16 +12,21 @@ namespace H2MLauncher.Core.ViewModels
     {
         private readonly RaidMaxService _raidMaxService;
         private readonly GameServerCommunicationService _serverPingService;
+        private readonly H2MCommunicationService _h2MCommunicationService;
+        private CancellationTokenSource _loadCancellation = new();
+        private ServerViewModel _serverViewModel;
         private int _totalServers = 0;
         private int _totalPlayers = 0;
-        private string filter = "";
+        private string _filter = "";
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
-        public ObservableCollection<RaidMaxServer> Servers { get; set; } = [];
+        public IRelayCommand JoinServerCommand { get; }
+        public IRelayCommand LaunchH2MCommand { get; }
+        public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
         public string Filter
         {
-            get => filter;
-            set => SetProperty(ref filter, value);
+            get => _filter;
+            set => SetProperty(ref _filter, value);
         }
         public int TotalServers
         {
@@ -34,15 +38,24 @@ namespace H2MLauncher.Core.ViewModels
             get => _totalPlayers;
             private set => SetProperty(ref _totalPlayers, value);
         }
-
-        public ServerBrowserViewModel(RaidMaxService raidMaxService, GameServerCommunicationService serverPingService)
+        public ServerViewModel SelectedServer
         {
-            _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
-            RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
-            _serverPingService = serverPingService;
+            get => _serverViewModel;
+            set => SetProperty(ref _serverViewModel, value);
         }
 
-        private CancellationTokenSource _loadCancellation = new();
+        public ServerBrowserViewModel(
+            RaidMaxService raidMaxService, 
+            GameServerCommunicationService serverPingService,
+            H2MCommunicationService h2MCommunicationService)
+        {
+            _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
+            _serverPingService = serverPingService ?? throw new ArgumentNullException(nameof(serverPingService));
+            _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
+            RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
+            JoinServerCommand = new RelayCommand(JoinServer);
+            LaunchH2MCommand = new RelayCommand(LaunchH2M);
+        }
 
         private async Task LoadServersAsync()
         {
@@ -79,14 +92,30 @@ namespace H2MLauncher.Core.ViewModels
                         BotsNum = gameServer.Bots,
                     });
 
+                    OnPropertyChanged(nameof(Servers));
+
                     TotalPlayers += server.ClientNum;
                     TotalServers++;
                 }, _loadCancellation.Token);
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException ex)
             {
                 // canceled
+                Debug.WriteLine($"LoadServersAsync cancelled: {ex.Message}");
             }
+        }
+
+        private void JoinServer()
+        {
+            if (SelectedServer is null)
+                return;
+
+            _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString());
+        }
+
+        private void LaunchH2M()
+        {
+            _h2MCommunicationService.LaunchH2MMod();
         }
     }
 }

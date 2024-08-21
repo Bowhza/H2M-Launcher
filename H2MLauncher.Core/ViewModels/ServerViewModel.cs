@@ -57,10 +57,5 @@ namespace H2MLauncher.Core.ViewModels
 
         public string Occupation => $"{ClientNum}/{MaxClientNum}";
         public string PingDisplay => Ping == -1 ? "N/A" : Ping.ToString();
-
-        public override string ToString()
-        {
-            return $"connect {Ip}:{Port}";
-        }
     }
 }

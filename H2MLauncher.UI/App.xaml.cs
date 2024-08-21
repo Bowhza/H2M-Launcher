@@ -1,9 +1,9 @@
-﻿using H2MLauncher.Core.Services;
+﻿using System.Windows;
+
+using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
+
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Net.Http;
-using System.Windows;
 
 namespace H2MLauncher.UI
 {
@@ -32,6 +32,8 @@ namespace H2MLauncher.UI
             services.AddHttpClient<RaidMaxService>();
 
             services.AddTransient<GameServerCommunicationService>();
+
+            services.AddSingleton<H2MCommunicationService>();
 
             services.AddTransient<MainWindow>();
 

@@ -1,9 +1,9 @@
-﻿using H2MLauncher.Core.Models;
-using H2MLauncher.Core.ViewModels;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
+
+using H2MLauncher.Core.ViewModels;
 
 namespace H2MLauncher.UI
 {
@@ -20,7 +20,7 @@ namespace H2MLauncher.UI
             DataContext = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
             collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
-            collectionView.Filter = o => string.IsNullOrEmpty(serverBrowserViewModel.Filter) ? true : ((RaidMaxServer)o).HostName.Contains(serverBrowserViewModel.Filter);
+            collectionView.Filter = o => string.IsNullOrEmpty(serverBrowserViewModel.Filter) ? true : ((ServerViewModel)o).HostName.Contains(serverBrowserViewModel.Filter);
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)

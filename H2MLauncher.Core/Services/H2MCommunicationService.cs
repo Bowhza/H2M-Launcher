@@ -14,13 +14,11 @@ namespace H2MLauncher.Core.Services
         public static extern bool ReleaseCapture();
 
         //Windows API constants
-        internal const int WM_NCLBUTTONDOWN = 0xA1;
-        internal const int HT_CAPTION = 0x2;
         internal const int WM_CHAR = 0x0102; // Message code for sending a character
         internal const int WM_KEYDOWN = 0x0100; // Message code for key down
         internal const int WM_KEYUP = 0x0101;   // Message code for key up
 
-        public static void LaunchH2MMod()
+        public void LaunchH2MMod()
         {
             try
             {
@@ -50,9 +48,9 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public static void SendConnectCommand(string ip, string port)
+        public void JoinServer(string ip, string port)
         {
-            string command = $"{ip}:{port}";
+            string command = $"connect {ip}:{port}";
             IntPtr h2mModWindow = FindH2MModWindow();
 
             if (h2mModWindow != IntPtr.Zero)
@@ -83,7 +81,7 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        private static IntPtr FindH2MModWindow()
+        private IntPtr FindH2MModWindow()
         {
             foreach (Process proc in Process.GetProcesses())
             {
