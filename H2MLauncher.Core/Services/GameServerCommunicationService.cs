@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
-using System.Net.NetworkInformation;
 
 using H2MLauncher.Core.Models;
 

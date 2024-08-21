@@ -31,7 +31,6 @@
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="BorderBrush" Value="#1e90ff" />
                     <Setter Property="BorderThickness" Value="1" />
-                    <!--<Setter Property="Background" Value="Red"/>-->
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -97,7 +96,7 @@
                     <DataGridTextColumn Header="Map" Binding="{Binding Map}" />
                     <DataGridTextColumn Header="Mode" Binding="{Binding GameType}"/>
                     <DataGridTextColumn Header="Players" Binding="{Binding Occupation}"/>
-                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}"/>
+                    <DataGridTextColumn Header="Ping" Binding="{Binding PingDisplay}"/>
                 </DataGrid.Columns>
             </DataGrid>
         </StackPanel>
