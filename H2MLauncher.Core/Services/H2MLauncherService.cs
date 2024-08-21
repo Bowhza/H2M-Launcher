@@ -7,7 +7,8 @@ namespace H2MLauncher.Core.Services
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
         private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        private const string CURRENT_VERSION = "H2M-v1.1.0";
+        public const string CURRENT_VERSION = "H2M-v1.1.0";
+        public string LatestKnownVersion { get; private set; } = "Unknown";
 
         public async Task<bool> IsLauncherUpToDateAsync(CancellationToken cancellationToken)
         {
@@ -19,8 +20,8 @@ namespace H2MLauncher.Core.Services
                 HttpResponseMessage response = await _httpClient.GetAsync(GITHUB_REPOSITORY, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 JsonDocument doc = JsonDocument.Parse(response.Content.ReadAsStream(cancellationToken));
-                string latestVersion = doc.RootElement[0].GetProperty("tag_name").ToString();
-                return latestVersion == CURRENT_VERSION;
+                LatestKnownVersion = doc.RootElement[0].GetProperty("tag_name").ToString();
+                return LatestKnownVersion == CURRENT_VERSION;
             }
             catch (Exception ex)
             {

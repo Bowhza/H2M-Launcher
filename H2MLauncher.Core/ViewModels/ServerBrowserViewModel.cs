@@ -29,25 +29,13 @@ namespace H2MLauncher.Core.ViewModels
         private string _filter = "";
         
         [ObservableProperty]
-        private string _updateColor = "DarkGreen";
-
-        private string _updateStatus = "UpToDate";
+        private string _updateStatus = "";
         
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
-
-        public string UpdateStatus
-        {
-            get => _updateStatus;
-            set
-            {
-                SetProperty(ref _updateStatus, value);
-                UpdateColor = _updateStatus == "UpToDate" ? "DarkGreen" : "DarkRed";
-            }
-        }
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService, 
@@ -68,7 +56,8 @@ namespace H2MLauncher.Core.ViewModels
 
         private async Task CheckUpdateStatusAsync()
         {
-            UpdateStatus = await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None) ? "UpToDate" : "New version available!";
+            bool isUpToDate = !await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None);
+            UpdateStatus = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
         }
 
         private async Task LoadServersAsync()
