@@ -53,6 +53,7 @@
                     <Label Content="{Binding TotalPlayers}" Foreground="White" />
                     <Label Content="Total Servers:" Foreground="White"/>
                     <Label Content="{Binding TotalServers}" Foreground="White" />
+                    <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" Width="300"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Grid.Column="1">
                     <Button Content="Join" Width="80" Command="{Binding RefreshServersCommand}"/>
@@ -63,7 +64,7 @@
                     <Separator Opacity="0" Width="10"/>
                 </StackPanel>
             </Grid>
-            <DataGrid ItemsSource="{Binding Servers}" Margin="5" MaxHeight="370" Width="780" 
+            <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" Margin="5" MinHeight="370" MaxHeight="370" Width="780" 
                 CanUserReorderColumns="False" 
                 CanUserAddRows="False" 
                 CanUserDeleteRows="False" 

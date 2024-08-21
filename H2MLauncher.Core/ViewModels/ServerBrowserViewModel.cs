@@ -15,6 +15,13 @@ namespace H2MLauncher.Core.ViewModels
         private readonly ServerPingService _serverPingService;
         private int _totalServers = 0;
         private int _totalPlayers = 0;
+        private string filter = "";
+
+        public string Filter
+        {
+            get => filter;
+            set => SetProperty(ref filter, value);
+        }
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public ObservableCollection<ServerViewModel> Servers { get; private set; } = [];
@@ -33,7 +40,6 @@ namespace H2MLauncher.Core.ViewModels
         public ServerBrowserViewModel(RaidMaxService raidMaxService, ServerPingService serverPingService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
-
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             _serverPingService = serverPingService;
         }
