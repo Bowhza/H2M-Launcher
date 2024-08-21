@@ -14,15 +14,13 @@ namespace H2MLauncher.Core.ViewModels
         private int totalPlayers = 0;
         private string filter = "";
 
+        public IAsyncRelayCommand RefreshServersCommand { get; }
+        public ObservableCollection<RaidMaxServer> Servers { get; set; } = [];
         public string Filter
         {
             get => filter;
             set => SetProperty(ref filter, value);
         }
-
-        public IAsyncRelayCommand RefreshServersCommand { get; }
-        public ObservableCollection<RaidMaxServer> Servers { get; set; } = [];
-
         public int TotalServers
         {
             get => totalServers;
