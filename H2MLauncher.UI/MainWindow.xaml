@@ -97,7 +97,7 @@
                     <DataGridTextColumn Header="Map" Binding="{Binding Map}" />
                     <DataGridTextColumn Header="Mode" Binding="{Binding GameType}"/>
                     <DataGridTextColumn Header="Players" Binding="{Binding Occupation}"/>
-                    <DataGridTextColumn Header="Ping" Binding="{Binding PingDisplay}"/>
+                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}"/>
                 </DataGrid.Columns>
             </DataGrid>
         </StackPanel>

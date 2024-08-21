@@ -136,6 +136,8 @@ namespace H2MLauncher.Core.Services
                 {
                     // send 'getinfo' command
                     await _gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken);
+                    // wait for some bit. This is somehow necessary to receive all server responses.
+                    await Task.Delay(1, cancellationToken);
                 }
                 catch
                 {
