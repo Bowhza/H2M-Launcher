@@ -84,7 +84,7 @@
                         </DataGridTemplateColumn.Header>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="vm:ServerViewModel">
-                                <ItemsControl ItemsSource="{Binding HostName, Converter={StaticResource hostNameColorConverter}}" FlowDirection="LeftToRight">
+                                <ItemsControl IsHitTestVisible="False" ItemsSource="{Binding HostName, Converter={StaticResource hostNameColorConverter}}" FlowDirection="LeftToRight">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
                                             <StackPanel Orientation="Horizontal"/>
