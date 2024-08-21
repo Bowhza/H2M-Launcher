@@ -6,6 +6,7 @@
         xmlns:local="clr-namespace:H2MLauncher.UI"
         xmlns:vm="clr-namespace:H2MLauncher.Core.ViewModels;assembly=H2MLauncher.Core" 
         xmlns:models="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
+        xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
         d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
         AllowsTransparency="True"
         WindowStyle="None"

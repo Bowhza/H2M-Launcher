@@ -8,9 +8,6 @@ using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private readonly ICollectionView _collectionView;

@@ -6,7 +6,9 @@
              xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
              mc:Ignorable="d" 
              xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
-             d:DesignHeight="150" d:DesignWidth="300"
+             MaxHeight="150" MaxWidth="300"
+             MinHeight="150" MinWidth="300"
+             Height="150" Width="300"
              d:DataContext="{d:DesignInstance Type=dia:TextDialogViewModel}"
              DataContext="{DynamicResource TextDialogViewModel}">
     <StackPanel>

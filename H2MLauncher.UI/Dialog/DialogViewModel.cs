@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Windows;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.Dialog
@@ -26,6 +28,9 @@ namespace H2MLauncher.UI.Dialog
         private void DoDisplayTextDialogCommand(DialogContent dialogContent)
         {
             ActiveDialogViewModel = (_textDialogViewModel = new TextDialogViewModel(dialogContent));
+            if (Application.Current.Resources.Contains("TextDialogViewModel"))
+                Application.Current.Resources.Remove("TextDialogViewModel");
+            Application.Current.Resources.Add("TextDialogViewModel", _textDialogViewModel);
         }
     }
 }

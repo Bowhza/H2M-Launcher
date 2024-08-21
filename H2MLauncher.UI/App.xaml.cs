@@ -34,8 +34,12 @@ namespace H2MLauncher.UI
             services.AddSingleton<H2MCommunicationService>();
 
             services.AddTransient<MainWindow>();
-            services.AddSingleton<DialogViewModel>();
-            services.AddSingleton<DialogWindow>();
+            services.AddSingleton<DialogViewModel>((s) =>
+            {
+                DialogViewModel dialogViewModel = new();
+                Application.Current.Resources.Add("DialogViewModel", dialogViewModel);
+                return dialogViewModel;
+            });
             services.AddSingleton<DialogService>();
 
             services.AddTransient<ServerBrowserViewModel>();

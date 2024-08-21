@@ -5,17 +5,19 @@ namespace H2MLauncher.UI.Dialog
     public class DialogService
     {
         private static DialogWindow s_dialogWindow;
-        private readonly DialogViewModel _dialogViewModel;
+        private DialogViewModel _dialogViewModel;
 
-        public DialogService(DialogWindow dialogWindow, DialogViewModel dialogViewModel)
+        public DialogService(DialogViewModel dialogViewModel)
         {
-            s_dialogWindow = dialogWindow;
-            _dialogViewModel = dialogViewModel;
+            _dialogViewModel = dialogViewModel ?? throw new ArgumentNullException(nameof(dialogViewModel));
         }
 
         private static void InstantiateDialog()
         {
-            s_dialogWindow.Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive);
+            s_dialogWindow = new DialogWindow
+            {
+                Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive)
+            };
         }
 
         public static void CloseDialogWindow()
