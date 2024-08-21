@@ -8,50 +8,40 @@ using H2MLauncher.Core.Services;
 
 namespace H2MLauncher.Core.ViewModels
 {
-    public class ServerBrowserViewModel : ObservableObject
+    public partial class ServerBrowserViewModel : ObservableObject
     {
         private readonly RaidMaxService _raidMaxService;
-        private readonly GameServerCommunicationService _serverPingService;
+        private readonly GameServerCommunicationService _gameServerCommunicationService;
         private readonly H2MCommunicationService _h2MCommunicationService;
+
         private CancellationTokenSource _loadCancellation = new();
-        private ServerViewModel? _serverViewModel;
+
+        [ObservableProperty]
+        private ServerViewModel? _selectedServer;
+
+        [ObservableProperty]
         private int _totalServers = 0;
+
+        [ObservableProperty]
         private int _totalPlayers = 0;
+
+        [ObservableProperty]
         private string _filter = "";
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
-        public string Filter
-        {
-            get => _filter;
-            set => SetProperty(ref _filter, value);
-        }
-        public int TotalServers
-        {
-            get => _totalServers;
-            private set => SetProperty(ref _totalServers, value);
-        }
-        public int TotalPlayers
-        {
-            get => _totalPlayers;
-            private set => SetProperty(ref _totalPlayers, value);
-        }
-        public ServerViewModel SelectedServer
-        {
-            get => _serverViewModel;
-            set => SetProperty(ref _serverViewModel, value);
-        }
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService, 
-            GameServerCommunicationService serverPingService,
+            GameServerCommunicationService gameServerCommunicationService,
             H2MCommunicationService h2MCommunicationService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
-            _serverPingService = serverPingService ?? throw new ArgumentNullException(nameof(serverPingService));
+            _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
+
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -72,7 +62,7 @@ namespace H2MLauncher.Core.ViewModels
                 var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
 
                 // Start by sending info requests to the game servers
-                await _serverPingService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
+                await _gameServerCommunicationService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
                 {
                     // Game server responded -> online
                     Servers.Add(new ServerViewModel()
