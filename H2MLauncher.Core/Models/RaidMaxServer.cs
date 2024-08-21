@@ -27,13 +27,6 @@ namespace H2MLauncher.Core.Models
         public required string GameType { get; set; }
         public required int ClientNum { get; set; }
         public required int MaxClientNum { get; set; }
-        
-        [IgnoreDataMember]
-        public long Ping { get; set; }
-        [IgnoreDataMember]
-        public string Occupation => $"{ClientNum}/{MaxClientNum}";
-        [IgnoreDataMember]
-        public string PingDisplay => Ping == -1 ? "N/A" : Ping.ToString();
 
         public override string ToString()
         {
