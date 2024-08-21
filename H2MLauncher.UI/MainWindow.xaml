@@ -35,6 +35,7 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <local:HostNameColorConverter x:Key="hostNameColorConverter" />
     </Window.Resources>
     <Border CornerRadius="16">
         <Border.Background>
@@ -72,7 +73,6 @@
                 HorizontalScrollBarVisibility="Hidden"
                 Background="Black"
                 Opacity="0.8"
-                      
                 RowBackground="Transparent">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Width="520">
@@ -81,7 +81,13 @@
                         </DataGridTemplateColumn.Header>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="models:RaidMaxServer">
-                                <TextBlock Text="{Binding HostName}" />
+                                <ItemsControl ItemsSource="{Binding HostName, Converter={StaticResource hostNameColorConverter}}" FlowDirection="LeftToRight">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
