@@ -8,67 +8,56 @@ using H2MLauncher.Core.Services;
 
 namespace H2MLauncher.Core.ViewModels
 {
-    public class ServerBrowserViewModel : ObservableObject
+    public partial class ServerBrowserViewModel : ObservableObject
     {
         private readonly RaidMaxService _raidMaxService;
-        private readonly GameServerCommunicationService _serverPingService;
+        private readonly GameServerCommunicationService _gameServerCommunicationService;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private readonly H2MLauncherService _h2MLauncherService;
         private CancellationTokenSource _loadCancellation = new();
-        private ServerViewModel? _serverViewModel;
-        private int _totalServers = 0;
-        private int _totalPlayers = 0;
-        private string _filter = "";
-        private string _updateStatus = "UpToDate";
-        private string _updateColor;
 
+        [ObservableProperty]
+        private ServerViewModel? _selectedServer;
+
+        [ObservableProperty]
+        private int _totalServers = 0;
+
+        [ObservableProperty]
+        private int _totalPlayers = 0;
+
+        [ObservableProperty]
+        private string _filter = "";
+        
+        [ObservableProperty]
+        private string _updateColor = "DarkGreen";
+
+        private string _updateStatus = "UpToDate";
+        
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
-        public string Filter
+
+        public string UpdateStatus
         {
-            get => _filter;
-            set => SetProperty(ref _filter, value);
-        }
-        public int TotalServers
-        {
-            get => _totalServers;
-            private set => SetProperty(ref _totalServers, value);
-        }
-        public int TotalPlayers
-        {
-            get => _totalPlayers;
-            private set => SetProperty(ref _totalPlayers, value);
-        }
-        public ServerViewModel SelectedServer
-        {
-            get => _serverViewModel;
-            set => SetProperty(ref _serverViewModel, value);
-        }
-        public string UpdateStatus 
-        { 
             get => _updateStatus;
-            set {
+            set
+            {
                 SetProperty(ref _updateStatus, value);
                 UpdateColor = _updateStatus == "UpToDate" ? "DarkGreen" : "DarkRed";
-            }  
-        }
-        public string UpdateColor 
-        { 
-            get => _updateColor;
-            set => SetProperty(ref _updateColor, value); 
+            }
         }
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService, 
             GameServerCommunicationService serverPingService,
             H2MCommunicationService h2MCommunicationService,
+            GameServerCommunicationService gameServerCommunicationService,
             H2MLauncherService h2MLauncherService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
-            _serverPingService = serverPingService ?? throw new ArgumentNullException(nameof(serverPingService));
+            _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
             _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
@@ -79,10 +68,7 @@ namespace H2MLauncher.Core.ViewModels
 
         private async Task CheckUpdateStatusAsync()
         {
-            if (await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None))
-                UpdateStatus = "UpToDate";
-            else
-                UpdateStatus = "New version available!";
+            UpdateStatus = await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None) ? "UpToDate" : "New version available!";
         }
 
         private async Task LoadServersAsync()
@@ -100,7 +86,7 @@ namespace H2MLauncher.Core.ViewModels
                 var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
 
                 // Start by sending info requests to the game servers
-                await _serverPingService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
+                await _gameServerCommunicationService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
                 {
                     // Game server responded -> online
                     Servers.Add(new ServerViewModel()
@@ -145,9 +131,5 @@ namespace H2MLauncher.Core.ViewModels
         {
             _h2MCommunicationService.LaunchH2MMod();
         }
-
-
-
-
     }
 }

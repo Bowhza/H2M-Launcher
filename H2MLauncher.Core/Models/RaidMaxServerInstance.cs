@@ -4,15 +4,21 @@ namespace H2MLauncher.Core.Models
 {
     public class RaidMaxServerInstance
     {
-        public List<RaidMaxServer> Servers { get; set; } = [];
-        public string Id { get; set; }
-        public string Version { get; set; }
+        public required string Id { get; set; }
+
+        public required string Version { get; set; }
+
         [JsonPropertyName("ip_address")]
-        public string IpAddress { get; set; }
+        public required string IpAddress { get; set; }
+
         [JsonPropertyName("webfront_url")]
-        public string WebfrontUrl { get; set; }
-        public long Uptime { get; set; }
+        public required string WebfrontUrl { get; set; }
+
+        public required long Uptime { get; set; }
+
         [JsonPropertyName("last_heartbeat")]
-        public long LastHeartBeat { get; set; }
+        public required long LastHeartBeat { get; set; }
+
+        public List<RaidMaxServer> Servers { get; set; } = [];
     }
 }

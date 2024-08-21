@@ -13,7 +13,7 @@
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
         KeyDown="Window_KeyDown"
-        Icon="pack://application:,,,/H2MLauncher.UI;component/Assets/icon.ico"
+        Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         Title="MainWindow" Height="450" Width="800">
     <i:Interaction.Triggers>
@@ -81,6 +81,7 @@
                 CanUserAddRows="False" 
                 CanUserDeleteRows="False" 
                 CanUserSortColumns="True" 
+                IsReadOnly="True"
                 AutoGenerateColumns="False"
                 GridLinesVisibility="None" 
                 HorizontalScrollBarVisibility="Hidden"
