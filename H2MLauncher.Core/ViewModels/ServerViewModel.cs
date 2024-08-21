@@ -55,7 +55,7 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private bool _isPrivate;
 
-        public string Occupation => $"{ClientNum}/{MaxClientNum}";
-        public string PingDisplay => Ping == -1 ? "N/A" : Ping.ToString();
+        public string Occupation => $"{ClientNum:D2}/{MaxClientNum:D2}";
+        public string PingDisplay => Ping == -1 ? "N/A" : $"{Ping:D3}";
     }
 }

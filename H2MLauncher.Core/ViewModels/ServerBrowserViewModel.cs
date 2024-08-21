@@ -14,7 +14,7 @@ namespace H2MLauncher.Core.ViewModels
         private readonly GameServerCommunicationService _serverPingService;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private CancellationTokenSource _loadCancellation = new();
-        private ServerViewModel _serverViewModel;
+        private ServerViewModel? _serverViewModel;
         private int _totalServers = 0;
         private int _totalPlayers = 0;
         private string _filter = "";

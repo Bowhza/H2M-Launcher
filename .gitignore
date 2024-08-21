@@ -6,4 +6,4 @@
 x64/
 [Bb]in/
 [Oo]bj/
-*.csproj.user
+*.user

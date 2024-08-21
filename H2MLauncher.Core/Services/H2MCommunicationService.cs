@@ -20,6 +20,8 @@ namespace H2MLauncher.Core.Services
 
         public void LaunchH2MMod()
         {
+            ReleaseCapture();
+
             try
             {
                 // Check if the process is already running
@@ -53,10 +55,12 @@ namespace H2MLauncher.Core.Services
             string command = $"connect {ip}:{port}";
             IntPtr h2mModWindow = FindH2MModWindow();
 
+            ReleaseCapture();
+
             if (h2mModWindow != IntPtr.Zero)
             {
                 //Open In Game Terminal Window
-                SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)146, IntPtr.Zero);
+                SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)192, IntPtr.Zero);
 
                 //Send the "connect" command to the terminal window
                 foreach (char c in command)
@@ -69,10 +73,10 @@ namespace H2MLauncher.Core.Services
                 Thread.Sleep(1);
 
                 //Simulate pressing the Enter key
-                SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)6, IntPtr.Zero);
-                SendMessage(h2mModWindow, WM_KEYUP, (IntPtr)6, IntPtr.Zero);
+                SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)13, IntPtr.Zero);
+                SendMessage(h2mModWindow, WM_KEYUP, (IntPtr)13, IntPtr.Zero);
 
-                SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)146, IntPtr.Zero);
+                SendMessage(h2mModWindow, WM_KEYDOWN, (IntPtr)192, IntPtr.Zero);
             }
             else
             {
