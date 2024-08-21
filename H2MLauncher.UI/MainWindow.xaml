@@ -1,0 +1,47 @@
+﻿<Window x:Class="H2MLauncher.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:H2MLauncher.UI"
+        xmlns:vm="clr-namespace:H2MLauncher.Core.ViewModels;assembly=H2MLauncher.Core" 
+        xmlns:entities="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
+        d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800">
+    <Grid>
+        <StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <StackPanel Orientation="Horizontal">
+                    <Label Content="Total Servers:" />
+                    <Label Content="{Binding TotalPlayers}" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                    <Label Content="Total Servers:" />
+                    <Label Content="{Binding TotalServers}" />
+                </StackPanel>
+                <Button Content="Refresh" Command="{Binding RefreshServersCommand}"/>
+            </StackPanel>
+            <DataGrid ItemsSource="{Binding Servers}" MaxHeight="400" MaxWidth="800" 
+                CanUserReorderColumns="False" 
+                CanUserAddRows="False" 
+                CanUserDeleteRows="False" 
+                CanUserSortColumns="True" 
+                AutoGenerateColumns="False">
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn Width="520">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate DataType="entities:RaidMaxServer">
+                                <TextBlock Text="{Binding HostName}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Map" Binding="{Binding Map}"/>
+                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}"/>
+                    <DataGridTextColumn Header="Players" Binding="{Binding Occupation}"/>
+                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}"/>
+                </DataGrid.Columns>
+            </DataGrid>
+        </StackPanel>
+    </Grid>
+</Window>
