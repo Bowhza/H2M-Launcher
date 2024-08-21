@@ -5,43 +5,92 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:H2MLauncher.UI"
         xmlns:vm="clr-namespace:H2MLauncher.Core.ViewModels;assembly=H2MLauncher.Core" 
-        xmlns:entities="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
+        xmlns:models="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
         d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
+        AllowsTransparency="True"
+        WindowStyle="None"
+        Background="Transparent"
         mc:Ignorable="d"
+        MouseDown="Window_MouseDown"
+        KeyDown="Window_KeyDown"
+        Icon="pack://application:,,,/H2MLauncher.UI;component/Assets/icon.ico"
         Title="MainWindow" Height="450" Width="800">
-    <Grid>
-        <StackPanel>
-            <StackPanel Orientation="Horizontal">
-                <StackPanel Orientation="Horizontal">
-                    <Label Content="Total Servers:" />
-                    <Label Content="{Binding TotalPlayers}" />
+    <Window.Resources>
+        <Style TargetType="DataGridCell">
+            <Setter Property="TextBlock.TextAlignment" Value="Left" />
+            <Setter Property="TextBlock.Background" Value="Transparent" />
+            <Setter Property="TextBlock.Foreground" Value="White" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="BorderBrush" Value="#1e90ff" />
+                    <Setter Property="BorderThickness" Value="1" />
+                    <!--<Setter Property="Background" Value="Red"/>-->
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    <Border CornerRadius="16">
+        <Border.Background>
+            <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
+        </Border.Background>
+        <StackPanel Width="790">
+            <TextBlock Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
+            <Grid Width="790" Margin="5,0,5,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                    <Label Content="Total Players:" Foreground="White" />
+                    <Label Content="{Binding TotalPlayers}" Foreground="White" />
+                    <Label Content="Total Servers:" Foreground="White"/>
+                    <Label Content="{Binding TotalServers}" Foreground="White" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal">
-                    <Label Content="Total Servers:" />
-                    <Label Content="{Binding TotalServers}" />
+                <StackPanel Orientation="Horizontal" Grid.Column="1">
+                    <Button Content="Join" Width="80" Command="{Binding RefreshServersCommand}"/>
+                    <Separator Opacity="0" Width="5"/>
+                    <Button Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
+                    <Separator Opacity="0" Width="5"/>
+                    <Button Content="Launch H2M" Width="80" Command="{Binding RefreshServersCommand}"/>
+                    <Separator Opacity="0" Width="10"/>
                 </StackPanel>
-                <Button Content="Refresh" Command="{Binding RefreshServersCommand}"/>
-            </StackPanel>
-            <DataGrid ItemsSource="{Binding Servers}" MaxHeight="400" MaxWidth="800" 
+            </Grid>
+            <DataGrid ItemsSource="{Binding Servers}" Margin="5" MaxHeight="370" Width="780" 
                 CanUserReorderColumns="False" 
                 CanUserAddRows="False" 
                 CanUserDeleteRows="False" 
                 CanUserSortColumns="True" 
-                AutoGenerateColumns="False">
+                AutoGenerateColumns="False"
+                GridLinesVisibility="None" 
+                HorizontalScrollBarVisibility="Hidden"
+                Background="Black"
+                Opacity="0.8"
+                      
+                RowBackground="Transparent">
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Width="520">
+                        <DataGridTemplateColumn.Header>
+                            <TextBlock Text="Hostname"/>
+                        </DataGridTemplateColumn.Header>
                         <DataGridTemplateColumn.CellTemplate>
-                            <DataTemplate DataType="entities:RaidMaxServer">
+                            <DataTemplate DataType="models:RaidMaxServer">
                                 <TextBlock Text="{Binding HostName}" />
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Map" Binding="{Binding Map}"/>
+                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" />
                     <DataGridTextColumn Header="Mode" Binding="{Binding GameType}"/>
                     <DataGridTextColumn Header="Players" Binding="{Binding Occupation}"/>
                     <DataGridTextColumn Header="Ping" Binding="{Binding Ping}"/>
                 </DataGrid.Columns>
             </DataGrid>
         </StackPanel>
-    </Grid>
+    </Border>
 </Window>

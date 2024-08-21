@@ -1,5 +1,6 @@
 ﻿using H2MLauncher.Core.ViewModels;
 using System.Windows;
+using System.Windows.Input;
 
 namespace H2MLauncher.UI
 {
@@ -13,6 +14,22 @@ namespace H2MLauncher.UI
             InitializeComponent();
             DataContext = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
+        }
+
+        private void Window_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.DragMove();
+            }
+        }
+
+        private void Window_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                this.Close();
+            }
         }
     }
 }
