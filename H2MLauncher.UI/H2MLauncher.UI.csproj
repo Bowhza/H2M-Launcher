@@ -24,12 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\Background.jpg">
+    <Resource Include="Assets\Background.jpg">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="Assets\Icon.ico">
+    </Resource>
+    <Resource Include="Assets\Icon.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    </Resource>
   </ItemGroup>
 
 </Project>

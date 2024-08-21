@@ -13,7 +13,7 @@
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
         KeyDown="Window_KeyDown"
-        Icon="pack://application:,,,/H2MLauncher.UI;component/Assets/icon.ico"
+        Icon="Assets/icon.ico"
         Title="MainWindow" Height="450" Width="800">
     <Window.Resources>
         <Style TargetType="DataGridCell">
@@ -68,6 +68,7 @@
                 CanUserAddRows="False" 
                 CanUserDeleteRows="False" 
                 CanUserSortColumns="True" 
+                IsReadOnly="True"
                 AutoGenerateColumns="False"
                 GridLinesVisibility="None" 
                 HorizontalScrollBarVisibility="Hidden"
