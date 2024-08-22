@@ -51,7 +51,7 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 **Answer**: Either the server is not running or you need to change one or more windows settings.
 
-- If you are on Windows 11, you need to change your default terminal to `Windows Console Host`. This is found under `Settings > System > For Developers`.
+- If you are on Windows 11, you need to change your default terminal to `Windows Console Host`. This is found under `Settings > System > For Developers`. Make sure to restart your game after changing the terminal.
 
 <img src="./Images/Terminal.png">
 
@@ -62,6 +62,14 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 **Answer**: Open the [Server List](https://master.iw4.zip/servers#) or [API Link](https://master.iw4.zip/instance/) in your browser and see if you are able to reach the domain. If not, then check if your ISP is blocking you from accessing the domain.
 
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
+
+### Why is a specific server not showing up in the list?
+
+**Answer**: The launcher only displays servers that are actually running. Many servers in the IW4MAdmin-Master Panel are offline and reporting false stats.
+
+- Make sure that the server reports an IPv4 Address to the panel, as IPv6 servers are not supported and will not show up.
+
+> **If you and others can connect to the server in game, but it does not show up, please report the concrete case!**
 
 ## Compiling from Source Code
 
