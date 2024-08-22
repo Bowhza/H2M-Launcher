@@ -53,7 +53,7 @@ internal class InfoString
         }
 
         // Splitting the buffer into key-value pairs based on the '\\' delimiter
-        var keyValues = buffer.Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        var keyValues = buffer.Split('\\', StringSplitOptions.None);
 
         for (int i = 0; i < keyValues.Length - 1; i += 2)
         {
