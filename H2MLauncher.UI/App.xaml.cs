@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Reflection;
+using System.Windows;
 
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
@@ -8,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using Serilog;
+using Serilog.Core;
 
 namespace H2MLauncher.UI
 {
@@ -17,6 +19,7 @@ namespace H2MLauncher.UI
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            SetupExceptionHandling();
             InitializeLogging();
 
             ServiceCollection serviceCollection = new();
@@ -37,7 +40,9 @@ namespace H2MLauncher.UI
                 .WriteTo.Debug()
                 .CreateLogger();
 
-            Log.Logger.Information("BetterH2MLauncher started on version {version}.", H2MLauncherService.CURRENT_VERSION);
+            Log.Information("{applicationName} started on version {version}.", 
+                Assembly.GetExecutingAssembly().GetName(),
+                H2MLauncherService.CURRENT_VERSION);
         }
 
         private void ConfigureServices(IServiceCollection services)
@@ -65,6 +70,61 @@ namespace H2MLauncher.UI
             services.AddTransient<ServerBrowserViewModel>();
 
             services.AddTransient<MainWindow>();
+        }
+
+        private void SetupExceptionHandling()
+        {
+            AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+                LogUnhandledException((Exception)e.ExceptionObject, "AppDomain.CurrentDomain.UnhandledException");
+
+            DispatcherUnhandledException += (s, e) =>
+            {
+                try
+                {
+                    var dialogService = ServiceProvider?.GetService<DialogService>();
+                    if (dialogService != null)
+                    {
+                        dialogService.OpenTextDialog("Error", e.Exception.Message);
+                    }
+                    else
+                    {
+                        MessageBox.Show(e.Exception.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Exception while showing error dialog");
+                }
+                finally
+                {
+                    LogUnhandledException(e.Exception, "Application.Current.DispatcherUnhandledException");
+                    e.Handled = true;
+                }
+            };
+
+            TaskScheduler.UnobservedTaskException += (s, e) =>
+            {
+                LogUnhandledException(e.Exception, "TaskScheduler.UnobservedTaskException");
+                e.SetObserved();
+            };
+        }
+
+        private static void LogUnhandledException(Exception exception, string source)
+        {
+            string message = $"Unhandled exception ({source})";
+            try
+            {
+                AssemblyName assemblyName = Assembly.GetExecutingAssembly().GetName();
+                message = string.Format("Unhandled exception in {0} v{1}", assemblyName.Name, assemblyName.Version);
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Exception in LogUnhandledException");
+            }
+            finally
+            {
+                Log.Error(exception, message);
+            }
         }
     }
 }
