@@ -2,8 +2,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
 
-using static H2MLauncher.Core.Services.H2MCommunicationService;
-
 namespace H2MLauncher.Core.Services
 {
     public class H2MCommunicationService(IErrorHandlingService errorHandlingService)
