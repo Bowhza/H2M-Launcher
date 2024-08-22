@@ -29,10 +29,10 @@ namespace H2MLauncher.Core.ViewModels
 
         [ObservableProperty]
         private string _filter = "";
-        
+
         [ObservableProperty]
         private string _updateStatus = "";
-        
+
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
@@ -41,7 +41,7 @@ namespace H2MLauncher.Core.ViewModels
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
         public ServerBrowserViewModel(
-            RaidMaxService raidMaxService, 
+            RaidMaxService raidMaxService,
             GameServerCommunicationService serverPingService,
             H2MCommunicationService h2MCommunicationService,
             GameServerCommunicationService gameServerCommunicationService,
@@ -57,15 +57,22 @@ namespace H2MLauncher.Core.ViewModels
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
-            CopyToClipBoardCommand = new RelayCommand(DoCopyToClipBoardCommand);
+            CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
         }
 
-        private void DoCopyToClipBoardCommand()
+        private void DoCopyToClipBoardCommand(ServerViewModel? server)
         {
-            if (SelectedServer is null)
-                return;
+            if (server is null)
+            {
+                if (SelectedServer is null)
+                {
+                    return;
+                }
 
-            string textToCopy = $"connect {SelectedServer.Ip}:{SelectedServer.Port}";
+                server = SelectedServer;
+            }
+
+            string textToCopy = $"connect {server.Ip}:{server.Port}";
             _clipBoardService.SaveToClipBoard(textToCopy);
         }
 

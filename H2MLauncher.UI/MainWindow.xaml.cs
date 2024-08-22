@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 
@@ -11,10 +12,12 @@ namespace H2MLauncher.UI
     {
         private readonly ICollectionView _collectionView;
 
+        private readonly ServerBrowserViewModel _viewModel;
+
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
-            DataContext = serverBrowserViewModel;
+            DataContext = _viewModel = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
             _collectionView.Filter = o => string.IsNullOrEmpty(serverBrowserViewModel.Filter) ? true : ((ServerViewModel)o).HostName.ToLower().Contains(serverBrowserViewModel.Filter.ToLower());
@@ -40,6 +43,37 @@ namespace H2MLauncher.UI
         private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             _collectionView.Refresh();
+        }
+
+        private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            //if (_viewModel.JoinServerCommand.CanExecute(null))
+            //{
+            //    _viewModel.JoinServerCommand.Execute(null);
+            //}
+        }
+
+        private void DataGridRow_MouseRightButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DataGridRow row)
+            {
+                return;
+            }
+
+            if (row.DataContext is not ServerViewModel serverVM)
+            {
+                return;
+            }
+
+            if (_viewModel.CopyToClipBoardCommand.CanExecute(serverVM))
+            {
+                _viewModel.CopyToClipBoardCommand.Execute(serverVM);
+            }
+        }
+
+        private void DataGridRow_GotFocus(object sender, RoutedEventArgs e)
+        {
+            ((DataGridRow)sender).IsSelected = true;
         }
     }
 }
