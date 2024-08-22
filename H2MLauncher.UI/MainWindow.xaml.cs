@@ -18,7 +18,7 @@ namespace H2MLauncher.UI
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
             _collectionView.Filter = o => string.IsNullOrEmpty(serverBrowserViewModel.Filter) ? true : ((ServerViewModel)o).HostName.ToLower().Contains(serverBrowserViewModel.Filter.ToLower());
-            _collectionView.SortDescriptions.Add(new SortDescription("Occupation", ListSortDirection.Descending));
+            _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)

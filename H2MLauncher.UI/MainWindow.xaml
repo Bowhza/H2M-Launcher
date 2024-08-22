@@ -42,6 +42,7 @@
             </Style.Triggers>
         </Style>
         <local:HostNameColorConverter x:Key="hostNameColorConverter" />
+        <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
     <Border CornerRadius="10" Padding="10">
         <Border.Background>
@@ -95,6 +96,7 @@
                 VerticalScrollBarVisibility="Hidden"
                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
                 RowBackground="Transparent"
+                local:CustomSortBehaviour.AllowCustomSort="True"
                 >
                 <i:Interaction.Triggers>
                     <i:EventTrigger EventName="MouseRightButtonDown">
@@ -120,7 +122,15 @@
                     </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Map" Binding="{Binding Map}" />
                     <DataGridTextColumn Header="Mode" Binding="{Binding GameType}"/>
-                    <DataGridTextColumn Header="Players" Binding="{Binding Occupation}"/>
+                    <DataGridTextColumn Header="Players" 
+                                        SortMemberPath="ClientNum"
+                                        Binding="{Binding Occupation}">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="HorizontalAlignment" Value="Right" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
                     <DataGridTextColumn Header="Ping" Binding="{Binding Ping}">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
