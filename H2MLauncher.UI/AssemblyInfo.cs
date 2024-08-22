@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Windows;
 
 [assembly: ThemeInfo(
@@ -8,3 +9,8 @@ using System.Windows;
                                                 //(used if a resource is not found in the page,
                                                 // app, or any theme specific resource dictionaries)
 )]
+
+
+[assembly: AssemblyVersion("2.0.0.0")]
+[assembly: AssemblyFileVersion("2.0.0.0")]
+[assembly: AssemblyTitle("Better H2M-Launcher")]
