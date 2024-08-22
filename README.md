@@ -10,7 +10,7 @@
 - Utilizes the **[IW4MAdmin API](https://master.iw4.zip/instance/)** to get accurate and up to date server information.
 - Option to store the servers to a favourites.json file inside the /players2 folder. Saves the whole server list or filtered if one is applied.
 - Automatically sets H2M as foreground window and copies the connect string to clipboard on server join.
-- Notify users when a new launcher version is available for download (click on the text to download new verion from release page).
+- Notify users when a new launcher version is available for download (click on the text to download new version from release page).
 - Filters out dead/zombie servers that do not respond to UDP packets being sent.
 
 <img src="./Images/H2MLauncher.png">
