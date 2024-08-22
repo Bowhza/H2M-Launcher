@@ -63,7 +63,13 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White" Padding="5,0,0,0"/>
-                <TextBlock Grid.Column="1" Text="{Binding UpdateStatus}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5" />
+                <TextBlock Grid.Column="1" Text="{Binding UpdateStatus}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="PreviewMouseDown">
+                            <i:InvokeCommandAction Command="{Binding OpenUpdatePageInBrowserCommand}"/>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </TextBlock>
             </Grid>
             <Grid Width="790" Margin="5,0,5,0" Grid.Row="1">
                 <Grid.ColumnDefinitions>

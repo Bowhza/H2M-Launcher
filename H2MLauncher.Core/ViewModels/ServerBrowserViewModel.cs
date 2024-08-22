@@ -48,6 +48,7 @@ namespace H2MLauncher.Core.ViewModels
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
+        public IRelayCommand OpenUpdatePageInBrowserCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -76,6 +77,17 @@ namespace H2MLauncher.Core.ViewModels
             _logger = logger;
             _saveFileService = saveFileService;
             _errorHandlingService = errorHandlingService;
+            OpenUpdatePageInBrowserCommand = new RelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "");
+        }
+
+        private void DoOpenUpdatePageInBrowserCommand()
+        {
+            string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
+            ProcessStartInfo sInfo = new(destinationurl)
+            {
+                UseShellExecute = true,
+            };
+            Process.Start(sInfo);
         }
 
         private void DoCopyToClipBoardCommand(ServerViewModel? server)
@@ -206,14 +218,9 @@ namespace H2MLauncher.Core.ViewModels
             if (SelectedServer is null)
                 return;
 
-            if (_h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString()))
-            {
-                StatusText = $"Joined {SelectedServer.Ip}:{SelectedServer.Port}";
-            }
-            else
-            {
-                StatusText = "Ready";
-            }
+            StatusText = _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString())
+                ? $"Joined {SelectedServer.Ip}:{SelectedServer.Port}"
+                : "Ready";
         }
 
         private void LaunchH2M()
