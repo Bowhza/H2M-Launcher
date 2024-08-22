@@ -16,7 +16,7 @@
         KeyDown="Window_KeyDown"
         Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Better H2M-Launcher" Height="450" Width="800">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding CheckUpdateStatusCommand}"/>
