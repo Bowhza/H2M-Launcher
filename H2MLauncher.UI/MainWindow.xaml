@@ -36,14 +36,15 @@
 
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="BorderBrush" Value="#1e90ff" />
-                    <Setter Property="BorderThickness" Value="1" />
+                    <Setter Property="BorderBrush" Value="LawnGreen" />
+                    <Setter Property="BorderThickness" Value="0 1" />
+                    <Setter Property="Background" Value="#151515"></Setter>
                 </Trigger>
             </Style.Triggers>
         </Style>
         <local:HostNameColorConverter x:Key="hostNameColorConverter" />
     </Window.Resources>
-    <Border CornerRadius="16" Padding="10">
+    <Border CornerRadius="10" Padding="10">
         <Border.Background>
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
         </Border.Background>
@@ -62,13 +63,14 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <StackPanel Orientation="Horizontal" Grid.Column="0">
-                    <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0" />
+                    <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
                     <Label Content="{Binding TotalPlayers}" Foreground="White" />
                     <Label Content="Total Servers:" Foreground="White"/>
                     <Label Content="{Binding TotalServers}" Foreground="White" />
-                    <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" Width="300"/>
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" Grid.Column="1">
+                    <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" Width="300"/>
+                    <Separator Opacity="0" Width="5"/>
                     <Button Content="Join" Width="80" Command="{Binding JoinServerCommand}"/>
                     <Separator Opacity="0" Width="5"/>
                     <Button Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
@@ -89,11 +91,12 @@
                 Background="Black"
                 SelectionMode="Single"
                 CanUserResizeColumns="False"
-                Opacity="0.8"
+                Opacity="0.95"
                 HeadersVisibility="Column"
                 VerticalScrollBarVisibility="Hidden"
                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
-                RowBackground="Transparent">
+                RowBackground="Transparent"
+                >
                 <i:Interaction.Triggers>
                     <i:EventTrigger EventName="MouseRightButtonDown">
                         <i:InvokeCommandAction Command="{Binding CopyToClipBoardCommand}"/>

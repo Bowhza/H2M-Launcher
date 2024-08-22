@@ -29,7 +29,7 @@ namespace H2MLauncher.UI
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 this.DragMove();
-                _dialogService.OpenTextDialog("AYOO", "DO YOU EVEN LIFT?");
+                //_dialogService.OpenTextDialog("AYOO", "DO YOU EVEN LIFT?");
             }
         }
 
