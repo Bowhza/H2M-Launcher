@@ -41,7 +41,7 @@ namespace H2MLauncher.UI
                 return dialogViewModel;
             });
             services.AddSingleton<DialogService>();
-
+            services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ServerBrowserViewModel>();
         }
     }

@@ -14,6 +14,7 @@ namespace H2MLauncher.Core.ViewModels
         private readonly GameServerCommunicationService _gameServerCommunicationService;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private readonly H2MLauncherService _h2MLauncherService;
+        private readonly IClipBoardService _clipBoardService;
         private CancellationTokenSource _loadCancellation = new();
 
         [ObservableProperty]
@@ -35,6 +36,7 @@ namespace H2MLauncher.Core.ViewModels
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
+        public IRelayCommand CopyToClipBoardCommand { get; }
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
         public ServerBrowserViewModel(
@@ -42,16 +44,28 @@ namespace H2MLauncher.Core.ViewModels
             GameServerCommunicationService serverPingService,
             H2MCommunicationService h2MCommunicationService,
             GameServerCommunicationService gameServerCommunicationService,
-            H2MLauncherService h2MLauncherService)
+            H2MLauncherService h2MLauncherService,
+            IClipBoardService clipBoardService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
             _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
+            _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService)); ;
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
+            CopyToClipBoardCommand = new RelayCommand(DoCopyToClipBoardCommand);
+        }
+
+        private void DoCopyToClipBoardCommand()
+        {
+            if (SelectedServer is null)
+                return;
+
+            string textToCopy = $"connect {SelectedServer.Ip}:{SelectedServer.Port}";
+            _clipBoardService.SaveToClipBoard(textToCopy);
         }
 
         private async Task CheckUpdateStatusAsync()

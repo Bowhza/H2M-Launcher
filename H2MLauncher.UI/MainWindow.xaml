@@ -94,6 +94,11 @@
                 VerticalScrollBarVisibility="Hidden"
                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
                 RowBackground="Transparent">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="MouseRightButtonDown">
+                        <i:InvokeCommandAction Command="{Binding CopyToClipBoardCommand}"/>
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
                 <DataGrid.Columns>
                     <DataGridTemplateColumn Width="555">
                         <DataGridTemplateColumn.Header>
