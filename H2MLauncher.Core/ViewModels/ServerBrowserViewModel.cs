@@ -1,10 +1,13 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Text.Json;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Services;
+
+using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.ViewModels
 {
@@ -15,7 +18,10 @@ namespace H2MLauncher.Core.ViewModels
         private readonly H2MCommunicationService _h2MCommunicationService;
         private readonly H2MLauncherService _h2MLauncherService;
         private readonly IClipBoardService _clipBoardService;
+        private readonly ISaveFileService _saveFileService;
+        private readonly IErrorHandlingService _errorHandlingService;
         private CancellationTokenSource _loadCancellation = new();
+        private readonly ILogger<ServerBrowserViewModel> _logger;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
@@ -33,11 +39,16 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private string _updateStatus = "";
 
+        [ObservableProperty]
+        private string _statusText = "";
+
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
+        public IRelayCommand SaveServersCommand { get; }
+
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
         public ServerBrowserViewModel(
@@ -46,7 +57,10 @@ namespace H2MLauncher.Core.ViewModels
             H2MCommunicationService h2MCommunicationService,
             GameServerCommunicationService gameServerCommunicationService,
             H2MLauncherService h2MLauncherService,
-            IClipBoardService clipBoardService)
+            IClipBoardService clipBoardService,
+            ILogger<ServerBrowserViewModel> logger,
+            ISaveFileService saveFileService,
+            IErrorHandlingService errorHandlingService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -58,6 +72,10 @@ namespace H2MLauncher.Core.ViewModels
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
+            SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
+            _logger = logger;
+            _saveFileService = saveFileService;
+            _errorHandlingService = errorHandlingService;
         }
 
         private void DoCopyToClipBoardCommand(ServerViewModel? server)
@@ -74,6 +92,45 @@ namespace H2MLauncher.Core.ViewModels
 
             string textToCopy = $"connect {server.Ip}:{server.Port}";
             _clipBoardService.SaveToClipBoard(textToCopy);
+
+            StatusText = $"Copied to clipboard";
+        }
+
+        private async Task SaveServersAsync()
+        {
+            // Create a list of "Ip:Port" strings
+            List<string> ipPortList = Servers.Select(server => $"{server.Ip}:{server.Port}").ToList();
+
+            // Serialize the list into JSON format
+            string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);
+
+            try
+            {
+                // Store the server list into the corresponding directory
+                _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
+
+                string fileName = "./players2/favourites.json";
+
+                if (!Directory.Exists("./players2"))
+                {
+                    // let user choose
+                    fileName = await _saveFileService.SaveFileAs("favourites.json", "json") ?? "";
+                    if (string.IsNullOrEmpty(fileName))
+                    {
+                        return;
+                    }
+                }
+
+                await File.WriteAllTextAsync(fileName, jsonString);
+
+                _logger.LogInformation("Stored server list into {fileName}", fileName);
+
+                StatusText = $"{ipPortList.Count} servers saved to {Path.GetFileName(fileName)}";
+            }
+            catch (Exception ex)
+            {
+                _errorHandlingService.HandleException(ex, "Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
+            }
         }
 
         private async Task CheckUpdateStatusAsync()
@@ -136,6 +193,8 @@ namespace H2MLauncher.Core.ViewModels
                 return;
 
             _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString());
+
+            StatusText = $"Joined {SelectedServer}";
         }
 
         private void LaunchH2M()

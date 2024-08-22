@@ -17,8 +17,8 @@ namespace H2MLauncher.UI
 
         public void HandleException(Exception ex, string info = "")
         {
+            _logger.LogError(ex, "{info}", info);
             HandleError(info);
-            _logger.LogError($"{info}: {ex.Message} {ex.StackTrace}", ex);
         }
     }
 }

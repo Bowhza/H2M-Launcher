@@ -19,9 +19,9 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Text="{Binding DialogContent.Title}" FontWeight="Bold" FontSize="15" Height="25"/>
-            <TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}"/>
-            <Button Grid.Row="2" Content="OK" Height="25" Command="{Binding ContinueCommand}" Margin="0,0,0,15"/>
+            <TextBlock Grid.Row="0" Text="{Binding DialogContent.Title}" TextWrapping="WrapWithOverflow" FontWeight="Bold" FontSize="15" Height="25"/>
+            <TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}" TextWrapping="WrapWithOverflow"/>
+            <Button Grid.Row="2" Content="OK" Height="25" Command="{Binding ContinueCommand}" IsDefault="True" Margin="0,0,0,15"/>
         </Grid>
     </Border>
 </UserControl>

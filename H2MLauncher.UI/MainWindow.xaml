@@ -42,14 +42,22 @@
         <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
     <Window.InputBindings>
+        <!-- Disable Shortcut Commands -->
         <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
+        <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
     </Window.InputBindings>
     <Border CornerRadius="10" Padding="10">
         <Border.Background>
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
         </Border.Background>
-        <StackPanel Width="790" Margin="-5,0,0,0">
-            <Grid>
+        <Grid Width="790" Margin="-5,0,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -57,7 +65,7 @@
                 <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White" Padding="5,0,0,0"/>
                 <TextBlock Grid.Column="1" Text="{Binding UpdateStatus}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5" />
             </Grid>
-            <Grid Width="790" Margin="5,0,5,0">
+            <Grid Width="790" Margin="5,0,5,0" Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
@@ -79,7 +87,9 @@
                     <Separator Opacity="0" Width="10"/>
                 </StackPanel>
             </Grid>
-            <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" Margin="5" MinHeight="360" MaxHeight="360" Width="780" 
+            <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
+                      Grid.Row="2"
+                      Margin="5" Height="Auto" Width="780" 
                 KeyboardNavigation.TabNavigation="Once"
                 TabIndex="2"
                 CanUserReorderColumns="False" 
@@ -169,6 +179,9 @@
                     </DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
-        </StackPanel>
+            <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
+                <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
+            </StatusBar>
+        </Grid>
     </Border>
 </Window>

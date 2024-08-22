@@ -47,5 +47,10 @@ namespace H2MLauncher.Core.ViewModels
         private bool _isPrivate;
 
         public string Occupation => $"{ClientNum}/{MaxClientNum:D2}";
+
+        public override string ToString()
+        {
+            return $"{HostName} ({Ip}:{Port})";
+        }
     }
 }

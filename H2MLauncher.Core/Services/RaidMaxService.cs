@@ -2,16 +2,22 @@
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+
 using H2MLauncher.Core.Models;
+
+using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public class RaidMaxService(HttpClient httpClient, IErrorHandlingService errorHandlingService)
+    public class RaidMaxService(HttpClient httpClient,
+        IErrorHandlingService errorHandlingService, 
+        ILogger<RaidMaxService> logger)
     {
         private const string APILINK = "http://master.iw4.zip/instance";
         private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
         private readonly List<RaidMaxServer> _servers = [];
+        private readonly ILogger<RaidMaxService> _logger = logger;
 
         public async Task<List<RaidMaxServer>> GetServerInfosAsync(CancellationToken cancellationToken)
         {
@@ -37,28 +43,6 @@ namespace H2MLauncher.Core.Services
                     .ToList());
 
             return _servers;
-        }
-
-        public bool SaveServerList()
-        {
-            // Create a list of "Ip:Port" strings
-            List<string> ipPortList = _servers.ConvertAll(server => $"{server.Ip}:{server.Port}");
-
-            // Serialize the list into JSON format
-            string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);
-
-            try
-            {
-                // Store the server list into the corresponding directory
-                Trace.WriteLine("Storing server list into \"/players2/favourites.json\"");
-                File.WriteAllText("./players2/favourites.json", jsonString);
-            }
-            catch (Exception ex)
-            {
-                _errorHandlingService.HandleException(ex, "Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
-                return false;
-            }
-            return true;
         }
     }
 
