@@ -20,7 +20,7 @@ namespace H2MLauncher.UI
             DataContext = _viewModel = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
-            _collectionView.Filter = o => string.IsNullOrEmpty(serverBrowserViewModel.Filter) ? true : ((ServerViewModel)o).HostName.ToLower().Contains(serverBrowserViewModel.Filter.ToLower());
+            _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
         }
 

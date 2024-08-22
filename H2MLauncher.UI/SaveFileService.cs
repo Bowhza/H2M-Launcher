@@ -6,12 +6,12 @@ namespace H2MLauncher.UI;
 
 internal class SaveFileService : ISaveFileService
 {
-    public async Task<string?> SaveFileAs(string initialFileName, string extension)
+    public async Task<string?> SaveFileAs(string initialFileName, string filter)
     {
         var dialog = new SaveFileDialog()
         {
             FileName = initialFileName,
-            DefaultExt = extension,
+            Filter = filter
         };
 
         await Task.Yield();

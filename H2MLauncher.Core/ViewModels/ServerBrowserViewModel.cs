@@ -96,10 +96,24 @@ namespace H2MLauncher.Core.ViewModels
             StatusText = $"Copied to clipboard";
         }
 
+        public bool ServerFilter(ServerViewModel server)
+        {
+            if (string.IsNullOrEmpty(Filter))
+            {
+                return true;
+            }
+
+            string lowerCaseFilter = Filter.ToLower();
+
+            return server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase);
+        }
+
         private async Task SaveServersAsync()
         {
             // Create a list of "Ip:Port" strings
-            List<string> ipPortList = Servers.Select(server => $"{server.Ip}:{server.Port}").ToList();
+            List<string> ipPortList = Servers.Where(ServerFilter)
+                                             .Select(server => $"{server.Ip}:{server.Port}")
+                                             .ToList();
 
             // Serialize the list into JSON format
             string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);
@@ -114,7 +128,7 @@ namespace H2MLauncher.Core.ViewModels
                 if (!Directory.Exists("./players2"))
                 {
                     // let user choose
-                    fileName = await _saveFileService.SaveFileAs("favourites.json", "json") ?? "";
+                    fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
                     if (string.IsNullOrEmpty(fileName))
                     {
                         return;
@@ -194,7 +208,7 @@ namespace H2MLauncher.Core.ViewModels
 
             _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString());
 
-            StatusText = $"Joined {SelectedServer}";
+            StatusText = $"Joined '{SelectedServer}'";
         }
 
         private void LaunchH2M()
