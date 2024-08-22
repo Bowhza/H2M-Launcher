@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:H2MLauncher.UI"
-             xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
-             xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
              >
+    <Application.Resources>
+        <ResourceDictionary Source="GlobalResources.xaml"  />
+    </Application.Resources>
 </Application>

@@ -14,6 +14,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Page Remove="GlobalResources.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.0" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
@@ -31,6 +35,7 @@
     <Resource Include="Assets\Icon.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="GlobalResources.xaml" />
   </ItemGroup>
 
 </Project>

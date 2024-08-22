@@ -19,30 +19,32 @@ namespace H2MLauncher.UI
             ServiceProvider = serviceCollection.BuildServiceProvider();
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+            base.OnStartup(e);
         }
 
         private void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton<DialogViewModel>((s) =>
+            {
+                return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
+            });
+            
+            services.AddSingleton<DialogService>();
+            services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
+
             services.AddTransient<H2MLauncherService>();
             services.AddHttpClient<H2MLauncherService>();
 
             services.AddTransient<RaidMaxService>();
             services.AddHttpClient<RaidMaxService>();
 
+            services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();
 
-            services.AddSingleton<H2MCommunicationService>();
-
-            services.AddTransient<MainWindow>();
-            services.AddSingleton<DialogViewModel>((s) =>
-            {
-                DialogViewModel dialogViewModel = new();
-                Application.Current.Resources.Add("DialogViewModel", dialogViewModel);
-                return dialogViewModel;
-            });
-            services.AddSingleton<DialogService>();
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ServerBrowserViewModel>();
+
+            services.AddTransient<MainWindow>();
         }
     }
 }

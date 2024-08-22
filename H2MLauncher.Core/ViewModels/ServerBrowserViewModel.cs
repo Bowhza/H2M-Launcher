@@ -18,6 +18,7 @@ namespace H2MLauncher.Core.ViewModels
         private CancellationTokenSource _loadCancellation = new();
 
         [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
         private ServerViewModel? _selectedServer;
 
         [ObservableProperty]
@@ -53,7 +54,7 @@ namespace H2MLauncher.Core.ViewModels
             _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
             _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService)); ;
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
-            JoinServerCommand = new RelayCommand(JoinServer);
+            JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand(DoCopyToClipBoardCommand);

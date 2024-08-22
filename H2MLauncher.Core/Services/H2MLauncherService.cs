@@ -1,14 +1,15 @@
-﻿using System.Diagnostics;
-using System.Text.Json;
+﻿using System.Text.Json;
 
 namespace H2MLauncher.Core.Services
 {
-    public class H2MLauncherService(HttpClient httpClient)
+    public class H2MLauncherService(HttpClient httpClient, IErrorHandlingService errorHandlingService)
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
         private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
         public const string CURRENT_VERSION = "H2M-v1.1.0";
         public string LatestKnownVersion { get; private set; } = "Unknown";
+
 
         public async Task<bool> IsLauncherUpToDateAsync(CancellationToken cancellationToken)
         {
@@ -25,8 +26,7 @@ namespace H2MLauncher.Core.Services
             }
             catch (Exception ex)
             {
-                Trace.WriteLine(ex);
-                Console.WriteLine("Unable to check for updates; try again later.");
+                _errorHandlingService.HandleException(ex, "Unable to check for updates; try again later.");
             }
             return false;
         }

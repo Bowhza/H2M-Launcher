@@ -5,7 +5,7 @@ namespace H2MLauncher.UI.Dialog
     public class DialogService
     {
         private static DialogWindow s_dialogWindow;
-        private DialogViewModel _dialogViewModel;
+        private readonly DialogViewModel _dialogViewModel;
 
         public DialogService(DialogViewModel dialogViewModel)
         {

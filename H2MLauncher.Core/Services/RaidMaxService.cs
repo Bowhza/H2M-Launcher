@@ -6,10 +6,11 @@ using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.Core.Services
 {
-    public class RaidMaxService(HttpClient httpClient)
+    public class RaidMaxService(HttpClient httpClient, IErrorHandlingService errorHandlingService)
     {
         private const string APILINK = "http://master.iw4.zip/instance";
         private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
         private readonly List<RaidMaxServer> _servers = [];
 
         public async Task<List<RaidMaxServer>> GetServerInfosAsync(CancellationToken cancellationToken)
@@ -26,8 +27,7 @@ namespace H2MLauncher.Core.Services
             }
             catch (Exception ex)
             {
-                Trace.WriteLine(ex);
-                throw;
+                _errorHandlingService.HandleException(ex, "Unable to fetch the servers details at this time. Please try again later.");
             }
 
             if (servers is not null)
@@ -53,10 +53,9 @@ namespace H2MLauncher.Core.Services
                 Trace.WriteLine("Storing server list into \"/players2/favourites.json\"");
                 File.WriteAllText("./players2/favourites.json", jsonString);
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Trace.WriteLine(e.Message);
-                Trace.WriteLine("Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
+                _errorHandlingService.HandleException(ex, "Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
                 return false;
             }
             return true;

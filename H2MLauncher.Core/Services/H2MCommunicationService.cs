@@ -3,8 +3,10 @@ using System.Runtime.InteropServices;
 
 namespace H2MLauncher.Core.Services
 {
-    public class H2MCommunicationService
+    public class H2MCommunicationService(IErrorHandlingService errorHandlingService)
     {
+        private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+
         //Windows API functions to send input to a window
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
@@ -31,8 +33,7 @@ namespace H2MLauncher.Core.Services
 
                 if (runningProcess != null)
                 {
-                    //MessageBox.Show("h2m-mod.exe is already running.", Text);
-                    Debug.WriteLine("h2m-mod.exe is already running.");
+                    _errorHandlingService.HandleError("h2m-mod.exe is already running.");
                     return;
                 }
 
@@ -41,14 +42,12 @@ namespace H2MLauncher.Core.Services
                     Process.Start("./h2m-mod.exe");
                 else
                 {
-                    //MessageBox.Show("h2m-mod.exe not found!", Text);
-                    Debug.WriteLine("h2m-mod.exe not found!");
+                    _errorHandlingService.HandleException(new FileNotFoundException("h2m-mod.exe was not found."), "The h2m-mod.exe could not be found!");
                 }
             }
             catch (Exception ex)
             {
-                //MessageBox.Show("Error launching h2m-mod.exe: " + ex.Message, Text);
-                Debug.WriteLine("Error launching h2m-mod.exe: " + ex.Message);
+                _errorHandlingService.HandleException(ex, "Error launching h2m-mod.");
             }
         }
 
@@ -85,12 +84,11 @@ namespace H2MLauncher.Core.Services
             }
             else
             {
-                //MessageBox.Show("Could not find the h2m-mod terminal window.");
-                Debug.WriteLine("Could not find the h2m-mod terminal window.");
+                _errorHandlingService.HandleError("Could not find the h2m-mod terminal window.");
             }
         }
 
-        private IntPtr FindH2MModWindow()
+        private static IntPtr FindH2MModWindow()
         {
             foreach (Process proc in Process.GetProcesses())
             {

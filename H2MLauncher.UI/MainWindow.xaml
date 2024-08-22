@@ -33,7 +33,6 @@
             <Setter Property="Margin" Value="0"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="BorderBrush" Value="LawnGreen" />
@@ -48,7 +47,7 @@
         <Border.Background>
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
         </Border.Background>
-        <StackPanel Width="790">
+        <StackPanel Width="790" Margin="-5,0,0,0">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
@@ -71,12 +70,12 @@
                 <StackPanel Orientation="Horizontal" Grid.Column="1">
                     <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" Width="300"/>
                     <Separator Opacity="0" Width="5"/>
-                    <Button Content="Join" Width="80" Command="{Binding JoinServerCommand}"/>
+                    <Button Content="Join" Width="80" Command="{Binding JoinServerCommand}" IsEnabled="{Binding SelectedServer}"/>
                     <Separator Opacity="0" Width="5"/>
                     <Button Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
                     <Separator Opacity="0" Width="5"/>
                     <Button Content="Launch H2M" Width="80" Command="{Binding LaunchH2MCommand}"/>
-                    <Separator Opacity="0" Width="15"/>
+                    <Separator Opacity="0" Width="10"/>
                 </StackPanel>
             </Grid>
             <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" Margin="5" MinHeight="360" MaxHeight="360" Width="780" 

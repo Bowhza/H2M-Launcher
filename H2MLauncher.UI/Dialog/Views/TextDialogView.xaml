@@ -8,12 +8,20 @@
              xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
              MaxHeight="150" MaxWidth="300"
              MinHeight="150" MinWidth="300"
-             Height="150" Width="300"
+             Height="Auto"
+             Width="300"
              d:DataContext="{d:DesignInstance Type=dia:TextDialogViewModel}"
              DataContext="{DynamicResource TextDialogViewModel}">
-    <StackPanel>
-        <TextBlock Text="{Binding DialogContent.Title}" FontWeight="Bold" Background="ForestGreen" Height="25"/>
-        <TextBlock Text="{Binding DialogContent.Text}"/>
-        <Button Content="OK" Command="{Binding ContinueCommand}" Margin="10 0"/>
-    </StackPanel>
+    <Border CornerRadius="10" Margin="-15,0,0,0" Padding="0,5,0,10">
+        <Grid Width="250">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="{Binding DialogContent.Title}" FontWeight="Bold" FontSize="15" Height="25"/>
+            <TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}"/>
+            <Button Grid.Row="2" Content="OK" Height="25" Command="{Binding ContinueCommand}" Margin="0,0,0,15"/>
+        </Grid>
+    </Border>
 </UserControl>

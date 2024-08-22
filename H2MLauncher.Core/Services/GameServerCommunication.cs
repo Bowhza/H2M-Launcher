@@ -104,7 +104,6 @@ namespace H2MLauncher.Core.Services
                         UdpReceiveResult result = await _client.ReceiveAsync(_listeningCancellation.Token);
                         DateTimeOffset timestamp = DateTimeOffset.Now;
 
-
                         // Pass on to main thread to avoid blocking
                         // and immediately handle subsequent incoming packets
                         _synchronizationContext.Post((_) => HandleMessage(result, timestamp), null);
@@ -181,12 +180,8 @@ namespace H2MLauncher.Core.Services
 
             public void Dispose()
             {
-
                 var dispose = Interlocked.Exchange(ref _onDispose, null);
-                if (dispose != null)
-                {
-                    dispose();
-                }
+                dispose?.Invoke();
             }
         }
     }
