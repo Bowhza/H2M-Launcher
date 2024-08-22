@@ -89,7 +89,8 @@ namespace H2MLauncher.Core.Services
 
         public void JoinServer(string ip, string port)
         {
-            string command = $"connect {ip}:{port}";
+            const string disconnectCommand = "disconnect";
+            string connectCommand = $"connect {ip}:{port}";
 
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)
@@ -109,8 +110,22 @@ namespace H2MLauncher.Core.Services
             // Open In Game Terminal Window
             SendMessage(hMainWin, WM_KEYDOWN, 192, IntPtr.Zero);
 
+            // Send the "disconnect" command to the terminal window
+            foreach (char c in disconnectCommand)
+            {
+                SendMessage(hMainWin, WM_CHAR, c, IntPtr.Zero);
+                Thread.Sleep(1);
+            }
+
+            // Sleep for 1ms to allow the command to be processed
+            Thread.Sleep(1);
+
+            // Simulate pressing the Enter key
+            SendMessage(hMainWin, WM_KEYDOWN, 13, IntPtr.Zero);
+            SendMessage(hMainWin, WM_KEYUP, 13, IntPtr.Zero);
+
             // Send the "connect" command to the terminal window
-            foreach (char c in command)
+            foreach (char c in connectCommand)
             {
                 SendMessage(hMainWin, WM_CHAR, c, IntPtr.Zero);
                 Thread.Sleep(1);
