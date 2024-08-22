@@ -8,6 +8,17 @@ namespace H2M_Launcher
 {
     internal static class Servers
     {
+        public static string? Hostname { get; set; }
+        public static string? Map { get; set; }
+        public static string? GameType { get; set; }
+        public static string? ClientNum { get; set; }
+        public static string? MaxClientNum { get; set; }
+        public static string? Ip { get; set; }
+        public static string? Ping { get; set; }
+
+        // Add this property to hold the HTML color code
+        public static string? HtmlColor { get; set; }
+
         private const string APILINK = "https://master.iw4.zip/servers";
         private static readonly List<ServerInfo> serversInfos = new List<ServerInfo>();
 

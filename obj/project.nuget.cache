@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "lrkIjwUbmsXFyq2FXfA3wj+dZKkrsfCcW3Wy/alI4wmpFV9qi0re6ScO+j4J7JspgyefO1w8fvz/WNFVo0MC7Q==",
+  "success": true,
+  "projectFilePath": "D:\\Users\\Administrator\\Downloads\\H2M-Launcher-wpf\\H2M-Launcher-wpf\\H2M-Launcher\\H2M-Launcher.csproj",
+  "expectedPackageFiles": [
+    "D:\\Users\\Administrator\\.nuget\\packages\\htmlagilitypack\\1.11.64\\htmlagilitypack.1.11.64.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,0 +1,74 @@
+{
+  "format": 1,
+  "restore": {
+    "D:\\Users\\Administrator\\Downloads\\H2M-Launcher-wpf\\H2M-Launcher-wpf\\H2M-Launcher\\H2M-Launcher.csproj": {}
+  },
+  "projects": {
+    "D:\\Users\\Administrator\\Downloads\\H2M-Launcher-wpf\\H2M-Launcher-wpf\\H2M-Launcher\\H2M-Launcher.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "D:\\Users\\Administrator\\Downloads\\H2M-Launcher-wpf\\H2M-Launcher-wpf\\H2M-Launcher\\H2M-Launcher.csproj",
+        "projectName": "H2M-Launcher",
+        "projectPath": "D:\\Users\\Administrator\\Downloads\\H2M-Launcher-wpf\\H2M-Launcher-wpf\\H2M-Launcher\\H2M-Launcher.csproj",
+        "packagesPath": "D:\\Users\\Administrator\\.nuget\\packages\\",
+        "outputPath": "D:\\Users\\Administrator\\Downloads\\H2M-Launcher-wpf\\H2M-Launcher-wpf\\H2M-Launcher\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "D:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "D:\\Users\\Administrator\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "D:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0-windows"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0-windows7.0": {
+            "targetAlias": "net8.0-windows",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        }
+      },
+      "frameworks": {
+        "net8.0-windows7.0": {
+          "targetAlias": "net8.0-windows",
+          "dependencies": {
+            "HtmlAgilityPack": {
+              "target": "Package",
+              "version": "[1.11.64, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            },
+            "Microsoft.WindowsDesktop.App.WindowsForms": {
+              "privateAssets": "none"
+            }
+          },
+          "runtimeIdentifierGraphPath": "D:\\Program Files\\dotnet\\sdk\\8.0.204/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

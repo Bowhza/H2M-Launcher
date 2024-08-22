@@ -13,6 +13,9 @@ namespace H2M_Launcher
         public string? Port { get; set; }
         public string? Ping { get; set; } = "N/A";
 
+        // Add this property to hold the HTML color code
+        public string? HtmlColor { get; set; }
+
         public override string ToString()
         {
             return $"connect {Ip}:{Port}";
