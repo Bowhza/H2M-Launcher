@@ -40,7 +40,7 @@ namespace H2MLauncher.Core.ViewModels
         private string _updateStatus = "";
 
         [ObservableProperty]
-        private string _statusText = "";
+        private string _statusText = "Ready";
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
@@ -206,9 +206,14 @@ namespace H2MLauncher.Core.ViewModels
             if (SelectedServer is null)
                 return;
 
-            _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString());
-
-            StatusText = $"Joined '{SelectedServer}'";
+            if (_h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString()))
+            {
+                StatusText = $"Joined {SelectedServer.Ip}:{SelectedServer.Port}";
+            }
+            else
+            {
+                StatusText = "Ready";
+            }
         }
 
         private void LaunchH2M()

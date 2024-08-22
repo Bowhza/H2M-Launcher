@@ -100,7 +100,7 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public void JoinServer(string ip, string port)
+        public bool JoinServer(string ip, string port)
         {
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
@@ -109,7 +109,7 @@ namespace H2MLauncher.Core.Services
             if (h2mModProcess == null)
             {
                 _errorHandlingService.HandleError("Could not find the h2m-mod terminal window.");
-                return;
+                return false;
             }
 
             IntPtr conHostHandle = FindH2MConHostProcess();
@@ -155,6 +155,8 @@ namespace H2MLauncher.Core.Services
             // Set H2M to foreground window
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
             SetForegroundWindow(h2mModProcess.MainWindowHandle);
+
+            return true;
         }
 
         private static IntPtr FindH2MConHostProcess()
