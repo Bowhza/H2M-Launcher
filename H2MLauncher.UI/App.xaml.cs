@@ -5,6 +5,7 @@ using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.UI
 {
@@ -24,6 +25,9 @@ namespace H2MLauncher.UI
 
         private void ConfigureServices(IServiceCollection services)
         {
+            // TODO: add logging provider
+            //services.AddLogging(builder => builder.AddProvider());
+
             services.AddSingleton<DialogViewModel>((s) =>
             {
                 return (DialogViewModel)Application.Current.FindResource("DialogViewModel");

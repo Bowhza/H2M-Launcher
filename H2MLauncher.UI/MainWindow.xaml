@@ -70,7 +70,7 @@
                 <StackPanel Orientation="Horizontal" Grid.Column="1">
                     <TextBox Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" TextChanged="TextBox_TextChanged" Width="300"/>
                     <Separator Opacity="0" Width="5"/>
-                    <Button Content="Join" Width="80" Command="{Binding JoinServerCommand}" IsEnabled="{Binding SelectedServer}"/>
+                    <Button Content="Join" Width="80" Command="{Binding JoinServerCommand}" />
                     <Separator Opacity="0" Width="5"/>
                     <Button Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
                     <Separator Opacity="0" Width="5"/>

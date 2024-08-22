@@ -1,11 +1,14 @@
 ﻿using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
 
+using Microsoft.Extensions.Logging;
+
 namespace H2MLauncher.UI
 {
-    public class ErrorHandlingService(DialogService dialogService) : IErrorHandlingService
+    public class ErrorHandlingService(DialogService dialogService, ILogger<ErrorHandlingService> logger) : IErrorHandlingService
     {
         private readonly DialogService _dialogService = dialogService ?? throw new ArgumentNullException(nameof(dialogService));
+        private readonly ILogger<ErrorHandlingService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
         public void HandleError(string info)
         {
@@ -15,7 +18,7 @@ namespace H2MLauncher.UI
         public void HandleException(Exception ex, string info = "")
         {
             HandleError(info);
-            // log error.
+            _logger.LogError($"{info}: {ex.Message} {ex.StackTrace}", ex);
         }
     }
 }
