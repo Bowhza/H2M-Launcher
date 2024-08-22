@@ -7,6 +7,8 @@ using H2MLauncher.UI.Dialog;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using Serilog;
+
 namespace H2MLauncher.UI
 {
     public partial class App : Application
@@ -15,6 +17,8 @@ namespace H2MLauncher.UI
 
         protected override void OnStartup(StartupEventArgs e)
         {
+            InitializeLogging();
+
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection);
             ServiceProvider = serviceCollection.BuildServiceProvider();
@@ -23,16 +27,28 @@ namespace H2MLauncher.UI
             base.OnStartup(e);
         }
 
+        private static void InitializeLogging()
+        {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Console()
+                .WriteTo.File(Constants.LogFilePath,
+                    rollingInterval: RollingInterval.Day,
+                    rollOnFileSizeLimit: true)
+                .WriteTo.Debug()
+                .CreateLogger();
+
+            Log.Logger.Information("BetterH2MLauncher started on version {version}.", H2MLauncherService.CURRENT_VERSION);
+        }
+
         private void ConfigureServices(IServiceCollection services)
         {
-            // TODO: add logging provider
-            //services.AddLogging(builder => builder.AddProvider());
+            services.AddLogging(builder => builder.AddSerilog());
 
             services.AddSingleton<DialogViewModel>((s) =>
             {
                 return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
             });
-            
+
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
 
