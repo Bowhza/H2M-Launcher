@@ -18,11 +18,9 @@ namespace H2MLauncher.Core.Services
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
-        [DllImport("user32.dll")]
-        internal static extern bool EnumThreadWindows(int dwThreadId, EnumThreadDelegate lpfn,
-           IntPtr lParam);
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
 
-        internal delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
         internal static IEnumerable<IntPtr> EnumerateProcessWindowHandles(int processId)
         {
             var handles = new List<IntPtr>();
@@ -30,6 +28,21 @@ namespace H2MLauncher.Core.Services
             foreach (ProcessThread thread in Process.GetProcessById(processId).Threads)
                 EnumThreadWindows(thread.Id,
                     (hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
+
+            return handles;
+        }
+
+
+        [DllImport("user32.dll")]
+        internal static extern bool EnumThreadWindows(int dwThreadId, EnumWindowsProc lpfn,
+           IntPtr lParam);
+
+        internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        internal static IEnumerable<IntPtr> EnumerateWindowHandles()
+        {
+            var handles = new List<IntPtr>();
+
+            EnumWindows((hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
 
             return handles;
         }
@@ -77,7 +90,7 @@ namespace H2MLauncher.Core.Services
                 else
                 {
                     _errorHandlingService.HandleException(
-                        new FileNotFoundException("h2m-mod.exe was not found."), 
+                        new FileNotFoundException("h2m-mod.exe was not found."),
                         "The h2m-mod.exe could not be found!");
                 }
             }
@@ -99,21 +112,20 @@ namespace H2MLauncher.Core.Services
                 return;
             }
 
-            // Grab the main window handle
-            // (depends on default terminal:
-            //  -> for conhost its the console (correct for input)
-            //  -> for win 11 terminal its the game window)
-            nint hMainWin = h2mModProcess.MainWindowHandle;
+            IntPtr conHostHandle = FindH2MConHostProcess();
+
+            // Grab the handle of conhost or main window
+            nint hWindow = conHostHandle == IntPtr.Zero ? h2mModProcess.MainWindowHandle : conHostHandle;
 
             ReleaseCapture();
 
             // Open In Game Terminal Window
-            SendMessage(hMainWin, WM_KEYDOWN, 192, IntPtr.Zero);
+            SendMessage(hWindow, WM_KEYDOWN, 192, IntPtr.Zero);
 
             // Send the "disconnect" command to the terminal window
             foreach (char c in disconnectCommand)
             {
-                SendMessage(hMainWin, WM_CHAR, c, IntPtr.Zero);
+                SendMessage(hWindow, WM_CHAR, c, IntPtr.Zero);
                 Thread.Sleep(1);
             }
 
@@ -121,13 +133,13 @@ namespace H2MLauncher.Core.Services
             Thread.Sleep(1);
 
             // Simulate pressing the Enter key
-            SendMessage(hMainWin, WM_KEYDOWN, 13, IntPtr.Zero);
-            SendMessage(hMainWin, WM_KEYUP, 13, IntPtr.Zero);
+            SendMessage(hWindow, WM_KEYDOWN, 13, IntPtr.Zero);
+            SendMessage(hWindow, WM_KEYUP, 13, IntPtr.Zero);
 
             // Send the "connect" command to the terminal window
             foreach (char c in connectCommand)
             {
-                SendMessage(hMainWin, WM_CHAR, c, IntPtr.Zero);
+                SendMessage(hWindow, WM_CHAR, c, IntPtr.Zero);
                 Thread.Sleep(1);
             }
 
@@ -135,14 +147,41 @@ namespace H2MLauncher.Core.Services
             Thread.Sleep(1);
 
             // Simulate pressing the Enter key
-            SendMessage(hMainWin, WM_KEYDOWN, 13, IntPtr.Zero);
-            SendMessage(hMainWin, WM_KEYUP, 13, IntPtr.Zero);
+            SendMessage(hWindow, WM_KEYDOWN, 13, IntPtr.Zero);
+            SendMessage(hWindow, WM_KEYUP, 13, IntPtr.Zero);
 
-            SendMessage(hMainWin, WM_KEYDOWN, 192, IntPtr.Zero);
+            SendMessage(hWindow, WM_KEYDOWN, 192, IntPtr.Zero);
 
             // Set H2M to foreground window
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
             SetForegroundWindow(h2mModProcess.MainWindowHandle);
+        }
+
+        private static IntPtr FindH2MConHostProcess()
+        {
+            foreach (var handle in EnumerateWindowHandles())
+            {
+                string? title = GetWindowTitle(handle);
+                if (title != null && title.Contains("h2m-mod", StringComparison.OrdinalIgnoreCase))
+                {
+                    GetWindowThreadProcessId(handle, out var processId);
+
+                    if (title == GAME_WINDOW_TITLE)
+                    {
+                        continue;
+                    }
+
+                    var associatedProcess = Process.GetProcessById((int)processId);
+                    if (associatedProcess is not null && IsH2MModProcess(associatedProcess))
+                    {
+                        // This window has the correct process but is not the game window,
+                        // so we assume it's the conhost because Widows terminal has the 'WindowsTerminal.exe' process
+                        return handle;
+                    }
+                }
+            }
+
+            return IntPtr.Zero;
         }
 
         private static Process? FindH2MModProcess()
@@ -158,6 +197,17 @@ namespace H2MLauncher.Core.Services
             return gameProc;
         }
 
+        private static bool IsH2MModProcess(Process p)
+        {
+            return p.MainWindowTitle.Contains("h2m-mod", StringComparison.OrdinalIgnoreCase) &&
+                p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals("h1_mp64_ship.exe"));
+        }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+        private const string GAME_WINDOW_TITLE = "H2M-Mod";
+
         private static IntPtr FindH2MModGameWindow(Process process)
         {
             // find game window (title is exactly "H2M-Mod")
@@ -166,7 +216,7 @@ namespace H2MLauncher.Core.Services
                 string? title = GetWindowTitle(hChild);
                 if (title != null && title.Equals("H2M-Mod"))
                 {
-                    return hChild;
+                    //return hChild;
                 }
             }
 
