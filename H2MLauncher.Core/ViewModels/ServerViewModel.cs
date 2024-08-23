@@ -1,5 +1,7 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
+using H2MLauncher.Core.Models;
+
 namespace H2MLauncher.Core.ViewModels
 {
     public partial class ServerViewModel : ObservableObject
@@ -46,7 +48,14 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private bool _isPrivate;
 
-        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
+        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]",4}";
+
+        public RaidMaxServer Server { get; }
+
+        public ServerViewModel(RaidMaxServer server)
+        {
+            Server = server;
+        }
 
         public override string ToString()
         {

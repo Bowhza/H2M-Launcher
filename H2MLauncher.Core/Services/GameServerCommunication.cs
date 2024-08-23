@@ -4,7 +4,7 @@ using System.Text;
 
 namespace H2MLauncher.Core.Services
 {
-    internal class GameServerCommunication : IAsyncDisposable
+    public class GameServerCommunication : IAsyncDisposable
     {
         private readonly UdpClient _client;
         private readonly Dictionary<string, Action<CommandEventArgs>> _commandHandlers = [];

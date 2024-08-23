@@ -1,10 +1,12 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using Microsoft.Extensions.Logging;
@@ -90,6 +92,8 @@ namespace H2MLauncher.Core.ViewModels
             UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
+
+            _gameServerCommunicationService.ServerInfoReceived += OnGameServerInfoReceived;
         }
 
         private void DoRestartCommand()
@@ -206,10 +210,131 @@ namespace H2MLauncher.Core.ViewModels
                 var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
 
                 // Start by sending info requests to the game servers
-                await _gameServerCommunicationService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
+                await _gameServerCommunicationService.SendInfoRequestsAsync(servers, _loadCancellation.Token);
+            }
+            catch (OperationCanceledException ex)
+            {
+                // canceled
+                Debug.WriteLine($"LoadServersAsync cancelled: {ex.Message}");
+            }
+        }
+
+
+        private readonly Dictionary<long, RaidMaxServer> _queuedServers = [];
+        private Task? _queueTask;
+        private CancellationTokenSource _queueCancellation = new();
+
+        private void QueueServer(RaidMaxServer server)
+        {
+            _queuedServers.Add(server.Id, server);
+
+            if (_queueTask is null || _queueTask.IsCompleted)
+            {
+                _queueCancellation = new();
+                _queueTask = ProcessServerQueueAsync(_queueCancellation.Token);
+            }
+        }
+
+        private async Task ProcessServerQueueAsync(CancellationToken cancellationToken)
+        {
+            while (!cancellationToken.IsCancellationRequested && _queuedServers.Count > 0)
+            {
+                await _gameServerCommunicationService.SendInfoRequestsAsync(_queuedServers.Values, cancellationToken);
+
+                // Delay before sending the next request (to avoid spamming)
+                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
+            }
+        }
+
+        private void StopServerQueue()
+        {
+            _queueCancellation.Cancel();
+            _queueTask?.ContinueWith(t =>
+            {
+                if (t.IsFaulted)
                 {
-                    // Game server responded -> online
-                    Servers.Add(new ServerViewModel()
+                    _logger.LogError(t.Exception, "Queue task faulted:");
+                }
+            });
+
+            _queueTask = null;
+        }
+
+        private void CheckQueue(long serverId, GameServerInfo newServerInfo)
+        {
+            if (_queuedServers.Count == 0)
+            {
+                // early return
+                return;
+            }
+
+            if (!_queuedServers.TryGetValue(serverId, out var server))
+            {
+                return;
+            }
+
+            if (newServerInfo.MaxClients - (newServerInfo.Clients - newServerInfo.Bots) > 0)
+            {
+                // we can try to join
+                bool joined = _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString());
+
+                StatusText = joined
+                    ? $"Joined {server.Ip}:{server.Port}"
+                    : "Ready";
+
+                if (joined)
+                {
+                    StopServerQueue();
+                }
+            }
+        }
+
+        private readonly object _serverLockObj = new();
+
+        private class ServerViewModelComparer : IEqualityComparer<ServerViewModel>
+        {
+            public bool Equals(ServerViewModel? x, ServerViewModel? y)
+            {
+                if (x == y)
+                {
+                    return true;
+                }
+
+                if (x is null && y is null)
+                {
+                    return true;
+                }
+
+                if (x is null || y is null)
+                {
+                    return false;
+                }
+
+                if (x.Ip != y.Ip)
+                {
+                    return false;
+                }
+
+                return x.Port == y.Port;
+            }
+
+            public int GetHashCode([DisallowNull] ServerViewModel obj)
+            {
+                return HashCode.Combine(obj.Ip, obj.Port);
+            }
+        }
+
+        private void OnGameServerInfoReceived(object? sender, GameServerCommunicationService.ServerInfoEventArgs e)
+        {
+            var server = e.Server;
+            var gameServer = e.ServerInfo;
+
+            lock (_serverLockObj)
+            {
+
+                // Game server responded -> online
+                bool added = Servers.AddOrUpdate(
+                    new ServerViewModel(server)
                     {
                         Id = server.Id,
                         Ip = server.Ip,
@@ -224,25 +349,37 @@ namespace H2MLauncher.Core.ViewModels
                         IsPrivate = gameServer.IsPrivate,
                         Ping = gameServer.Ping,
                         BotsNum = gameServer.Bots,
-                    });
+                    },
 
-                    OnPropertyChanged(nameof(Servers));
+                    // update on id
+                    new ServerViewModelComparer()
+                );
 
+                if (added)
+                {
                     TotalPlayers += server.ClientNum;
                     TotalServers++;
-                }, _loadCancellation.Token);
+                }
+                else
+                {
+                    TotalPlayers = Servers.Sum(s => s.ClientNum);
+                    TotalServers = Servers.Count;
+                }
             }
-            catch (OperationCanceledException ex)
-            {
-                // canceled
-                Debug.WriteLine($"LoadServersAsync cancelled: {ex.Message}");
-            }
+
+            CheckQueue(server.Id, gameServer);
         }
 
         private void JoinServer()
         {
             if (SelectedServer is null)
                 return;
+
+            if (SelectedServer.ClientNum >= SelectedServer.MaxClientNum)
+            {
+                QueueServer(SelectedServer.Server);
+                return;
+            }
 
             StatusText = _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString())
                 ? $"Joined {SelectedServer.Ip}:{SelectedServer.Port}"
