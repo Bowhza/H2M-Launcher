@@ -46,6 +46,7 @@
             </Style.Triggers>
         </Style>
         <local:HostNameColorConverter x:Key="hostNameColorConverter" />
+        <local:PingColorConverter x:Key="PingColorConverter"/>
         <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
     <Window.InputBindings>
@@ -190,6 +191,9 @@
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right" />
+                                <Setter Property="FontFamily" Value="Consolas" />
+                                <Setter Property="FlowDirection" Value="RightToLeft" />
+                                <Setter Property="Foreground" Value="{Binding Ping, Converter={StaticResource PingColorConverter}}" />
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
