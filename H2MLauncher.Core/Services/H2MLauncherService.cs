@@ -38,6 +38,17 @@ namespace H2MLauncher.Core.Services
 
             try
             {
+                // remove old version if it exists
+                if (File.Exists(LAUNCHER_BACKUP))
+                    File.Delete(LAUNCHER_BACKUP);
+            }
+            catch (Exception)
+            {
+                _errorHandlingService.HandleError("Couldn't delete old launcher.");
+            }
+
+            try
+            {
                 _httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
                 _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
                 HttpResponseMessage response = await _httpClient.GetAsync(GITHUB_REPOSITORY, cancellationToken);
@@ -57,7 +68,9 @@ namespace H2MLauncher.Core.Services
         {
             // download latest version
             string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/H2MLauncher.UI.exe";
+            string tempFileName2 = $"{LAUNCHER}.backup";
             string tempFileName = $"{LAUNCHER}.bak";
+            string tempFileName2 = $"{currentFileName}.backup";
 
             try
             {
@@ -84,8 +97,8 @@ namespace H2MLauncher.Core.Services
 
             try
             {
-                // rename current exe to temp
                 File.Move(LAUNCHER, LAUNCHER_BACKUP);
+                File.Move(currentFileName, tempFileName2);
                 // rename new exe to current exe
                 File.Move(tempFileName, LAUNCHER);
             }
