@@ -9,17 +9,21 @@ public class PingColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        long ping = (long)value;
-        Brush pingColor;
+        if (value is long ping)
+        {
+            Brush pingColor;
 
-        if (ping < 50)
-            pingColor = Brushes.LawnGreen;
-        else if (ping < 80)
-            pingColor = Brushes.Orange;
-        else
-            pingColor = Brushes.Red;
+            if (ping < 50)
+                pingColor = Brushes.LawnGreen;
+            else if (ping < 80)
+                pingColor = Brushes.Orange;
+            else
+                pingColor = Brushes.Red;
 
-        return pingColor;
+            return pingColor;
+        }
+        
+        throw new ArgumentNullException(nameof(value));
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

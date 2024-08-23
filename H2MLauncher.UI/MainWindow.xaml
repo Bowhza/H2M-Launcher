@@ -45,7 +45,7 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <local:HostNameColorConverter x:Key="hostNameColorConverter" />
+        <local:HostNameColorConverter x:Key="HostNameColorConverter" />
         <local:PingColorConverter x:Key="PingColorConverter"/>
         <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
@@ -164,7 +164,7 @@
                                     Focusable="False"
                                     IsTabStop="False" 
                                     IsHitTestVisible="False" 
-                                    ItemsSource="{Binding HostName, Converter={StaticResource hostNameColorConverter}}" 
+                                    ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
                                     FlowDirection="LeftToRight">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
