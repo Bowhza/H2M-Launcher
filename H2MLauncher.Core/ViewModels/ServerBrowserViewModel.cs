@@ -37,10 +37,19 @@ namespace H2MLauncher.Core.ViewModels
         private string _filter = "";
 
         [ObservableProperty]
-        private string _updateStatus = "";
+        private string _updateStatusText = "";
 
         [ObservableProperty]
         private string _statusText = "Ready";
+
+        [ObservableProperty]
+        private double _updateDownloadProgress = 0;
+
+        [ObservableProperty]
+        private bool _progressBarVisibility = false;
+
+        [ObservableProperty]
+        private bool _releaseNotesVisibility = false;
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
@@ -48,13 +57,14 @@ namespace H2MLauncher.Core.ViewModels
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
-        public IRelayCommand OpenUpdatePageInBrowserCommand { get; }
+        public IAsyncRelayCommand UpdateLauncherCommand { get; }
+        public IRelayCommand OpenReleaseNotesCommand { get; }
+        public IRelayCommand RestartCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService,
-            GameServerCommunicationService serverPingService,
             H2MCommunicationService h2MCommunicationService,
             GameServerCommunicationService gameServerCommunicationService,
             H2MLauncherService h2MLauncherService,
@@ -67,20 +77,28 @@ namespace H2MLauncher.Core.ViewModels
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
             _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
-            _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService)); ;
+            _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
+            _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            _logger = logger;
-            _saveFileService = saveFileService;
-            _errorHandlingService = errorHandlingService;
-            OpenUpdatePageInBrowserCommand = new RelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "");
+            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatus != "");
+            OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
+            RestartCommand = new RelayCommand(DoRestartCommand);
         }
 
-        private void DoOpenUpdatePageInBrowserCommand()
+        private void DoRestartCommand()
+        {
+            Process.Start(H2MLauncherService.LauncherPath);
+            Process.GetCurrentProcess().Kill();
+        }
+
+        private void DoOpenReleaseNotesCommand()
         {
             string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
             ProcessStartInfo sInfo = new(destinationurl)
@@ -90,14 +108,26 @@ namespace H2MLauncher.Core.ViewModels
             Process.Start(sInfo);
         }
 
+        private async Task DoUpdateLauncherCommand()
+        {
+            ProgressBarVisibility = true;
+            await _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
+            {
+                UpdateDownloadProgress = progress;
+                if (progress == 100)
+                {
+                    ProgressBarVisibility = false;
+                    ReleaseNotesVisibility = true;
+                }
+            }, CancellationToken.None).ConfigureAwait(false);
+        }
+
         private void DoCopyToClipBoardCommand(ServerViewModel? server)
         {
             if (server is null)
             {
                 if (SelectedServer is null)
-                {
                     return;
-                }
 
                 server = SelectedServer;
             }
@@ -111,9 +141,7 @@ namespace H2MLauncher.Core.ViewModels
         public bool ServerFilter(ServerViewModel server)
         {
             if (string.IsNullOrEmpty(Filter))
-            {
                 return true;
-            }
 
             string lowerCaseFilter = Filter.ToLower();
 
@@ -142,9 +170,7 @@ namespace H2MLauncher.Core.ViewModels
                     // let user choose
                     fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
                     if (string.IsNullOrEmpty(fileName))
-                    {
                         return;
-                    }
                 }
 
                 await File.WriteAllTextAsync(fileName, jsonString);
