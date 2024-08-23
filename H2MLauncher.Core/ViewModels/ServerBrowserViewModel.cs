@@ -80,7 +80,7 @@ namespace H2MLauncher.Core.ViewModels
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            OpenUpdatePageInBrowserCommand = new AsyncRelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "");
+            OpenUpdatePageInBrowserCommand = new AsyncRelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "" && _updateStatus != "Restart for new version!");
             _logger = logger;
             _saveFileService = saveFileService;
             _errorHandlingService = errorHandlingService;

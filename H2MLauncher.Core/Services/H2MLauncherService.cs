@@ -32,9 +32,9 @@ namespace H2MLauncher.Core.Services
                 if (File.Exists(LAUNCHER_BACKUP))
                     File.Delete(LAUNCHER_BACKUP);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                _errorHandlingService.HandleError("Couldn't delete old launcher.");
+                _errorHandlingService.HandleException(ex, "Couldn't delete old launcher.");
             }
 
             try
@@ -93,18 +93,6 @@ namespace H2MLauncher.Core.Services
             {
                 _errorHandlingService.HandleException(ex, "Unable to modify files in directory. Please try again later.");
                 return false;
-            }
-            finally
-            {
-                try
-                {
-                    if (File.Exists(tempFileName))
-                        File.Delete(tempFileName);
-                }
-                catch (Exception)
-                {
-                    // ignore
-                }
             }
             return true;
         }
