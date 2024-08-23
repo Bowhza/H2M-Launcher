@@ -70,18 +70,18 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White" Padding="5,0,0,0"/>
-                <TextBlock Grid.Column="1" Text="{Binding UpdateStatus}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
+                <TextBlock Grid.Column="1" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="PreviewMouseDown">
                             <i:InvokeCommandAction Command="{Binding UpdateLauncherCommand}"/>
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                 </TextBlock>
-                <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding ProgressBarVisibility}">
+                <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding ProgressBarVisibility, Converter={StaticResource booleanToVisibilityConverter}}">
                     <ProgressBar Name="pbStatus"  Width="400" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}"/>
                     <TextBlock Text="{Binding ElementName=pbStatus, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                 </Grid>
-                <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding ReleaseNotesVisibility}">
+                <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding ReleaseNotesVisibility, Converter={StaticResource booleanToVisibilityConverter}}">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="200" />
                         <ColumnDefinition Width="5" />

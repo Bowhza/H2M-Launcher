@@ -37,7 +37,7 @@ namespace H2MLauncher.Core.ViewModels
         private string _filter = "";
 
         [ObservableProperty]
-        private string _updateStatus = "";
+        private string _updateStatusText = "";
 
         [ObservableProperty]
         private string _statusText = "Ready";
@@ -46,11 +46,10 @@ namespace H2MLauncher.Core.ViewModels
         private double _updateDownloadProgress = 0;
 
         [ObservableProperty]
-        private string _progressBarVisibility = "Hidden";
+        private bool _progressBarVisibility = false;
 
         [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
-        private string _releaseNotesVisibility = "Hidden";
+        private bool _releaseNotesVisibility = false;
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
@@ -88,7 +87,7 @@ namespace H2MLauncher.Core.ViewModels
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => _updateStatus != "");
+            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatus != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
         }
@@ -111,15 +110,14 @@ namespace H2MLauncher.Core.ViewModels
 
         private async Task DoUpdateLauncherCommand()
         {
-            UpdateStatus = "";
-            ProgressBarVisibility = "Visible";
+            ProgressBarVisibility = true;
             await _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
             {
                 UpdateDownloadProgress = progress;
                 if (progress == 100)
                 {
-                    ProgressBarVisibility = "Hidden";
-                    ReleaseNotesVisibility = "Visible";
+                    ProgressBarVisibility = false;
+                    ReleaseNotesVisibility = true;
                 }
             }, CancellationToken.None).ConfigureAwait(false);
         }
