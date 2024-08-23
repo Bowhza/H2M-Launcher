@@ -46,7 +46,7 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private bool _isPrivate;
 
-        public string Occupation => $"{ClientNum}/{MaxClientNum:D2}";
+        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
 
         public override string ToString()
         {
