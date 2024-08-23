@@ -9,7 +9,8 @@ namespace H2MLauncher.Core.Services
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
         public const string CURRENT_VERSION = "H2M-v2.0.3";
-        
+        private const string LAUNCHER = "H2MLauncher.UI.exe";
+        private const string LAUNCHER_BACKUP = $"{LAUNCHER}.backup";
         private readonly HttpClient _httpClient;
         private readonly IErrorHandlingService _errorHandlingService;
         
@@ -24,6 +25,17 @@ namespace H2MLauncher.Core.Services
 
         public async Task<bool> IsLauncherUpToDateAsync(CancellationToken cancellationToken)
         {
+            try
+            {
+                // remove old version if it exists
+                if (File.Exists(LAUNCHER_BACKUP))
+                    File.Delete(LAUNCHER_BACKUP);
+            }
+            catch (Exception)
+            {
+                _errorHandlingService.HandleError("Couldn't delete old launcher.");
+            }
+
             try
             {
                 _httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
@@ -45,9 +57,8 @@ namespace H2MLauncher.Core.Services
         {
             // download latest version
             string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/H2MLauncher.UI.exe";
-            string currentFileName = "H2MLauncher.UI.exe";
-            string tempFileName = $"{currentFileName}.bak";
-            string tempFileName2 = $"{currentFileName}.backup";
+            string tempFileName2 = $"{LAUNCHER}.backup";
+            string tempFileName = $"{LAUNCHER}.bak";
 
             try
             {
@@ -75,9 +86,9 @@ namespace H2MLauncher.Core.Services
             try
             {
                 // rename current exe to temp
-                File.Move(currentFileName, tempFileName2);
+                File.Move(LAUNCHER, tempFileName2);
                 // rename new exe to current exe
-                File.Move(tempFileName, currentFileName);
+                File.Move(tempFileName, LAUNCHER);
             }
             catch (Exception ex)
             {
@@ -90,8 +101,6 @@ namespace H2MLauncher.Core.Services
                 {
                     if (File.Exists(tempFileName))
                         File.Delete(tempFileName);
-                    if (File.Exists(tempFileName2))
-                        File.Delete(tempFileName2);
                 }
                 catch (Exception)
                 {
