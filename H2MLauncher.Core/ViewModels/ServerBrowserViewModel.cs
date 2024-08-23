@@ -87,7 +87,7 @@ namespace H2MLauncher.Core.ViewModels
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatus != "");
+            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
         }
@@ -188,7 +188,7 @@ namespace H2MLauncher.Core.ViewModels
         private async Task CheckUpdateStatusAsync()
         {
             bool isUpToDate = await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None);
-            UpdateStatus = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
+            UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
         }
 
         private async Task LoadServersAsync()
