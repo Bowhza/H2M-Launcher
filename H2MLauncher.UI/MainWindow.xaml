@@ -16,7 +16,7 @@
         KeyDown="Window_KeyDown"
         Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-        Title="MainWindow" Height="450" Width="800">
+        Title="Better H2M-Launcher" Height="450" Width="800">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding CheckUpdateStatusCommand}"/>
@@ -37,6 +37,13 @@
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
             <Setter Property="Focusable" Value="False"/>
             <Setter Property="IsTabStop" Value="False"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <!-- Selection background -->
+                    <Setter Property="Background" Value="#252525"></Setter>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <local:HostNameColorConverter x:Key="hostNameColorConverter" />
         <local:PlayersSorter x:Key="PlayersSorter"/>
@@ -95,6 +102,7 @@
             </Grid>
             <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                       Grid.Row="2"
+                      FontFamily="Consolas"
                       Margin="5" Height="Auto" Width="780" 
                 KeyboardNavigation.TabNavigation="Once"
                 TabIndex="2"
@@ -109,8 +117,9 @@
                 HorizontalScrollBarVisibility="Hidden"
                 Background="Black"
                 SelectionMode="Single"
-                CanUserResizeColumns="False"
-                Opacity="0.95"
+                MaxColumnWidth="700"
+                CanUserResizeColumns="true"
+                Opacity="0.87"
                 HeadersVisibility="Column"
                 VerticalScrollBarVisibility="Hidden"
                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
@@ -138,19 +147,19 @@
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="BorderBrush" Value="LawnGreen" />
                                 <Setter Property="BorderThickness" Value="0 1" />
-                                <Setter Property="Background" Value="#151515"></Setter>
+                                <Setter Property="Background" Value="#454545"></Setter>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
                 </DataGrid.ItemContainerStyle>
                 <DataGrid.Columns>
-                    <DataGridTemplateColumn Width="555">
+                    <DataGridTemplateColumn Width="528" MinWidth="200" MaxWidth="700">
                         <DataGridTemplateColumn.Header>
                             <TextBlock Text="Hostname"/>
                         </DataGridTemplateColumn.Header>
                         <DataGridTemplateColumn.CellTemplate>
                             <DataTemplate DataType="vm:ServerViewModel">
-                                <ItemsControl 
+                                <ItemsControl
                                     Focusable="False"
                                     IsTabStop="False" 
                                     IsHitTestVisible="False" 
@@ -165,18 +174,19 @@
                             </DataTemplate>
                         </DataGridTemplateColumn.CellTemplate>
                     </DataGridTemplateColumn>
-                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" />
-                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}"/>
+                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" MinWidth="100" MaxWidth="200"/>
+                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False"/>
                     <DataGridTextColumn Header="Players" 
                                         SortMemberPath="ClientNum"
-                                        Binding="{Binding Occupation}">
+                                        Binding="{Binding Occupation}"
+                                        CanUserResize="False">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right" />
                             </Style>
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}">
+                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="HorizontalAlignment" Value="Right" />

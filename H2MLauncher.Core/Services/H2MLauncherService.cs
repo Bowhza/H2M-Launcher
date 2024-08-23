@@ -7,7 +7,7 @@ namespace H2MLauncher.Core.Services
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
         private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
-        public const string CURRENT_VERSION = "H2M-v2.0.1";
+        public const string CURRENT_VERSION = "H2M-v2.0.2";
         public string LatestKnownVersion { get; private set; } = "Unknown";
 
 

@@ -17,7 +17,13 @@ namespace H2MLauncher.UI
             {
                 if (matches[0].Index != 0)
                 {
-                    runs.Add(new Run() { Text = hostname[..matches[0].Index], Foreground = Brushes.White, FlowDirection = System.Windows.FlowDirection.LeftToRight });
+                    runs.Add(new Run()
+                    {
+                        Text = hostname[..matches[0].Index],
+                        Foreground = Brushes.White,
+                        FlowDirection = System.Windows.FlowDirection.LeftToRight,
+                        FontFamily = new FontFamily("Consolas"),
+                    });
                 }
                 foreach (Match match in matches)
                 {
@@ -35,12 +41,24 @@ namespace H2MLauncher.UI
                         "^8" => Brushes.Black,
                         _ => Brushes.White, // ^: rainbow
                     };
-                    runs.Add(new Run() { Text = match.Groups[2].Value, Foreground = brush, FlowDirection = System.Windows.FlowDirection.LeftToRight });
+                    runs.Add(new Run()
+                    {
+                        Text = match.Groups[2].Value,
+                        Foreground = brush,
+                        FlowDirection = System.Windows.FlowDirection.LeftToRight,
+                        FontFamily = new FontFamily("Consolas"),
+                    });
                 }
             }
             else
             {
-                runs.Add(new Run() { Text = hostname, Foreground = Brushes.White, FlowDirection = System.Windows.FlowDirection.LeftToRight });
+                runs.Add(new Run()
+                {
+                    Text = hostname,
+                    Foreground = Brushes.White,
+                    FlowDirection = System.Windows.FlowDirection.LeftToRight,
+                    FontFamily = new FontFamily("Consolas")
+                });
             }
             return runs.ToArray();
         }
