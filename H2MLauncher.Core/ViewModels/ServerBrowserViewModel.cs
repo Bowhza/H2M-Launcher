@@ -42,13 +42,19 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private string _statusText = "Ready";
 
+        [ObservableProperty]
+        private double _updateDownloadProgress = 0;
+
+        [ObservableProperty]
+        private string _progressBarVisibility = "Hidden";
+
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
-        public IRelayCommand OpenUpdatePageInBrowserCommand { get; }
+        public IAsyncRelayCommand OpenUpdatePageInBrowserCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -74,20 +80,33 @@ namespace H2MLauncher.Core.ViewModels
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
+            OpenUpdatePageInBrowserCommand = new AsyncRelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "");
             _logger = logger;
             _saveFileService = saveFileService;
             _errorHandlingService = errorHandlingService;
-            OpenUpdatePageInBrowserCommand = new RelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "");
         }
 
-        private void DoOpenUpdatePageInBrowserCommand()
+        private async Task DoOpenUpdatePageInBrowserCommand()
         {
-            string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
-            ProcessStartInfo sInfo = new(destinationurl)
+            ProgressBarVisibility = "Visible";
+            await _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
             {
-                UseShellExecute = true,
-            };
-            Process.Start(sInfo);
+                UpdateDownloadProgress = progress;
+                if (progress == 100)
+                {
+                    ProgressBarVisibility = "Hidden";
+                    UpdateStatus = "Restart for new version!";
+                }
+            }, CancellationToken.None).ConfigureAwait(false);
+
+            // NOTE: we could still show the release page with the newest features or in the APP?
+            
+            //string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
+            //ProcessStartInfo sInfo = new(destinationurl)
+            //{
+            //    UseShellExecute = true,
+            //};
+            //Process.Start(sInfo);
         }
 
         private void DoCopyToClipBoardCommand(ServerViewModel? server)
