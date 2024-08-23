@@ -64,7 +64,6 @@ namespace H2MLauncher.Core.ViewModels
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService,
-            GameServerCommunicationService serverPingService,
             H2MCommunicationService h2MCommunicationService,
             GameServerCommunicationService gameServerCommunicationService,
             H2MLauncherService h2MLauncherService,
