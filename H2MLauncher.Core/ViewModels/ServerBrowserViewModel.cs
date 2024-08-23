@@ -50,7 +50,7 @@ namespace H2MLauncher.Core.ViewModels
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
-        private bool _autoUpdateFinished = false;
+        private string _releaseNotesVisibility = "Hidden";
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
@@ -59,6 +59,8 @@ namespace H2MLauncher.Core.ViewModels
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
         public IAsyncRelayCommand UpdateLauncherCommand { get; }
+        public IRelayCommand OpenReleaseNotesCommand { get; }
+        public IRelayCommand RestartCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -86,31 +88,40 @@ namespace H2MLauncher.Core.ViewModels
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => _updateStatus != "" && !AutoUpdateFinished);
+            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => _updateStatus != "");
+            OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
+            RestartCommand = new RelayCommand(DoRestartCommand);
+        }
+
+        private void DoRestartCommand()
+        {
+            Process.Start(H2MLauncherService.LauncherPath);
+            Process.GetCurrentProcess().Kill();
+        }
+
+        private void DoOpenReleaseNotesCommand()
+        {
+            string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
+            ProcessStartInfo sInfo = new(destinationurl)
+            {
+                UseShellExecute = true,
+            };
+            Process.Start(sInfo);
         }
 
         private async Task DoUpdateLauncherCommand()
         {
+            UpdateStatus = "";
             ProgressBarVisibility = "Visible";
             await _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
             {
                 UpdateDownloadProgress = progress;
                 if (progress == 100)
                 {
-                    AutoUpdateFinished = true;
                     ProgressBarVisibility = "Hidden";
-                    UpdateStatus = "Restart for new version!";
+                    ReleaseNotesVisibility = "Visible";
                 }
             }, CancellationToken.None).ConfigureAwait(false);
-
-            // NOTE: we could still show the release page with the newest features or in the APP?
-            
-            //string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
-            //ProcessStartInfo sInfo = new(destinationurl)
-            //{
-            //    UseShellExecute = true,
-            //};
-            //Process.Start(sInfo);
         }
 
         private void DoCopyToClipBoardCommand(ServerViewModel? server)

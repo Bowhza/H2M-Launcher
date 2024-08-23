@@ -10,13 +10,13 @@ namespace H2MLauncher.Core.Services
     public sealed class H2MLauncherService
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
-        private const string LAUNCHER = "H2MLauncher.UI.exe";
-        private const string LAUNCHER_BACKUP = $"{LAUNCHER}.backup";
+        private const string LauncherBackupPath = $"{LauncherPath}.backup";
 
         private readonly ILogger<H2MLauncherService> _logger;
         private readonly HttpClient _httpClient;
         private readonly IErrorHandlingService _errorHandlingService;
 
+        public const string LauncherPath = "H2MLauncher.UI.exe";
         public static string CurrentVersion
         {
             get
@@ -46,10 +46,10 @@ namespace H2MLauncher.Core.Services
                 //       the old launcher named (H2MLauncher.UI.exe.backup) has to be deleted.
                 //       It couldn't be deleted while that exe was still running; that is why
                 //       on start up, we check if it is there to be deleted.
-                if (File.Exists(LAUNCHER_BACKUP))
+                if (File.Exists(LauncherBackupPath))
                 {
                     _logger.LogDebug("Old launcher found; trying to delete it..");
-                    File.Delete(LAUNCHER_BACKUP);
+                    File.Delete(LauncherBackupPath);
                     _logger.LogInformation("Old launcher deleted.");
                 }
             }
@@ -87,8 +87,8 @@ namespace H2MLauncher.Core.Services
 
         public async Task<bool> UpdateLauncherToLatestVersion(Action<double> progress, CancellationToken cancellationToken)
         {
-            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{LAUNCHER}";
-            const string tempFileName = $"{LAUNCHER}.bak";
+            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{LauncherPath}";
+            const string tempFileName = $"{LauncherPath}.bak";
 
             try
             {
@@ -117,13 +117,13 @@ namespace H2MLauncher.Core.Services
             {
                 // NOTE: We move the current launcher as backup such that the new launcher can get the original 
                 //       name for the exe. The backup launcher will be deleted on restart of the launcher.
-                _logger.LogDebug("Attempting to move old launcher {} to {}.", LAUNCHER, LAUNCHER_BACKUP);
-                File.Move(LAUNCHER, LAUNCHER_BACKUP);
-                _logger.LogInformation("Moved old launcher {} to {}.", LAUNCHER, LAUNCHER_BACKUP);
+                _logger.LogDebug("Attempting to move old launcher {} to {}.", LauncherPath, LauncherBackupPath);
+                File.Move(LauncherPath, LauncherBackupPath);
+                _logger.LogInformation("Moved old launcher {} to {}.", LauncherPath, LauncherBackupPath);
 
-                _logger.LogDebug("Attempting to move new launcher {} to {}.", tempFileName, LAUNCHER);
-                File.Move(tempFileName, LAUNCHER);
-                _logger.LogInformation("Moved new launcher {} to {}.", tempFileName, LAUNCHER);
+                _logger.LogDebug("Attempting to move new launcher {} to {}.", tempFileName, LauncherPath);
+                File.Move(tempFileName, LauncherPath);
+                _logger.LogInformation("Moved new launcher {} to {}.", tempFileName, LauncherPath);
             }
             catch (Exception ex)
             {
