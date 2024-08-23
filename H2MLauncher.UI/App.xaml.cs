@@ -43,7 +43,7 @@ namespace H2MLauncher.UI
 
             Log.Information("{applicationName} started on version {version}.", 
                 Assembly.GetExecutingAssembly().GetName(),
-                H2MLauncherService.CURRENT_VERSION);
+                H2MLauncherService.CurrentVersion);
         }
 
         private void ConfigureServices(IServiceCollection services)

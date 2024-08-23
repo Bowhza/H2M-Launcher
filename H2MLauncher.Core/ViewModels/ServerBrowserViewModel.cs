@@ -48,13 +48,17 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private string _progressBarVisibility = "Hidden";
 
+        [ObservableProperty]
+        [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
+        private bool _autoUpdateFinished = false;
+
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
-        public IAsyncRelayCommand OpenUpdatePageInBrowserCommand { get; }
+        public IAsyncRelayCommand UpdateLauncherCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -73,20 +77,20 @@ namespace H2MLauncher.Core.ViewModels
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
             _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
-            _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService)); ;
+            _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
+            _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
             SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            OpenUpdatePageInBrowserCommand = new AsyncRelayCommand(DoOpenUpdatePageInBrowserCommand, () => _updateStatus != "" && _updateStatus != "Restart for new version!");
-            _logger = logger;
-            _saveFileService = saveFileService;
-            _errorHandlingService = errorHandlingService;
+            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => _updateStatus != "" && !AutoUpdateFinished);
         }
 
-        private async Task DoOpenUpdatePageInBrowserCommand()
+        private async Task DoUpdateLauncherCommand()
         {
             ProgressBarVisibility = "Visible";
             await _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
@@ -94,6 +98,7 @@ namespace H2MLauncher.Core.ViewModels
                 UpdateDownloadProgress = progress;
                 if (progress == 100)
                 {
+                    AutoUpdateFinished = true;
                     ProgressBarVisibility = "Hidden";
                     UpdateStatus = "Restart for new version!";
                 }
@@ -114,9 +119,7 @@ namespace H2MLauncher.Core.ViewModels
             if (server is null)
             {
                 if (SelectedServer is null)
-                {
                     return;
-                }
 
                 server = SelectedServer;
             }
@@ -130,9 +133,7 @@ namespace H2MLauncher.Core.ViewModels
         public bool ServerFilter(ServerViewModel server)
         {
             if (string.IsNullOrEmpty(Filter))
-            {
                 return true;
-            }
 
             string lowerCaseFilter = Filter.ToLower();
 
@@ -161,9 +162,7 @@ namespace H2MLauncher.Core.ViewModels
                     // let user choose
                     fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
                     if (string.IsNullOrEmpty(fileName))
-                    {
                         return;
-                    }
                 }
 
                 await File.WriteAllTextAsync(fileName, jsonString);

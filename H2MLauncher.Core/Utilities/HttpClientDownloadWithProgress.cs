@@ -11,24 +11,24 @@ namespace H2MLauncher.Core.Utilities
 
         public event DownloadProgressHandler? ProgressChanged;
 
-        public async Task StartDownload()
+        public async Task StartDownloadAsync(CancellationToken cancellationToken)
         {
             using HttpRequestMessage requestMessage = _requestMessageBuilder.Invoke();
-            using HttpResponseMessage response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead);
-            await DownloadAsync(response);
+            using HttpResponseMessage response = await _httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            await DownloadAsync(response, cancellationToken);
         }
 
-        private async Task DownloadAsync(HttpResponseMessage response)
+        private async Task DownloadAsync(HttpResponseMessage response, CancellationToken cancellationToken)
         {
             response.EnsureSuccessStatusCode();
 
             long? totalBytes = response.Content.Headers.ContentLength;
 
-            using Stream contentStream = await response.Content.ReadAsStreamAsync();
-            await ProcessContentStream(totalBytes, contentStream);
+            using Stream contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            await ProcessContentStream(totalBytes, contentStream, cancellationToken);
         }
 
-        private async Task ProcessContentStream(long? totalDownloadSize, Stream contentStream)
+        private async Task ProcessContentStream(long? totalDownloadSize, Stream contentStream, CancellationToken cancellationToken)
         {
             long totalBytesRead = 0L;
             long readCount = 0L;
@@ -39,7 +39,7 @@ namespace H2MLauncher.Core.Utilities
             {
                 do
                 {
-                    int bytesRead = await contentStream.ReadAsync(buffer);
+                    int bytesRead = await contentStream.ReadAsync(buffer, cancellationToken);
                     if (bytesRead == 0)
                     {
                         isMoreToRead = false;
@@ -47,7 +47,7 @@ namespace H2MLauncher.Core.Utilities
                         continue;
                     }
 
-                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
+                    await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
 
                     totalBytesRead += bytesRead;
                     readCount += 1;

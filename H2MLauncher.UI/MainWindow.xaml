@@ -73,7 +73,7 @@
                 <TextBlock Grid.Column="1" Text="{Binding UpdateStatus}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="PreviewMouseDown">
-                            <i:InvokeCommandAction Command="{Binding OpenUpdatePageInBrowserCommand}"/>
+                            <i:InvokeCommandAction Command="{Binding UpdateLauncherCommand}"/>
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                 </TextBlock>

@@ -1,81 +1,111 @@
-﻿using System.Diagnostics;
+﻿using System.Reflection;
 using System.Text.Json;
 
 using H2MLauncher.Core.Utilities;
 
+using Microsoft.Extensions.Logging;
+
 namespace H2MLauncher.Core.Services
 {
-    public class H2MLauncherService
+    public sealed class H2MLauncherService
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
         private const string LAUNCHER = "H2MLauncher.UI.exe";
         private const string LAUNCHER_BACKUP = $"{LAUNCHER}.backup";
+
+        private readonly ILogger<H2MLauncherService> _logger;
         private readonly HttpClient _httpClient;
         private readonly IErrorHandlingService _errorHandlingService;
-        
-        public const string CURRENT_VERSION = "H2M-v2.0.3";
+
+        public static string CurrentVersion
+        {
+            get
+            {
+                Version version = Assembly.GetExecutingAssembly().GetName().Version!;
+                return $"H2M-v{version.Major}.{version.Minor}.{version.Build}";
+            }
+        }
 
         public string LatestKnownVersion { get; private set; } = "Unknown";
 
-        public H2MLauncherService(HttpClient httpClient, IErrorHandlingService errorHandlingService)
+        public H2MLauncherService(ILogger<H2MLauncherService> logger, HttpClient httpClient, IErrorHandlingService errorHandlingService)
         {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            // NOTE: GitHub requires a User-Agent to be set to interact with their API.
             _httpClient.DefaultRequestHeaders.Add("User-Agent", "H2M-Launcher-App");
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
         }
 
         public async Task<bool> IsLauncherUpToDateAsync(CancellationToken cancellationToken)
         {
+            // Delete old launcher if present.
             try
             {
-                // remove old version if it exists
+                // NOTE: When the launcher has previously been updated to the latest version,
+                //       the old launcher named (H2MLauncher.UI.exe.backup) has to be deleted.
+                //       It couldn't be deleted while that exe was still running; that is why
+                //       on start up, we check if it is there to be deleted.
                 if (File.Exists(LAUNCHER_BACKUP))
+                {
+                    _logger.LogDebug("Old launcher found; trying to delete it..");
                     File.Delete(LAUNCHER_BACKUP);
+                    _logger.LogInformation("Old launcher deleted.");
+                }
             }
             catch (Exception ex)
             {
                 _errorHandlingService.HandleException(ex, "Couldn't delete old launcher.");
             }
 
+            // Fetch the latest version tag to compare with the current version tag
             try
             {
-                _httpClient.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
-                _httpClient.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
-                HttpResponseMessage response = await _httpClient.GetAsync(GITHUB_REPOSITORY, cancellationToken);
+                HttpRequestMessage httpRequestMessage = new(HttpMethod.Get, GITHUB_REPOSITORY);
+                httpRequestMessage.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
+                httpRequestMessage.Headers.Add("Accept", "application/vnd.github+json");
+
+                HttpResponseMessage response = await _httpClient.SendAsync(httpRequestMessage, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 JsonDocument doc = JsonDocument.Parse(response.Content.ReadAsStream(cancellationToken));
                 LatestKnownVersion = doc.RootElement[0].GetProperty("tag_name").ToString();
-                return LatestKnownVersion == CURRENT_VERSION;
+                bool isUpToDate = LatestKnownVersion == CurrentVersion;
+
+                if (!isUpToDate)
+                    _logger.LogInformation("New launcher version available: {LatestKnownVersion}", LatestKnownVersion);
+
+                return isUpToDate;
             }
             catch (Exception ex)
             {
                 _errorHandlingService.HandleException(ex, "Unable to check for updates; try again later.");
             }
+
+            _logger.LogInformation("Launcher is outdated: old {CurrentVersion}, new {LatestKnownVersion}.", CurrentVersion, LatestKnownVersion);
             return false;
         }
 
         public async Task<bool> UpdateLauncherToLatestVersion(Action<double> progress, CancellationToken cancellationToken)
         {
-            // download latest version
-            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/H2MLauncher.UI.exe";
-            string tempFileName = $"{LAUNCHER}.bak";
+            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{LAUNCHER}";
+            const string tempFileName = $"{LAUNCHER}.bak";
 
             try
             {
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("User-Agent", "H2M-Launcher-App");
                 DownloadProgressHandler downloadProgressHandler = (long? totalFileSize, long totalBytesDownloaded, double? progressPercentage) => 
                 {
                     if (progressPercentage.HasValue)
                     {
                         progress(progressPercentage!.Value);
-                        Debug.WriteLine($"{totalBytesDownloaded/1_000_000}/{totalFileSize/1_000_000}MB {progressPercentage}%");
+                        _logger.LogDebug("{totalBytesDownloaded}/{totalFileSize}MB {progressPercentage}%", totalBytesDownloaded / 1_000_000, totalFileSize / 1_000_000, progressPercentage);
                     }
                     else if (totalBytesDownloaded > 0)
-                        Debug.WriteLine($"{totalBytesDownloaded / 1000000}MB");
+                        _logger.LogDebug("{totalBytesDownloaded}MB", totalBytesDownloaded / 1_000_000);
                 };
 
-                await DownloadWithProgress.ExecuteAsync(_httpClient, downloadUrl, tempFileName, downloadProgressHandler);
+                // TODO: If user closed application while downloading, cancel the download -> cancellation token.
+                //       Requires a bit more work to be done for global handling of cancellations.
+                await DownloadWithProgress.ExecuteAsync(_httpClient, downloadUrl, tempFileName, downloadProgressHandler, CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -85,15 +115,24 @@ namespace H2MLauncher.Core.Services
 
             try
             {
+                // NOTE: We move the current launcher as backup such that the new launcher can get the original 
+                //       name for the exe. The backup launcher will be deleted on restart of the launcher.
+                _logger.LogDebug("Attempting to move old launcher {} to {}.", LAUNCHER, LAUNCHER_BACKUP);
                 File.Move(LAUNCHER, LAUNCHER_BACKUP);
-                // rename new exe to current exe
+                _logger.LogInformation("Moved old launcher {} to {}.", LAUNCHER, LAUNCHER_BACKUP);
+
+                _logger.LogDebug("Attempting to move new launcher {} to {}.", tempFileName, LAUNCHER);
                 File.Move(tempFileName, LAUNCHER);
+                _logger.LogInformation("Moved new launcher {} to {}.", tempFileName, LAUNCHER);
             }
             catch (Exception ex)
             {
                 _errorHandlingService.HandleException(ex, "Unable to modify files in directory. Please try again later.");
                 return false;
             }
+
+            _logger.LogInformation("Launcher is updated to {LatestKnownVersion}.", LatestKnownVersion);
+
             return true;
         }
     }
