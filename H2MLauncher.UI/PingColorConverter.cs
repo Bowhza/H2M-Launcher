@@ -11,18 +11,14 @@ public class PingColorConverter : IValueConverter
     {
         if (value is long ping)
         {
-            Brush pingColor;
-
-            if (ping < 50)
-                pingColor = Brushes.LawnGreen;
-            else if (ping < 80)
-                pingColor = Brushes.Orange;
-            else
-                pingColor = Brushes.Red;
-
-            return pingColor;
+            return ping switch
+            {
+                < 50 => Brushes.LawnGreen,
+                < 80 => Brushes.Orange,
+                _ => Brushes.Red,
+            };
         }
-        
+
         throw new ArgumentNullException(nameof(value));
     }
 
