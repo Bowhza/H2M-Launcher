@@ -8,12 +8,13 @@ namespace H2MLauncher.Core.Services
     public class H2MLauncherService
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
-        public const string CURRENT_VERSION = "H2M-v2.0.3";
         private const string LAUNCHER = "H2MLauncher.UI.exe";
         private const string LAUNCHER_BACKUP = $"{LAUNCHER}.backup";
         private readonly HttpClient _httpClient;
         private readonly IErrorHandlingService _errorHandlingService;
         
+        public const string CURRENT_VERSION = "H2M-v2.0.3";
+
         public string LatestKnownVersion { get; private set; } = "Unknown";
 
         public H2MLauncherService(HttpClient httpClient, IErrorHandlingService errorHandlingService)
@@ -25,17 +26,6 @@ namespace H2MLauncher.Core.Services
 
         public async Task<bool> IsLauncherUpToDateAsync(CancellationToken cancellationToken)
         {
-            try
-            {
-                // remove old version if it exists
-                if (File.Exists(LAUNCHER_BACKUP))
-                    File.Delete(LAUNCHER_BACKUP);
-            }
-            catch (Exception)
-            {
-                _errorHandlingService.HandleError("Couldn't delete old launcher.");
-            }
-
             try
             {
                 // remove old version if it exists
@@ -68,9 +58,7 @@ namespace H2MLauncher.Core.Services
         {
             // download latest version
             string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/H2MLauncher.UI.exe";
-            string tempFileName2 = $"{LAUNCHER}.backup";
             string tempFileName = $"{LAUNCHER}.bak";
-            string tempFileName2 = $"{currentFileName}.backup";
 
             try
             {
@@ -98,7 +86,6 @@ namespace H2MLauncher.Core.Services
             try
             {
                 File.Move(LAUNCHER, LAUNCHER_BACKUP);
-                File.Move(currentFileName, tempFileName2);
                 // rename new exe to current exe
                 File.Move(tempFileName, LAUNCHER);
             }
