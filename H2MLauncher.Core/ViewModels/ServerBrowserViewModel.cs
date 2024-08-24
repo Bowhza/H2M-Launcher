@@ -5,6 +5,7 @@ using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using Microsoft.Extensions.Logging;
@@ -203,10 +204,15 @@ namespace H2MLauncher.Core.ViewModels
                 TotalPlayers = 0;
 
                 // Get servers from the master
-                var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+                List<RaidMaxServer> servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+
+                // Let's prioritize populated servers first for getting game server info.
+                IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
+                    .Where((server) => server.ClientNum > 0)
+                    .OrderByDescending((server) => server.ClientNum);
 
                 // Start by sending info requests to the game servers
-                await _gameServerCommunicationService.StartRetrievingGameServerInfo(servers, (server, gameServer) =>
+                await _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
                 {
                     // Game server responded -> online
                     Servers.Add(new ServerViewModel()
