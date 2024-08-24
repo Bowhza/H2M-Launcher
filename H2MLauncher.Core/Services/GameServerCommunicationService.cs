@@ -8,35 +8,44 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace H2MLauncher.Core.Services
 {
-    public class GameServerCommunicationService : IAsyncDisposable
+    public interface IServerConnectionDetails
+    {
+        string Ip { get; }
+
+        int Port { get; }
+    }
+
+    public class ServerInfoEventArgs<TServer> : EventArgs
+         where TServer : IServerConnectionDetails
+    {
+        public required GameServerInfo ServerInfo { get; init; }
+
+        public required TServer Server { get; init; }
+    }
+
+    public class GameServerCommunicationService<TServer> : IAsyncDisposable
+        where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, InfoRequest> _queuedServers = [];
 
         private GameServerCommunication? _gameServerCommunication;
         private readonly List<IDisposable> _registrations = [];
 
-        private readonly ILogger<GameServerCommunicationService> _logger;
+        private readonly ILogger<GameServerCommunicationService<TServer>> _logger;
         private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions());
 
         private const int MIN_REQUEST_DELAY = 1;
 
-        public event EventHandler<ServerInfoEventArgs>? ServerInfoReceived;
+        public event EventHandler<ServerInfoEventArgs<TServer>>? ServerInfoReceived;
 
-        public GameServerCommunicationService(ILogger<GameServerCommunicationService> logger)
+        public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger)
         {
             _logger = logger;
 
             StartCommunication();
         }
 
-        public class ServerInfoEventArgs : EventArgs
-        {
-            public required GameServerInfo ServerInfo { get; init; }
-
-            public required RaidMaxServer Server { get; init; }
-        }
-
-        private record struct InfoRequest(RaidMaxServer Server)
+        private record struct InfoRequest(TServer Server)
         {
             public DateTimeOffset TimeStamp { get; init; } = DateTimeOffset.Now;
             public TaskCompletionSource<GameServerInfo>? InfoResponseCompletionSource { get; init; }
@@ -126,10 +135,9 @@ namespace H2MLauncher.Core.Services
         /// <summary>
         /// Tries to resolve the <see cref="IPEndPoint"/> of the given <paramref name="server"/> using it's hostname.
         /// </summary>
-        private async Task<IPEndPoint?> ResolveEndpointAsync(RaidMaxServer server, CancellationToken cancellationToken)
+        private async Task<IPEndPoint?> ResolveEndpointAsync(TServer server, CancellationToken cancellationToken)
         {
-            _logger.LogDebug("Resolving endpoint for server {Server}...",
-                new { server.Id, server.HostName, server.Ip });
+            _logger.LogDebug("Resolving endpoint for server {Server}...", server);
 
             // ip likely contains a hostname
             try
@@ -150,8 +158,7 @@ namespace H2MLauncher.Core.Services
             catch (Exception ex)
             {
                 // invalid ip field
-                _logger.LogWarning(ex, "Error while resolving endpoint for server {Server}",
-                    new { server.Id, server.HostName, server.Ip });
+                _logger.LogWarning(ex, "Error while resolving endpoint for server {Server}", server);
                 return null;
             }
         }
@@ -160,7 +167,7 @@ namespace H2MLauncher.Core.Services
         /// Gets the <see cref="IPEndPoint"/> for the given <paramref name="server"/> from the cache,
         /// or tries to create / resolve it when no valid cache entry is found.
         /// </summary>
-        private Task<IPEndPoint?> GetOrResolveEndpointAsync(RaidMaxServer server, CancellationToken cancellationToken)
+        private Task<IPEndPoint?> GetOrResolveEndpointAsync(TServer server, CancellationToken cancellationToken)
         {
             return _memoryCache.GetOrCreateAsync(
                 new IpEndpointCacheKey(server.Ip, server.Port),
@@ -185,7 +192,7 @@ namespace H2MLauncher.Core.Services
                 });
         }
 
-        public async Task<GameServerInfo?> RequestServerInfoAsync(RaidMaxServer server, CancellationToken cancellationToken)
+        public async Task<GameServerInfo?> RequestServerInfoAsync(TServer server, CancellationToken cancellationToken)
         {
             // create an endpoint to send to and receive from
             IPEndPoint? endpoint = await GetOrResolveEndpointAsync(server, cancellationToken);
@@ -231,9 +238,9 @@ namespace H2MLauncher.Core.Services
         /// <summary>
         /// Send info requests to all given game servers.
         /// </summary>
-        public async Task SendInfoRequestsAsync(IEnumerable<RaidMaxServer> servers, CancellationToken cancellationToken)
+        public async Task SendInfoRequestsAsync(IEnumerable<TServer> servers, CancellationToken cancellationToken)
         {
-            ConcurrentDictionary<IPEndPoint, RaidMaxServer> endpointServerMap = [];
+            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
 
             // resolve host names in parallel
             await Parallel.ForEachAsync(
@@ -272,7 +279,7 @@ namespace H2MLauncher.Core.Services
         /// Send a single info request to the game server.
         /// </summary>
         /// <returns>True, if the request was sent successfully.</returns>
-        public async Task<bool> SendInfoRequestAsync(RaidMaxServer server, CancellationToken cancellationToken)
+        public async Task<bool> SendInfoRequestAsync(TServer server, CancellationToken cancellationToken)
         {
             // create an endpoint to send to and receive from
             var serverEndpoint = await GetOrResolveEndpointAsync(server, cancellationToken);

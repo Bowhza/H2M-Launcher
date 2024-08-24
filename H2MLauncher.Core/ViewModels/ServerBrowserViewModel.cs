@@ -17,7 +17,7 @@ namespace H2MLauncher.Core.ViewModels
     public partial class ServerBrowserViewModel : ObservableObject
     {
         private readonly RaidMaxService _raidMaxService;
-        private readonly GameServerCommunicationService _gameServerCommunicationService;
+        private readonly GameServerCommunicationService<RaidMaxServer> _gameServerCommunicationService;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private readonly H2MLauncherService _h2MLauncherService;
         private readonly IClipBoardService _clipBoardService;
@@ -69,7 +69,7 @@ namespace H2MLauncher.Core.ViewModels
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService,
             H2MCommunicationService h2MCommunicationService,
-            GameServerCommunicationService gameServerCommunicationService,
+            GameServerCommunicationService<RaidMaxServer> gameServerCommunicationService,
             H2MLauncherService h2MLauncherService,
             IClipBoardService clipBoardService,
             ILogger<ServerBrowserViewModel> logger,
@@ -325,7 +325,7 @@ namespace H2MLauncher.Core.ViewModels
             }
         }
 
-        private void OnGameServerInfoReceived(object? sender, GameServerCommunicationService.ServerInfoEventArgs e)
+        private void OnGameServerInfoReceived(object? sender, ServerInfoEventArgs<RaidMaxServer> e)
         {
             var server = e.Server;
             var gameServer = e.ServerInfo;

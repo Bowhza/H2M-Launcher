@@ -5,51 +5,51 @@ namespace H2MLauncher.Core.Models
     public class IW4MServerDetails
     {
         [JsonPropertyName("id")]
-        public long Id { get; set; }
+        public required long Id { get; set; }
         
         [JsonPropertyName("serverName")]
-        public string ServerName { get; set; }
+        public required string ServerName { get; set; }
         
         [JsonPropertyName("listenAddress")]
-        public string ListenAddress { get; set; }
+        public required string ListenAddress { get; set; }
         
         [JsonPropertyName("listenPort")]
-        public int ListenPort { get; set; }
+        public required int ListenPort { get; set; }
 
         [JsonPropertyName("game")]
-        public string Game { get; set; }
+        public required string Game { get; set; }
 
         [JsonPropertyName("clientNum")]
-        public int ClientNum { get; set; }
+        public required int ClientNum { get; set; }
 
         [JsonPropertyName("maxClients")]
-        public int MaxClients { get; set; }
+        public required int MaxClients { get; set; }
 
         [JsonPropertyName("currentMap")]
-        public Map Map { get; set; }
+        public required IW4MMap Map { get; set; }
 
         [JsonPropertyName("currentGameType")]
-        public GameType GameType { get; set; }
+        public required IW4MGameType GameType { get; set; }
 
         [JsonPropertyName("parser")]
-        public string Parser { get; set; }
+        public required string Parser { get; set; }
     }
 }
 
-public class Map
+public class IW4MMap
 {
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 
     [JsonPropertyName("alias")]
-    public string Alias { get; set; }
+    public required string Alias { get; set; }
 }
 
-public class GameType
+public class IW4MGameType
 {
     [JsonPropertyName("type")]
-    public string Type { get; set; }
+    public required string Type { get; set; }
 
     [JsonPropertyName("name")]
-    public string Name { get; set; }
+    public required string Name { get; set; }
 }

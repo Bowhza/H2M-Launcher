@@ -1,8 +1,10 @@
 ﻿using System.Net;
 
+using H2MLauncher.Core.Services;
+
 namespace H2MLauncher.Core.Models
 {
-    public class RaidMaxServer
+    public class RaidMaxServer : IServerConnectionDetails
     {
         private string _hostName = "N/A";
 

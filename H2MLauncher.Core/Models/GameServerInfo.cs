@@ -25,5 +25,9 @@ namespace H2MLauncher.Core.Models
         public required int Ping { get; init; }
 
         public required bool IsPrivate { get; init; }
+
+        public int RealPlayerCount => Clients - Bots;
+
+        public int FreeSlots => MaxClients - RealPlayerCount;
     }
 }

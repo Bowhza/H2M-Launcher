@@ -1,6 +1,8 @@
 ﻿using System.Reflection;
 using System.Windows;
 
+using H2MLauncher.Core;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
@@ -65,7 +67,7 @@ namespace H2MLauncher.UI
             services.AddHttpClient<RaidMaxService>();
 
             services.AddSingleton<H2MCommunicationService>();
-            services.AddTransient<GameServerCommunicationService>();
+            services.AddTransient<GameServerCommunicationService<RaidMaxServer>>();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();

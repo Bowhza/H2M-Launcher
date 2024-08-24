@@ -4,7 +4,8 @@
 
     public static class DownloadWithProgress
     {
-        public static async Task ExecuteAsync(HttpClient httpClient, string downloadPath, string destinationPath, DownloadProgressHandler progress, CancellationToken cancellationToken, Func<HttpRequestMessage> requestMessageBuilder = null)
+        public static async Task ExecuteAsync(HttpClient httpClient, string downloadPath, string destinationPath, DownloadProgressHandler progress, 
+            CancellationToken cancellationToken, Func<HttpRequestMessage>? requestMessageBuilder = null)
         {
             requestMessageBuilder ??= GetDefaultRequestBuilder(downloadPath);
             var download = new HttpClientDownloadWithProgress(httpClient, destinationPath, requestMessageBuilder);
