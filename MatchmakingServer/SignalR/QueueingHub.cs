@@ -1,26 +1,49 @@
-﻿using System.Collections.Concurrent;
-
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
 {
-    public class QueueingHub : Hub<IClient>
+    public class QueueingHub : Hub<IClient>, IQueueingHub
     {
-        private readonly ConcurrentDictionary<string, string> _connectedPlayers = [];
+        private readonly ILogger<QueueingHub> _logger;
+        private readonly QueueingService _queueingService;
 
-        public async Task<bool> JoinQueue(string serverIp, int serverPort, string playerName)
+        public QueueingHub(ILogger<QueueingHub> logger, QueueingService queueingService)
         {
-            if (!_connectedPlayers.TryAdd(Context.ConnectionId, playerName))
+            _logger = logger;
+            _queueingService = queueingService;
+        }
+
+        public Task<bool> JoinQueue(string serverIp, int serverPort, string playerName)
+        {
+            if (_queueingService.AddPlayer(Context.ConnectionId, playerName) is null)
             {
-                return false;
+                // player already connected
+                return Task.FromResult(false);
             }
 
-            return true;
+            return Task.FromResult(_queueingService.JoinQueue(serverIp, serverPort, Context.ConnectionId));
         }
-    }
 
-    public interface IClient
-    {
-        
+        public Task LeaveQueue()
+        {
+            _queueingService.LeaveQueue(Context.ConnectionId);
+
+            return Task.CompletedTask;
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            _logger.LogInformation(exception, "Client disconnected: {connectionId}", Context.ConnectionId);
+
+            var player = _queueingService.RemovePlayer(Context.ConnectionId);
+            if (player is null)
+            {
+                return;
+            }
+
+            _logger.LogInformation("Removed player {player}", player);
+
+            await Task.CompletedTask;
+        }
     }
 }

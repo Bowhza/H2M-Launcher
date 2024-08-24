@@ -6,11 +6,15 @@ using MatchmakingServer.SignalR;
 
 var builder = WebApplication.CreateBuilder();
 
+
+// Add services to the container.
+
 builder.Services.AddLogging();
 builder.Services.AddScoped<IIW4MAdminService, IW4MAdminService>();
 builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
 
-// Add services to the container.
+builder.Services.AddSingleton<QueueingService>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
