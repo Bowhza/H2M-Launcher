@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Interfaces;
 
 namespace H2MLauncher.UI
 {

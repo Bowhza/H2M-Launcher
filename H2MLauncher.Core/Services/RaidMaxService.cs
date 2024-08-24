@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 
 using Microsoft.Extensions.Logging;

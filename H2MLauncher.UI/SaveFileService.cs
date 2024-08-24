@@ -1,4 +1,4 @@
-﻿using H2MLauncher.Core;
+﻿using H2MLauncher.Core.Interfaces;
 
 using Microsoft.Win32;
 

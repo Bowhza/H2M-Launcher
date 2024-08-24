@@ -6,6 +6,7 @@ using System.Text.Json;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 

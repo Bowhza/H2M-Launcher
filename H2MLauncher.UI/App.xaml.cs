@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using System.Windows;
 
-using H2MLauncher.Core;
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;

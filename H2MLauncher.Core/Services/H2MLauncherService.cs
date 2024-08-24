@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Utilities;
 
 using Microsoft.Extensions.Logging;

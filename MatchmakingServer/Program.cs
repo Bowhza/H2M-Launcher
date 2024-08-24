@@ -1,15 +1,44 @@
+using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Services;
+
 using MatchmakingServer.SignalR;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder();
+
+builder.Services.AddLogging();
+builder.Services.AddScoped<IIW4MAdminService, IW4MAdminService>();
+builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
 
 // Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSignalR();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
+
+IIW4MAdminService iw4mAdminService = app.Services.GetRequiredService<IIW4MAdminService>();
+
+const string serverInstance = "http://51.161.192.200:2624";
+const string serverId = "5116119220027020";
+
+IW4MServerDetails serverDetails = await iw4mAdminService.GetServerDetailsAsync(serverInstance, serverId, CancellationToken.None);
+PrintServerDetails(serverDetails);
+
+
+IW4MServerStatus serverStatus = await iw4mAdminService.GetServerStatusAsync(serverInstance, serverId, CancellationToken.None);
+Console.WriteLine($"{serverStatus.IsOnline}");
+Console.WriteLine($"{serverStatus.Game}");
+Console.WriteLine($"{serverStatus.CurrentPlayers}");
+serverStatus.Players.ForEach((player) =>
+{
+    Console.WriteLine($"{player.ClientNumber} - {player.Name} - {player.Ping}ms - {player.State} - {player.ConnectionTime}");
+});
+
+IEnumerable<IW4MServerDetails> servers = await iw4mAdminService.GetServerListAsync(serverInstance, CancellationToken.None);
+foreach (IW4MServerDetails server in servers)
+    PrintServerDetails(server);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -18,33 +47,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-
-var summaries = new[]
-{
-    "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-};
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
+//app.UseHttpsRedirection();
 
 app.MapHub<QueueingHub>("/Queue");
 
 app.Run();
 
-internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
+static void PrintServerDetails(IW4MServerDetails serverDetails)
 {
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+    Console.WriteLine($"{serverDetails.ServerName}");
+    Console.WriteLine($"{serverDetails.Map.Alias}");
+    Console.WriteLine($"{serverDetails.GameType.Name}");
+    Console.WriteLine($"{serverDetails.ClientNum}/{serverDetails.MaxClients}");
 }

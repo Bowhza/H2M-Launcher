@@ -1,4 +1,4 @@
-﻿namespace H2MLauncher.Core.Services
+﻿namespace H2MLauncher.Core.Interfaces
 {
     public interface IErrorHandlingService
     {
