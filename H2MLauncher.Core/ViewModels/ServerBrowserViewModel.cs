@@ -208,7 +208,6 @@ namespace H2MLauncher.Core.ViewModels
 
                 // Let's prioritize populated servers first for getting game server info.
                 IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
-                    .Where((server) => server.ClientNum > 0)
                     .OrderByDescending((server) => server.ClientNum);
 
                 // Start by sending info requests to the game servers
