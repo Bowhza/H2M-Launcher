@@ -2,6 +2,7 @@ using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
+using MatchmakingServer;
 using MatchmakingServer.SignalR;
 
 var builder = WebApplication.CreateBuilder();
@@ -12,6 +13,7 @@ var builder = WebApplication.CreateBuilder();
 builder.Services.AddLogging();
 builder.Services.AddScoped<IIW4MAdminService, IW4MAdminService>();
 builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
+builder.Services.AddSingleton<GameServerCommunicationService<IServerConnectionDetails>>();
 
 builder.Services.AddSingleton<QueueingService>();
 
