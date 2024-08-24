@@ -13,7 +13,7 @@
 - Notify users when a new launcher version is available for download (click on the text to download new version from release page).
 - Filters out dead/zombie servers that do not respond to UDP packets being sent.
 
-<img src="./Images/H2M-Launcher.png">
+<img src="./Images/H2MImg.png">
 
 ## Instructions
 
@@ -23,9 +23,9 @@
 
 <img src="./Images/Directory.png">
 
-4. Before using the server browser make sure H2M is running. You can press `Launch H2M` to run the game.
+3. Before using the server browser make sure H2M is running. You can press `Launch H2M` to run the game.
 
-5. Find a server you want to play on, select it, and press the join button. The H2M window should automatically be set as the foreground window.
+4. Find a server you want to play on, select it, and press the join button. The H2M window should automatically be set as the foreground window.
 
 ## Shortcuts
 
@@ -42,13 +42,13 @@
 
 This section will try to address most common issues people may encouter while using the browser. **The FAQ will be regurarly updated** while receiving feedback. **_Please read through this section before creating an issue_**.
 
-### Log Files
+### 1. Log Files
 
 The log files can be found in the following directory: `%localappdata%\BetterH2MLauncher`
 
 Fastest way to access the directory is by pressing `Win + R` to open the run menu and paste the directory in the `Open` text box.
 
-### Cannot connect to server or launcher does nothing when pressing join.
+### 2. Cannot connect to server or launcher does nothing when pressing join.
 
 **Answer**: Either the server is not running or you need to change one or more windows settings.
 
@@ -58,11 +58,11 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 - If the above does not apply to you or it still does not send a connect command, you may need to add/change your keyboard layout to `English US`.
 
-### The launcher opens but does not display any servers.
+### 3. The launcher opens but does not display any servers.
 
 **Answer**: Open the [Server List](https://master.iw4.zip/servers#) or [API Link](https://master.iw4.zip/instance/) in your browser and see if you are able to reach the domain. If not, then check if your ISP is blocking you from accessing the domain.
 
-### Why is a specific server not showing up in the list?
+### 4. Why is a specific server not showing up in the list?
 
 **Answer**: The launcher only displays servers that are actually running. Many servers in the IW4MAdmin-Master Panel are offline and reporting false stats.
 
