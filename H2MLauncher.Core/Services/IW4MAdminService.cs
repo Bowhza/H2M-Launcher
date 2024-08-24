@@ -7,16 +7,10 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public class IW4MAdminService : IIW4MAdminService
+    public class IW4MAdminService(ILogger<IW4MAdminService> logger, HttpClient httpClient) : IIW4MAdminService
     {
-        private readonly ILogger<IW4MAdminService> _logger;
-        private readonly HttpClient _httpClient;
-
-        public IW4MAdminService(ILogger<IW4MAdminService> logger, HttpClient httpClient)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        }
+        private readonly ILogger<IW4MAdminService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
 
         public async Task<IW4MServerDetails> GetServerDetailsAsync(string serverInstanceAddress, string id, CancellationToken cancellationToken)
         {
@@ -107,7 +101,6 @@ namespace H2MLauncher.Core.Services
                 throw new Exception();
             }
 
-            
             _logger.LogInformation("Successfully parsed server status from json.");
 
             return serverStatus.First();

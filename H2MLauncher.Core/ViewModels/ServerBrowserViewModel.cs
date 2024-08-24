@@ -16,8 +16,8 @@ namespace H2MLauncher.Core.ViewModels
 {
     public partial class ServerBrowserViewModel : ObservableObject
     {
-        private readonly RaidMaxService _raidMaxService;
-        private readonly GameServerCommunicationService<RaidMaxServer> _gameServerCommunicationService;
+        private readonly IH2MServersService _h2mServersService;
+        private readonly GameServerCommunicationService<IW4MServer> _gameServerCommunicationService;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private readonly H2MLauncherService _h2MLauncherService;
         private readonly IClipBoardService _clipBoardService;
@@ -67,16 +67,16 @@ namespace H2MLauncher.Core.ViewModels
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
         public ServerBrowserViewModel(
-            RaidMaxService raidMaxService,
+            IH2MServersService h2mServersService,
             H2MCommunicationService h2MCommunicationService,
-            GameServerCommunicationService<RaidMaxServer> gameServerCommunicationService,
+            GameServerCommunicationService<IW4MServer> gameServerCommunicationService,
             H2MLauncherService h2MLauncherService,
             IClipBoardService clipBoardService,
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
             IErrorHandlingService errorHandlingService)
         {
-            _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
+            _h2mServersService = h2mServersService ?? throw new ArgumentNullException(nameof(h2mServersService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
             _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
             _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
@@ -161,7 +161,7 @@ namespace H2MLauncher.Core.ViewModels
                                              .ToList();
 
             // Serialize the list into JSON format
-            string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);
+            string jsonString = JsonSerializer.Serialize<List<string>>(ipPortList);
 
             try
             {
@@ -208,7 +208,7 @@ namespace H2MLauncher.Core.ViewModels
                 TotalPlayers = 0;
 
                 // Get servers from the master
-                var servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+                IEnumerable<IW4MServer> servers = await _h2mServersService.GetServersAsync(_loadCancellation.Token);
 
                 // Start by sending info requests to the game servers
                 await _gameServerCommunicationService.SendInfoRequestsAsync(servers, _loadCancellation.Token);
@@ -221,11 +221,11 @@ namespace H2MLauncher.Core.ViewModels
         }
 
 
-        private readonly Dictionary<long, RaidMaxServer> _queuedServers = [];
+        private readonly Dictionary<long, IW4MServer> _queuedServers = [];
         private Task? _queueTask;
         private CancellationTokenSource _queueCancellation = new();
 
-        private void QueueServer(RaidMaxServer server)
+        private void QueueServer(IW4MServer server)
         {
             _queuedServers.Add(server.Id, server);
 
@@ -325,7 +325,7 @@ namespace H2MLauncher.Core.ViewModels
             }
         }
 
-        private void OnGameServerInfoReceived(object? sender, ServerInfoEventArgs<RaidMaxServer> e)
+        private void OnGameServerInfoReceived(object? sender, ServerInfoEventArgs<IW4MServer> e)
         {
             var server = e.Server;
             var gameServer = e.ServerInfo;

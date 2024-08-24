@@ -1,9 +1,8 @@
 ﻿using System.Reflection;
 using System.Windows;
 
-using H2MLauncher.Core;
-using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
@@ -63,11 +62,16 @@ namespace H2MLauncher.UI
             services.AddTransient<H2MLauncherService>();
             services.AddHttpClient<H2MLauncherService>();
 
-            services.AddTransient<RaidMaxService>();
-            services.AddHttpClient<RaidMaxService>();
+            services.AddTransient<IIW4MAdminService, IW4MAdminService>();
+            services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
+
+            services.AddTransient<IIW4MAdminMasterService, IW4MAdminMasterService>();
+            services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>();
+
+            services.AddTransient<IH2MServersService, H2MServersService>();
 
             services.AddSingleton<H2MCommunicationService>();
-            services.AddTransient<GameServerCommunicationService<RaidMaxServer>>();
+            services.AddTransient<GameServerCommunicationService<IW4MServer>>();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();

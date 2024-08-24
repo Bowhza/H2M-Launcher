@@ -50,9 +50,9 @@ namespace H2MLauncher.Core.ViewModels
 
         public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]",4}";
 
-        public RaidMaxServer Server { get; }
+        public IW4MServer Server { get; }
 
-        public ServerViewModel(RaidMaxServer server)
+        public ServerViewModel(IW4MServer server)
         {
             Server = server;
         }

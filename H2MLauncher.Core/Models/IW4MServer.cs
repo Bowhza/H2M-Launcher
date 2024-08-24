@@ -4,7 +4,7 @@ using H2MLauncher.Core.Services;
 
 namespace H2MLauncher.Core.Models
 {
-    public class RaidMaxServer : IServerConnectionDetails
+    public class IW4MServer : IServerConnectionDetails
     {
         private string _hostName = "N/A";
 
