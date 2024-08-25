@@ -22,6 +22,7 @@ namespace H2MLauncher.Core.Services
         public H2MCommunicationService(IErrorHandlingService errorHandlingService, IOptions<H2MLauncherSettings> options)
         {
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
             _h2mLauncherSettings = options.Value;
         }
 
