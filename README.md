@@ -74,6 +74,15 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 For other information and questions can be found at this **[Discord Thread](https://discord.com/channels/1272500523010097202/1275315609911169056)**.
 
+### 5. Saving to clipboard failed
+<img src="./Images/ErrorOpenClipboardFailed.png">
+
+**Answer**: It is possible that the launcher fails to copy the server command to your clipboard, this could be because another application is currently using your clipboard and is still holding on to that process.
+Go to your Windows Settings and search for Clear Clipboard.
+
+<img src="./Images/ClearClipBoardWindows.png">
+
+
 ## Compiling from Source Code
 
 1. If you wish to compile the code from source, clone the repository and open the `H2MLauncher.sln` solution using Visual Studio or JetBrains Rider.
