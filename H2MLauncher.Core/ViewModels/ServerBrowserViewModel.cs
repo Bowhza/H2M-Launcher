@@ -23,9 +23,9 @@ namespace H2MLauncher.Core.ViewModels
         private readonly IClipBoardService _clipBoardService;
         private readonly ISaveFileService _saveFileService;
         private readonly IErrorHandlingService _errorHandlingService;
-        private CancellationTokenSource _loadCancellation = new();
         private readonly ILogger<ServerBrowserViewModel> _logger;
         private readonly H2MLauncherSettings _h2MLauncherSettings;
+        private CancellationTokenSource _loadCancellation = new();
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
@@ -76,7 +76,7 @@ namespace H2MLauncher.Core.ViewModels
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
             IErrorHandlingService errorHandlingService,
-            IOptions<H2MLauncherSettings> options)
+            IOptions<H2MLauncherSettings> h2mLauncerOptions)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -86,8 +86,8 @@ namespace H2MLauncher.Core.ViewModels
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
-            ArgumentNullException.ThrowIfNull(options);
-            _h2MLauncherSettings = options.Value;
+            ArgumentNullException.ThrowIfNull(h2mLauncerOptions);
+            _h2MLauncherSettings = h2mLauncerOptions.Value;
 
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);

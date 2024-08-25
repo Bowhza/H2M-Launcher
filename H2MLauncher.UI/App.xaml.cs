@@ -49,16 +49,16 @@ namespace H2MLauncher.UI
                 .WriteTo.Debug()
                 .CreateLogger();
 
-            Log.Information("{applicationName} started on version {version}.", 
+            Log.Information("{applicationName} started on version {version}.",
                 Assembly.GetExecutingAssembly().GetName(),
                 H2MLauncherService.CurrentVersion);
         }
 
         private static void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
-            string appSettingsFileName = GetAppSettingsPath();
+            services.ConfigureWritableOptions<H2MLauncherSettings>(config, "H2MLauncher", GetLauncherSettings());
 
-            services.ConfigureWritableOptions<H2MLauncherSettings>(config, nameof(H2MLauncherSettings), appSettingsFileName);
+            services.Configure<ResourceSettings>(config.GetSection("Resource"));
 
             services.AddLogging(builder => builder.AddSerilog());
 
@@ -86,37 +86,40 @@ namespace H2MLauncher.UI
             services.AddTransient<MainWindow>();
         }
 
-        private static string GetAppSettingsPath()
+        private static string GetLauncherSettings()
         {
-            string appsettings = Path.Combine(Constants.LocalDir, "appsettings.json");
-            if (IsDevelopment())
-            {
-                appsettings = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.development.json");
-            }
-            return appsettings;
+            return Path.Combine(Constants.LocalDir, "launchersettings.json");
         }
 
         private static IConfigurationRoot BuildConfiguration()
         {
-            string appSettingsFileName = GetAppSettingsPath();
-            if (!File.Exists(appSettingsFileName))
-            {
-                JsonFileHelper.AddOrUpdateSection(appSettingsFileName, nameof(H2MLauncherSettings), new H2MLauncherSettings());
-            }
+            const string defaultAppsettings = "appsettings.json";
+
+            Assembly host = Assembly.GetEntryAssembly()!;
+            string fullFileName = $"{host.GetName().Name}.{defaultAppsettings}";
+            using Stream input = host.GetManifestResourceStream(fullFileName)!;
+
             IConfigurationBuilder builder = new ConfigurationBuilder()
-                .AddJsonFile(appSettingsFileName)
-                .AddEnvironmentVariables();
-            return builder.Build();
-        }
+                .AddJsonStream(input);
 
-        private static bool IsDevelopment()
-        {
-            string? environmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT");
-            if (string.IsNullOrEmpty(environmentName))
-                return false;
+            // NOTE: using two builders because we use the embedded resource as a stream
+            IConfigurationRoot root = builder.Build();
 
-            bool isDevelopment = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase);
-            return isDevelopment;
+            IConfigurationBuilder coolerBuilder = new ConfigurationBuilder()
+                .AddConfiguration(root);
+
+            string customSettigns = GetLauncherSettings();
+            if (!File.Exists(customSettigns))
+            {
+                H2MLauncherSettings defaultH2MLauncherSettings = root.GetRequiredSection("H2MLauncher").Get<H2MLauncherSettings>()!;
+                JsonFileHelper.AddOrUpdateSection(customSettigns, "H2MLauncher", defaultH2MLauncherSettings);
+            }
+
+            coolerBuilder
+                .AddJsonFile(customSettigns)
+                .AddJsonFile("appsettings.local.json", optional: true);
+
+            return coolerBuilder.Build();
         }
 
         private void SetupExceptionHandling()
