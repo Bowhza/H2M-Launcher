@@ -9,6 +9,8 @@ using CommunityToolkit.Mvvm.Input;
 using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
+using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Dialog.Views;
 
 using Microsoft.Extensions.Logging;
 
@@ -23,6 +25,7 @@ namespace H2MLauncher.UI.ViewModels
         private readonly IClipBoardService _clipBoardService;
         private readonly ISaveFileService _saveFileService;
         private readonly IErrorHandlingService _errorHandlingService;
+        private readonly DialogService _dialogService;
         private CancellationTokenSource _loadCancellation = new();
         private readonly ILogger<ServerBrowserViewModel> _logger;
 
@@ -55,7 +58,10 @@ namespace H2MLauncher.UI.ViewModels
         private bool _releaseNotesVisibility = false;
 
         [ObservableProperty]
-        private ServerFilterViewModel? _advancedServerFilter = null;
+        private ServerFilterViewModel _advancedServerFilter = new();
+
+
+        public event Action? ServerFilterChanged;
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
@@ -66,6 +72,7 @@ namespace H2MLauncher.UI.ViewModels
         public IAsyncRelayCommand UpdateLauncherCommand { get; }
         public IRelayCommand OpenReleaseNotesCommand { get; }
         public IRelayCommand RestartCommand { get; }
+        public IRelayCommand ShowServerFilterCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -77,7 +84,8 @@ namespace H2MLauncher.UI.ViewModels
             IClipBoardService clipBoardService,
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
-            IErrorHandlingService errorHandlingService)
+            IErrorHandlingService errorHandlingService,
+            DialogService dialogService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -87,6 +95,8 @@ namespace H2MLauncher.UI.ViewModels
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+            _dialogService = dialogService;
+
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -96,6 +106,25 @@ namespace H2MLauncher.UI.ViewModels
             UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
+            ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
+        }
+
+        private void ShowServerFilter()
+        {
+            if (_dialogService.OpenDialog<FilterDialogView>(AdvancedServerFilter) == true)
+            {
+                OnPropertyChanged(nameof(Servers));
+                ServerFilterChanged?.Invoke();
+                StatusText = "Server filter applied.";
+            }
+        }
+
+        private void OnServerFilterClosed(object? sender, RequestCloseEventArgs e)
+        {
+            if (e.DialogResult == true)
+            {
+                StatusText = "Server filter applied.";
+            }
         }
 
         private void DoRestartCommand()
@@ -147,11 +176,18 @@ namespace H2MLauncher.UI.ViewModels
         public bool ServerFilter(ServerViewModel server)
         {
             if (string.IsNullOrEmpty(Filter))
-                return true;
+            {
+                return AdvancedServerFilter.ApplyFilter(server);
+            }
 
             string lowerCaseFilter = Filter.ToLower();
 
-            return server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase);
+            if (!server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return AdvancedServerFilter.ApplyFilter(server);
         }
 
         private async Task SaveServersAsync()

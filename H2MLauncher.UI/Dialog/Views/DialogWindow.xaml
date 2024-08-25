@@ -6,12 +6,21 @@
         xmlns:local="clr-namespace:H2MLauncher.UI" 
         xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
         xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
-        mc:Ignorable="d" ShowInTaskbar="False"
+        mc:Ignorable="d" 
+        ShowInTaskbar="False"
         Title="DialogWindow" 
         Height="Auto" Width="Auto"
+        AllowsTransparency="True"
+        Background="Transparent"
         SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        Foreground="White"
         WindowStartupLocation="CenterOwner" Loaded="Window_Loaded" WindowStyle="None">
-    <ContentPresenter x:Name="DialogPresenter">
-
-    </ContentPresenter>
+    <Window.Template>
+        <ControlTemplate TargetType="{x:Type Window}">
+            <Border CornerRadius="10" BorderBrush="GhostWhite" BorderThickness="1" Background="Black" Opacity="1">
+                <ContentPresenter Content="{TemplateBinding Content}"/>
+            </Border>
+        </ControlTemplate>
+    </Window.Template>
 </Window>

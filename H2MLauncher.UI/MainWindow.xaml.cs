@@ -22,6 +22,13 @@ namespace H2MLauncher.UI
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
             _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
+        }
+
+        private void ServerBrowserViewModel_ServerFilterChanged()
+        {
+            _collectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)

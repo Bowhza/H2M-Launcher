@@ -5,35 +5,78 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
              mc:Ignorable="d" 
-             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels;assembly=H2MLauncher.UI" 
-             MaxHeight="150" MaxWidth="300"
+             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
+             xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
              MinHeight="150" MinWidth="300"
              Height="Auto"
              Width="300"
              d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}">
-    <Grid Width="250">
+    <UserControl.Resources>
+        <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Content" Value="Yes"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="False">
+                    <Setter Property="Content" Value="No"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+    </UserControl.Resources>
+    <Grid Margin="25,15,25,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Row="0" Text="Filter Servers" TextWrapping="WrapWithOverflow" TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"/>
-        <Label Content="View Empty:" Grid.Row="1"/>
-        <ToggleButton Content="Yes" Grid.Row="1" Grid.Column="1"/>
+        <TextBlock Grid.Row="0" Text="Filter Servers" TextWrapping="WrapWithOverflow" 
+                   TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
+                   Margin="0,0,0,15"/>
 
+        <TextBlock Text="View Empty:" Grid.Row="1" Margin="15,5" HorizontalAlignment="Right"/>
+        <ToggleButton Style="{StaticResource YesNoToggleButtonStyle}" IsChecked="{Binding ShowEmpty}" Grid.Row="1" Grid.Column="1" Height="20"/>
 
-        <Label Content="View Full:" Grid.Row="2"/>
-        <Label Content="Show Private:" Grid.Row="3"/>
-       
+        <TextBlock Text="View Full:" Grid.Row="2" Margin="15,5" HorizontalAlignment="Right"/>
+        <ToggleButton Style="{StaticResource YesNoToggleButtonStyle}" IsChecked="{Binding ShowFull}" Grid.Row="2" Grid.Column="1" Height="20"/>
+
+        <TextBlock Text="Show Private:" Grid.Row="3" Margin="15,5" HorizontalAlignment="Right"/>
+        <ToggleButton Style="{StaticResource YesNoToggleButtonStyle}" IsChecked="{Binding ShowPrivate}" Grid.Row="3" Grid.Column="1" Height="20"/>
+
+        <TextBlock Text="Players:" Grid.Row="4" Margin="15,5" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="4" Grid.Column="1">
+            <TextBlock Text="{Binding MinPlayers}" Width="13" Margin="0,0,10,0" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding MaxPlayers}" Width="13" Margin="10,0,0,0" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+            <controls:RangeSliderControl LowerValue="{Binding MinPlayers, Mode=TwoWay}" 
+                                         UpperValue="{Binding MaxPlayers, Mode=TwoWay}" 
+                                         Minimum="1" 
+                                         Maximum="24"/>
+        </DockPanel>
+
+        <TextBlock Text="Max Slots:" Grid.Row="5" Margin="15,10" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,0">
+            <ComboBox ItemsSource="{Binding MaxSlotsItems}"
+                      SelectedItem="{Binding MaxSlots}" IsReadOnly="True" Height="22" VerticalAlignment="Center">
+            </ComboBox>
+        </DockPanel>
+
+        <TextBlock Text="Max Ping:" Grid.Row="6" Margin="15,10" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="6" Grid.Column="1">
+            <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" Margin="0,0,10,0" VerticalAlignment="Center" 
+                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+            <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
+        </DockPanel>
 
         <!--<TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}" TextWrapping="WrapWithOverflow"/>-->
-        <Button Grid.Row="4" Content="OK" Height="25" Command="{Binding CloseCommand}" IsDefault="True" Margin="0,0,0,15" Grid.ColumnSpan="2"/>
+        <Button Grid.Row="7" Content="OK" Height="25" Command="{Binding ApplyCommand}" IsDefault="True" Margin="0,15,0,15" Grid.ColumnSpan="2"/>
     </Grid>
 </UserControl>

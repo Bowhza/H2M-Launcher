@@ -48,7 +48,7 @@ namespace H2MLauncher.UI.Dialog
             return ShowDialog(viewModel, dialogWindow);
         }
 
-        public static bool? ShowDialog(IDialogViewModel viewModel, DialogWindow dialogWindow)
+        private static void PrepareDialogWindow(IDialogViewModel viewModel, DialogWindow dialogWindow)
         {
             bool isClosed = false;
 
@@ -71,6 +71,11 @@ namespace H2MLauncher.UI.Dialog
 
             viewModel.CloseRequested += onCloseRequested;
             dialogWindow.Closed += onClosed;
+        }
+
+        public static bool? ShowDialog(IDialogViewModel viewModel, DialogWindow dialogWindow)
+        {
+            PrepareDialogWindow(viewModel, dialogWindow);
 
             return dialogWindow.ShowDialog();
         }
@@ -92,6 +97,8 @@ namespace H2MLauncher.UI.Dialog
             {
                 DataContext = viewModel
             });
+
+            PrepareDialogWindow(viewModel, dialogWindow);
 
             return dialogWindow.ShowDialogAsync();
         }
