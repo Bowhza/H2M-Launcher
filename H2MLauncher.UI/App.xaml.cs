@@ -25,9 +25,9 @@ namespace H2MLauncher.UI
         {
             SetupExceptionHandling();
             InitializeLogging();
-
+            CreateNeededConfiguration();
             IConfigurationRoot config = BuildConfiguration();
-
+            
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection, config);
 
@@ -38,6 +38,22 @@ namespace H2MLauncher.UI
 
             base.OnStartup(e);
         }
+
+        private void CreateNeededConfiguration()
+        {
+            string storageDirectory = Path.Combine(Constants.LocalDir, "Storage");
+
+            if (!Directory.Exists(storageDirectory))
+                Directory.CreateDirectory(storageDirectory);
+
+            string userFavoritesFilePath = Path.Combine(storageDirectory, "UserFavorites.json");
+
+            if (File.Exists(userFavoritesFilePath))
+                return;
+
+            File.WriteAllText(userFavoritesFilePath, "[]");
+        }
+
 
         private static void InitializeLogging()
         {
