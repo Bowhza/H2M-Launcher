@@ -1,9 +1,4 @@
-﻿using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
-using System.Text.RegularExpressions;
-
-using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 partial class Program
 {

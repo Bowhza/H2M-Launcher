@@ -8,8 +8,10 @@ using CommunityToolkit.Mvvm.Input;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Utilities;
+using H2MLauncher.Core.Settings;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.Core.ViewModels
 {
@@ -22,8 +24,9 @@ namespace H2MLauncher.Core.ViewModels
         private readonly IClipBoardService _clipBoardService;
         private readonly ISaveFileService _saveFileService;
         private readonly IErrorHandlingService _errorHandlingService;
-        private CancellationTokenSource _loadCancellation = new();
         private readonly ILogger<ServerBrowserViewModel> _logger;
+        private readonly H2MLauncherSettings _h2MLauncherSettings;
+        private CancellationTokenSource _loadCancellation = new();
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
@@ -84,7 +87,8 @@ namespace H2MLauncher.Core.ViewModels
             IClipBoardService clipBoardService,
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
-            IErrorHandlingService errorHandlingService)
+            IErrorHandlingService errorHandlingService,
+            IOptions<H2MLauncherSettings> h2mLauncerOptions)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -94,6 +98,9 @@ namespace H2MLauncher.Core.ViewModels
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+            ArgumentNullException.ThrowIfNull(h2mLauncerOptions);
+            _h2MLauncherSettings = h2mLauncerOptions.Value;
+
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -247,8 +254,13 @@ namespace H2MLauncher.Core.ViewModels
                 _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
                 string fileName = "./players2/favourites.json";
+                string directoryPath = "./players2";
+                if (!string.IsNullOrEmpty(_h2MLauncherSettings.MWRLocation))
+                {
+                    directoryPath = Path.Combine(_h2MLauncherSettings.MWRLocation, directoryPath);
+                }
 
-                if (!Directory.Exists("./players2"))
+                if (!Directory.Exists(directoryPath))
                 {
                     // let user choose
                     fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";

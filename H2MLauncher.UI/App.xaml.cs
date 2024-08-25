@@ -2,16 +2,18 @@
 using System.Reflection;
 using System.Windows;
 
+using Awesome.Net.WritableOptions.Extensions;
+
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 using Serilog;
-using Serilog.Core;
 
 namespace H2MLauncher.UI
 {
@@ -24,11 +26,16 @@ namespace H2MLauncher.UI
             SetupExceptionHandling();
             InitializeLogging();
             CreateNeededConfiguration();
+            IConfigurationRoot config = BuildConfiguration();
+            
             ServiceCollection serviceCollection = new();
-            ConfigureServices(serviceCollection);
+            ConfigureServices(serviceCollection, config);
+
             ServiceProvider = serviceCollection.BuildServiceProvider();
+
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
             base.OnStartup(e);
         }
 
@@ -58,13 +65,17 @@ namespace H2MLauncher.UI
                 .WriteTo.Debug()
                 .CreateLogger();
 
-            Log.Information("{applicationName} started on version {version}.", 
+            Log.Information("{applicationName} started on version {version}.",
                 Assembly.GetExecutingAssembly().GetName(),
                 H2MLauncherService.CurrentVersion);
         }
 
-        private void ConfigureServices(IServiceCollection services)
+        private static void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
+            services.ConfigureWritableOptions<H2MLauncherSettings>(config, "H2MLauncher", GetLauncherSettings());
+
+            services.Configure<ResourceSettings>(config.GetSection("Resource"));
+
             services.AddLogging(builder => builder.AddSerilog());
 
             services.AddSingleton<DialogViewModel>((s) =>
@@ -89,6 +100,42 @@ namespace H2MLauncher.UI
             services.AddTransient<ServerBrowserViewModel>();
 
             services.AddTransient<MainWindow>();
+        }
+
+        private static string GetLauncherSettings()
+        {
+            return Path.Combine(Constants.LocalDir, "launchersettings.json");
+        }
+
+        private static IConfigurationRoot BuildConfiguration()
+        {
+            const string defaultAppsettings = "appsettings.json";
+
+            Assembly host = Assembly.GetEntryAssembly()!;
+            string fullFileName = $"{host.GetName().Name}.{defaultAppsettings}";
+            using Stream input = host.GetManifestResourceStream(fullFileName)!;
+
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                .AddJsonStream(input);
+
+            // NOTE: using two builders because we use the embedded resource as a stream
+            IConfigurationRoot root = builder.Build();
+
+            IConfigurationBuilder coolerBuilder = new ConfigurationBuilder()
+                .AddConfiguration(root);
+
+            string customSettigns = GetLauncherSettings();
+            if (!File.Exists(customSettigns))
+            {
+                H2MLauncherSettings defaultH2MLauncherSettings = root.GetRequiredSection("H2MLauncher").Get<H2MLauncherSettings>()!;
+                JsonFileHelper.AddOrUpdateSection(customSettigns, "H2MLauncher", defaultH2MLauncherSettings);
+            }
+
+            coolerBuilder
+                .AddJsonFile(customSettigns)
+                .AddJsonFile("appsettings.local.json", optional: true);
+
+            return coolerBuilder.Build();
         }
 
         private void SetupExceptionHandling()

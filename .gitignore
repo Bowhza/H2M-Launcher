@@ -7,3 +7,5 @@ x64/
 [Bb]in/
 [Oo]bj/
 *.user
+
+**/appsettings.local.json
