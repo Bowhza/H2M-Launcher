@@ -2,7 +2,7 @@
 
 namespace H2MLauncher.Core.Models
 {
-    public class IW4MAdminServerInstance
+    public class IW4MServerInstance
     {
         [JsonPropertyName("id")]
         public required string Id { get; set; }
@@ -15,6 +15,9 @@ namespace H2MLauncher.Core.Models
 
         [JsonPropertyName("webfront_url")]
         public required string WebfrontUrl { get; set; }
+
+        [JsonIgnore]
+        public string WebfrontUrlNormalized => WebfrontUrl.TrimEnd('/');
 
         [JsonPropertyName("uptime")]
         public required long Uptime { get; set; }

@@ -16,10 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOs\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\H2MLauncher.Core\H2MLauncher.Core.csproj" />
   </ItemGroup>
 

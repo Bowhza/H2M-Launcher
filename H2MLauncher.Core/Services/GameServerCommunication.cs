@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace H2MLauncher.Core.Services
@@ -7,7 +8,7 @@ namespace H2MLauncher.Core.Services
     public class GameServerCommunication : IAsyncDisposable
     {
         private readonly UdpClient _client;
-        private readonly Dictionary<string, Action<CommandEventArgs>> _commandHandlers = [];
+        private readonly Dictionary<string, List<Action<CommandEventArgs>>> _commandHandlers = [];
         private readonly CancellationTokenSource _listeningCancellation;
         private readonly Task _listeningTask;
         private readonly SynchronizationContext _synchronizationContext;
@@ -75,20 +76,21 @@ namespace H2MLauncher.Core.Services
             // Extract the data after the separator char
             string data = receivedMessage[(indexOfSeperator + 1)..];
 
-            if (!_commandHandlers.TryGetValue(commandName.ToLower(), out var commandHandler))
+            if (!_commandHandlers.TryGetValue(commandName.ToLower(), out var commandHandlers))
             {
                 // No command handler found
                 return;
             }
 
-            commandHandler.Invoke(new()
-            {
-                CommandName = commandName,
-                RemoteEndPoint = result.RemoteEndPoint,
-                Message = receivedMessage,
-                Data = data,
-                Timestamp = timestamp,
-            });
+            commandHandlers.ForEach(commandHandler =>
+                commandHandler.Invoke(new()
+                {
+                    CommandName = commandName,
+                    RemoteEndPoint = result.RemoteEndPoint,
+                    Message = receivedMessage,
+                    Data = data,
+                    Timestamp = timestamp,
+                }));
         }
 
         private async Task ReceiveLoop()
@@ -142,9 +144,14 @@ namespace H2MLauncher.Core.Services
         /// <param name="onCommandReceived">The handler callback.</param>
         public IDisposable On(string command, Action<CommandEventArgs> onCommandReceived)
         {
-            _commandHandlers[command.ToLower()] = onCommandReceived;
+            ref List<Action<CommandEventArgs>>? commandHandlers = 
+                ref CollectionsMarshal.GetValueRefOrAddDefault(_commandHandlers, command.ToLower(), out _);
+            commandHandlers ??= [];
 
-            return new Disposable(() => _commandHandlers.Remove(command));
+            commandHandlers.Add(onCommandReceived);
+
+            return new Disposable(() =>
+                _commandHandlers.GetValueOrDefault(command.ToLower())?.Remove(onCommandReceived));
         }
 
         /// <summary>

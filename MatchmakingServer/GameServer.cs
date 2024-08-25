@@ -10,23 +10,30 @@ namespace MatchmakingServer
         public required string ServerIp { get; init; }
 
         public required int ServerPort { get; init; }
-        public SpecialQueue<Player> PlayerQueue { get; } = [];
+        public LinkedList<Player> PlayerQueue { get; } = [];
 
-        public int ReservedSlots { get; set; }
+        public int JoiningPlayerCount { get; set; }
 
         string IServerConnectionDetails.Ip => ServerIp;
 
         int IServerConnectionDetails.Port => ServerPort;
 
-        public DateTimeOffset LastSuccessfulPingTimestamp { get; set; } = DateTime.MinValue;
+        public DateTimeOffset LastSuccessfulPingTimestamp { get; set; }
         public GameServerInfo? LastServerInfo { get; set; }
 
-        public IReadOnlyList<string> ActualPlayers { get; } = [];
+        public List<string> ActualPlayers { get; } = [];
 
-        public GameServer(string serverName)
+        public string InstanceId { get; }
+
+        public GameServer(string serverName, string instanceId)
         {
             ServerName = serverName;
+            InstanceId = instanceId;
         }
 
+        public override string ToString()
+        {
+            return $"{ServerName} ({ServerIp}:{ServerPort})";
+        }
     }
 }

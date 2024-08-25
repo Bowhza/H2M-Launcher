@@ -49,8 +49,9 @@ namespace H2MLauncher.Core.Models
         [JsonPropertyName("ping")]
         public required int Ping { get; set; }
 
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         [JsonPropertyName("state")]
-        public required string State { get; set; }
+        public required IW4MClientState State { get; set; }
 
         [JsonPropertyName("clientNumber")]
         public required int ClientNumber { get; set; }
@@ -60,5 +61,30 @@ namespace H2MLauncher.Core.Models
 
         [JsonPropertyName("level")]
         public required string Level { get; set; }
+    }
+
+    public enum IW4MClientState
+    {
+        /// <summary>
+        ///     default client state
+        /// </summary>
+        Unknown,
+
+        /// <summary>
+        ///     represents when the client has been detected as joining
+        ///     by the log file, but has not be authenticated by RCon
+        /// </summary>
+        Connecting,
+
+        /// <summary>
+        ///     represents when the client has been authenticated by RCon
+        ///     and validated by the database
+        /// </summary>
+        Connected,
+
+        /// <summary>
+        ///     represents when the client is leaving (either through RCon or log file)
+        /// </summary>
+        Disconnecting
     }
 }

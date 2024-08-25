@@ -192,6 +192,47 @@ namespace H2MLauncher.Core.Services
                 });
         }
 
+        public async Task<string?> RequestCommandAsync(TServer server, string command, CancellationToken cancellationToken)
+        {
+            if (_gameServerCommunication is null)
+            {
+                throw new InvalidOperationException("Communication is not started.");
+            }
+
+            // create an endpoint to send to and receive from
+            IPEndPoint? endpoint = await GetOrResolveEndpointAsync(server, cancellationToken);
+            if (endpoint is null)
+            {
+                return null;
+            }
+
+            TaskCompletionSource<string> tcs = new();
+
+            // cancel task when token requests cancellation
+            cancellationToken.UnsafeRegister((o) => ((TaskCompletionSource<GameServerInfo>)o!).TrySetCanceled(), tcs);
+
+            IDisposable commandHandlerRegistration = _gameServerCommunication.On(command, e =>
+            {
+                tcs.TrySetResult(e.Data);
+            });
+
+            try
+            {
+                // send 'getinfo' command
+                await _gameServerCommunication.SendAsync(endpoint, "getinfo", cancellationToken: cancellationToken);
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                commandHandlerRegistration.Dispose();
+            }
+        }
+
         public async Task<GameServerInfo?> RequestServerInfoAsync(TServer server, CancellationToken cancellationToken)
         {
             // create an endpoint to send to and receive from
@@ -204,7 +245,7 @@ namespace H2MLauncher.Core.Services
             TaskCompletionSource<GameServerInfo> tcs = new();
 
             // cancel task when token requests cancellation
-            cancellationToken.UnsafeRegister((o) => ((TaskCompletionSource)o!).SetCanceled(), tcs);
+            cancellationToken.UnsafeRegister((o) => ((TaskCompletionSource<GameServerInfo>)o!).TrySetCanceled(), tcs);
             cancellationToken.Register(() =>
             {
                 // remove queued server request

@@ -13,15 +13,16 @@ namespace MatchmakingServer.SignalR
             _queueingService = queueingService;
         }
 
-        public Task<bool> JoinQueue(string serverIp, int serverPort, string playerName)
+        public Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId, string playerName)
         {
-            if (_queueingService.AddPlayer(Context.ConnectionId, playerName) is null)
+            var player = _queueingService.AddPlayer(Context.ConnectionId, playerName);
+            if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
-                // player already connected
+                // player already in queue
                 return Task.FromResult(false);
             }
 
-            return Task.FromResult(_queueingService.JoinQueue(serverIp, serverPort, Context.ConnectionId));
+            return _queueingService.JoinQueue(serverIp, serverPort, Context.ConnectionId, instanceId);
         }
 
         public Task LeaveQueue()

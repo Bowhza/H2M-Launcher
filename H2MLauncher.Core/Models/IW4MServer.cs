@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Text.Json.Serialization;
 
 using H2MLauncher.Core.Services;
 
@@ -28,5 +29,8 @@ namespace H2MLauncher.Core.Models
         public required string GameType { get; set; }
         public required int ClientNum { get; set; }
         public required int MaxClientNum { get; set; }
+
+        [JsonIgnore]
+        public IW4MServerInstance Instance { get; set; }
     }
 }

@@ -77,6 +77,8 @@ namespace H2MLauncher.UI
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddTransient<ServerBrowserViewModel>();
 
+            services.AddTransient<MatchmakingService>();
+
             services.AddTransient<MainWindow>();
         }
 

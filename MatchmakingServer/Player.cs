@@ -8,10 +8,17 @@
 
         public PlayerState State { get; set; }
 
+        public int JoinAttempts { get; set; }
+
 
         /// <summary>
         /// The server the player is queued or joined.
         /// </summary>
         public GameServer? Server { get; set; }
+
+        public override string ToString()
+        {
+            return $"{Name} ({ConnectionId} - {State})";
+        }
     }
 }

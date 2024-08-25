@@ -11,7 +11,7 @@ namespace H2MLauncher.Core.Services
 
         public async Task<IEnumerable<IW4MServer>> GetServersAsync(CancellationToken cancellationToken)
         {
-            IEnumerable<IW4MAdminServerInstance>? servers = null;
+            IEnumerable<IW4MServerInstance>? servers = null;
             _servers.Clear();
 
             try

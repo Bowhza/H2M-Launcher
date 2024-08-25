@@ -1,7 +1,13 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using System.Numerics;
 
+using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
+using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
@@ -12,13 +18,25 @@ namespace MatchmakingServer.SignalR
         private readonly ConcurrentDictionary<string, Player> _connectedPlayers = [];
         private readonly GameServerCommunicationService<IServerConnectionDetails> _gameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<QueueingService> _logger;
+        private readonly ServerInstanceCache _instanceCache;
+        private readonly IIW4MAdminService _iw4mAdminService;
 
         public QueueingService(
             GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService,
-            IHubContext<QueueingHub, IClient> ctx)
+            IHubContext<QueueingHub, IClient> ctx,
+            IHttpClientFactory httpClientFactory,
+            ILogger<QueueingService> logger,
+            ServerInstanceCache instanceCache,
+            IIW4MAdminService iw4mAdminService)
         {
             _gameServerCommunicationService = gameServerCommunicationService;
             _ctx = ctx;
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
+            _instanceCache = instanceCache;
+            _iw4mAdminService = iw4mAdminService;
         }
 
         /// <summary>
@@ -27,7 +45,7 @@ namespace MatchmakingServer.SignalR
         /// <param name="connectionId">Client connection id.</param>
         /// <param name="playerName">Player name</param>
         /// <returns>Whether sucessfully registered.</returns>
-        public Player? AddPlayer(string connectionId, string playerName)
+        public Player AddPlayer(string connectionId, string playerName)
         {
             Player player = new()
             {
@@ -37,7 +55,7 @@ namespace MatchmakingServer.SignalR
 
             if (!_connectedPlayers.TryAdd(connectionId, player))
             {
-                return null;
+                return player;
             }
 
             return player;
@@ -56,113 +74,237 @@ namespace MatchmakingServer.SignalR
             }
 
             // clean up
-            LeaveQueue(player);
+            LeaveQueue(player, default);
 
             return player;
         }
 
         private async Task TryJoinPlayer(Player player, GameServer server)
         {
-            // notify client to join
-            var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.ConnectionId)
-                .NotifyJoinAsync(server.ServerIp, server.ServerPort);
+            _logger.LogDebug("Notifying {player} to join server {server}...", player, server);
 
-            if (joinTriggeredSuccessfully)
+            try
             {
-                player.State = PlayerState.Joining;
-                server.ReservedSlots++;
+                if (++player.JoinAttempts > 5)
+                {
+                    // max join attempts reached -> remove player from queue
+                    LeaveQueue(player, PlayerState.Connected);
+                }
+
+                // notify client to join
+                var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.ConnectionId)
+                    .NotifyJoin(server.ServerIp, server.ServerPort);
+
+                if (joinTriggeredSuccessfully)
+                {
+                    player.State = PlayerState.Joining;
+                    server.JoiningPlayerCount++;
+
+                    _logger.LogDebug("Player {player} triggered join to {server} successfully.", player, server);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while notifying player {player} to join", player);
+
+                // TODO: what do here? dequeue player? notify him?
+                LeaveQueue(player, PlayerState.Connected);
             }
         }
 
-        private static void ConfirmJoinedPlayers(GameServer server)
+        private void ConfirmJoinedPlayers(GameServer server)
         {
-            foreach (Player joiningPlayer in server.PlayerQueue.Where(p => p.State is PlayerState.Joining))
+            _logger.LogDebug("Confirming joined players of {server}", server);
+
+            IterateRemovable(server.PlayerQueue, (node) =>
             {
-                if (server.ActualPlayers.Contains(joiningPlayer.Name)) // TODO: more sophisticated check
+                Player player = node.Value;
+
+                if (player.State is PlayerState.Joining &&
+                    server.ActualPlayers.Contains(player.Name))
                 {
-                    if (server.PlayerQueue.Remove(joiningPlayer))
-                    {
-                        server.ReservedSlots--;
-                    }
+                    server.PlayerQueue.Remove(node);
+                    server.JoiningPlayerCount--;
 
-                    joiningPlayer.State = PlayerState.Joined;
-                    joiningPlayer.Server = server;
-
+                    _logger.LogInformation("Confirmed player {player} on server {server}!", player, server);
                     // yippeeeee
                 }
+            });
+        }
+
+        public static int IterateRemovable<T>(LinkedList<T> list, Action<LinkedListNode<T>> onNext)
+        {
+            if (list == null)
+            {
+                throw new ArgumentNullException("list");
             }
+            if (onNext == null)
+            {
+                throw new ArgumentNullException("match");
+            }
+            var count = 0;
+            var node = list.First;
+            while (node != null)
+            {
+                var next = node.Next;
+                onNext(node);
+                node = next;
+            }
+            return count;
+        }
+
+        private async Task UpdateActualPlayersFromWebfront(GameServer server, CancellationToken cancellationToken)
+        {
+            // TODO: fetch actual players
+            _logger.LogDebug("Fetching actual players of server {server}...", server);
+
+            var serverStatusList = await _instanceCache.TryGetWebfrontStatusList(server.InstanceId, cancellationToken);
+            if (serverStatusList.Count == 0)
+            {
+                // either no webfront or no servers
+            }
+
+            var serverStatus = serverStatusList.FirstOrDefault(s => s.ListenAddress == server.ServerIp && s.ListenPort == server.ServerPort);
+            if (serverStatus is null)
+            {
+                _logger.LogDebug("No server status found for server instance {instanceId}", server.InstanceId);
+
+                server.ActualPlayers.Clear();
+
+                IterateRemovable(server.PlayerQueue, (node) =>
+                {
+                    if (node.Value.State is PlayerState.Joining)
+                    {
+                        Player joiningPlayer = node.Value;
+
+                        // no information about actual players -> assume players are joined
+                        server.PlayerQueue.Remove(node);
+                        server.JoiningPlayerCount--;
+
+                        _logger.LogInformation("Assumed player {player} joined on server {server}!", joiningPlayer, server);
+                    }
+                });
+                return;
+            }
+
+            server.ActualPlayers.Clear();
+            server.ActualPlayers.AddRange(serverStatus.Players.Select(p => p.Name));
+
+            _logger.LogDebug("Actual players updated for server {server}", server);
+
+            // confirm all the players that are joined after fetching the actual players                    
+            ConfirmJoinedPlayers(server);
         }
 
         private async Task ProcessQueuedPlayers(GameServer server, CancellationToken cancellationToken)
         {
-            while (true)
+            _logger.LogInformation("Stated processing loop for server {server}", server);
+
+            try
             {
-                using var timeoutCts = new CancellationTokenSource(10000);
-                using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
-                    cancellationToken, timeoutCts.Token);
-
-                try
+                while (true)
                 {
-                    // only peek at the queue until player actually joined
-                    var nextPlayer = server.PlayerQueue.Peek();
-                    if (nextPlayer is null)
+                    using var timeoutCts = new CancellationTokenSource(10000);
+                    using var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                        cancellationToken, timeoutCts.Token);
+
+                    try
                     {
-                        // TODO: what to do when queue is empty?
-                        await Task.Delay(100, cancellationToken);
-                        continue;
-                    }
-
-                    var gameServerInfo = await _gameServerCommunicationService.RequestServerInfoAsync(server, linkedCancellation.Token);
-                    if (gameServerInfo is null)
-                    {
-                        // could not send request
-                        server.LastServerInfo = null;
-                        continue;
-                    }
-                    else
-                    {
-                        // successful
-                        server.LastServerInfo = gameServerInfo;
-                        server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
-                    }
-
-                    // TODO: fetch actual players
-
-
-                    // confirm all the players that are joined after fetching the actual players
-                    ConfirmJoinedPlayers(server);
-
-                    // now do the actual check for joining
-                    int nonReservedFreeSlots = gameServerInfo.FreeSlots - server.ReservedSlots;
-
-                    // try to join as many players as slots available
-                    for (int i = 0; i < nonReservedFreeSlots; i++)
-                    {
-                        foreach (Player player in server.PlayerQueue)
+                        // only need to do something when player is queued
+                        var hasQueuedPlayers = server.PlayerQueue.Count > 0;
+                        if (!hasQueuedPlayers)
                         {
-                            if (player.State is PlayerState.Joining)
-                            {
-                                // already joining
-                                continue;
-                            }
-
-                            await TryJoinPlayer(player, server);
+                            // TODO: what to do when queue is empty?
+                            await Task.Delay(100, cancellationToken);
+                            continue;
                         }
+
+                        // start the delay
+                        Task delayTask = Task.Delay(1000, cancellationToken);
+
+                        // only need to recheck if players are joining
+                        // no reserved slots means all players are still queued
+                        if (server.JoiningPlayerCount > 0)
+                        {
+                            _logger.LogDebug("{joiningPlayersCount}/{numberOfQueuedPlayers} joining players found, updating actual player list for server {server}",
+                                server.JoiningPlayerCount, server.PlayerQueue.Count, server);
+
+                            // fetch actual players from web front and update join state
+                            await UpdateActualPlayersFromWebfront(server, cancellationToken);
+                        }
+
+                        if (server.JoiningPlayerCount == server.PlayerQueue.Count)
+                        {
+                            // all players in queue already joining -> nothing to do anymore
+                            _logger.LogTrace("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
+                            await delayTask;
+                            continue;
+                        }
+
+                        _logger.LogDebug("Requesting game server info for {server}...", server);
+
+                        GameServerInfo? gameServerInfo = await _gameServerCommunicationService.RequestServerInfoAsync(server, linkedCancellation.Token);
+                        if (gameServerInfo is null)
+                        {
+                            // could not send request
+                            _logger.LogInformation("Could not send server info request");
+                            server.LastServerInfo = null;
+                            continue;
+                        }
+                        else
+                        {
+                            // successful
+                            _logger.LogInformation("Server info retrieved successfully: {gameServerInfo}", gameServerInfo);
+                            server.LastServerInfo = gameServerInfo;
+                            server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+                        }
+
+                        // now do the actual check for joining
+                        int nonReservedFreeSlots = gameServerInfo.FreeSlots - server.JoiningPlayerCount;
+
+                        _logger.LogDebug("Server {server} has {freeSlots} free, {reservedSlots} reserved slots",
+                            server, gameServerInfo.FreeSlots, server.JoiningPlayerCount);
+
+                        _logger.LogDebug("Can join up to {numberOfPeople} people to {server}",
+                            nonReservedFreeSlots, server);
+
+                        // try to join as many players as slots available
+                        for (int i = 0; i < nonReservedFreeSlots; i++)
+                        {
+                            foreach (Player player in server.PlayerQueue)
+                            {
+                                if (player.State is PlayerState.Joining)
+                                {
+                                    // already joining
+                                    _logger.LogDebug("Player {player} is already joining", player);
+                                    continue;
+                                }
+
+                                await TryJoinPlayer(player, server);
+                            }
+                        }
+
+                        await delayTask;
+                    }
+                    catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+                    {
+                        // timed out
+                        _logger.LogWarning("Timed out while requesting server info");
+                        server.LastServerInfo = null;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error during server process queue. {server}", server);
                     }
                 }
-                catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
-                {
-                    // timed out
-                    server.LastServerInfo = null;
-                }
-                catch (Exception)
-                {
-                    // 
-                }
+            }
+            finally
+            {
+                _logger.LogInformation("Processing loop stopped for server {server}", server);
             }
         }
 
-        public bool JoinQueue(string serverIp, int serverPort, string connectionId)
+        public async Task<bool> JoinQueue(string serverIp, int serverPort, string connectionId, string instanceId)
         {
             if (!_connectedPlayers.TryGetValue(connectionId, out var player))
             {
@@ -173,7 +315,7 @@ namespace MatchmakingServer.SignalR
             if (!_servers.TryGetValue((serverIp, serverPort), out var server))
             {
                 // server does not have a queue yet
-                server = new("")
+                server = new("", instanceId)
                 {
                     ServerIp = serverIp,
                     ServerPort = serverPort
@@ -201,9 +343,12 @@ namespace MatchmakingServer.SignalR
             }
 
             // queue the player
-            server.PlayerQueue.Enqueue(player);
+            server.PlayerQueue.AddFirst(player);
             player.State = PlayerState.Queued;
             player.Server = server;
+            player.JoinAttempts = 0;
+
+            await NotifyPlayerQueuePositions(server);
 
             return true;
         }
@@ -216,12 +361,12 @@ namespace MatchmakingServer.SignalR
                 return;
             }
 
-            LeaveQueue(player);
+            LeaveQueue(player, PlayerState.Connected);
         }
 
-        private void LeaveQueue(Player player)
+        private void LeaveQueue(Player player, PlayerState newState)
         {
-            if (player.State is not PlayerState.Queued or PlayerState.Joining || player.Server is null)
+            if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
             {
                 return;
             }
@@ -230,7 +375,31 @@ namespace MatchmakingServer.SignalR
 
             if (player.State is PlayerState.Joining)
             {
-                player.Server.ReservedSlots--;
+                player.Server.JoiningPlayerCount--;
+            }
+
+            player.State = newState;
+
+            // TODO
+            _ = NotifyPlayerQueuePositions(player.Server);
+        }
+
+        private async Task NotifyPlayerQueuePositions(GameServer server)
+        {
+            // Notify other players of their updated queue position
+            int queuePosition = 0;
+            int queueLength = server.PlayerQueue.Count;
+
+            foreach (Player player in server.PlayerQueue)
+            {
+                try
+                {
+                    await _ctx.Clients.Client(player.ConnectionId).QueuePositionChanged(++queuePosition, queueLength);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error while notifying player {player} of queue position", player);
+                }
             }
         }
     }

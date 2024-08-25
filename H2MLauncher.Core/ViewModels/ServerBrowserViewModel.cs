@@ -25,6 +25,7 @@ namespace H2MLauncher.Core.ViewModels
         private readonly IErrorHandlingService _errorHandlingService;
         private CancellationTokenSource _loadCancellation = new();
         private readonly ILogger<ServerBrowserViewModel> _logger;
+        private readonly MatchmakingService _matchmakingService;
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
@@ -74,7 +75,8 @@ namespace H2MLauncher.Core.ViewModels
             IClipBoardService clipBoardService,
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
-            IErrorHandlingService errorHandlingService)
+            IErrorHandlingService errorHandlingService,
+            MatchmakingService matchmakingService)
         {
             _h2mServersService = h2mServersService ?? throw new ArgumentNullException(nameof(h2mServersService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -85,7 +87,7 @@ namespace H2MLauncher.Core.ViewModels
             _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
-            JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
+            JoinServerCommand = new AsyncRelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
@@ -95,6 +97,8 @@ namespace H2MLauncher.Core.ViewModels
             RestartCommand = new RelayCommand(DoRestartCommand);
 
             _gameServerCommunicationService.ServerInfoReceived += OnGameServerInfoReceived;
+            _matchmakingService = matchmakingService;
+            _matchmakingService.StartConnection();
         }
 
         private void DoRestartCommand()
@@ -371,14 +375,15 @@ namespace H2MLauncher.Core.ViewModels
             CheckQueue(server.Id, gameServer);
         }
 
-        private void JoinServer()
+        private async Task JoinServer()
         {
             if (SelectedServer is null)
                 return;
 
             if (SelectedServer.ClientNum >= SelectedServer.MaxClientNum)
             {
-                QueueServer(SelectedServer.Server);
+                //QueueServer(SelectedServer.Server);
+                await _matchmakingService.JoinQueueAsync(SelectedServer.Server, "IchWillKeinEbola");
                 return;
             }
 
