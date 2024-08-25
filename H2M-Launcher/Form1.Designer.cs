@@ -51,7 +51,7 @@ partial class Form1
         tabControl1 = new TabControl();
         tabPage1 = new TabPage();
         tabPage2 = new TabPage();
-        listView1 = new ListView();
+        FavoritesListView = new ListView();
         columnHeader1 = new ColumnHeader();
         columnHeader2 = new ColumnHeader();
         columnHeader3 = new ColumnHeader();
@@ -242,7 +242,7 @@ partial class Form1
         // 
         // tabPage2
         // 
-        tabPage2.Controls.Add(listView1);
+        tabPage2.Controls.Add(FavoritesListView);
         tabPage2.Location = new Point(4, 24);
         tabPage2.Name = "tabPage2";
         tabPage2.Padding = new Padding(3);
@@ -251,22 +251,22 @@ partial class Form1
         tabPage2.Text = "Favorites";
         tabPage2.UseVisualStyleBackColor = true;
         // 
-        // listView1
+        // FavoritesListView
         // 
-        listView1.BackColor = SystemColors.InactiveCaptionText;
-        listView1.BorderStyle = BorderStyle.FixedSingle;
-        listView1.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2, columnHeader3, columnHeader4, columnHeader5, columnHeader6 });
-        listView1.Font = new Font("Gadugi", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        listView1.ForeColor = Color.White;
-        listView1.FullRowSelect = true;
-        listView1.Location = new Point(0, 0);
-        listView1.MultiSelect = false;
-        listView1.Name = "listView1";
-        listView1.Size = new Size(999, 320);
-        listView1.TabIndex = 9;
-        listView1.UseCompatibleStateImageBehavior = false;
-        listView1.View = View.Details;
-        listView1.MouseClick += listView1_MouseClick;
+        FavoritesListView.BackColor = SystemColors.InactiveCaptionText;
+        FavoritesListView.BorderStyle = BorderStyle.FixedSingle;
+        FavoritesListView.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2, columnHeader3, columnHeader4, columnHeader5, columnHeader6 });
+        FavoritesListView.Font = new Font("Gadugi", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        FavoritesListView.ForeColor = Color.White;
+        FavoritesListView.FullRowSelect = true;
+        FavoritesListView.Location = new Point(0, 0);
+        FavoritesListView.MultiSelect = false;
+        FavoritesListView.Name = "FavoritesListView";
+        FavoritesListView.Size = new Size(999, 320);
+        FavoritesListView.TabIndex = 9;
+        FavoritesListView.UseCompatibleStateImageBehavior = false;
+        FavoritesListView.View = View.Details;
+        FavoritesListView.MouseClick += FavoritesListView_MouseClick;
         // 
         // columnHeader1
         // 
@@ -350,7 +350,7 @@ partial class Form1
     private TabControl tabControl1;
     private TabPage tabPage1;
     private TabPage tabPage2;
-    private ListView listView1;
+    private ListView FavoritesListView;
     private ColumnHeader columnHeader1;
     private ColumnHeader columnHeader2;
     private ColumnHeader columnHeader3;

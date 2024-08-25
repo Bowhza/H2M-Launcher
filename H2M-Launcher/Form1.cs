@@ -279,9 +279,9 @@ namespace H2M_Launcher
 
         }
 
-        private void listView1_MouseClick(object sender, MouseEventArgs e)
+        private void FavoritesListView_MouseClick(object sender, MouseEventArgs e)
         {
-           ListViewItem selectedItem = listView1.GetItemAt(e.X, e.Y);
+           ListViewItem selectedItem = FavoritesListView.GetItemAt(e.X, e.Y);
            this.UpdateListView(selectedItem, e);
         }
 
@@ -394,9 +394,9 @@ namespace H2M_Launcher
             }
             else if (tabControl1.SelectedTab == tabPage2)
             {
-                listView1.Items.Clear();
+                FavoritesListView.Items.Clear();
                 // Logic for when the "Favorites" tab is selected
-                FetchServersAsync(listView1,true);
+                FetchServersAsync(FavoritesListView, true);
                 Filter_Tbx.Visible = false;
                 label5.Visible = false;
             }
