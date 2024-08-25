@@ -41,10 +41,6 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private int _totalPlayersOverAll = 0;
 
-
-        [ObservableProperty]
-        private int _totalServersFavorites = 0;
-
         [ObservableProperty]
         private int _totalPlayersFavorites = 0;
 
@@ -130,7 +126,6 @@ namespace H2MLauncher.Core.ViewModels
                 FavoriteServers.Add(server);
                 UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
                 TotalPlayersFavorites += server.ClientNum;
-                TotalServersFavorites++;
             }
         }
 
@@ -157,7 +152,7 @@ namespace H2MLauncher.Core.ViewModels
                     FavoriteServers.Add(server);
 
                 TotalPlayersFavorites += server.ClientNum;
-                TotalServersFavorites++;
+
 
                 return;
             }
@@ -175,7 +170,7 @@ namespace H2MLauncher.Core.ViewModels
 
 
             TotalPlayersFavorites -= server.ClientNum;
-            TotalServersFavorites--;
+
         }
        
 
@@ -329,6 +324,9 @@ namespace H2MLauncher.Core.ViewModels
                         IsFavorite = isFavorite
                     });
 
+                    TotalPlayersOverAll += server.ClientNum;
+                    TotalServersOverAll++;
+
                     if (isFavorite)
                     {
                         this.AddFavoriteServer(new ServerViewModel()
@@ -354,8 +352,7 @@ namespace H2MLauncher.Core.ViewModels
 
                     OnPropertyChanged(nameof(Servers));
 
-                    TotalPlayersOverAll += server.ClientNum;
-                    TotalServersOverAll++;
+
 
                     TotalPlayers += server.ClientNum;
                     TotalServers++;

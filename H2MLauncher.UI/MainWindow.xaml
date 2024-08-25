@@ -57,7 +57,7 @@
         <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
     </Window.InputBindings>
-    <Border CornerRadius="10" Padding="10" Margin="0,0,-19,0">
+    <Border CornerRadius="10" Padding="10">
         <Border.Background>
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
         </Border.Background>
@@ -100,7 +100,7 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="-36,0,41,0">
+                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="-27,0,41,0">
                     <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
                     <Label Content="{Binding TotalPlayers}" Foreground="White" />
                     <Label Content="Total Servers:" Foreground="White" Width="79"/>
@@ -176,7 +176,7 @@
                         </DataGrid.ItemContainerStyle>
 
                         <DataGrid.Columns >
-                            <DataGridTemplateColumn Header="Hostname" Width="545" MinWidth="200" MaxWidth="700">
+                            <DataGridTemplateColumn Header="Hostname" Width="500" MinWidth="200" MaxWidth="700">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="vm:ServerViewModel">
                                         <ItemsControl
@@ -261,7 +261,7 @@
                         SelectionMode="Single"
                         MaxColumnWidth="700"
                         CanUserResizeColumns="true"
-                        Opacity="0.87"
+                        Opacity="1"
                         HeadersVisibility="Column"
                         VerticalScrollBarVisibility="Hidden"
                         SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
@@ -297,7 +297,7 @@
                         </DataGrid.ItemContainerStyle>
 
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Hostname" Width="540" MinWidth="200" MaxWidth="700">
+                            <DataGridTemplateColumn Header="Hostname" Width="500" MinWidth="200" MaxWidth="700">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="vm:ServerViewModel">
                                         <ItemsControl

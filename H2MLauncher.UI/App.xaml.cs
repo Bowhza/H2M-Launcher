@@ -1,4 +1,5 @@
-﻿using System.Reflection;
+﻿using System.IO;
+using System.Reflection;
 using System.Windows;
 
 using H2MLauncher.Core;
@@ -22,7 +23,7 @@ namespace H2MLauncher.UI
         {
             SetupExceptionHandling();
             InitializeLogging();
-
+            CreateNeededConfiguration();
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection);
             ServiceProvider = serviceCollection.BuildServiceProvider();
@@ -30,6 +31,22 @@ namespace H2MLauncher.UI
             mainWindow.Show();
             base.OnStartup(e);
         }
+
+        private void CreateNeededConfiguration()
+        {
+            string storageDirectory = Path.Combine(Constants.LocalDir, "Storage");
+
+            if (!Directory.Exists(storageDirectory))
+                Directory.CreateDirectory(storageDirectory);
+
+            string userFavoritesFilePath = Path.Combine(storageDirectory, "UserFavorites.json");
+
+            if (File.Exists(userFavoritesFilePath))
+                return;
+
+            File.WriteAllText(userFavoritesFilePath, "[]");
+        }
+
 
         private static void InitializeLogging()
         {
