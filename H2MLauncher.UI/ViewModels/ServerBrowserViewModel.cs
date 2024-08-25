@@ -40,9 +40,6 @@ namespace H2MLauncher.UI.ViewModels
         private int _totalPlayers = 0;
 
         [ObservableProperty]
-        private string _filter = "";
-
-        [ObservableProperty]
         private string _updateStatusText = "";
 
         [ObservableProperty]
@@ -175,18 +172,6 @@ namespace H2MLauncher.UI.ViewModels
 
         public bool ServerFilter(ServerViewModel server)
         {
-            if (string.IsNullOrEmpty(Filter))
-            {
-                return AdvancedServerFilter.ApplyFilter(server);
-            }
-
-            string lowerCaseFilter = Filter.ToLower();
-
-            if (!server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
             return AdvancedServerFilter.ApplyFilter(server);
         }
 

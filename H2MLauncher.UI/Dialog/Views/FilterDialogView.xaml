@@ -59,7 +59,7 @@
             <controls:RangeSliderControl LowerValue="{Binding MinPlayers, Mode=TwoWay}" 
                                          UpperValue="{Binding MaxPlayers, Mode=TwoWay}" 
                                          Minimum="1" 
-                                         Maximum="24"/>
+                                         Maximum="32"/>
         </DockPanel>
 
         <TextBlock Text="Max Slots:" Grid.Row="5" Margin="15,10" HorizontalAlignment="Right"/>
@@ -76,7 +76,13 @@
             <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 
-        <!--<TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}" TextWrapping="WrapWithOverflow"/>-->
-        <Button Grid.Row="7" Content="OK" Height="25" Command="{Binding ApplyCommand}" IsDefault="True" Margin="0,15,0,15" Grid.ColumnSpan="2"/>
+        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Reset" Height="25" Command="{Binding ResetCommand}" Grid.Column="0" Margin="0,0,5,0"/>
+            <Button Content="OK" Height="25" Command="{Binding ApplyCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
+        </Grid>
     </Grid>
 </UserControl>

@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 
 using Serilog;
 using Serilog.Core;
+using Microsoft.Extensions.Configuration;
 
 namespace H2MLauncher.UI
 {
@@ -61,7 +62,7 @@ namespace H2MLauncher.UI
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();
-
+            
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddTransient<ServerBrowserViewModel>();

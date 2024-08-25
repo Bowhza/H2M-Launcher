@@ -14,8 +14,6 @@ namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerFilterViewModel : DialogViewModelBase
     {
-        public ICommand ApplyCommand { get; set; }
-
         [ObservableProperty]
         private bool _showEmpty = true;
 
@@ -32,21 +30,60 @@ namespace H2MLauncher.UI.ViewModels
         private int _minPlayers = 1;
 
         [ObservableProperty]
-        private int _maxPlayers = 24;
+        private int _maxPlayers = 32;
 
         [ObservableProperty]
-        private int _maxSlots = 24;
+        private int _maxSlots = 32;
 
         [ObservableProperty]
-        private int[] _maxSlotsItems = [6, 12, 18, 24];
+        private int[] _maxSlotsItems = [6, 12, 18, 24, 32];
+
+        [ObservableProperty]
+        private string _filterText = "";
+
+        public ICommand ApplyCommand { get; set; }
+
+        public ICommand ResetCommand { get; set; }
 
         public ServerFilterViewModel()
         {
             ApplyCommand = new RelayCommand(() => CloseCommand.Execute(true), () => CloseCommand.CanExecute(true));
+            ResetCommand = new RelayCommand(() =>
+            {
+                ShowEmpty = true;
+                ShowFull = true;
+                ShowPrivate = true;
+                MaxPing = 999;
+                MinPlayers = 1;
+                MaxPlayers = 32;
+                MaxSlots = 32;
+            });
+        }
+
+        private bool ApplyTextFilter(ServerViewModel server)
+        {
+            if (string.IsNullOrEmpty(FilterText))
+            {
+                return true;
+            }
+
+            string lowerCaseFilter = FilterText.ToLower();
+
+            if (!server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return true;
         }
 
         public bool ApplyFilter(ServerViewModel server)
         {
+            if (!ApplyTextFilter(server))
+            {
+                return false;
+            }
+
             if (server.ClientNum > MaxPlayers)
             {
                 return false;
