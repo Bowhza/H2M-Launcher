@@ -91,6 +91,8 @@ namespace H2MLauncher.Core.ViewModels
             UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
+
+            //_errorHandlingService.HandleError("uinfo");
         }
 
         private void DoRestartCommand()

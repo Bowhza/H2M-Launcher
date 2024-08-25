@@ -36,6 +36,5 @@
             </Setter.Value>
         </Setter>
     </Style>
-    <dialog:DialogViewModel x:Key="DialogViewModel" />
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
 </ResourceDictionary>

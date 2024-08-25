@@ -1,36 +1,57 @@
-﻿using System.Windows;
+﻿using System.Reflection;
+using System.Windows;
+using System.Windows.Controls;
+
+using H2MLauncher.UI.Dialog.Views;
 
 namespace H2MLauncher.UI.Dialog
 {
     public class DialogService
     {
-        private static DialogWindow s_dialogWindow;
-        private readonly DialogViewModel _dialogViewModel;
+        private DialogWindow? _dialogWindow;
 
-        public DialogService(DialogViewModel dialogViewModel)
+        private DialogWindow CreateDialog(UserControl content)
         {
-            _dialogViewModel = dialogViewModel ?? throw new ArgumentNullException(nameof(dialogViewModel));
-        }
-
-        private static void InstantiateDialog()
-        {
-            s_dialogWindow = new DialogWindow
+            _dialogWindow = new DialogWindow
             {
-                Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive)
+                Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive),
+                Content = content,
             };
+
+            return _dialogWindow;
         }
 
-        public static void CloseDialogWindow()
+        public void CloseDialogWindow()
         {
-            s_dialogWindow.Close();
+            _dialogWindow?.Close();
         }
 
         public void OpenTextDialog(string title, string text)
         {
-            InstantiateDialog();
-            _dialogViewModel.DisplayTextDialogCommand.Execute(new DialogContent() { Title = title, Text = text });
-            s_dialogWindow.ShowDialog();
-            _dialogViewModel.ClearViewModels();  
+            OpenDialog<TextDialogView>(
+                new TextDialogViewModel(new DialogContent()
+                {
+                    Title = title,
+                    Text = text
+                }));
+        }
+
+        public void OpenDialog<T>(IDialogViewModel viewModel) where T : UserControl, new()
+        {
+            var dialogWindow = CreateDialog(new T()
+            {
+                DataContext = viewModel
+            });
+
+            void onCloseRequested(object? sender, RequestCloseEventArgs e)
+            {
+                dialogWindow.DialogResult = e.DialogResult;
+                viewModel.CloseRequested -= onCloseRequested;
+            }
+
+            viewModel.CloseRequested += onCloseRequested;
+
+            _dialogWindow?.ShowDialog();
         }
     }
 }

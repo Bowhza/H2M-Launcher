@@ -8,16 +8,10 @@
         xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
         mc:Ignorable="d" ShowInTaskbar="False"
         Title="DialogWindow" 
-        MaxHeight="150" MaxWidth="300"
-        MinHeight="150" MinWidth="300"
-        Height="150" Width="300"
-        WindowStartupLocation="CenterOwner" Loaded="Window_Loaded" WindowStyle="None"
-        d:DataContext="{d:DesignInstance Type=dialog:DialogViewModel}"
-        DataContext="{StaticResource DialogViewModel}">
-    <Window.Resources>
-        <DataTemplate DataType="{x:Type dialog:TextDialogViewModel}">
-            <dialogviews:TextDialogView/>
-        </DataTemplate>
-    </Window.Resources>
-    <ContentPresenter x:Name="ContentPresenter" Content="{Binding ActiveDialogViewModel, UpdateSourceTrigger=PropertyChanged}"/>
+        Height="Auto" Width="Auto"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="CenterOwner" Loaded="Window_Loaded" WindowStyle="None">
+    <ContentPresenter x:Name="DialogPresenter">
+
+    </ContentPresenter>
 </Window>

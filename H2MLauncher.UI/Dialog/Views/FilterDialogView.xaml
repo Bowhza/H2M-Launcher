@@ -1,0 +1,26 @@
+﻿<UserControl x:Class="H2MLauncher.UI.Dialog.Views.FilterDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
+             mc:Ignorable="d" 
+             xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
+             MaxHeight="150" MaxWidth="300"
+             MinHeight="150" MinWidth="300"
+             Height="Auto"
+             Width="300"
+             d:DataContext="{d:DesignInstance Type=dia:FilterDialogViewModel}">
+    <Border CornerRadius="10" Margin="-15,0,0,0" Padding="0,5,0,10">
+        <Grid Width="250">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="{Binding DialogContent.Title}" TextWrapping="WrapWithOverflow" FontWeight="Bold" FontSize="15" Height="25"/>
+            <TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}" TextWrapping="WrapWithOverflow"/>
+            <Button Grid.Row="2" Content="OK" Height="25" Command="{Binding ContinueCommand}" IsDefault="True" Margin="0,0,0,15"/>
+        </Grid>
+    </Border>
+</UserControl>

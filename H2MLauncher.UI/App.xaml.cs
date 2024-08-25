@@ -50,11 +50,6 @@ namespace H2MLauncher.UI
         {
             services.AddLogging(builder => builder.AddSerilog());
 
-            services.AddSingleton<DialogViewModel>((s) =>
-            {
-                return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
-            });
-
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
 
