@@ -47,4 +47,8 @@
     <Resource Include="GlobalResources.xaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="View\" />
+  </ItemGroup>
+
 </Project>

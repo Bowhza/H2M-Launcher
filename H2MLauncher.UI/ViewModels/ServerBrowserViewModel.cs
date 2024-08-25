@@ -1,16 +1,18 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.IO;
 using System.Text.Json;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using Microsoft.Extensions.Logging;
 
-namespace H2MLauncher.Core.ViewModels
+namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerBrowserViewModel : ObservableObject
     {
@@ -52,6 +54,9 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private bool _releaseNotesVisibility = false;
 
+        [ObservableProperty]
+        private ServerFilterViewModel? _advancedServerFilter = null;
+
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
         public IRelayCommand JoinServerCommand { get; }
@@ -91,8 +96,6 @@ namespace H2MLauncher.Core.ViewModels
             UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
-
-            //_errorHandlingService.HandleError("uinfo");
         }
 
         private void DoRestartCommand()

@@ -4,9 +4,10 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:H2MLauncher.UI"
-        xmlns:vm="clr-namespace:H2MLauncher.Core.ViewModels;assembly=H2MLauncher.Core" 
+        xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels;assembly=H2MLauncher.UI" 
         xmlns:models="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
         xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
+        xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
         d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
         AllowsTransparency="True"
         WindowStyle="None"
@@ -53,7 +54,7 @@
         <!-- Disable Shortcut Commands -->
         <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
-    </Window.InputBindings>
+    </Window.InputBindings>    
     <Border CornerRadius="10" Padding="10">
         <Border.Background>
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
@@ -65,6 +66,8 @@
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
+            <local:DialogBehavior ViewModel="{Binding AdvancedServerFilter}"
+                      Dialog="{x:Type dialogviews:FilterDialogView}"/>
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />

@@ -5,22 +5,35 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
              mc:Ignorable="d" 
-             xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
+             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels;assembly=H2MLauncher.UI" 
              MaxHeight="150" MaxWidth="300"
              MinHeight="150" MinWidth="300"
              Height="Auto"
              Width="300"
-             d:DataContext="{d:DesignInstance Type=dia:FilterDialogViewModel}">
-    <Border CornerRadius="10" Margin="-15,0,0,0" Padding="0,5,0,10">
-        <Grid Width="250">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <TextBlock Grid.Row="0" Text="{Binding DialogContent.Title}" TextWrapping="WrapWithOverflow" FontWeight="Bold" FontSize="15" Height="25"/>
-            <TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}" TextWrapping="WrapWithOverflow"/>
-            <Button Grid.Row="2" Content="OK" Height="25" Command="{Binding ContinueCommand}" IsDefault="True" Margin="0,0,0,15"/>
-        </Grid>
-    </Border>
+             d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}">
+    <Grid Width="250">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Row="0" Text="Filter Servers" TextWrapping="WrapWithOverflow" TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"/>
+        <Label Content="View Empty:" Grid.Row="1"/>
+        <ToggleButton Content="Yes" Grid.Row="1" Grid.Column="1"/>
+
+
+        <Label Content="View Full:" Grid.Row="2"/>
+        <Label Content="Show Private:" Grid.Row="3"/>
+       
+
+        <!--<TextBlock Grid.Row="1" Text="{Binding DialogContent.Text}" TextWrapping="WrapWithOverflow"/>-->
+        <Button Grid.Row="4" Content="OK" Height="25" Command="{Binding CloseCommand}" IsDefault="True" Margin="0,0,0,15" Grid.ColumnSpan="2"/>
+    </Grid>
 </UserControl>

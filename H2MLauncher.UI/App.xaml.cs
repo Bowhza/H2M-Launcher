@@ -3,7 +3,7 @@ using System.Windows;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
-using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.ViewModels;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Extensions.DependencyInjection;

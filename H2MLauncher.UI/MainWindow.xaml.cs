@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 
-using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
