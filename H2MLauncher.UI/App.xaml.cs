@@ -1,16 +1,19 @@
-﻿using System.Reflection;
+﻿using System.IO;
+using System.Reflection;
 using System.Windows;
+
+using Awesome.Net.WritableOptions.Extensions;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
 
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 using Serilog;
-using Serilog.Core;
 
 namespace H2MLauncher.UI
 {
@@ -23,11 +26,16 @@ namespace H2MLauncher.UI
             SetupExceptionHandling();
             InitializeLogging();
 
+            IConfigurationRoot config = BuildConfiguration();
+
             ServiceCollection serviceCollection = new();
-            ConfigureServices(serviceCollection);
+            ConfigureServices(serviceCollection, config);
+
             ServiceProvider = serviceCollection.BuildServiceProvider();
+
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
             base.OnStartup(e);
         }
 
@@ -46,8 +54,12 @@ namespace H2MLauncher.UI
                 H2MLauncherService.CurrentVersion);
         }
 
-        private void ConfigureServices(IServiceCollection services)
+        private static void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
+            string appSettingsFileName = GetAppSettingsPath();
+
+            services.ConfigureWritableOptions<H2MLauncherSettings>(config, nameof(H2MLauncherSettings), appSettingsFileName);
+
             services.AddLogging(builder => builder.AddSerilog());
 
             services.AddSingleton<DialogViewModel>((s) =>
@@ -72,6 +84,39 @@ namespace H2MLauncher.UI
             services.AddTransient<ServerBrowserViewModel>();
 
             services.AddTransient<MainWindow>();
+        }
+
+        private static string GetAppSettingsPath()
+        {
+            string appsettings = Path.Combine(Constants.LocalDir, "appsettings.json");
+            if (IsDevelopment())
+            {
+                appsettings = Path.Combine(Directory.GetCurrentDirectory(), "appsettings.development.json");
+            }
+            return appsettings;
+        }
+
+        private static IConfigurationRoot BuildConfiguration()
+        {
+            string appSettingsFileName = GetAppSettingsPath();
+            if (!File.Exists(appSettingsFileName))
+            {
+                JsonFileHelper.AddOrUpdateSection(appSettingsFileName, nameof(H2MLauncherSettings), new H2MLauncherSettings());
+            }
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                .AddJsonFile(appSettingsFileName)
+                .AddEnvironmentVariables();
+            return builder.Build();
+        }
+
+        private static bool IsDevelopment()
+        {
+            string? environmentName = Environment.GetEnvironmentVariable("NETCORE_ENVIRONMENT");
+            if (string.IsNullOrEmpty(environmentName))
+                return false;
+
+            bool isDevelopment = environmentName.Equals("Development", StringComparison.OrdinalIgnoreCase);
+            return isDevelopment;
         }
 
         private void SetupExceptionHandling()
