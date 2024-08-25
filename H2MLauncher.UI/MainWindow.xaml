@@ -16,7 +16,7 @@
         KeyDown="Window_KeyDown"
         Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-        Title="Better H2M-Launcher"  Height="576" Width="1024">
+        Title="Better H2M-Launcher"  Height="576" Width="875">
 
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
@@ -57,7 +57,7 @@
         <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
     </Window.InputBindings>
-    <Border CornerRadius="10" Padding="10">
+    <Border CornerRadius="10" Padding="10" Margin="0,0,-19,0">
         <Border.Background>
             <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
         </Border.Background>
@@ -100,13 +100,14 @@
                     <ColumnDefinition Width="*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" Grid.Column="0">
+                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="-36,0,41,0">
                     <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
                     <Label Content="{Binding TotalPlayers}" Foreground="White" />
-                    <Label Content="Total Servers:" Foreground="White"/>
+                    <Label Content="Total Servers:" Foreground="White" Width="79"/>
                     <Label Content="{Binding TotalServers}" Foreground="White" />
                 </StackPanel>
-                <StackPanel Orientation="Horizontal" Grid.Column="1">
+                <StackPanel Orientation="Horizontal" Grid.Column="1" Margin="0,0,-43,0">
+                    <Label Content="Filter:" Foreground="White"/>
                     <TextBox TabIndex="1" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" FontSize="16" TextChanged="TextBox_TextChanged" Width="300"/>
                     <Separator Opacity="0" Width="5"/>
                     <Button TabIndex="3" Content="Join" Width="80" Command="{Binding JoinServerCommand}" />
@@ -114,16 +115,16 @@
                     <Button TabIndex="4" Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
                     <Separator Opacity="0" Width="5"/>
                     <Button TabIndex="5" Content="Launch H2M" Width="80" Command="{Binding LaunchH2MCommand}"/>
-                    <Separator Opacity="0" Width="10"/>
+                    <Separator Opacity="0" Width="10" />
                 </StackPanel>
             </Grid>
 
-            <TabControl Grid.Row="2" Margin="10,0,10,0" SelectionChanged="TabControl_SelectionChanged">
+            <TabControl Grid.Row="2" Margin="10,0,10,0" SelectionChanged="TabControl_SelectionChanged"  Opacity="0.82">
                 <TabItem Header="All Servers">
                     <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                         Grid.Row="2"
                         FontFamily="Consolas"
-                        Margin="-3,0,-3,0" Height="Auto" 
+                        Margin="-3,0,-2,0" Height="Auto" 
                         KeyboardNavigation.TabNavigation="Once"
                         TabIndex="2"
                         CanUserReorderColumns="False" 
@@ -139,7 +140,7 @@
                         SelectionMode="Single"
                         MaxColumnWidth="700"
                         CanUserResizeColumns="true"
-                        Opacity="0.87"
+                        Opacity="1"
                         HeadersVisibility="Column"
                         VerticalScrollBarVisibility="Hidden"
                         SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
@@ -174,11 +175,12 @@
                             </Style>
                         </DataGrid.ItemContainerStyle>
 
-                        <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Hostname" Width="528" MinWidth="200" MaxWidth="700">
+                        <DataGrid.Columns >
+                            <DataGridTemplateColumn Header="Hostname" Width="545" MinWidth="200" MaxWidth="700">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="vm:ServerViewModel">
                                         <ItemsControl
+                                            
                                             Focusable="False"
                                             IsTabStop="False" 
                                             IsHitTestVisible="False" 
@@ -223,10 +225,6 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-
-
-
-
 
                             <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False">
                                 <DataGridTextColumn.ElementStyle>
@@ -299,7 +297,7 @@
                         </DataGrid.ItemContainerStyle>
 
                         <DataGrid.Columns>
-                            <DataGridTemplateColumn Header="Hostname" Width="528" MinWidth="200" MaxWidth="700">
+                            <DataGridTemplateColumn Header="Hostname" Width="540" MinWidth="200" MaxWidth="700">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate DataType="vm:ServerViewModel">
                                         <ItemsControl
@@ -347,10 +345,6 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
-
-
-
-
 
                             <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False">
                                 <DataGridTextColumn.ElementStyle>

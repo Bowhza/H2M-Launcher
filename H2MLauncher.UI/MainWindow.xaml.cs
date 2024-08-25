@@ -28,7 +28,6 @@ namespace H2MLauncher.UI
             _collectionViewFavorites.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionViewFavorites.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
 
-
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)

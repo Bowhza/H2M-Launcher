@@ -1,32 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Xml;
+﻿using System.Text.Json;
 
 using H2MLauncher.Core.Models;
-
-using Newtonsoft.Json;
+using H2MLauncher.UI;
 
 namespace H2MLauncher.Core.Utilities
 {
     public static class UserFavoritesUtility
     {
-        //Will seek for ./Storage/UserFavorites.json
-        private static readonly string FilePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage", "UserFavorites.json");
+        // Will seek for ./Storage/UserFavorites.json
+        private static readonly string FilePath = Path.Combine(Constants.LocalDir, "Storage", "UserFavorites.json");
 
         // Method to get the user's favorites from the JSON file.
         public static List<UserFavorite> GetFavorites()
         {
             if (!File.Exists(FilePath))
-            {
-                // If the file doesn't exist, return an empty list.
                 return new List<UserFavorite>();
-            }
+            
 
             string json = File.ReadAllText(FilePath);
-            return JsonConvert.DeserializeObject<List<UserFavorite>>(json) ?? new List<UserFavorite>();
+            return JsonSerializer.Deserialize<List<UserFavorite>>(json) ?? new List<UserFavorite>();
         }
 
         // Method to add a favorite to the JSON file.
@@ -56,7 +48,8 @@ namespace H2MLauncher.Core.Utilities
         // Private method to save the list of favorites to the JSON file.
         private static void SaveFavorites(List<UserFavorite> favorites)
         {
-            string json = JsonConvert.SerializeObject(favorites, Newtonsoft.Json.Formatting.Indented);
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            string json = JsonSerializer.Serialize(favorites, options);
             File.WriteAllText(FilePath, json);
         }
     }

@@ -115,61 +115,69 @@ namespace H2MLauncher.Core.ViewModels
 
         private void AddFavoriteServer(ServerViewModel server)
         {
-            if (server != null)
-            {
-                server.IsFavorite = true;
-                
-                if (!FavoriteServers.Select(s=>s.HostName).Contains(server.HostName))
-                {
-                    FavoriteServers.Add(server);
-                    UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
-                    TotalPlayersFavorites += server.ClientNum;
-                    TotalServersFavorites++;
-                }
-            }
+            if (server is null)
+                return;
 
-        }
-    private void ToggleFavorite(ServerViewModel server)
-    {
-    if (server != null)
-    {
-        server.IsFavorite = !server.IsFavorite;
+            server.IsFavorite = true;
 
-        if (server.IsFavorite)
-        {
-            // Add to favorites
-            UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
+            bool serverExists = FavoriteServers.Any(s =>
+                s.HostName == server.HostName &&
+                s.Ip == server.Ip &&
+                s.Port == server.Port);
 
-            // Ensure the server is marked as favorite in the Servers collection
-            ServerViewModel gameServer = this.Servers.FirstOrDefault(s => s.Ip == server.Ip);
-            if (gameServer != null)
-            {
-                gameServer.IsFavorite = true;
-            }
-
-            // Add to FavoriteServers collection if not already added
-            if (!FavoriteServers.Contains(server))
+            if (!serverExists)
             {
                 FavoriteServers.Add(server);
+                UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
+                TotalPlayersFavorites += server.ClientNum;
+                TotalServersFavorites++;
             }
         }
-        else
+
+
+        private void ToggleFavorite(ServerViewModel server)
         {
+            if (server is null)
+                return;
+
+            server.IsFavorite = !server.IsFavorite;
+
+            if (server.IsFavorite)
+            {
+                // Add to favorites
+                UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
+
+                // Ensure the server is marked as favorite in the Servers collection
+                var gameServer = this.Servers.FirstOrDefault(s => s.Ip == server.Ip);
+                if (gameServer != null)
+                    gameServer.IsFavorite = true;
+
+                // Add to FavoriteServers collection if not already added
+                if (!FavoriteServers.Contains(server))
+                    FavoriteServers.Add(server);
+
+                TotalPlayersFavorites += server.ClientNum;
+                TotalServersFavorites++;
+
+                return;
+            }
+
             // Remove from favorites
             UserFavoritesUtility.RemoveFavorite(server.Ip);
 
             // Update the IsFavorite property in the Servers collection
-            ServerViewModel gameServer = this.Servers.FirstOrDefault(s => s.Ip == server.Ip);
-            if (gameServer != null)
-            {
-                gameServer.IsFavorite = false;
-            }
+            var existingServer = this.Servers.FirstOrDefault(s => s.Ip == server.Ip);
+            if (existingServer != null)
+                existingServer.IsFavorite = false;
 
             // Remove from FavoriteServers collection
             FavoriteServers.Remove(server);
+
+
+            TotalPlayersFavorites -= server.ClientNum;
+            TotalServersFavorites--;
         }
-    }
-}
+       
 
 
         private void DoRestartCommand()
@@ -279,11 +287,14 @@ namespace H2MLauncher.Core.ViewModels
 
             try
             {
-                Servers.Clear();
+                Servers.Clear();                 
+             
                 TotalPlayersOverAll = 0;
                 TotalServersOverAll = 0;
+
                 TotalPlayers = 0;
                 TotalServers = 0;
+
                 // Get servers from the master
                 List<RaidMaxServer> servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
 
@@ -297,7 +308,8 @@ namespace H2MLauncher.Core.ViewModels
                 await _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
                 {
 
-                    bool isFavorite = userFavorites.Any(fav => fav.ServerName == server.HostName);
+                    bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
+
                     // Game server responded -> online
                     Servers.Add(new ServerViewModel()
                     {
@@ -335,25 +347,20 @@ namespace H2MLauncher.Core.ViewModels
                             Ping = gameServer.Ping,
                             BotsNum = gameServer.Bots,
                             IsFavorite = isFavorite
-                        });
-
-
-     
+                        });    
 
                     }
                     // Game server responded -> online
-
-
 
                     OnPropertyChanged(nameof(Servers));
 
                     TotalPlayersOverAll += server.ClientNum;
                     TotalServersOverAll++;
+
                     TotalPlayers += server.ClientNum;
                     TotalServers++;
 
                 }, _loadCancellation.Token);
-
 
             }
             catch (OperationCanceledException ex)
