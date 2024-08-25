@@ -169,10 +169,10 @@ namespace H2MLauncher.Core.ViewModels
             FavoriteServers.Remove(server);
 
 
-            TotalPlayersFavorites -= server.ClientNum;
+            TotalPlayersFavorites = Math.Max(0, TotalPlayersFavorites - server.ClientNum);
 
         }
-       
+
 
 
         private void DoRestartCommand()
