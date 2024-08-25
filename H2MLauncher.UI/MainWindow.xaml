@@ -210,7 +210,7 @@
                             </DataGridTextColumn>
 
                             <!-- Updated Favorite Column with Clickable Feature -->
-                            <DataGridTemplateColumn Header="Favorite" CanUserResize="False">
+                            <DataGridTemplateColumn Header="Favourite" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
@@ -241,7 +241,7 @@
 
 
                 </TabItem>
-                <TabItem Header="Favorites">
+                <TabItem Header="Favourites">
                     <DataGrid x:Name="serverDataGridFavorite" ItemsSource="{Binding FavoriteServers}" 
                         Grid.Row="2"
                         FontFamily="Consolas"
@@ -330,7 +330,7 @@
                             </DataGridTextColumn>
 
                             <!-- Updated Favorite Column with Clickable Feature -->
-                            <DataGridTemplateColumn Header="Favorite" CanUserResize="False">
+                            <DataGridTemplateColumn Header="Favourite" CanUserResize="False">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
