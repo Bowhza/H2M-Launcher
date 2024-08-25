@@ -13,8 +13,8 @@ namespace H2MLauncher.Core.Utilities
 {
     public static class UserFavoritesUtility
     {
-        // Get the project directory (two levels up from the bin/Debug directory)
-        private static readonly string FilePath = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).Parent.Parent.FullName, "Storage", "UserFavorites.json");
+        //Will seek for ./Storage/UserFavorites.json
+        private static readonly string FilePath = Path.Combine(Directory.GetCurrentDirectory(), "Storage", "UserFavorites.json");
 
         // Method to get the user's favorites from the JSON file.
         public static List<UserFavorite> GetFavorites()

@@ -266,6 +266,7 @@ partial class Form1
         listView1.TabIndex = 9;
         listView1.UseCompatibleStateImageBehavior = false;
         listView1.View = View.Details;
+        listView1.MouseClick += listView1_MouseClick;
         // 
         // columnHeader1
         // 

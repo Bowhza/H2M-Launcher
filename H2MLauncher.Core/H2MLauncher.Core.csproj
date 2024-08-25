@@ -19,7 +19,7 @@
 
   <ItemGroup>
     <None Update="Storage\UserFavorites.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

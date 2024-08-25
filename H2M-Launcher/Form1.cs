@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
@@ -227,14 +227,14 @@ namespace H2M_Launcher
                 {
                     //Add Favorite value to the list view
 
-                    item.SubItems.Add(userFavoriteServers.Contains(server.Ip) ? "?" : "?");
+                    item.SubItems.Add(userFavoriteServers.Contains(server.Ip) ? "★" : "☆");
 
                     server.Ping = ping;
                 }
                 else
                 {
                     //Add Favorite value to the list view
-                    item.SubItems.Add("?");
+                    item.SubItems.Add("☆");
                 }
 
                 if (server.Ping == "N/A")
@@ -275,7 +275,18 @@ namespace H2M_Launcher
         {
             // Get the item that was clicked
             ListViewItem selectedItem = ServerListView.GetItemAt(e.X, e.Y);
+            this.UpdateListView(selectedItem, e);
 
+        }
+
+        private void listView1_MouseClick(object sender, MouseEventArgs e)
+        {
+           ListViewItem selectedItem = listView1.GetItemAt(e.X, e.Y);
+           this.UpdateListView(selectedItem, e);
+        }
+
+        private void UpdateListView(ListViewItem selectedItem, MouseEventArgs e)
+        {
             // Check if an item was clicked
             if (selectedItem != null)
             {
@@ -294,17 +305,17 @@ namespace H2M_Launcher
 
                         ServerInfo serverSelected = _servers.Where(s => s.Hostname.Equals(serverName)).FirstOrDefault();
 
-                        bool currentFavorite = Boolean.Parse(selectedItem.SubItems[4].Text);
+                        bool currentFavorite = selectedItem.SubItems[4].Text.Equals("★");
 
                         if (currentFavorite)
                         {
-                            UserFavoritesUtility.RemoveFavorite(serverName);
-                            selectedItem.SubItems[4].Text = "false";
+                            UserFavoritesUtility.RemoveFavorite(serverSelected.Ip);
+                            selectedItem.SubItems[4].Text = "☆";
                         }
                         else
                         {
                             UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = serverSelected.Ip, ServerName = serverSelected.Hostname, ServerPort = serverSelected.Port });
-                            selectedItem.SubItems[4].Text = "true";
+                            selectedItem.SubItems[4].Text = "★";
                         }
 
                         //UserFavoriteUtility.AddFavorite(); 
@@ -374,6 +385,7 @@ namespace H2M_Launcher
             // Check which tab is selected
             if (tabControl1.SelectedTab == tabPage1)
             {
+                ServerListView.Items.Clear();
                 // Logic for when the "Server Browser" tab is selected
                 FetchServersAsync(ServerListView);
                 Filter_Tbx.Visible = true;
@@ -382,6 +394,7 @@ namespace H2M_Launcher
             }
             else if (tabControl1.SelectedTab == tabPage2)
             {
+                listView1.Items.Clear();
                 // Logic for when the "Favorites" tab is selected
                 FetchServersAsync(listView1,true);
                 Filter_Tbx.Visible = false;
