@@ -118,7 +118,7 @@
                 </StackPanel>
             </Grid>
 
-            <TabControl Grid.Row="2" Margin="10,0,10,0">
+            <TabControl Grid.Row="2" Margin="10,0,10,0" SelectionChanged="TabControl_SelectionChanged">
                 <TabItem Header="All Servers">
                     <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                         Grid.Row="2"
