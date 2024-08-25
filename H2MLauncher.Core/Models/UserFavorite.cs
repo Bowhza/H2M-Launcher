@@ -9,7 +9,7 @@ namespace H2MLauncher.Core.Models
     public class UserFavorite
     {
         public string ServerIp { get; set; }
-        public string ServerPort { get; set; }
+        public int ServerPort { get; set; }
         public string ServerName { get; set; }
 
 

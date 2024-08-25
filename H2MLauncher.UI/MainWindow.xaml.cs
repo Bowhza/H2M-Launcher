@@ -11,6 +11,7 @@ namespace H2MLauncher.UI
     public partial class MainWindow : Window
     {
         private readonly ICollectionView _collectionView;
+        private readonly ICollectionView _collectionViewFavorites;
 
         private readonly ServerBrowserViewModel _viewModel;
 
@@ -22,6 +23,12 @@ namespace H2MLauncher.UI
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
             _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+
+            _collectionViewFavorites = CollectionViewSource.GetDefaultView(serverBrowserViewModel.FavoriteServers);
+            _collectionViewFavorites.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
+            _collectionViewFavorites.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+
+
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -43,7 +50,30 @@ namespace H2MLauncher.UI
         private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             _collectionView.Refresh();
+            _collectionViewFavorites.Refresh();
         }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source is TabControl)
+            {
+                TabItem selectedTab = ((sender as TabControl).SelectedItem as TabItem);
+                if (selectedTab.Header.ToString() == "All Servers")
+                {
+
+                    _viewModel.TotalPlayers = _viewModel.TotalPlayersOverAll;
+                    _viewModel.TotalServers = _viewModel.TotalServersOverAll;
+
+                }
+                else if (selectedTab.Header.ToString() == "Favorites")
+                {
+                        
+                    _viewModel.TotalPlayers = _viewModel.TotalPlayersFavorites;
+                    _viewModel.TotalServers = _viewModel.TotalServersFavorites;
+                }
+            }
+        }
+
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
