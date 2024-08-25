@@ -2,6 +2,11 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 
+using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Utilities;
+
+using Newtonsoft.Json.Linq;
+
 namespace H2M_Launcher
 {
     public partial class Form1 : Form
@@ -13,7 +18,7 @@ namespace H2M_Launcher
         // List to store the original items in the list view
         private List<ListViewItem> _originalItems = new List<ListViewItem>();
         //Delegate to add items to the list view
-        delegate void AddItemToListViewCallback(ListViewItem listViewItem);
+        delegate void AddItemToListViewCallback(ListViewItem source, ListView target);
 
         //ListView sorting variables
         private int _sortedColumnIndex = -1;
@@ -33,6 +38,8 @@ namespace H2M_Launcher
         internal const int WM_CHAR = 0x0102; // Message code for sending a character
         internal const int WM_KEYDOWN = 0x0100; // Message code for key down
         internal const int WM_KEYUP = 0x0101;   // Message code for key up
+
+        private List<ServerInfo> _servers;
 
         private void Form1_MouseDown(object sender, MouseEventArgs e)
         {
@@ -54,7 +61,8 @@ namespace H2M_Launcher
             KeyPreview = true;
             KeyDown += Form1_KeyPress!;
             Focus();
-            FetchServersAsync();
+            FetchServersAsync(ServerListView);
+
         }
 
         private void Form1_KeyPress(object sender, KeyEventArgs e)
@@ -68,7 +76,7 @@ namespace H2M_Launcher
             }
             else if (e.KeyCode == Keys.R)
             {
-                FetchServersAsync();
+                FetchServersAsync(ServerListView);
             }
             else if (e.KeyCode == Keys.S)
             {
@@ -152,23 +160,24 @@ namespace H2M_Launcher
             return IntPtr.Zero;
         }
 
-        private void AddItemToListView(ListViewItem item)
+        private void AddItemToListView(ListViewItem source, ListView target)
         {
-            if (ServerListView.InvokeRequired)
+            if (target.InvokeRequired)
             {
-                AddItemToListViewCallback cb = new(AddItemToListView);
-                Invoke(cb, [item]);
+                AddItemToListViewCallback cb = new AddItemToListViewCallback(AddItemToListView);
+                target.Invoke(cb, new object[] { source, target });
             }
             else
             {
+                // Check if the cancellation has not been requested before adding the item
                 if (!_cancellationTokenSource.IsCancellationRequested)
                 {
-                    ServerListView.Items.Add(item);
+                    target.Items.Add(source);
                 }
             }
         }
 
-        private async void FetchServersAsync()
+        private async void FetchServersAsync(ListView targetView,bool favoriteFetching=false)
         {
             // cancel (if exists) a previous server fetch
             await _cancellationTokenSource.CancelAsync();
@@ -179,21 +188,53 @@ namespace H2M_Launcher
 
             var token = _cancellationTokenSource.Token;
 
-            List<ServerInfo> servers = await Servers.GetServerInfosAsync(token);
-
-            ServersLabel.Text = $"Servers: {servers.Count}";
-            PlayersLabel.Text = $"Players: {servers.Sum(x => int.Parse(x.ClientNum!))}";
-
-            await Parallel.ForEachAsync(servers, async (server, token) =>
+            if (favoriteFetching)
             {
+                _servers = await Servers.GetServerInfosAsync(token);
+
+                _servers = _servers.Where(s => UserFavoritesUtility.GetFavorites().Select(f => f.ServerIp).Contains(s.Ip)).DistinctBy(s=>s.Ip).ToList();
+            }
+            else
+            {
+                _servers = await Servers.GetServerInfosAsync(token);
+            }   
+ 
+
+
+            List<string> userFavoriteServers = UserFavoritesUtility.GetFavorites().Select(s => s.ServerIp).ToList();
+
+            ServersLabel.Text = $"Servers: {_servers.Count}";
+            PlayersLabel.Text = $"Players: {_servers.Sum(x => int.Parse(x.ClientNum!))}";
+
+            await Parallel.ForEachAsync(_servers, async (server, token) =>
+            {
+                //Add in order
                 var item = new ListViewItem(server.Hostname);
+
+                //Add map value to the list view
                 item.SubItems.Add(server.Map);
+
+                //Add game type value to the list view
                 item.SubItems.Add(server.GameType);
+
+                //Add Players value to the list view
                 item.SubItems.Add($"{server.ClientNum}/{server.MaxClientNum}");
+
+
+
 
                 if (serverPings.TryGetValue(server.Ip!, out var ping))
                 {
+                    //Add Favorite value to the list view
+
+                    item.SubItems.Add(userFavoriteServers.Contains(server.Ip) ? "?" : "?");
+
                     server.Ping = ping;
+                }
+                else
+                {
+                    //Add Favorite value to the list view
+                    item.SubItems.Add("?");
                 }
 
                 if (server.Ping == "N/A")
@@ -207,7 +248,7 @@ namespace H2M_Launcher
 
                 if (token.IsCancellationRequested)
                     return;
-                AddItemToListView(item);
+                AddItemToListView(item,targetView);
                 _originalItems.Add(item);
             });
         }
@@ -230,8 +271,53 @@ namespace H2M_Launcher
             SendConnectCommand(serverAddress!);
         }
 
+        private void ServerListView_MouseClick(object sender, MouseEventArgs e)
+        {
+            // Get the item that was clicked
+            ListViewItem selectedItem = ServerListView.GetItemAt(e.X, e.Y);
+
+            // Check if an item was clicked
+            if (selectedItem != null)
+            {
+                // Loop through the subitems to check if the click was on the "Favorites" column
+                for (int i = 0; i < selectedItem.SubItems.Count; i++)
+                {
+                    // Get the bounds of the current subitem (column)
+                    Rectangle subItemRect = selectedItem.SubItems[i].Bounds;
+
+                    // Check if the click occurred within the bounds of the "Favorites" column
+                    if (ServerListView.Columns[i] == FavoritesCheck && subItemRect.Contains(e.X, e.Y))
+                    {
+                        // Implement your logic for clicking the "Favorites" column
+
+                        string serverName = selectedItem.SubItems[0].Text;
+
+                        ServerInfo serverSelected = _servers.Where(s => s.Hostname.Equals(serverName)).FirstOrDefault();
+
+                        bool currentFavorite = Boolean.Parse(selectedItem.SubItems[4].Text);
+
+                        if (currentFavorite)
+                        {
+                            UserFavoritesUtility.RemoveFavorite(serverName);
+                            selectedItem.SubItems[4].Text = "false";
+                        }
+                        else
+                        {
+                            UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = serverSelected.Ip, ServerName = serverSelected.Hostname, ServerPort = serverSelected.Port });
+                            selectedItem.SubItems[4].Text = "true";
+                        }
+
+                        //UserFavoriteUtility.AddFavorite(); 
+                        break;
+                    }
+                }
+            }
+        }
+
+
         private void ServerListView_ColumnClick(object sender, ColumnClickEventArgs e)
         {
+
             //Check if the column is already sorted
             if (_sortedColumnIndex == e.Column)
             {
@@ -281,5 +367,27 @@ namespace H2M_Launcher
             ServerListView.Items.Clear();
             ServerListView.Items.AddRange(filteredItems.ToArray());
         }
+
+        // Event handler for TabControl SelectedIndexChanged
+        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            // Check which tab is selected
+            if (tabControl1.SelectedTab == tabPage1)
+            {
+                // Logic for when the "Server Browser" tab is selected
+                FetchServersAsync(ServerListView);
+                Filter_Tbx.Visible = true;
+                label5.Visible = true;
+
+            }
+            else if (tabControl1.SelectedTab == tabPage2)
+            {
+                // Logic for when the "Favorites" tab is selected
+                FetchServersAsync(listView1,true);
+                Filter_Tbx.Visible = false;
+                label5.Visible = false;
+            }
+        }
+
     }
 }

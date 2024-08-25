@@ -15,7 +15,7 @@ partial class Program
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern bool FreeLibrary(IntPtr hModule);
-
+        
     [UnmanagedFunctionPointer(CallingConvention.FastCall)]
     private delegate void CBuff_AddTextDelegate(int localClientNum, int controllerIndex, IntPtr text);
 

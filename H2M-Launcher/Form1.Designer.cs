@@ -1,4 +1,6 @@
-﻿namespace H2M_Launcher;
+﻿using System.Windows.Forms;
+
+namespace H2M_Launcher;
 
 partial class Form1
 {
@@ -42,9 +44,23 @@ partial class Form1
         Map = new ColumnHeader();
         GameType = new ColumnHeader();
         Players = new ColumnHeader();
+        FavoritesCheck = new ColumnHeader();
         Ping = new ColumnHeader();
         Filter_Tbx = new TextBox();
         label5 = new Label();
+        tabControl1 = new TabControl();
+        tabPage1 = new TabPage();
+        tabPage2 = new TabPage();
+        listView1 = new ListView();
+        columnHeader1 = new ColumnHeader();
+        columnHeader2 = new ColumnHeader();
+        columnHeader3 = new ColumnHeader();
+        columnHeader4 = new ColumnHeader();
+        columnHeader5 = new ColumnHeader();
+        columnHeader6 = new ColumnHeader();
+        tabControl1.SuspendLayout();
+        tabPage1.SuspendLayout();
+        tabPage2.SuspendLayout();
         SuspendLayout();
         // 
         // label1
@@ -135,18 +151,19 @@ partial class Form1
         // 
         ServerListView.BackColor = SystemColors.InactiveCaptionText;
         ServerListView.BorderStyle = BorderStyle.FixedSingle;
-        ServerListView.Columns.AddRange(new ColumnHeader[] { Hostname, Map, GameType, Players, Ping });
+        ServerListView.Columns.AddRange(new ColumnHeader[] { Hostname, Map, GameType, Players, FavoritesCheck, Ping });
         ServerListView.Font = new Font("Gadugi", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
         ServerListView.ForeColor = Color.White;
         ServerListView.FullRowSelect = true;
-        ServerListView.Location = new Point(12, 120);
+        ServerListView.Location = new Point(0, 0);
         ServerListView.MultiSelect = false;
         ServerListView.Name = "ServerListView";
-        ServerListView.Size = new Size(876, 329);
+        ServerListView.Size = new Size(999, 320);
         ServerListView.TabIndex = 8;
         ServerListView.UseCompatibleStateImageBehavior = false;
         ServerListView.View = View.Details;
         ServerListView.ColumnClick += ServerListView_ColumnClick;
+        ServerListView.MouseClick += ServerListView_MouseClick;
         ServerListView.MouseDoubleClick += ServerListView_MouseDoubleClick;
         // 
         // Hostname
@@ -168,6 +185,11 @@ partial class Form1
         // 
         Players.Text = "Players";
         Players.Width = 65;
+        // 
+        // FavoritesCheck
+        // 
+        FavoritesCheck.Text = "Favorites";
+        FavoritesCheck.Width = 65;
         // 
         // Ping
         // 
@@ -195,16 +217,95 @@ partial class Form1
         label5.TabIndex = 10;
         label5.Text = "Filter:";
         // 
+        // tabControl1
+        // 
+        tabControl1.Controls.Add(tabPage1);
+        tabControl1.Controls.Add(tabPage2);
+        tabControl1.Location = new Point(9, 118);
+        tabControl1.Name = "tabControl1";
+        tabControl1.SelectedIndex = 0;
+        tabControl1.Size = new Size(1003, 331);
+        tabControl1.TabIndex = 11;
+        tabControl1.SelectedIndexChanged += new EventHandler(tabControl1_SelectedIndexChanged);
+
+        // 
+        // tabPage1
+        // 
+        tabPage1.Controls.Add(ServerListView);
+        tabPage1.Location = new Point(4, 24);
+        tabPage1.Name = "tabPage1";
+        tabPage1.Padding = new Padding(3);
+        tabPage1.Size = new Size(995, 303);
+        tabPage1.TabIndex = 0;
+        tabPage1.Text = "Server Browser";
+        tabPage1.UseVisualStyleBackColor = true;
+        // 
+        // tabPage2
+        // 
+        tabPage2.Controls.Add(listView1);
+        tabPage2.Location = new Point(4, 24);
+        tabPage2.Name = "tabPage2";
+        tabPage2.Padding = new Padding(3);
+        tabPage2.Size = new Size(995, 303);
+        tabPage2.TabIndex = 1;
+        tabPage2.Text = "Favorites";
+        tabPage2.UseVisualStyleBackColor = true;
+        // 
+        // listView1
+        // 
+        listView1.BackColor = SystemColors.InactiveCaptionText;
+        listView1.BorderStyle = BorderStyle.FixedSingle;
+        listView1.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2, columnHeader3, columnHeader4, columnHeader5, columnHeader6 });
+        listView1.Font = new Font("Gadugi", 11.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        listView1.ForeColor = Color.White;
+        listView1.FullRowSelect = true;
+        listView1.Location = new Point(0, 0);
+        listView1.MultiSelect = false;
+        listView1.Name = "listView1";
+        listView1.Size = new Size(999, 320);
+        listView1.TabIndex = 9;
+        listView1.UseCompatibleStateImageBehavior = false;
+        listView1.View = View.Details;
+        // 
+        // columnHeader1
+        // 
+        columnHeader1.Text = "Host Name (Double Click to Join)";
+        columnHeader1.Width = 510;
+        // 
+        // columnHeader2
+        // 
+        columnHeader2.Text = "Map";
+        columnHeader2.Width = 130;
+        // 
+        // columnHeader3
+        // 
+        columnHeader3.Text = "Game Type";
+        columnHeader3.Width = 90;
+        // 
+        // columnHeader4
+        // 
+        columnHeader4.Text = "Players";
+        columnHeader4.Width = 65;
+        // 
+        // columnHeader5
+        // 
+        columnHeader5.Text = "Favorites";
+        columnHeader5.Width = 65;
+        // 
+        // columnHeader6
+        // 
+        columnHeader6.Text = "Ping";
+        // 
         // Form1
         // 
         AutoScaleDimensions = new SizeF(7F, 15F);
         AutoScaleMode = AutoScaleMode.Font;
         BackgroundImage = (Image)resources.GetObject("$this.BackgroundImage");
         BackgroundImageLayout = ImageLayout.Stretch;
-        ClientSize = new Size(900, 461);
+        ClientSize = new Size(1024, 461);
+        Controls.Add(tabControl1);
         Controls.Add(label5);
         Controls.Add(Filter_Tbx);
-        Controls.Add(ServerListView);
         Controls.Add(label7);
         Controls.Add(PlayersLabel);
         Controls.Add(ServersLabel);
@@ -214,15 +315,19 @@ partial class Form1
         Controls.Add(label1);
         FormBorderStyle = FormBorderStyle.None;
         Icon = (Icon)resources.GetObject("$this.Icon");
-        MaximumSize = new Size(900, 461);
-        MinimumSize = new Size(900, 461);
+        MaximumSize = new Size(1024, 461);
+        MinimumSize = new Size(1024, 461);
         Name = "Form1";
         Text = "H2M Launcher";
         KeyDown += Form1_KeyPress;
         MouseDown += Form1_MouseDown;
+        tabControl1.ResumeLayout(false);
+        tabPage1.ResumeLayout(false);
+        tabPage2.ResumeLayout(false);
         ResumeLayout(false);
         PerformLayout();
     }
+
 
     #endregion
     private Label label1;
@@ -237,7 +342,18 @@ partial class Form1
     private ColumnHeader Map;
     private ColumnHeader GameType;
     private ColumnHeader Players;
+    private ColumnHeader FavoritesCheck;
     private ColumnHeader Ping;
     private TextBox Filter_Tbx;
     private Label label5;
+    private TabControl tabControl1;
+    private TabPage tabPage1;
+    private TabPage tabPage2;
+    private ListView listView1;
+    private ColumnHeader columnHeader1;
+    private ColumnHeader columnHeader2;
+    private ColumnHeader columnHeader3;
+    private ColumnHeader columnHeader4;
+    private ColumnHeader columnHeader5;
+    private ColumnHeader columnHeader6;
 }

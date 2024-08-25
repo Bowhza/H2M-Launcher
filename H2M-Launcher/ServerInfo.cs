@@ -11,6 +11,7 @@ namespace H2M_Launcher
         public string? GameType { get; set; }
         public string? Ip { get; set; }
         public string? Port { get; set; }
+        public bool IsFavorite { get; set; } = false;
         public string? Ping { get; set; } = "N/A";
 
         public override string ToString()
