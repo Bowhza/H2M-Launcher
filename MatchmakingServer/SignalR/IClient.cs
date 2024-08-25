@@ -5,5 +5,7 @@
         Task<bool> NotifyJoin(string serverIp, int serverPort);
 
         Task QueuePositionChanged(int queuePosition, int queueSize);
+
+        Task RemovedFromQueue(DequeueReason reason);
     }
 }

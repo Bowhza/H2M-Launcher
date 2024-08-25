@@ -5,12 +5,14 @@ namespace MatchmakingServer
 {
     public class GameServer : IServerConnectionDetails
     {
-        public string ServerName { get; }
-
         public required string ServerIp { get; init; }
 
         public required int ServerPort { get; init; }
         public LinkedList<Player> PlayerQueue { get; } = [];
+
+        public IEnumerable<Player> JoiningPlayers => PlayerQueue.Where(p => p.State is PlayerState.Joining);
+
+        public IEnumerable<Player> QueuedPlayers => PlayerQueue.Where(p => p.State is PlayerState.Queued);
 
         public int JoiningPlayerCount { get; set; }
 
@@ -25,15 +27,18 @@ namespace MatchmakingServer
 
         public string InstanceId { get; }
 
-        public GameServer(string serverName, string instanceId)
+        public Task? ProcessingTask { get; set; }
+
+        public CancellationTokenSource ProcessingCancellation { get; set; } = new();
+
+        public GameServer(string instanceId)
         {
-            ServerName = serverName;
             InstanceId = instanceId;
         }
 
         public override string ToString()
         {
-            return $"{ServerName} ({ServerIp}:{ServerPort})";
+            return $"[{ServerIp}:{ServerPort}]";
         }
     }
 }
