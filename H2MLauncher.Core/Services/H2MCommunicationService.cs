@@ -198,6 +198,7 @@ namespace H2MLauncher.Core.Services
 
             if (string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
             {
+                // no location set, try relative path
                 string fullPath = Path.GetFullPath(exeFileName);
                 return File.Exists(fullPath) 
                     ? (fullPath, true) 
@@ -206,8 +207,15 @@ namespace H2MLauncher.Core.Services
 
             string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.Value.MWRLocation);
 
+            if (!Path.Exists(userDefinedLocation))
+            {
+                // neither dir or file exists
+                return (userDefinedLocation, false);
+            }
+
             if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
             {
+                // is a directory, get full file name
                 string? fileName = Path.Combine(userDefinedLocation, exeFileName);
 
                 if (File.Exists(fileName))
@@ -218,6 +226,7 @@ namespace H2MLauncher.Core.Services
                 return (fileName, false);
             }
 
+            // is a file
             if (File.Exists(userDefinedLocation))
             {
                 return (userDefinedLocation, true);
