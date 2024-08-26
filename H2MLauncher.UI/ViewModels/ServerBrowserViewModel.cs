@@ -73,6 +73,7 @@ public partial class ServerBrowserViewModel : ObservableObject
     public IRelayCommand OpenReleaseNotesCommand { get; }
     public IRelayCommand RestartCommand { get; }
     public IRelayCommand ShowServerFilterCommand { get; }
+    public IRelayCommand ShowSettingsCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -109,6 +110,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
         RestartCommand = new RelayCommand(DoRestartCommand);
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
+        ShowSettingsCommand = new RelayCommand(ShowSettings);
 
         if (TryAddNewTab("All Servers", out var allServersTab))
         {
@@ -129,6 +131,16 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
 
         SelectedTab = ServerTabs.First();
+    }
+
+    private void ShowSettings()
+    {
+        SettingsViewModel settingsViewModel = new(_h2MLauncherOptions);
+
+        if (_dialogService.OpenDialog<SettingsDialogView>(settingsViewModel) == true)
+        {
+            // settings saved;
+        }
     }
 
     private void ShowServerFilter()

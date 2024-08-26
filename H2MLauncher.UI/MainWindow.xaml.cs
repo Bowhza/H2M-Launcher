@@ -87,5 +87,16 @@ namespace H2MLauncher.UI
         {
             ((DataGridRow)sender).IsSelected = true;
         }
+
+        private void ComboBoxItem_Selected(object sender, RoutedEventArgs e)
+        {
+            ((ComboBoxItem)sender).IsSelected = false;
+            e.Handled = true;
+        }
+
+        private void ToggleButton_Checked(object sender, RoutedEventArgs e)
+        {
+            
+        }
     }
 }

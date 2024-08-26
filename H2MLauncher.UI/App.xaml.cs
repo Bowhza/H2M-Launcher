@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Reflection;
+using System.Security.Policy;
 using System.Windows;
 
 using Awesome.Net.WritableOptions.Extensions;
@@ -12,6 +13,7 @@ using H2MLauncher.UI.ViewModels;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 using Serilog;
 
@@ -27,7 +29,7 @@ namespace H2MLauncher.UI
             InitializeLogging();
             CreateNeededConfiguration();
             IConfigurationRoot config = BuildConfiguration();
-            
+
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection, config);
 
@@ -85,11 +87,23 @@ namespace H2MLauncher.UI
             services.AddHttpClient<H2MLauncherService>();
 
             services.AddTransient<RaidMaxService>();
-            services.AddHttpClient<RaidMaxService>();
+            services.AddHttpClient<RaidMaxService>((sp, httpClient) =>
+            {
+                IOptions<H2MLauncherSettings> options = sp.GetRequiredService<IOptions<H2MLauncherSettings>>();
+
+                if (Uri.TryCreate(options.Value.IW4MMasterServerUrl, UriKind.Absolute, out Uri? baseUrl))
+                {
+                    httpClient.BaseAddress = baseUrl;
+                }
+                else
+                {
+                    throw new Exception("Invalid master server url in settings.");
+                }
+            });
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();
-            
+
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddTransient<ServerBrowserViewModel>();

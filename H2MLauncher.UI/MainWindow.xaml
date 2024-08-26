@@ -261,6 +261,11 @@
                 </TabControl>
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
                     <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
+                    <StatusBarItem HorizontalAlignment="Right">
+                        <Button Padding="20" Style="{StaticResource LinkButtonStyle}" Command="{Binding ShowSettingsCommand}">
+                            <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
+                        </Button>
+                    </StatusBarItem>
                 </StatusBar>
             </Grid>
         </Border>
