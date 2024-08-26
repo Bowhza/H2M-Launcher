@@ -61,6 +61,9 @@ public partial class ServerBrowserViewModel : ObservableObject
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter = new();
 
+    [ObservableProperty]
+    private PasswordViewModel _passwordViewModel = new();
+
     public event Action? ServerFilterChanged;
 
     public IAsyncRelayCommand RefreshServersCommand { get; }
@@ -415,7 +418,8 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         if (serverViewModel.IsPrivate)
         {
-            password = new PasswordDialog().GetPassword();
+            _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+            password = _passwordViewModel.Password;
         }
 
         StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password)
