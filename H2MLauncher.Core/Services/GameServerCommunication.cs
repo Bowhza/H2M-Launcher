@@ -39,6 +39,7 @@ namespace H2MLauncher.Core.Services
             _client.Client.DualMode = true; // enables both IPv4 and IPv6
             _client.Client.Bind(new IPEndPoint(IPAddress.IPv6Any, 0)); // bind to any available port
             _client.Client.ReceiveTimeout = 5000;
+            _client.Client.SendBufferSize = 1000;
 
             // Set control flag to avoid connection reset when port is unreachable
             // (https://stackoverflow.com/a/7478498/4711541
@@ -49,7 +50,7 @@ namespace H2MLauncher.Core.Services
 
             _synchronizationContext = SynchronizationContext.Current ?? new();
         }
-
+        
         private void HandleMessage(UdpReceiveResult result, DateTimeOffset timestamp)
         {
             string receivedMessage = Encoding.UTF8.GetString(result.Buffer);

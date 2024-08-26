@@ -3,6 +3,8 @@ using System.Net;
 
 using H2MLauncher.Core.Models;
 
+using Haukcode.HighResolutionTimer;
+
 namespace H2MLauncher.Core.Services
 {
     public class GameServerCommunicationService : IAsyncDisposable
@@ -126,17 +128,23 @@ namespace H2MLauncher.Core.Services
 
                     serverInfoMap[endpoint] = server;
                 });
+            
+            using HighResolutionTimer timer = new();
+            timer.SetPeriod(2);
+            timer.Start();
 
             foreach (var serverEndpoint in serverInfoMap.Keys)
             {
                 // save start timestamp
                 queuedServers[serverEndpoint] = DateTimeOffset.Now;
                 try
-                {
+                {                    
                     // send 'getinfo' command
-                    await _gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken);
+                    await _gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken).ConfigureAwait(false);
+                    
                     // wait for some bit. This is somehow necessary to receive all server responses.
-                    await Task.Delay(1, cancellationToken);
+                    // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
+                    timer.WaitForTrigger();
                 }
                 catch
                 {
