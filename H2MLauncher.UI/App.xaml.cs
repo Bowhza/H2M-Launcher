@@ -97,6 +97,7 @@ namespace H2MLauncher.UI
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
+            services.AddTransient<IPasswordDialogService, PasswordDialogService>();
             services.AddTransient<ServerBrowserViewModel>();
 
             services.AddTransient<MainWindow>();

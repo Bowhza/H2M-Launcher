@@ -79,6 +79,8 @@ namespace H2MLauncher.Core.ViewModels
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
         public ObservableCollection<ServerViewModel> FavoriteServers { get; set; } = [];
 
+        private readonly IPasswordDialogService _passwordDialogService;
+
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService,
             H2MCommunicationService h2MCommunicationService,
@@ -88,7 +90,8 @@ namespace H2MLauncher.Core.ViewModels
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
             IErrorHandlingService errorHandlingService,
-            IOptions<H2MLauncherSettings> h2mLauncerOptions)
+            IOptions<H2MLauncherSettings> h2mLauncerOptions,
+            IPasswordDialogService passwordDialogService)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -100,6 +103,7 @@ namespace H2MLauncher.Core.ViewModels
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             ArgumentNullException.ThrowIfNull(h2mLauncerOptions);
             _h2MLauncherSettings = h2mLauncerOptions.Value;
+            _passwordDialogService = passwordDialogService;
 
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
@@ -113,8 +117,6 @@ namespace H2MLauncher.Core.ViewModels
             ToggleFavoriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite);
 
         }
-
-
 
         private void AddFavoriteServer(ServerViewModel server)
         {
@@ -174,10 +176,7 @@ namespace H2MLauncher.Core.ViewModels
 
             // Remove from FavoriteServers collection
             FavoriteServers.Remove(server);
-
-
             TotalPlayersFavorites = Math.Max(0, TotalPlayersFavorites - server.ClientNum);
-
         }
 
 
@@ -381,10 +380,15 @@ namespace H2MLauncher.Core.ViewModels
 
         private void JoinServer()
         {
+            string password = null;
             if (SelectedServer is null)
                 return;
 
-            StatusText = _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString())
+           
+            if(SelectedServer.IsPrivate)
+                password = _passwordDialogService.GetPassword();
+
+            StatusText = _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString(), password)
                 ? $"Joined {SelectedServer.Ip}:{SelectedServer.Port}"
                 : "Ready";
         }

@@ -5,6 +5,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
 
 namespace H2MLauncher.UI
@@ -17,10 +18,13 @@ namespace H2MLauncher.UI
         private readonly ServerBrowserViewModel _viewModel;
 
         private TabsEnum _selectedTab;
-        
+
+        private IPasswordDialogService _passwordDialogService;
+
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+            _passwordDialogService = new PasswordDialogService();
             _selectedTab = TabsEnum.AllServers;
             DataContext = _viewModel = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
