@@ -86,7 +86,7 @@ namespace H2MLauncher.Core.Services
             {
                 if (string.IsNullOrEmpty(settings.MWRLocation))
                 {
-                    settings.MWRLocation = detectedGame.GameDir;
+                    settings.MWRLocation = detectedGame.FileName;
                 }
             });
             GameDetected?.Invoke(detectedGame);
@@ -108,7 +108,7 @@ namespace H2MLauncher.Core.Services
                 {
                     string fileName = process.MainModule.FileName;
                     string? gameDir = Path.GetDirectoryName(fileName);
-                    
+
                     if (!string.IsNullOrEmpty(gameDir) && File.Exists(Path.Combine(gameDir, GAME_EXECUTABLE_NAME)))
                     {
                         FileVersionInfo version = FileVersionInfo.GetVersionInfo(fileName);
@@ -192,6 +192,40 @@ namespace H2MLauncher.Core.Services
             return null;
         }
 
+        private (string fileName, bool found) TryFindValidGameFile()
+        {
+            const string exeFileName = "h2m-mod.exe";            
+
+            if (string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
+            {
+                string fullPath = Path.GetFullPath(exeFileName);
+                return File.Exists(fullPath) 
+                    ? (fullPath, true) 
+                    : (fullPath, false);
+            }
+
+            string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.Value.MWRLocation);
+
+            if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
+            {
+                string? fileName = Path.Combine(userDefinedLocation, exeFileName);
+
+                if (File.Exists(fileName))
+                {
+                    return (fileName, true);
+                }
+
+                return (fileName, false);
+            }
+
+            if (File.Exists(userDefinedLocation))
+            {
+                return (userDefinedLocation, true);
+            }
+
+            return (userDefinedLocation, false);
+        }
+
         public void LaunchH2MMod()
         {
             ReleaseCapture();
@@ -207,20 +241,15 @@ namespace H2MLauncher.Core.Services
                     return;
                 }
 
-                // We assume that the user has properly put the exe in the MWR directory
-                // TODO: Or in the future sets its location in the settings.
-                string exeFilePath = "./h2m-mod.exe";
-                if (!string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
-                {
-                    exeFilePath = $"{_h2mLauncherSettings.Value.MWRLocation}h2m-mod.exe";
-                }
+                (string gameFileName, bool found) = TryFindValidGameFile();
 
                 // Proceed to launch the process if it's not running
-                if (File.Exists(exeFilePath))
+                if (found && !string.IsNullOrEmpty(gameFileName))
                 {
-                    ProcessStartInfo startInfo = new(exeFilePath);
-                    if (!string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
-                        startInfo.WorkingDirectory = _h2mLauncherSettings.Value.MWRLocation;
+                    ProcessStartInfo startInfo = new(gameFileName)
+                    {
+                        WorkingDirectory = Path.GetDirectoryName(gameFileName)
+                    };
 
                     Process.Start(startInfo);
                 }
@@ -228,7 +257,7 @@ namespace H2MLauncher.Core.Services
                 {
                     _errorHandlingService.HandleException(
                         new FileNotFoundException("h2m-mod.exe was not found."),
-                        $"The h2m-mod.exe could not be found at {exeFilePath}!");
+                        $"The h2m-mod.exe could not be found at {gameFileName}!");
                 }
             }
             catch (Exception ex)
