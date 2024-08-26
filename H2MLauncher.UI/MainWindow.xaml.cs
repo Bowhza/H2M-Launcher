@@ -16,12 +16,10 @@ namespace H2MLauncher.UI
     {
         private readonly ICollectionView _collectionView;
         private readonly ICollectionView _collectionViewFavorites;
-
         private readonly ServerBrowserViewModel _viewModel;
         private IntPtr _targetWindowHandle;
         private bool _isOverlayVisible = true;
         private bool _overlayHiddenByUser = false;
-
         private GlobalKeyboardHook _globalKeyboardHook;
 
         // Import Windows API methods for interacting with windows
@@ -117,7 +115,7 @@ namespace H2MLauncher.UI
 
             if (header == "All Servers")
             {
-                _selectedTab = TabsEnum.AllServers;
+                this._selectedTab= TabsEnum.AllServers;
                 _viewModel.TotalPlayers = _viewModel.TotalPlayersOverAll;
                 _viewModel.TotalServers = _viewModel.TotalServersOverAll;
             }
@@ -177,12 +175,9 @@ namespace H2MLauncher.UI
 
         private void UpdateOverlayPosition(object sender, EventArgs e)
         {
-            if (_targetWindowHandle == IntPtr.Zero || IsIconic(_targetWindowHandle))
-            {
-                // Hide the overlay if the target window is minimized or if the handle is invalid
-                this.Visibility = Visibility.Hidden;
-                return;
-            }
+            if (_targetWindowHandle == IntPtr.Zero) return;
+
+            if (IsIconic(_targetWindowHandle)) { this.Visibility = Visibility.Hidden; return; }
 
             // Only update if not hidden by the user
             if (!_overlayHiddenByUser)
