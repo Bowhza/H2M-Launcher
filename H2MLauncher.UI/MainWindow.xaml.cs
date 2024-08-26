@@ -58,9 +58,12 @@ namespace H2MLauncher.UI
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+
             _selectedTab = TabsEnum.AllServers;
+
             DataContext = _viewModel = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
+
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
             _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
@@ -68,7 +71,6 @@ namespace H2MLauncher.UI
             _collectionViewFavorites = CollectionViewSource.GetDefaultView(serverBrowserViewModel.FavoriteServers);
             _collectionViewFavorites.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionViewFavorites.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
-
 
             // Initialize Global Keyboard Hook
             _globalKeyboardHook = new GlobalKeyboardHook();
@@ -107,27 +109,25 @@ namespace H2MLauncher.UI
 
         private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            if (e.Source is TabControl)
+            if (e.Source is not TabControl tabControl) return;
+
+            if (tabControl.SelectedItem is not TabItem selectedTab) return;
+
+            string header = selectedTab.Header.ToString();
+
+            if (header == "All Servers")
             {
-                TabItem selectedTab = ((sender as TabControl).SelectedItem as TabItem);
-                if (selectedTab.Header.ToString() == "All Servers")
-                {
-                    _selectedTab = TabsEnum.AllServers;
-
-                    _viewModel.TotalPlayers = _viewModel.TotalPlayersOverAll;
-                    _viewModel.TotalServers = _viewModel.TotalServersOverAll;
-
-                }
-                else if (selectedTab.Header.ToString() == "Favourites")
-                {
-                    _selectedTab = TabsEnum.Favorites;
-
-                    _viewModel.TotalPlayers = _viewModel.TotalPlayersFavorites;
-                    _viewModel.TotalServers = _viewModel.FavoriteServers.Count;
-                }
+                _selectedTab = TabsEnum.AllServers;
+                _viewModel.TotalPlayers = _viewModel.TotalPlayersOverAll;
+                _viewModel.TotalServers = _viewModel.TotalServersOverAll;
+            }
+            else if (header == "Favourites")
+            {
+                _selectedTab = TabsEnum.Favorites;
+                _viewModel.TotalPlayers = _viewModel.TotalPlayersFavorites;
+                _viewModel.TotalServers = _viewModel.FavoriteServers.Count;
             }
         }
-
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -177,17 +177,15 @@ namespace H2MLauncher.UI
 
         private void UpdateOverlayPosition(object sender, EventArgs e)
         {
-            if (_targetWindowHandle == IntPtr.Zero)
+            if (_targetWindowHandle == IntPtr.Zero || IsIconic(_targetWindowHandle))
             {
+                // Hide the overlay if the target window is minimized or if the handle is invalid
+                this.Visibility = Visibility.Hidden;
                 return;
             }
 
-            // Check if the target window is minimized
-            if (IsIconic(_targetWindowHandle))
-            {
-                this.Visibility = Visibility.Hidden; // Hide the overlay if the target window is minimized
-            }
-            else if (!_overlayHiddenByUser) // Only update if not hidden by the user
+            // Only update if not hidden by the user
+            if (!_overlayHiddenByUser)
             {
                 // Show or hide the overlay based on the user's toggle action
                 this.Visibility = _isOverlayVisible ? Visibility.Visible : Visibility.Hidden;
@@ -200,29 +198,23 @@ namespace H2MLauncher.UI
         // Method to set the overlay position centered within the game window
         private void SetOverlayPosition()
         {
-            if (_targetWindowHandle == IntPtr.Zero)
-            {
+            if (_targetWindowHandle == IntPtr.Zero || !GetWindowRect(_targetWindowHandle, out RECT rect))
                 return;
-            }
 
-            // Get the target window's position and size
-            if (GetWindowRect(_targetWindowHandle, out RECT rect))
-            {
-                // Calculate the width and height of the game window
-                int gameWindowWidth = rect.Right - rect.Left;
-                int gameWindowHeight = rect.Bottom - rect.Top;
+            // Calculate the width and height of the game window
+            int gameWindowWidth = rect.Right - rect.Left;
+            int gameWindowHeight = rect.Bottom - rect.Top;
 
-                // Calculate position to center the overlay within the game window
-                int overlayWidth = (int)this.ActualWidth;
-                int overlayHeight = (int)this.ActualHeight;
+            // Calculate position to center the overlay within the game window
+            int overlayWidth = (int)this.ActualWidth;
+            int overlayHeight = (int)this.ActualHeight;
 
-                int xPosition = rect.Left + (gameWindowWidth - overlayWidth) / 2;
-                int yPosition = rect.Top + (gameWindowHeight - overlayHeight) / 2;
+            int xPosition = rect.Left + (gameWindowWidth - overlayWidth) / 2;
+            int yPosition = rect.Top + (gameWindowHeight - overlayHeight) / 2;
 
-                // Move the WPF window to the calculated position
-                this.Left = xPosition;
-                this.Top = yPosition;
-            }
+            // Move the WPF window to the calculated position
+            this.Left = xPosition;
+            this.Top = yPosition;
         }
 
         private void AttachToH2MModWindow()
