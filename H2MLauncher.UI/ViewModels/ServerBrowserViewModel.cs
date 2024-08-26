@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -409,10 +408,17 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     private void JoinServer(ServerViewModel? serverViewModel)
     {
+        string password = null;
+
         if (serverViewModel is null)
             return;
 
-        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString())
+        if (serverViewModel.IsPrivate)
+        {
+            password = new PasswordDialog().GetPassword();
+        }
+
+        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password)
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
     }

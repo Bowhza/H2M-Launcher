@@ -1,20 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace H2MLauncher.UI
 {
-    public partial class PasswordDialog : Window
+    public partial class PasswordDialog : UserControl
     {
         public string Password { get; private set; }
 
@@ -23,18 +14,37 @@ namespace H2MLauncher.UI
             InitializeComponent();
         }
 
+        public string GetPassword()
+        {
+            var dialogWindow = new Window
+            {
+                Title = string.Empty, // No title
+                Content = this, // El UserControl es el contenido de la ventana
+                SizeToContent = SizeToContent.WidthAndHeight,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = Application.Current.MainWindow, // O cualquier otra ventana que sea la propietaria
+                WindowStyle = WindowStyle.None, // Sin barra de título
+                AllowsTransparency = true, // Permitir la transparencia para hacer las esquinas redondeadas
+                Background = Brushes.Transparent, // Fondo transparente
+                ResizeMode = ResizeMode.NoResize, // No permitir el redimensionado
+                BorderBrush = Brushes.Transparent, // Sin bordes visibles
+            };
+
+            bool? result = dialogWindow.ShowDialog();
+            return result == true ? Password : null;
+        }
+
         private void OK_Click(object sender, RoutedEventArgs e)
         {
             Password = PasswordBox.Password;
-            DialogResult = true; // Close the dialog with an "OK" result
-            this.Close();
+            Window.GetWindow(this).DialogResult = true;
+            Window.GetWindow(this).Close();
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false; // Close the dialog with a "Cancel" result
-            this.Close();
+            Window.GetWindow(this).DialogResult = false;
+            Window.GetWindow(this).Close();
         }
     }
-
 }
