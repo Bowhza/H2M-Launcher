@@ -15,7 +15,7 @@ public partial class GameStateViewModel : ObservableObject
     public int? ProcessId => DetectedGame?.Process.Id;
 
     [ObservableProperty]
-    private string _displayText = "";
+    private string _displayText = "Game not detected";
 
     private DetectedGame? _detectedGame;
     public DetectedGame? DetectedGame
@@ -37,7 +37,7 @@ public partial class GameStateViewModel : ObservableObject
             else
             {
                 IsGameRunning = true;
-                DisplayText = $"Game detected ('{value.Process.ProcessName}' {value.Version.FileVersion}, PID: {value.Process.Id})";
+                DisplayText = $"Game detected: '{value.Process.ProcessName}' (v{value.Version.FileVersion}, PID: {value.Process.Id})";
             }
         }
     }

@@ -157,7 +157,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {
         if (ServerTabs.Any(tab => tab.TabName.Equals(tabName, StringComparison.Ordinal)))
