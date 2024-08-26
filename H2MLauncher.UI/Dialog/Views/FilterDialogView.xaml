@@ -72,14 +72,14 @@
 
         <TextBlock Text="Map Packs:" Grid.Row="6" Margin="15,10" HorizontalAlignment="Right"/>
 
-        <controls:MagicNoSelectDropDownControl ItemsSource="{Binding MapPacks}" Text="{Binding  SelectedMapPacks}" 
+        <controls:MagicNoSelectDropDownControl ItemsSource="{Binding MapPacks}" Text="{Binding SelectedMapPacks}" 
                                              Height="22" Grid.Row="6" Grid.Column="1" Margin="0,0,0,0">
             <controls:MagicNoSelectDropDownControl.ItemTemplate>
                     <DataTemplate>
                         <CheckBox 
                             Foreground="White"
-                            Content="{Binding Path=Key}"
-                            IsChecked="{Binding Path=Value.IsSelected, Mode=TwoWay}"/>
+                            Content="{Binding Path=Name}"
+                            IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
                     </DataTemplate>
                 </controls:MagicNoSelectDropDownControl.ItemTemplate>
         </controls:MagicNoSelectDropDownControl>

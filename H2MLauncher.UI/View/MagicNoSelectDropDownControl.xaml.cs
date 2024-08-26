@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Collections;
+using System.Windows;
 using System.Windows.Controls;
 
 using H2MLauncher.UI.ViewModels;
@@ -7,9 +8,9 @@ namespace H2MLauncher.UI.View.Controls
 {
     public partial class MagicNoSelectDropDownControl : UserControl
     {
-        public Dictionary<string, MapPackItem> ItemsSource
+        public IEnumerable ItemsSource
         {
-            get => (Dictionary<string, MapPackItem>)GetValue(ItemsSourceProperty);
+            get => (IEnumerable)GetValue(ItemsSourceProperty);
             set => SetValue(ItemsSourceProperty, value);
         }
 
@@ -37,7 +38,7 @@ namespace H2MLauncher.UI.View.Controls
 
 
         public static readonly DependencyProperty ItemsSourceProperty =
-            DependencyProperty.Register("ItemsSource", typeof(Dictionary<string, MapPackItem>),
+            DependencyProperty.Register("ItemsSource", typeof(IEnumerable),
             typeof(MagicNoSelectDropDownControl), new UIPropertyMetadata(null));
 
         public static readonly DependencyProperty TextProperty =

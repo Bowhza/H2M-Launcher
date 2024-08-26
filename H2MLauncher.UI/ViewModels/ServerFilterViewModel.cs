@@ -65,7 +65,7 @@ namespace H2MLauncher.UI.ViewModels
             MapPacks = [..resourceSettings.MapPacks
                 .Select(mapPack =>
                 {
-                    var item = new MapPackItem() { Name = mapPack.Name };
+                    var item = new MapPackItem(mapPack) { Name = mapPack.Name };
 
                     item.PropertyChanged += MaptPackItem_PropertyChanged;
 
@@ -124,7 +124,6 @@ namespace H2MLauncher.UI.ViewModels
                 return false;
             }
 
-
             if (server.MaxClientNum > MaxSlots)
             {
                 return false;
@@ -140,7 +139,9 @@ namespace H2MLauncher.UI.ViewModels
                 return false;
             }
 
-            return true;
+            return MapPacks.Any(mapPackItem => 
+                mapPackItem.IsSelected && 
+                mapPackItem.Model.Maps.Any(m => m.Name.Equals(server.Map, StringComparison.OrdinalIgnoreCase)));
         }
     }
 }
