@@ -365,7 +365,7 @@ public partial class ServerBrowserViewModel : ObservableObject
                 .OrderByDescending((server) => server.ClientNum);
 
             // Start by sending info requests to the game servers
-            await _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
+            await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
                 bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
 
@@ -397,7 +397,7 @@ public partial class ServerBrowserViewModel : ObservableObject
 
                 // Game server responded -> online
 
-            }, _loadCancellation.Token);
+            }, _loadCancellation.Token));
             StatusText = "Ready";
         }
         catch (OperationCanceledException ex)

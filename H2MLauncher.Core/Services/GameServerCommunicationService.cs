@@ -130,7 +130,7 @@ namespace H2MLauncher.Core.Services
                 });
             
             using HighResolutionTimer timer = new();
-            timer.SetPeriod(2);
+            timer.SetPeriod(1);
             timer.Start();
 
             foreach (var serverEndpoint in serverInfoMap.Keys)
