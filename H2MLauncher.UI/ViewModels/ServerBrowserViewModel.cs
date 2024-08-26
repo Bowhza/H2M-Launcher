@@ -417,9 +417,7 @@ public partial class ServerBrowserViewModel : ObservableObject
 
             //Do not continue joining the server
             if (string.IsNullOrEmpty(password))           
-                return;
-            
-           
+                return;           
         }
 
         StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password)
