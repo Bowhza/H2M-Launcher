@@ -1,6 +1,7 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:local="clr-namespace:H2MLauncher.UI;assembly=H2MLauncher.UI" 
+                    xmlns:converters="clr-namespace:H2MLauncher.UI.Converters;assembly=H2MLauncher.UI" 
                     xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     x:Name="GlobalResources">
@@ -158,7 +159,7 @@
                             Template="{StaticResource ComboBoxToggleButton}" 
                             Grid.Column="2" 
                             Focusable="false"
-                            IsChecked="{Binding Path=IsDropDownOpen,Mode=TwoWay,RelativeSource={RelativeSource TemplatedParent}}"
+                            IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
                             ClickMode="Press">
                         </ToggleButton>
 
@@ -230,5 +231,5 @@
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
-    <local:EmptyItemConverter x:Key="emptyItemConverter" />
+    <converters:EmptyItemConverter x:Key="emptyItemConverter" />
 </ResourceDictionary>

@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Data;
 using System.Windows.Input;
 
@@ -40,9 +41,13 @@ namespace H2MLauncher.UI.ViewModels
         private string _filterText = "";
 
         [ObservableProperty]
-        private ObservableCollection<MapPackItem> _mapPacks = [];
+        private ObservableCollection<SelectableItem<IW4MMapPack>> _mapPacks = [];
+
+        [ObservableProperty]
+        private ObservableCollection<SelectableItem<IW4MObjectMap>> _gameModes = [];
 
         public string SelectedMapPacks => $"{MapPacks.Where(x => x.IsSelected).Count()}/{MapPacks.Count}";
+        public string SelectedGameModes => $"{GameModes.Where(x => x.IsSelected).Count()}/{GameModes.Count}";
 
         public ICommand ApplyCommand { get; set; }
 
@@ -60,22 +65,51 @@ namespace H2MLauncher.UI.ViewModels
                 MinPlayers = 1;
                 MaxPlayers = 32;
                 MaxSlots = 32;
+                foreach (SelectableItem<IW4MMapPack> item in MapPacks)
+                    item.IsSelected = true;
+                foreach (SelectableItem<IW4MObjectMap> item in GameModes)
+                    item.IsSelected = true;
             });
 
             MapPacks = [..resourceSettings.MapPacks
                 .Select(mapPack =>
                 {
-                    var item = new MapPackItem(mapPack) { Name = mapPack.Name };
+                    SelectableItem<IW4MMapPack> item = new(mapPack)
+                    { 
+                        Name = mapPack.Name, 
+                        IsSelected = true 
+                    };
 
-                    item.PropertyChanged += MaptPackItem_PropertyChanged;
+                    item.PropertyChanged += MapPackItem_PropertyChanged;
+
+                    return item;
+                })];
+
+            GameModes = [..resourceSettings.GameTypes
+                .Select(gameMode => {
+                    SelectableItem<IW4MObjectMap> item = new(gameMode)
+                    {
+                        Name = gameMode.Alias,
+                        IsSelected = true
+                    };
+
+                    item.PropertyChanged += GameModeItem_PropertyChanged;
 
                     return item;
                 })];
         }
 
-        private void MaptPackItem_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void GameModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(MapPackItem.IsSelected))
+            if (e.PropertyName == nameof(SelectableItem<IW4MObjectMap>.IsSelected))
+            {
+                OnPropertyChanged(nameof(SelectedGameModes));
+            }
+        }
+
+        private void MapPackItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(SelectableItem<IW4MMapPack>.IsSelected))
             {
                 OnPropertyChanged(nameof(SelectedMapPacks));
             }
@@ -90,7 +124,7 @@ namespace H2MLauncher.UI.ViewModels
 
             string lowerCaseFilter = FilterText.ToLower();
 
-            if (!server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
+            if (!server.HostName.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -135,6 +169,13 @@ namespace H2MLauncher.UI.ViewModels
             }
 
             if (server.IsPrivate && !ShowPrivate)
+            {
+                return false;
+            }
+
+            if (!GameModes.Any(gameMode => 
+                gameMode.IsSelected && 
+                gameMode.Model.Name.Equals(server.GameType, StringComparison.OrdinalIgnoreCase))) 
             {
                 return false;
             }
