@@ -6,6 +6,7 @@ using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Threading;
 
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Model;
 
@@ -14,6 +15,7 @@ namespace H2MLauncher.UI
     public partial class MainWindow : Window
     {
         private readonly ICollectionView _collectionView;
+        private readonly ICollectionView _collectionViewFavorites;
 
         private readonly ServerBrowserViewModel _viewModel;
         private IntPtr _targetWindowHandle;
@@ -51,14 +53,22 @@ namespace H2MLauncher.UI
             public int Y;
         }
 
+        private TabsEnum _selectedTab;
+        
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+            _selectedTab = TabsEnum.AllServers;
             DataContext = _viewModel = serverBrowserViewModel;
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
             _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
             _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+
+            _collectionViewFavorites = CollectionViewSource.GetDefaultView(serverBrowserViewModel.FavoriteServers);
+            _collectionViewFavorites.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
+            _collectionViewFavorites.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+
 
             // Initialize Global Keyboard Hook
             _globalKeyboardHook = new GlobalKeyboardHook();
@@ -92,7 +102,32 @@ namespace H2MLauncher.UI
         private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
         {
             _collectionView.Refresh();
+            _collectionViewFavorites.Refresh();
         }
+
+        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.Source is TabControl)
+            {
+                TabItem selectedTab = ((sender as TabControl).SelectedItem as TabItem);
+                if (selectedTab.Header.ToString() == "All Servers")
+                {
+                    _selectedTab = TabsEnum.AllServers;
+
+                    _viewModel.TotalPlayers = _viewModel.TotalPlayersOverAll;
+                    _viewModel.TotalServers = _viewModel.TotalServersOverAll;
+
+                }
+                else if (selectedTab.Header.ToString() == "Favourites")
+                {
+                    _selectedTab = TabsEnum.Favorites;
+
+                    _viewModel.TotalPlayers = _viewModel.TotalPlayersFavorites;
+                    _viewModel.TotalServers = _viewModel.FavoriteServers.Count;
+                }
+            }
+        }
+
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {

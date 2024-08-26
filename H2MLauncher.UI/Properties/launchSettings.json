@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "H2MLauncher.UI": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "NETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

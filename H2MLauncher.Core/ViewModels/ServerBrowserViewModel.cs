@@ -7,8 +7,11 @@ using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Utilities;
+using H2MLauncher.Core.Settings;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.Core.ViewModels
 {
@@ -21,8 +24,9 @@ namespace H2MLauncher.Core.ViewModels
         private readonly IClipBoardService _clipBoardService;
         private readonly ISaveFileService _saveFileService;
         private readonly IErrorHandlingService _errorHandlingService;
-        private CancellationTokenSource _loadCancellation = new();
         private readonly ILogger<ServerBrowserViewModel> _logger;
+        private readonly H2MLauncherSettings _h2MLauncherSettings;
+        private CancellationTokenSource _loadCancellation = new();
 
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
@@ -33,6 +37,15 @@ namespace H2MLauncher.Core.ViewModels
 
         [ObservableProperty]
         private int _totalPlayers = 0;
+
+        [ObservableProperty]
+        private int _totalServersOverAll = 0;
+
+        [ObservableProperty]
+        private int _totalPlayersOverAll = 0;
+
+        [ObservableProperty]
+        private int _totalPlayersFavorites = 0;
 
         [ObservableProperty]
         private string _filter = "";
@@ -58,11 +71,13 @@ namespace H2MLauncher.Core.ViewModels
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
+        public IRelayCommand ToggleFavoriteCommand { get; }
         public IAsyncRelayCommand UpdateLauncherCommand { get; }
         public IRelayCommand OpenReleaseNotesCommand { get; }
         public IRelayCommand RestartCommand { get; }
 
         public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
+        public ObservableCollection<ServerViewModel> FavoriteServers { get; set; } = [];
 
         public ServerBrowserViewModel(
             RaidMaxService raidMaxService,
@@ -72,7 +87,8 @@ namespace H2MLauncher.Core.ViewModels
             IClipBoardService clipBoardService,
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
-            IErrorHandlingService errorHandlingService)
+            IErrorHandlingService errorHandlingService,
+            IOptions<H2MLauncherSettings> h2mLauncerOptions)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -82,6 +98,9 @@ namespace H2MLauncher.Core.ViewModels
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
             _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+            ArgumentNullException.ThrowIfNull(h2mLauncerOptions);
+            _h2MLauncherSettings = h2mLauncerOptions.Value;
+
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
             JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -91,7 +110,77 @@ namespace H2MLauncher.Core.ViewModels
             UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
+            ToggleFavoriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite);
+
         }
+
+
+
+        private void AddFavoriteServer(ServerViewModel server)
+        {
+            if (server is null)
+                return;
+
+            server.IsFavorite = true;
+
+            bool serverExists = FavoriteServers.Any(s =>
+                s.HostName == server.HostName &&
+                s.Ip == server.Ip &&
+                s.Port == server.Port);
+
+            if (!serverExists)
+            {
+                FavoriteServers.Add(server);
+                UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
+                TotalPlayersFavorites += server.ClientNum;
+            }
+        }
+
+
+        private void ToggleFavorite(ServerViewModel server)
+        {
+            if (server is null)
+                return;
+
+            server.IsFavorite = !server.IsFavorite;
+
+            if (server.IsFavorite)
+            {
+                // Add to favorites
+                UserFavoritesUtility.AddFavorite(new UserFavorite { ServerIp = server.Ip, ServerName = server.HostName, ServerPort = server.Port });
+
+                // Ensure the server is marked as favorite in the Servers collection
+                var gameServer = this.Servers.FirstOrDefault(s => s.Ip == server.Ip);
+                if (gameServer != null)
+                    gameServer.IsFavorite = true;
+
+                // Add to FavoriteServers collection if not already added
+                if (!FavoriteServers.Contains(server))
+                    FavoriteServers.Add(server);
+
+                TotalPlayersFavorites += server.ClientNum;
+
+
+                return;
+            }
+
+            // Remove from favorites
+            UserFavoritesUtility.RemoveFavorite(server.Ip);
+
+            // Update the IsFavorite property in the Servers collection
+            var existingServer = this.Servers.FirstOrDefault(s => s.Ip == server.Ip);
+            if (existingServer != null)
+                existingServer.IsFavorite = false;
+
+            // Remove from FavoriteServers collection
+            FavoriteServers.Remove(server);
+
+
+            TotalPlayersFavorites = Math.Max(0, TotalPlayersFavorites - server.ClientNum);
+
+        }
+
+
 
         private void DoRestartCommand()
         {
@@ -165,8 +254,13 @@ namespace H2MLauncher.Core.ViewModels
                 _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
                 string fileName = "./players2/favourites.json";
+                string directoryPath = "./players2";
+                if (!string.IsNullOrEmpty(_h2MLauncherSettings.MWRLocation))
+                {
+                    directoryPath = Path.Combine(_h2MLauncherSettings.MWRLocation, directoryPath);
+                }
 
-                if (!Directory.Exists("./players2"))
+                if (!Directory.Exists(directoryPath))
                 {
                     // let user choose
                     fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
@@ -195,16 +289,23 @@ namespace H2MLauncher.Core.ViewModels
         private async Task LoadServersAsync()
         {
             await _loadCancellation.CancelAsync();
+            
             _loadCancellation = new();
 
             try
             {
-                Servers.Clear();
-                TotalServers = 0;
+                Servers.Clear();                 
+             
+                TotalPlayersOverAll = 0;
+                TotalServersOverAll = 0;
+
                 TotalPlayers = 0;
+                TotalServers = 0;
 
                 // Get servers from the master
                 List<RaidMaxServer> servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+
+                List<UserFavorite> userFavorites = UserFavoritesUtility.GetFavorites();
 
                 // Let's prioritize populated servers first for getting game server info.
                 IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
@@ -213,6 +314,9 @@ namespace H2MLauncher.Core.ViewModels
                 // Start by sending info requests to the game servers
                 await _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
                 {
+
+                    bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
+
                     // Game server responded -> online
                     Servers.Add(new ServerViewModel()
                     {
@@ -229,13 +333,44 @@ namespace H2MLauncher.Core.ViewModels
                         IsPrivate = gameServer.IsPrivate,
                         Ping = gameServer.Ping,
                         BotsNum = gameServer.Bots,
+                        IsFavorite = isFavorite
                     });
+
+                    TotalPlayersOverAll += server.ClientNum;
+                    TotalServersOverAll++;
+
+                    if (isFavorite)
+                    {
+                        this.AddFavoriteServer(new ServerViewModel()
+                        {
+                            Id = server.Id,
+                            Ip = server.Ip,
+                            Port = server.Port,
+                            HostName = server.HostName,
+                            ClientNum = gameServer.Clients - gameServer.Bots,
+                            MaxClientNum = gameServer.MaxClients,
+                            Game = server.Game,
+                            GameType = gameServer.GameType,
+                            Map = gameServer.MapName,
+                            Version = server.Version,
+                            IsPrivate = gameServer.IsPrivate,
+                            Ping = gameServer.Ping,
+                            BotsNum = gameServer.Bots,
+                            IsFavorite = isFavorite
+                        });    
+
+                    }
+                    // Game server responded -> online
 
                     OnPropertyChanged(nameof(Servers));
 
+
+
                     TotalPlayers += server.ClientNum;
                     TotalServers++;
+
                 }, _loadCancellation.Token);
+
             }
             catch (OperationCanceledException ex)
             {
