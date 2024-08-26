@@ -157,14 +157,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnServerFilterClosed(object? sender, RequestCloseEventArgs e)
-    {
-        if (e.DialogResult == true)
-        {
-            StatusText = "Server filter applied.";
-        }
-    }
-
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {

@@ -2,7 +2,7 @@
 
 using H2MLauncher.Core.Services;
 
-namespace H2MLauncher.Core.ViewModels;
+namespace H2MLauncher.UI.ViewModels;
 
 public partial class GameStateViewModel : ObservableObject
 {
