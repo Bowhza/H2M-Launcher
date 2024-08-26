@@ -12,19 +12,12 @@
 
   <ItemGroup>
     <None Remove="appsettings.json" />
-    <None Remove="appsettings.local.json" />
     <None Remove="Assets\Background.jpg" />
     <None Remove="Assets\Icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
     <Page Remove="GlobalResources.xaml" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="appsettings.local.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 
   <ItemGroup>
@@ -51,6 +44,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Content Condition="Exists('appsettings.local.json')" Include="appsettings.local.json">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <EmbeddedResource Include="appsettings.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
