@@ -51,6 +51,9 @@
         <local:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
 
         <local:PlayersSorter x:Key="PlayersSorter"/>
+        
+            <CollectionViewSource x:Key="MyCollectionViewSource" Source="{Binding SelectedTab.Servers}"/>
+        
     </Window.Resources>
     <Window.InputBindings>
         <!-- Disable Shortcut Commands -->
@@ -128,7 +131,7 @@
                 </TabControl.ItemTemplate>
                 <TabControl.ContentTemplate>
                     <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
-                        <DataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
+                        <local:CustomDataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                                 Grid.Row="2"
                                 FontFamily="Consolas"
                                 Margin="-3,0,-2,0" Height="Auto" 
@@ -243,7 +246,7 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
-                        </DataGrid>
+                        </local:CustomDataGrid>
                     </DataTemplate>
                 </TabControl.ContentTemplate>
             </TabControl>
