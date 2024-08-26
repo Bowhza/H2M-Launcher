@@ -7,5 +7,7 @@ namespace H2MLauncher.Core.Settings
         public string MWRLocation { get; set; } = string.Empty;
 
         public List<UserFavourite> FavouriteServers { get; set; } = [];
+
+        public bool AutomaticGameDetection { get; set; } = true;
     }
 }

@@ -1,30 +1,138 @@
 ﻿using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using H2MLauncher.Core.Settings;
+using Awesome.Net.WritableOptions;
 
-using Microsoft.Extensions.Options;
+using H2MLauncher.Core.Settings;
 
 namespace H2MLauncher.Core.Services
 {
+    public record DetectedGame(Process Process, string FileName, string GameDir, FileVersionInfo Version);
+
     public class H2MCommunicationService
     {
         private const string GAME_WINDOW_TITLE = "H2M-Mod";
+        private const string GAME_EXECUTABLE_NAME = "h1_mp64_ship.exe";
+
         //Windows API constants
         private const int WM_CHAR = 0x0102; // Message code for sending a character
         private const int WM_KEYDOWN = 0x0100; // Message code for key down
         private const int WM_KEYUP = 0x0101;   // Message code for key up
 
-        private readonly H2MLauncherSettings _h2mLauncherSettings;
+        private readonly IWritableOptions<H2MLauncherSettings> _h2mLauncherSettings;
         private readonly IErrorHandlingService _errorHandlingService;
 
-        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IOptions<H2MLauncherSettings> options)
+        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IWritableOptions<H2MLauncherSettings> options)
         {
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             ArgumentNullException.ThrowIfNull(options, nameof(options));
-            _h2mLauncherSettings = options.Value;
+            _h2mLauncherSettings = options;
+
+            if (options.Value.AutomaticGameDetection)
+            {
+                StartGameDetection();
+            }
         }
+
+        #region Game Detection
+
+        private const int GAME_DETECTION_POLLING_INTERVAL = 1000;
+
+        private CancellationTokenSource _gameDetectionCancellation = new();
+        private Task? _gameDetectionTask;
+
+        public DetectedGame? DetectedGame { get; private set; }
+
+        [MemberNotNullWhen(true, nameof(_gameDetectionTask))]
+        public bool IsGameDetectionRunning => _gameDetectionTask != null && _gameDetectionTask.IsCompleted;
+
+
+        public event Action<DetectedGame>? GameDetected;
+
+        public event Action? GameExited;
+
+        public void StartGameDetection()
+        {
+            if (IsGameDetectionRunning)
+            {
+                return;
+            }
+
+            _gameDetectionCancellation = new();
+            _gameDetectionTask = Task.Run(
+                function: () => GameDetectionLoop(_gameDetectionCancellation.Token, OnGameDetected, OnGameExited),
+                cancellationToken: _gameDetectionCancellation.Token
+             );
+        }
+
+        public void StopGameDetection()
+        {
+            if (!IsGameDetectionRunning)
+            {
+                return;
+            }
+
+            _gameDetectionCancellation.Cancel();
+            _gameDetectionTask.Wait();
+            _gameDetectionTask = null;
+        }
+
+        private void OnGameDetected(DetectedGame detectedGame)
+        {
+            DetectedGame = detectedGame;
+            _h2mLauncherSettings.Update(settings =>
+            {
+                if (string.IsNullOrEmpty(settings.MWRLocation))
+                {
+                    settings.MWRLocation = detectedGame.GameDir;
+                }
+            });
+            GameDetected?.Invoke(detectedGame);
+        }
+
+        private void OnGameExited()
+        {
+            DetectedGame = null;
+            GameExited?.Invoke();
+        }
+
+        private static async Task GameDetectionLoop(
+            CancellationToken cancellationToken, Action<DetectedGame> onGameDetected, Action onGameExited, bool detectOnce = false)
+        {
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                Process? process = FindH2MModProcess();
+                if (process is not null && process.MainModule is not null)
+                {
+                    string fileName = process.MainModule.FileName;
+                    string? gameDir = Path.GetDirectoryName(fileName);
+                    
+                    if (!string.IsNullOrEmpty(gameDir) && File.Exists(Path.Combine(gameDir, GAME_EXECUTABLE_NAME)))
+                    {
+                        FileVersionInfo version = FileVersionInfo.GetVersionInfo(fileName);
+
+                        // game dir found
+                        onGameDetected(new DetectedGame(process, fileName, gameDir, version));
+
+                        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+
+                        // process terminated
+                        onGameExited();
+
+                        if (detectOnce)
+                        {
+                            return;
+                        }
+                    }
+                }
+
+                await Task.Delay(GAME_DETECTION_POLLING_INTERVAL, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        #endregion
 
         //Windows API functions to send input to a window
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
@@ -83,7 +191,7 @@ namespace H2MLauncher.Core.Services
 
             return null;
         }
-        
+
         public void LaunchH2MMod()
         {
             ReleaseCapture();
@@ -102,17 +210,17 @@ namespace H2MLauncher.Core.Services
                 // We assume that the user has properly put the exe in the MWR directory
                 // TODO: Or in the future sets its location in the settings.
                 string exeFilePath = "./h2m-mod.exe";
-                if (!string.IsNullOrEmpty(_h2mLauncherSettings.MWRLocation))
+                if (!string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
                 {
-                    exeFilePath = $"{_h2mLauncherSettings.MWRLocation}h2m-mod.exe";
+                    exeFilePath = $"{_h2mLauncherSettings.Value.MWRLocation}h2m-mod.exe";
                 }
 
                 // Proceed to launch the process if it's not running
                 if (File.Exists(exeFilePath))
                 {
                     ProcessStartInfo startInfo = new(exeFilePath);
-                    if (!string.IsNullOrEmpty(_h2mLauncherSettings.MWRLocation))
-                        startInfo.WorkingDirectory = _h2mLauncherSettings.MWRLocation;
+                    if (!string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
+                        startInfo.WorkingDirectory = _h2mLauncherSettings.Value.MWRLocation;
 
                     Process.Start(startInfo);
                 }
@@ -215,7 +323,7 @@ namespace H2MLauncher.Core.Services
             return IntPtr.Zero;
         }
 
-        private static Process? FindH2MModProcess()
+        public static Process? FindH2MModProcess()
         {
             // find processes with matching title
             var processesWithTitle = Process.GetProcesses().Where(p =>

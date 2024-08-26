@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.ViewModels;
 
-public partial class ServerBrowserViewModel : ObservableObject
+public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
     private readonly RaidMaxService _raidMaxService;
     private readonly GameServerCommunicationService _gameServerCommunicationService;
@@ -52,6 +52,9 @@ public partial class ServerBrowserViewModel : ObservableObject
     private ServerTabViewModel AllServersTab { get; set; }
     private ServerTabViewModel FavouritesTab { get; set; }
     public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
+
+    [ObservableProperty]
+    private GameStateViewModel _gameState = new();
 
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
@@ -111,6 +114,19 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
 
         SelectedTab = ServerTabs.First();
+
+        _h2MCommunicationService.GameDetected += H2MCommunicationService_GameDetected;
+        _h2MCommunicationService.GameExited += H2MCommunicationService_GameExited;
+    }
+
+    private void H2MCommunicationService_GameDetected(DetectedGame detectedGame)
+    {
+        GameState.DetectedGame = detectedGame;
+    }
+
+    private void H2MCommunicationService_GameExited()
+    {
+        GameState.DetectedGame = null;
     }
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
@@ -383,5 +399,11 @@ public partial class ServerBrowserViewModel : ObservableObject
     private void LaunchH2M()
     {
         _h2MCommunicationService.LaunchH2MMod();
+    }
+
+    public void Dispose()
+    {
+        _h2MCommunicationService.GameDetected -= H2MCommunicationService_GameDetected;
+        _h2MCommunicationService.GameExited -= H2MCommunicationService_GameExited;
     }
 }

@@ -253,6 +253,21 @@
 
             <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
                 <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
+                <StatusBarItem Content="{Binding GameState}" HorizontalAlignment="Right">
+                    <StatusBarItem.ContentTemplate>
+                        <DataTemplate DataType="{x:Type vm:GameStateViewModel}">
+                            <TextBlock x:Name="ConnectionString" Text="{Binding DisplayText}"/>
+                            <!--<DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsGameRunning}" Value="True">
+                                    <Setter TargetName="ConnectionString" Property="Text" Value="{Binding ProcessId, StringFormat='{}Game detected ({0})'}" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding IsGameRunning}" Value="False">
+                                    <Setter TargetName="ConnectionString" Property="Text" Value="Game not detected" />
+                                </DataTrigger>
+                            </DataTemplate.Triggers>-->
+                        </DataTemplate>
+                    </StatusBarItem.ContentTemplate>
+                </StatusBarItem>
             </StatusBar>
         </Grid>
     </Border>
