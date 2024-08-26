@@ -70,9 +70,6 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 > **If you and others can connect to the server in game, but it does not show up, please report the concrete case!**
 
-> **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
-
-For other information and questions can be found at this **[Discord Thread](https://discord.com/channels/1272500523010097202/1275315609911169056)**.
 
 ### 5. Saving to clipboard failed
 <img src="./Images/ErrorOpenClipboardFailed.png">
@@ -81,6 +78,10 @@ For other information and questions can be found at this **[Discord Thread](http
 Go to your Windows Settings and search for Clear Clipboard.
 
 <img src="./Images/ClearClipBoardWindows.png">
+
+> **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
+
+For other information and questions can be found at this **[Discord Thread](https://discord.com/channels/1272500523010097202/1275315609911169056)**.
 
 
 ## Compiling from Source Code
