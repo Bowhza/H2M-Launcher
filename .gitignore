@@ -7,4 +7,5 @@ x64/
 [Bb]in/
 [Oo]bj/
 *.user
-/H2MLauncher.UI/appsettings.local.json
+
+**/appsettings.local.json
