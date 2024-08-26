@@ -25,8 +25,13 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private string _map = "";
 
+
+        [ObservableProperty]
+        private bool _isFavorite = false;
+
         [ObservableProperty]
         private string _gameType = "";
+
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(Occupation))]

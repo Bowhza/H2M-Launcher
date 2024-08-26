@@ -29,9 +29,15 @@
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
-                        </Trigger>
+                        </Trigger>                        
                         <Trigger Property="IsFocused" Value="False">
                             <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Background" Value="#444" />
+                            <Setter Property="Opacity" Value="0.7" />
+                            <Setter Property="Foreground" Value="#CCC" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>

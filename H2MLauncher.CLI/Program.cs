@@ -1,9 +1,4 @@
-﻿using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
-using System.Text.RegularExpressions;
-
-using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
 partial class Program
 {
@@ -15,7 +10,7 @@ partial class Program
 
     [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
     private static extern bool FreeLibrary(IntPtr hModule);
-
+        
     [UnmanagedFunctionPointer(CallingConvention.FastCall)]
     private delegate void CBuff_AddTextDelegate(int localClientNum, int controllerIndex, IntPtr text);
 

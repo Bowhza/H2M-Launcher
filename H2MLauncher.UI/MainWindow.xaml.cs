@@ -10,25 +10,30 @@ namespace H2MLauncher.UI
 {
     public partial class MainWindow : Window
     {
-        private readonly ICollectionView _collectionView;
-
         private readonly ServerBrowserViewModel _viewModel;
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
             DataContext = _viewModel = serverBrowserViewModel;
-            serverBrowserViewModel.RefreshServersCommand.Execute(this);
-            _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
-            _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+            
+            var collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
+            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
+            collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
+
+            serverBrowserViewModel.RefreshServersCommand.Execute(this);
         }
 
         private void ServerBrowserViewModel_ServerFilterChanged()
         {
-            _collectionView.Refresh();
+            var collectionView = CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers);
+            if (collectionView is not null)
+            {
+                collectionView.Refresh();
+            }
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -47,9 +52,9 @@ namespace H2MLauncher.UI
             }
         }
 
-        private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _collectionView.Refresh();
+            CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers).Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)

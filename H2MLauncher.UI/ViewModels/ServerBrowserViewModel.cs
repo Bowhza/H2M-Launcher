@@ -3,6 +3,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 
+using Awesome.Net.WritableOptions;
+
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -11,48 +13,50 @@ using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
+using H2MLauncher.Core.Settings;
 
 using Microsoft.Extensions.Logging;
+using System.Diagnostics.CodeAnalysis;
 
-namespace H2MLauncher.UI.ViewModels
+namespace H2MLauncher.UI.ViewModels;
+
+public partial class ServerBrowserViewModel : ObservableObject
 {
-    public partial class ServerBrowserViewModel : ObservableObject
-    {
-        private readonly RaidMaxService _raidMaxService;
-        private readonly GameServerCommunicationService _gameServerCommunicationService;
-        private readonly H2MCommunicationService _h2MCommunicationService;
-        private readonly H2MLauncherService _h2MLauncherService;
-        private readonly IClipBoardService _clipBoardService;
-        private readonly ISaveFileService _saveFileService;
-        private readonly IErrorHandlingService _errorHandlingService;
-        private readonly DialogService _dialogService;
-        private CancellationTokenSource _loadCancellation = new();
-        private readonly ILogger<ServerBrowserViewModel> _logger;
+    private readonly RaidMaxService _raidMaxService;
+    private readonly GameServerCommunicationService _gameServerCommunicationService;
+    private readonly H2MCommunicationService _h2MCommunicationService;
+    private readonly H2MLauncherService _h2MLauncherService;
+    private readonly IClipBoardService _clipBoardService;
+    private readonly ISaveFileService _saveFileService;
+    private readonly IErrorHandlingService _errorHandlingService;
+    private readonly ILogger<ServerBrowserViewModel> _logger;
+    private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
+    private readonly DialogService _dialogService;
+    private CancellationTokenSource _loadCancellation = new();
 
-        [ObservableProperty]
-        [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
-        private ServerViewModel? _selectedServer;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
+    private string _updateStatusText = "";
 
-        [ObservableProperty]
-        private int _totalServers = 0;
+    [ObservableProperty]
+    private double _updateDownloadProgress = 0;
 
-        [ObservableProperty]
-        private int _totalPlayers = 0;
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
+    private bool _updateFinished;
 
-        [ObservableProperty]
-        private string _updateStatusText = "";
+    [ObservableProperty]
+    private string _statusText = "Ready";
 
-        [ObservableProperty]
-        private string _statusText = "Ready";
+    [ObservableProperty]
+    private string _filter = "";
 
-        [ObservableProperty]
-        private double _updateDownloadProgress = 0;
+    [ObservableProperty]
+    private ServerTabViewModel _selectedTab;
 
-        [ObservableProperty]
-        private bool _progressBarVisibility = false;
-
-        [ObservableProperty]
-        private bool _releaseNotesVisibility = false;
+    private ServerTabViewModel AllServersTab { get; set; }
+    private ServerTabViewModel FavouritesTab { get; set; }
+    public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
 
         [ObservableProperty]
         private ServerFilterViewModel _advancedServerFilter = new();
@@ -62,7 +66,6 @@ namespace H2MLauncher.UI.ViewModels
 
         public IAsyncRelayCommand RefreshServersCommand { get; }
         public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
-        public IRelayCommand JoinServerCommand { get; }
         public IRelayCommand LaunchH2MCommand { get; }
         public IRelayCommand CopyToClipBoardCommand { get; }
         public IRelayCommand SaveServersCommand { get; }
@@ -82,7 +85,8 @@ namespace H2MLauncher.UI.ViewModels
             ILogger<ServerBrowserViewModel> logger,
             ISaveFileService saveFileService,
             IErrorHandlingService errorHandlingService,
-            DialogService dialogService)
+            DialogService dialogService,
+            IWritableOptions<H2MLauncherSettings> h2mLauncherOptions)
         {
             _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
             _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -93,9 +97,10 @@ namespace H2MLauncher.UI.ViewModels
             _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             _dialogService = dialogService;
+            ArgumentNullException.ThrowIfNull(h2mLauncherOptions);
+            _h2MLauncherOptions = h2mLauncherOptions;
 
             RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
-            JoinServerCommand = new RelayCommand(JoinServer, () => _selectedServer is not null);
             LaunchH2MCommand = new RelayCommand(LaunchH2M);
             CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
             CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
@@ -104,7 +109,27 @@ namespace H2MLauncher.UI.ViewModels
             OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
             RestartCommand = new RelayCommand(DoRestartCommand);
             ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
-        }
+
+            if (TryAddNewTab("All Servers", out var allServersTab))
+            {
+              AllServersTab = allServersTab;
+            }
+            else
+            {
+              throw new Exception("Could not add all servers tab");
+            }
+
+            if (TryAddNewTab("Favourites", out var favouritesTab))
+            {
+              FavouritesTab = favouritesTab;
+            }
+            else
+            {
+              throw new Exception("Could not add favourites tab");
+            }
+
+            SelectedTab = ServerTabs.First();
+  }
 
         private void ShowServerFilter()
         {
@@ -124,165 +149,271 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
-        private void DoRestartCommand()
+
+    private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
+    {
+        if (ServerTabs.Any(tab => tab.TabName.Equals(tabName, StringComparison.Ordinal)))
         {
-            Process.Start(H2MLauncherService.LauncherPath);
-            Process.GetCurrentProcess().Kill();
+            tabViewModel = null;
+            return false;
         }
 
-        private void DoOpenReleaseNotesCommand()
+        tabViewModel = new(tabName, JoinServer)
         {
-            string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
-            ProcessStartInfo sInfo = new(destinationurl)
-            {
-                UseShellExecute = true,
-            };
-            Process.Start(sInfo);
-        }
+            ToggleFavoriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite),
+        };
 
-        private async Task DoUpdateLauncherCommand()
+        ServerTabs.Add(tabViewModel);
+        return true;
+    }
+
+    // Method to get the user's favorites from the settings.
+    public List<UserFavourite> GetFavoritesFromSettings()
+    {
+        return _h2MLauncherOptions.Value.FavouriteServers;
+    }
+
+    // Method to add a favorite to the settings.
+    public void AddFavoriteToSettings(UserFavourite favorite)
+    {
+        var favorites = GetFavoritesFromSettings();
+
+        // Add the new favorite to the list.
+        favorites.Add(favorite);
+
+        // Save the updated list to the settings.
+        SaveFavorites(favorites);
+    }
+
+    // Method to remove a favorite from the settings.
+    public void RemoveFavoriteFromSettings(string serverIp, int serverPort)
+    {
+        var favorites = GetFavoritesFromSettings();
+
+        // Remove the favorite that matches the provided ServerIp.
+        favorites.RemoveAll(fav => fav.ServerIp == serverIp && fav.ServerPort == serverPort);
+
+        // Save the updated list to the settings.
+        SaveFavorites(favorites);
+    }
+
+    // Private method to save the list of favorites to the settings.
+    private void SaveFavorites(List<UserFavourite> favorites)
+    {
+        _h2MLauncherOptions.Update(settings =>
         {
-            ProgressBarVisibility = true;
-            await _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
-            {
-                UpdateDownloadProgress = progress;
-                if (progress == 100)
-                {
-                    ProgressBarVisibility = false;
-                    ReleaseNotesVisibility = true;
-                }
-            }, CancellationToken.None).ConfigureAwait(false);
-        }
+            settings.FavouriteServers = favorites;
+        }, true);
+    }
 
-        private void DoCopyToClipBoardCommand(ServerViewModel? server)
+    private void ToggleFavorite(ServerViewModel? server)
+    {
+        if (server is null)
+            return;
+
+        server.IsFavorite = !server.IsFavorite;
+
+        if (server.IsFavorite)
         {
-            if (server is null)
+            // Add to favorites
+            AddFavoriteToSettings(new UserFavourite
             {
-                if (SelectedServer is null)
-                    return;
+                ServerIp = server.Ip,
+                ServerName = server.HostName,
+                ServerPort = server.Port
+            });
 
-                server = SelectedServer;
+            // Add to FavoriteServers collection if not already added
+            if (!FavouritesTab.Servers.Any(s => s.Ip == server.Ip && s.Port == server.Port))
+            {
+                FavouritesTab.Servers.Add(server);
             }
 
-            string textToCopy = $"connect {server.Ip}:{server.Port}";
-            _clipBoardService.SaveToClipBoard(textToCopy);
-
-            StatusText = $"Copied to clipboard";
+            return;
         }
+
+        // Remove from favorites
+        RemoveFavoriteFromSettings(server.Ip, server.Port);
+
+        // Remove from FavoriteServers collection
+        FavouritesTab.Servers.Remove(server);
+    }
+
+
+    private void DoRestartCommand()
+    {
+        Process.Start(H2MLauncherService.LauncherPath);
+        Process.GetCurrentProcess().Kill();
+    }
+
+    private void DoOpenReleaseNotesCommand()
+    {
+        string destinationurl = "https://github.com/Bowhza/H2M-Launcher/releases/latest";
+        ProcessStartInfo sInfo = new(destinationurl)
+        {
+            UseShellExecute = true,
+        };
+        Process.Start(sInfo);
+    }
+
+    private Task<bool> DoUpdateLauncherCommand()
+    {
+        return _h2MLauncherService.UpdateLauncherToLatestVersion((double progress) =>
+        {
+            UpdateDownloadProgress = progress;
+            if (progress == 100)
+            {
+                UpdateFinished = true;
+            }
+        }, CancellationToken.None);
+    }
+
+    private void DoCopyToClipBoardCommand(ServerViewModel? server)
+    {
+        if (server is null)
+        {
+            if (SelectedTab.SelectedServer is null)
+                return;
+
+            server = SelectedTab.SelectedServer;
+        }
+
+        string textToCopy = $"connect {server.Ip}:{server.Port}";
+        _clipBoardService.SaveToClipBoard(textToCopy);
+
+        StatusText = $"Copied to clipboard";
+    }
 
         public bool ServerFilter(ServerViewModel server)
         {
             return AdvancedServerFilter.ApplyFilter(server);
         }
 
-        private async Task SaveServersAsync()
+    private async Task SaveServersAsync()
+    {
+        // Create a list of "Ip:Port" strings
+        List<string> ipPortList = SelectedTab.Servers.Where(ServerFilter)
+                                         .Select(server => $"{server.Ip}:{server.Port}")
+                                         .ToList();
+
+        // Serialize the list into JSON format
+        string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);
+
+        try
         {
-            // Create a list of "Ip:Port" strings
-            List<string> ipPortList = Servers.Where(ServerFilter)
-                                             .Select(server => $"{server.Ip}:{server.Port}")
-                                             .ToList();
+            // Store the server list into the corresponding directory
+            _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
-            // Serialize the list into JSON format
-            string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);
-
-            try
+            string fileName = "./players2/favourites.json";
+            string directoryPath = "./players2";
+            if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
             {
-                // Store the server list into the corresponding directory
-                _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
+                directoryPath = Path.Combine(_h2MLauncherOptions.Value.MWRLocation, directoryPath);
+            }
 
-                string fileName = "./players2/favourites.json";
+            if (!Directory.Exists(directoryPath))
+            {
+                // let user choose
+                fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
+                if (string.IsNullOrEmpty(fileName))
+                    return;
+            }
 
-                if (!Directory.Exists("./players2"))
+            await File.WriteAllTextAsync(fileName, jsonString);
+
+            _logger.LogInformation("Stored server list into {fileName}", fileName);
+
+            StatusText = $"{ipPortList.Count} servers saved to {Path.GetFileName(fileName)}";
+        }
+        catch (Exception ex)
+        {
+            _errorHandlingService.HandleException(ex, "Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
+        }
+    }
+
+    private async Task CheckUpdateStatusAsync()
+    {
+        bool isUpToDate = await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None);
+        UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
+    }
+
+    private async Task LoadServersAsync()
+    {
+        await _loadCancellation.CancelAsync();
+
+        _loadCancellation = new();
+
+        try
+        {
+            StatusText = "Refreshing servers...";
+
+            AllServersTab.Servers.Clear();
+            FavouritesTab.Servers.Clear();
+
+            // Get servers from the master
+            List<RaidMaxServer> servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
+
+            List<UserFavourite> userFavorites = GetFavoritesFromSettings();
+
+            // Let's prioritize populated servers first for getting game server info.
+            IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
+                .OrderByDescending((server) => server.ClientNum);
+
+            // Start by sending info requests to the game servers
+            await _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
+            {
+                bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
+
+                ServerViewModel serverViewModel = new()
                 {
-                    // let user choose
-                    fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
-                    if (string.IsNullOrEmpty(fileName))
-                        return;
+                    Id = server.Id,
+                    Ip = server.Ip,
+                    Port = server.Port,
+                    HostName = server.HostName,
+                    ClientNum = gameServer.Clients - gameServer.Bots,
+                    MaxClientNum = gameServer.MaxClients,
+                    Game = server.Game,
+                    GameType = gameServer.GameType,
+                    Map = gameServer.MapName,
+                    Version = server.Version,
+                    IsPrivate = gameServer.IsPrivate,
+                    Ping = gameServer.Ping,
+                    BotsNum = gameServer.Bots,
+                    IsFavorite = isFavorite
+                };
+
+                // Game server responded -> online
+                AllServersTab.Servers.Add(serverViewModel);
+
+                if (isFavorite)
+                {
+                    FavouritesTab.Servers.Add(serverViewModel);
                 }
 
-                await File.WriteAllTextAsync(fileName, jsonString);
+                // Game server responded -> online
 
-                _logger.LogInformation("Stored server list into {fileName}", fileName);
-
-                StatusText = $"{ipPortList.Count} servers saved to {Path.GetFileName(fileName)}";
-            }
-            catch (Exception ex)
-            {
-                _errorHandlingService.HandleException(ex, "Could not save favourites.json file. Make sure the exe is inside the root of the game folder.");
-            }
+            }, _loadCancellation.Token);
+            StatusText = "Ready";
         }
-
-        private async Task CheckUpdateStatusAsync()
+        catch (OperationCanceledException ex)
         {
-            bool isUpToDate = await _h2MLauncherService.IsLauncherUpToDateAsync(CancellationToken.None);
-            UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
+            // canceled
+            Debug.WriteLine($"LoadServersAsync cancelled: {ex.Message}");
         }
+    }
 
-        private async Task LoadServersAsync()
-        {
-            await _loadCancellation.CancelAsync();
-            _loadCancellation = new();
+    private void JoinServer(ServerViewModel? serverViewModel)
+    {
+        if (serverViewModel is null)
+            return;
 
-            try
-            {
-                Servers.Clear();
-                TotalServers = 0;
-                TotalPlayers = 0;
+        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString())
+            ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
+            : "Ready";
+    }
 
-                // Get servers from the master
-                List<RaidMaxServer> servers = await _raidMaxService.GetServerInfosAsync(_loadCancellation.Token);
-
-                // Let's prioritize populated servers first for getting game server info.
-                IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
-                    .OrderByDescending((server) => server.ClientNum);
-
-                // Start by sending info requests to the game servers
-                await _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
-                {
-                    // Game server responded -> online
-                    Servers.Add(new ServerViewModel()
-                    {
-                        Id = server.Id,
-                        Ip = server.Ip,
-                        Port = server.Port,
-                        HostName = server.HostName,
-                        ClientNum = gameServer.Clients - gameServer.Bots,
-                        MaxClientNum = gameServer.MaxClients,
-                        Game = server.Game,
-                        GameType = gameServer.GameType,
-                        Map = gameServer.MapName,
-                        Version = server.Version,
-                        IsPrivate = gameServer.IsPrivate,
-                        Ping = gameServer.Ping,
-                        BotsNum = gameServer.Bots,
-                    });
-
-                    OnPropertyChanged(nameof(Servers));
-
-                    TotalPlayers += server.ClientNum;
-                    TotalServers++;
-                }, _loadCancellation.Token);
-            }
-            catch (OperationCanceledException ex)
-            {
-                // canceled
-                Debug.WriteLine($"LoadServersAsync cancelled: {ex.Message}");
-            }
-        }
-
-        private void JoinServer()
-        {
-            if (SelectedServer is null)
-                return;
-
-            StatusText = _h2MCommunicationService.JoinServer(SelectedServer.Ip, SelectedServer.Port.ToString())
-                ? $"Joined {SelectedServer.Ip}:{SelectedServer.Port}"
-                : "Ready";
-        }
-
-        private void LaunchH2M()
-        {
-            _h2MCommunicationService.LaunchH2MMod();
-        }
+    private void LaunchH2M()
+    {
+        _h2MCommunicationService.LaunchH2MMod();
     }
 }
