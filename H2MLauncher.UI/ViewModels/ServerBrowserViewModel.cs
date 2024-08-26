@@ -53,7 +53,6 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     [ObservableProperty]
     private ServerTabViewModel _selectedTab;
-
     private ServerTabViewModel AllServersTab { get; set; }
     private ServerTabViewModel FavouritesTab { get; set; }
     public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
@@ -63,9 +62,7 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
-
     public event Action? ServerFilterChanged;
-
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -75,7 +72,6 @@ public partial class ServerBrowserViewModel : ObservableObject
     public IRelayCommand OpenReleaseNotesCommand { get; }
     public IRelayCommand RestartCommand { get; }
     public IRelayCommand ShowServerFilterCommand { get; }
-
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
     public ServerBrowserViewModel(
@@ -150,7 +146,6 @@ public partial class ServerBrowserViewModel : ObservableObject
             StatusText = "Server filter applied.";
         }
     }
-
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {
@@ -240,7 +235,6 @@ public partial class ServerBrowserViewModel : ObservableObject
         // Remove from FavoriteServers collection
         FavouritesTab.Servers.Remove(server);
     }
-
 
     private void DoRestartCommand()
     {
