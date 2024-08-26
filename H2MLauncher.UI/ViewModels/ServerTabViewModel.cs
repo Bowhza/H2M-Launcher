@@ -3,7 +3,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace H2MLauncher.Core.ViewModels;
+namespace H2MLauncher.UI.ViewModels;
 
 public partial class ServerTabViewModel : ObservableObject
 {

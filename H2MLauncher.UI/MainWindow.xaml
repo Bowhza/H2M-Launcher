@@ -4,20 +4,25 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:H2MLauncher.UI"
-        xmlns:vm="clr-namespace:H2MLauncher.Core.ViewModels;assembly=H2MLauncher.Core" 
+        xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
         xmlns:models="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
         xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
+        xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
         d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
         AllowsTransparency="True"
         WindowStyle="None"
+        ResizeMode="CanResizeWithGrip"
+        MinHeight="576"
+        MinWidth="875"
+        Width="875"
+        Height="576"
         Background="Transparent"
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
         KeyDown="Window_KeyDown"
         Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-        Title="Better H2M-Launcher"  Height="576" Width="875">
-
+        Title="Better H2M-Launcher">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding CheckUpdateStatusCommand}"/>
@@ -60,78 +65,84 @@
         <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
     </Window.InputBindings>
-    <Border CornerRadius="10" Padding="10">
-        <Border.Background>
-            <ImageBrush ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
-        </Border.Background>
-        <Grid>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="*"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
-            <Grid Grid.Row="0">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White" Padding="5,0,0,0"/>
-                <TextBlock Grid.Column="1" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
+    <Grid>
+        <Border CornerRadius="10" Padding="10,10" Background="Black"/>
+        <Border CornerRadius="10" Padding="10,10">
+            <Border.Background>
+                <ImageBrush Stretch="UniformToFill" ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
+            </Border.Background>
+            <Grid Margin="0,0,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid Grid.Row="0" Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Grid.Column="1" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="PreviewMouseDown">
                             <i:InvokeCommandAction Command="{Binding UpdateLauncherCommand}"/>
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
-                </TextBlock>
-                <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateLauncherCommand.IsRunning, Converter={StaticResource booleanToVisibilityConverter}}">
-                    <ProgressBar Name="pbStatus"  Width="400" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}"/>
-                    <TextBlock Text="{Binding ElementName=pbStatus, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </TextBlock>
+                    <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateLauncherCommand.IsRunning, Converter={StaticResource booleanToVisibilityConverter}}">
+                        <ProgressBar Name="pbStatus"  Width="400" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}"/>
+                        <TextBlock Text="{Binding ElementName=pbStatus, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Grid>
+                    <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateFinished, Converter={StaticResource booleanToVisibilityConverter}}">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="5" />
+                            <ColumnDefinition Width="200" />
+                        </Grid.ColumnDefinitions>
+                        <Button Grid.Column="0" Content="Open release notes" Command="{Binding OpenReleaseNotesCommand}" />
+                        <Button Grid.Column="2" Content="Restart" Command="{Binding RestartCommand}" />
+                    </Grid>
                 </Grid>
-                <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateFinished, Converter={StaticResource booleanToVisibilityConverter}}">
+                <Grid Grid.Row="1" >
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="200" />
-                        <ColumnDefinition Width="5" />
-                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
-                    <Button Grid.Column="0" Content="Open release notes" Command="{Binding OpenReleaseNotesCommand}" />
-                    <Button Grid.Column="2" Content="Restart" Command="{Binding RestartCommand}" />
+                    <StackPanel Orientation="Horizontal" Grid.Column="0">
+                        <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
+                        <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="White" />
+                        <Label Content="Total Servers:" Foreground="White"/>
+                        <Label Content="{Binding SelectedTab.TotalServers}" Foreground="White" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                        <TextBox TabIndex="1" Text="{Binding AdvancedServerFilter.FilterText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
+                                 TextChanged="TextBox_TextChanged" HorizontalAlignment="Stretch" Margin="0,0,5,0" 
+                                 VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Grid.Column="2">                        
+                        <Button TabIndex="3" Content="Filter" Width="50" Command="{Binding ShowServerFilterCommand}" />
+                        <Separator Opacity="0" Width="5" />
+                        <Button TabIndex="3" Content="Join" Width="80" Command="{Binding SelectedTab.JoinServerCommand}" />
+                        <Separator Opacity="0" Width="5" />
+                        <Button TabIndex="4" Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
+                        <Separator Opacity="0" Width="5" />
+                        <Button TabIndex="5" Content="Launch H2M" Width="80" Command="{Binding LaunchH2MCommand}"/>
+                    </StackPanel>
                 </Grid>
-            </Grid>
-            <Grid Width="790" Margin="5,0,5,0" Grid.Row="1">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <StackPanel Orientation="Horizontal" Grid.Column="0" Margin="-27,0,41,0">
-                    <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
-                    <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="White" />
-                    <Label Content="Total Servers:" Foreground="White" Width="79"/>
-                    <Label Content="{Binding SelectedTab.TotalServers}" Foreground="White" />
-                </StackPanel>
-                <StackPanel Orientation="Horizontal" Grid.Column="1" Margin="0,0,-43,0">
-                    <Label Content="Filter:" Foreground="White"/>
-                    <TextBox TabIndex="1" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" FontSize="16" TextChanged="TextBox_TextChanged" Width="300"/>
-                    <Separator Opacity="0" Width="5"/>
-                    <Button TabIndex="3" Content="Join" Width="80" Command="{Binding SelectedTab.JoinServerCommand}" />
-                    <Separator Opacity="0" Width="5"/>
-                    <Button TabIndex="4" Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
-                    <Separator Opacity="0" Width="5"/>
-                    <Button TabIndex="5" Content="Launch H2M" Width="80" Command="{Binding LaunchH2MCommand}"/>
-                    <Separator Opacity="0" Width="10" />
-                </StackPanel>
-            </Grid>
-
-            <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
-                        Grid.Row="2" Margin="10,0,10,0" Opacity="0.82">
-                <TabControl.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
-                        <TextBlock Text="{Binding TabName}"/>
-                    </DataTemplate>
-                </TabControl.ItemTemplate>
-                <TabControl.ContentTemplate>
-                    <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
-                        <local:CustomDataGrid x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
+                <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
+                            Grid.Row="2" Margin="0,10,0,5" Opacity="0.82">
+                    <TabControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
+                            <TextBlock Text="{Binding TabName}"/>
+                        </DataTemplate>
+                    </TabControl.ItemTemplate>
+                    <TabControl.ContentTemplate>
+                        <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
+                            <local:CustomDataGrid 
+                                x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                                 Grid.Row="2"
                                 FontFamily="Consolas"
                                 Margin="-3,0,-2,0" Height="Auto" 
@@ -154,106 +165,104 @@
                                 HeadersVisibility="Column"
                                 VerticalScrollBarVisibility="Hidden"
                                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
-                                RowBackground="Transparent"
-                                local:CustomSortBehaviour.AllowCustomSort="True">
+                                RowBackground="Transparent">
+                                <DataGrid.InputBindings>
+                                    <!-- Key shortcut commands for row -->
+                                    <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
+                                </DataGrid.InputBindings>
 
-                            <DataGrid.InputBindings>
-                                <!-- Key shortcut commands for row -->
-                                <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
-                            </DataGrid.InputBindings>
+                                <DataGrid.ItemContainerStyle>
+                                    <Style TargetType="DataGridRow">
+                                        <!-- Enable focus and tab navigation for row -->
+                                        <Setter Property="IsTabStop" Value="True"/>
+                                        <Setter Property="Focusable" Value="True"/>
+                                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
 
-                            <DataGrid.ItemContainerStyle>
-                                <Style TargetType="DataGridRow">
-                                    <!-- Enable focus and tab navigation for row -->
-                                    <Setter Property="IsTabStop" Value="True"/>
-                                    <Setter Property="Focusable" Value="True"/>
-                                    <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                        <!-- Click handlers -->
+                                        <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
+                                        <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
+                                        <EventSetter Event="GotFocus" Handler="DataGridRow_GotFocus"/>
 
-                                    <!-- Click handlers -->
-                                    <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
-                                    <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
-                                    <EventSetter Event="GotFocus" Handler="DataGridRow_GotFocus"/>
+                                        <Style.Triggers>
+                                            <!-- Selection box -->
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="BorderBrush" Value="LawnGreen" />
+                                                <Setter Property="BorderThickness" Value="0 1" />
+                                                <Setter Property="Background" Value="#454545"></Setter>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGrid.ItemContainerStyle>
 
-                                    <Style.Triggers>
-                                        <!-- Selection box -->
-                                        <Trigger Property="IsSelected" Value="True">
-                                            <Setter Property="BorderBrush" Value="LawnGreen" />
-                                            <Setter Property="BorderThickness" Value="0 1" />
-                                            <Setter Property="Background" Value="#454545"></Setter>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGrid.ItemContainerStyle>
+                                <DataGrid.Columns >
+                                    <DataGridTemplateColumn Header="Hostname" Width="500" MinWidth="200" MaxWidth="700">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate DataType="vm:ServerViewModel">
+                                                <ItemsControl                            
+                                                        Focusable="False"
+                                                        IsTabStop="False" 
+                                                        IsHitTestVisible="False" 
+                                                        ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
+                                                        FlowDirection="LeftToRight">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel Orientation="Horizontal"/>
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                </ItemsControl>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
 
-                            <DataGrid.Columns >
-                                <DataGridTemplateColumn Header="Hostname" Width="500" MinWidth="200" MaxWidth="700">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate DataType="vm:ServerViewModel">
-                                            <ItemsControl                            
-                                                    Focusable="False"
-                                                    IsTabStop="False" 
-                                                    IsHitTestVisible="False" 
-                                                    ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
-                                                    FlowDirection="LeftToRight">
-                                                <ItemsControl.ItemsPanel>
-                                                    <ItemsPanelTemplate>
-                                                        <StackPanel Orientation="Horizontal"/>
-                                                    </ItemsPanelTemplate>
-                                                </ItemsControl.ItemsPanel>
-                                            </ItemsControl>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" MinWidth="100" MaxWidth="200"/>
+                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False"/>
+                                    <DataGridTextColumn Header="Players" 
+                                                        SortMemberPath="ClientNum"
+                                                        Binding="{Binding Occupation}"
+                                                        CanUserResize="False">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
 
-                                <DataGridTextColumn Header="Map" Binding="{Binding Map}" MinWidth="100" MaxWidth="200"/>
-                                <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False"/>
-                                <DataGridTextColumn Header="Players" 
-                                                    SortMemberPath="ClientNum"
-                                                    Binding="{Binding Occupation}"
-                                                    CanUserResize="False">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                    <!-- Updated Favorite Column with Clickable Feature -->
+                                    <DataGridTemplateColumn Header="Favourite" CanUserResize="False">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
+                                                        Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        CommandParameter="{Binding}"
+                                                        HorizontalAlignment="Center" 
+                                                        VerticalAlignment="Center"
+                                                        FontSize="16"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Cursor="Hand"/>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
 
-                                <!-- Updated Favorite Column with Clickable Feature -->
-                                <DataGridTemplateColumn Header="Favourite" CanUserResize="False">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
-                                                    Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                    CommandParameter="{Binding}"
-                                                    HorizontalAlignment="Center" 
-                                                    VerticalAlignment="Center"
-                                                    FontSize="16"
-                                                    Background="Transparent"
-                                                    BorderThickness="0"
-                                                    Cursor="Hand"/>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-
-                                <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="HorizontalAlignment" Value="Right" />
-                                            <Setter Property="FontFamily" Value="Consolas" />
-                                            <Setter Property="FlowDirection" Value="RightToLeft" />
-                                            <Setter Property="Foreground" Value="{Binding Ping, Converter={StaticResource PingColorConverter}}" />
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
-                            </DataGrid.Columns>
-                        </local:CustomDataGrid>
-                    </DataTemplate>
-                </TabControl.ContentTemplate>
-            </TabControl>
-
-            <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
-                <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
-            </StatusBar>
-        </Grid>
-    </Border>
+                                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                                <Setter Property="FontFamily" Value="Consolas" />
+                                                <Setter Property="FlowDirection" Value="RightToLeft" />
+                                                <Setter Property="Foreground" Value="{Binding Ping, Converter={StaticResource PingColorConverter}}" />
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
+                                </DataGrid.Columns>
+                            </local:CustomDataGrid>
+                        </DataTemplate>
+                    </TabControl.ContentTemplate>
+                </TabControl>
+                <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
+                    <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
+                </StatusBar>
+            </Grid>
+        </Border>
+    </Grid>
 </Window>

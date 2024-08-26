@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace H2MLauncher.Core.ViewModels
+namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerViewModel : ObservableObject
     {
