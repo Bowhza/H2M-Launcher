@@ -37,7 +37,7 @@ public partial class GameStateViewModel : ObservableObject
             else
             {
                 IsGameRunning = true;
-                DisplayText = $"Game detected ({value.Process.ProcessName}, {value.Process.Modules} {value.Process.Id})";
+                DisplayText = $"Game detected ('{value.Process.ProcessName}' {value.Version.FileVersion}, PID: {value.Process.Id})";
             }
         }
     }
