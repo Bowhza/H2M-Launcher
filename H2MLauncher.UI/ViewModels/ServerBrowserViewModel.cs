@@ -18,6 +18,7 @@ using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.UI.ViewModels;
 
@@ -60,7 +61,7 @@ public partial class ServerBrowserViewModel : ObservableObject
     public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
 
     [ObservableProperty]
-    private ServerFilterViewModel _advancedServerFilter = new();
+    private ServerFilterViewModel _advancedServerFilter;
 
     public event Action? ServerFilterChanged;
 
@@ -86,7 +87,8 @@ public partial class ServerBrowserViewModel : ObservableObject
         ISaveFileService saveFileService,
         IErrorHandlingService errorHandlingService,
         DialogService dialogService,
-        IWritableOptions<H2MLauncherSettings> h2mLauncherOptions)
+        IWritableOptions<H2MLauncherSettings> h2mLauncherOptions,
+        IOptions<ResourceSettings> resoureceOptions)
     {
         _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
         _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -99,6 +101,9 @@ public partial class ServerBrowserViewModel : ObservableObject
         _dialogService = dialogService;
         ArgumentNullException.ThrowIfNull(h2mLauncherOptions);
         _h2MLauncherOptions = h2mLauncherOptions;
+        ArgumentNullException.ThrowIfNull(resoureceOptions);
+
+        _advancedServerFilter = new(resoureceOptions.Value);
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);

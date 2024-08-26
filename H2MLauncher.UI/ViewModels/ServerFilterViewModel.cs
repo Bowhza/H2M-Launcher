@@ -1,17 +1,19 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.ObjectModel;
 using System.Windows.Input;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels
 {
+    public class MapPackItem : IW4MMapPack
+    {
+        public bool IsSelected { get; set; }
+    }
+
     public partial class ServerFilterViewModel : DialogViewModelBase
     {
         [ObservableProperty]
@@ -41,13 +43,18 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private string _filterText = "";
 
+        [ObservableProperty]
+        private Dictionary<string, object> _mapPacks = [];
+
+        //public string SelectedMapPacks => $"{MapPacks.Select(x => x.IsSelected).Count()}/{MapPacks.Count}";
+
         public ICommand ApplyCommand { get; set; }
 
         public ICommand ResetCommand { get; set; }
 
-        public ServerFilterViewModel()
+        public ServerFilterViewModel(ResourceSettings resourceSettings)
         {
-            ApplyCommand = new RelayCommand(() => CloseCommand.Execute(true), () => CloseCommand.CanExecute(true));
+            ApplyCommand = new RelayCommand(() => base.CloseCommand.Execute(true), () => base.CloseCommand.CanExecute(true));
             ResetCommand = new RelayCommand(() =>
             {
                 ShowEmpty = true;
@@ -58,6 +65,12 @@ namespace H2MLauncher.UI.ViewModels
                 MaxPlayers = 32;
                 MaxSlots = 32;
             });
+
+            MapPacks = resourceSettings.MapPacks
+                .Select(mapPack => new KeyValuePair<string, object>(
+                    mapPack.Name, 
+                    new MapPackItem() { Name = mapPack.Name, Maps = mapPack.Maps }))
+                .ToDictionary();
         }
 
         private bool ApplyTextFilter(ServerViewModel server)
