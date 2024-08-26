@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Data;
 using System.Windows.Input;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -9,11 +10,6 @@ using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels
 {
-    public class MapPackItem : IW4MMapPack
-    {
-        public bool IsSelected { get; set; }
-    }
-
     public partial class ServerFilterViewModel : DialogViewModelBase
     {
         [ObservableProperty]
@@ -44,9 +40,9 @@ namespace H2MLauncher.UI.ViewModels
         private string _filterText = "";
 
         [ObservableProperty]
-        private Dictionary<string, object> _mapPacks = [];
+        private ObservableCollection<MapPackItem> _mapPacks = [];
 
-        //public string SelectedMapPacks => $"{MapPacks.Select(x => x.IsSelected).Count()}/{MapPacks.Count}";
+        public string SelectedMapPacks => $"{MapPacks.Where(x => x.IsSelected).Count()}/{MapPacks.Count}";
 
         public ICommand ApplyCommand { get; set; }
 
@@ -54,7 +50,7 @@ namespace H2MLauncher.UI.ViewModels
 
         public ServerFilterViewModel(ResourceSettings resourceSettings)
         {
-            ApplyCommand = new RelayCommand(() => base.CloseCommand.Execute(true), () => base.CloseCommand.CanExecute(true));
+            ApplyCommand = new RelayCommand(() => CloseCommand.Execute(true), () => CloseCommand.CanExecute(true));
             ResetCommand = new RelayCommand(() =>
             {
                 ShowEmpty = true;
@@ -66,11 +62,23 @@ namespace H2MLauncher.UI.ViewModels
                 MaxSlots = 32;
             });
 
-            MapPacks = resourceSettings.MapPacks
-                .Select(mapPack => new KeyValuePair<string, object>(
-                    mapPack.Name, 
-                    new MapPackItem() { Name = mapPack.Name, Maps = mapPack.Maps }))
-                .ToDictionary();
+            MapPacks = [..resourceSettings.MapPacks
+                .Select(mapPack =>
+                {
+                    var item = new MapPackItem() { Name = mapPack.Name };
+
+                    item.PropertyChanged += MaptPackItem_PropertyChanged;
+
+                    return item;
+                })];
+        }
+
+        private void MaptPackItem_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(MapPackItem.IsSelected))
+            {
+                OnPropertyChanged(nameof(SelectedMapPacks));
+            }
         }
 
         private bool ApplyTextFilter(ServerViewModel server)

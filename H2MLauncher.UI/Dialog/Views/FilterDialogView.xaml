@@ -71,13 +71,19 @@
         </DockPanel>
 
         <TextBlock Text="Map Packs:" Grid.Row="6" Margin="15,10" HorizontalAlignment="Right"/>
-        <DockPanel Grid.Row="6" Grid.Column="1" Margin="0,0,0,0">
-            <controls:MultiSelectDropDownControl ItemsSource="{Binding MapPacks}" Text="ssdsdd" />
-            <!--<TextBlock Text="{Binding SelectedMapPacks, UpdateSourceTrigger=PropertyChanged}" 
-                       Background="Transparent" IsHitTestVisible="False" 
-                       Margin="-145,0,0,0" VerticalAlignment="Center"  />-->
-        </DockPanel>
 
+        <controls:MagicNoSelectDropDownControl ItemsSource="{Binding MapPacks}" Text="{Binding  SelectedMapPacks}" 
+                                             Height="22" Grid.Row="6" Grid.Column="1" Margin="0,0,0,0">
+            <controls:MagicNoSelectDropDownControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox 
+                            Foreground="White"
+                            Content="{Binding Path=Key}"
+                            IsChecked="{Binding Path=Value.IsSelected, Mode=TwoWay}"/>
+                    </DataTemplate>
+                </controls:MagicNoSelectDropDownControl.ItemTemplate>
+        </controls:MagicNoSelectDropDownControl>
+        
         <TextBlock Text="Max Ping:" Grid.Row="7" Margin="15,10" HorizontalAlignment="Right"/>
         <DockPanel Grid.Row="7" Grid.Column="1">
             <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" Margin="0,0,10,0" VerticalAlignment="Center" 

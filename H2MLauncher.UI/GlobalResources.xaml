@@ -29,7 +29,7 @@
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
-                        </Trigger>                        
+                        </Trigger>
                         <Trigger Property="IsFocused" Value="False">
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
