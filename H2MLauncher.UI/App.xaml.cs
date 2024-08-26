@@ -7,8 +7,8 @@ using Awesome.Net.WritableOptions.Extensions;
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
-using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.ViewModels;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -78,11 +78,6 @@ namespace H2MLauncher.UI
 
             services.AddLogging(builder => builder.AddSerilog());
 
-            services.AddSingleton<DialogViewModel>((s) =>
-            {
-                return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
-            });
-
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
 
@@ -94,7 +89,7 @@ namespace H2MLauncher.UI
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();
-
+            
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddTransient<ServerBrowserViewModel>();

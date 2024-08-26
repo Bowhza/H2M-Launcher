@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 
-using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
@@ -16,21 +16,24 @@ namespace H2MLauncher.UI
         {
             InitializeComponent();
             DataContext = _viewModel = serverBrowserViewModel;
+            
+            var collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
+            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
+            collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
 
-            foreach (var tab in serverBrowserViewModel.ServerTabs)
-            {
-                InitializeServerFilterAndSorting(tab);
-            }
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
         }
 
-        void InitializeServerFilterAndSorting(ServerTabViewModel tab)
+        private void ServerBrowserViewModel_ServerFilterChanged()
         {
-            ICollectionView collectionView = CollectionViewSource.GetDefaultView(tab.Servers);
-            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.ClientNum), ListSortDirection.Descending));
-            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
+            var collectionView = CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers);
+            if (collectionView is not null)
+            {
+                collectionView.Refresh();
+            }
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)

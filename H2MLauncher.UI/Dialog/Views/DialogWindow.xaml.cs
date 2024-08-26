@@ -1,6 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Interop;
+
+using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI
 {

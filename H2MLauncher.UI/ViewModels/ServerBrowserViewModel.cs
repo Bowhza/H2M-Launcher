@@ -1,6 +1,8 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Text.Json;
 
 using Awesome.Net.WritableOptions;
@@ -8,13 +10,16 @@ using Awesome.Net.WritableOptions;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Dialog.Views;
 
 using Microsoft.Extensions.Logging;
 
-namespace H2MLauncher.Core.ViewModels;
+namespace H2MLauncher.UI.ViewModels;
 
 public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
@@ -27,6 +32,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly ILogger<ServerBrowserViewModel> _logger;
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
+    private readonly DialogService _dialogService;
     private CancellationTokenSource _loadCancellation = new();
 
     [ObservableProperty]
@@ -56,6 +62,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private GameStateViewModel _gameState = new();
 
+    [ObservableProperty]
+    private ServerFilterViewModel _advancedServerFilter = new();
+
+    public event Action? ServerFilterChanged;
+
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -64,6 +75,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand UpdateLauncherCommand { get; }
     public IRelayCommand OpenReleaseNotesCommand { get; }
     public IRelayCommand RestartCommand { get; }
+    public IRelayCommand ShowServerFilterCommand { get; }
+
+    public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
+
     public ServerBrowserViewModel(
         RaidMaxService raidMaxService,
         H2MCommunicationService h2MCommunicationService,
@@ -73,6 +88,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ILogger<ServerBrowserViewModel> logger,
         ISaveFileService saveFileService,
         IErrorHandlingService errorHandlingService,
+        DialogService dialogService,
         IWritableOptions<H2MLauncherSettings> h2mLauncherOptions)
     {
         _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
@@ -83,6 +99,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
         _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+        _dialogService = dialogService;
         ArgumentNullException.ThrowIfNull(h2mLauncherOptions);
         _h2MLauncherOptions = h2mLauncherOptions;
 
@@ -91,9 +108,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
         CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
         SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-        UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "" && !UpdateFinished);
+        UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
         OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
         RestartCommand = new RelayCommand(DoRestartCommand);
+        ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
 
         if (TryAddNewTab("All Servers", out var allServersTab))
         {
@@ -128,6 +146,25 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         GameState.DetectedGame = null;
     }
+
+    private void ShowServerFilter()
+    {
+        if (_dialogService.OpenDialog<FilterDialogView>(AdvancedServerFilter) == true)
+        {
+            OnPropertyChanged(nameof(Servers));
+            ServerFilterChanged?.Invoke();
+            StatusText = "Server filter applied.";
+        }
+    }
+
+    private void OnServerFilterClosed(object? sender, RequestCloseEventArgs e)
+    {
+        if (e.DialogResult == true)
+        {
+            StatusText = "Server filter applied.";
+        }
+    }
+
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {
@@ -265,12 +302,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public bool ServerFilter(ServerViewModel server)
     {
-        if (string.IsNullOrEmpty(Filter))
-            return true;
-
-        string lowerCaseFilter = Filter.ToLower();
-
-        return server.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase);
+        return AdvancedServerFilter.ApplyFilter(server);
     }
 
     private async Task SaveServersAsync()
@@ -288,12 +320,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             // Store the server list into the corresponding directory
             _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
-            string fileName = "./players2/favourites.json";
-            string directoryPath = "./players2";
+            string directoryPath = "players2";
             if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
             {
                 directoryPath = Path.Combine(_h2MLauncherOptions.Value.MWRLocation, directoryPath);
             }
+
+            string fileName;
 
             if (!Directory.Exists(directoryPath))
             {
@@ -301,6 +334,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
                 if (string.IsNullOrEmpty(fileName))
                     return;
+            }
+            else
+            {
+                fileName = Path.Combine(directoryPath, "favourites.json");
             }
 
             await File.WriteAllTextAsync(fileName, jsonString);

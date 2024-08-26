@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
