@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 
@@ -11,12 +13,11 @@ using CommunityToolkit.Mvvm.Input;
 using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
-using H2MLauncher.Core.Settings;
 
 using Microsoft.Extensions.Logging;
-using System.Diagnostics.CodeAnalysis;
 
 namespace H2MLauncher.UI.ViewModels;
 
@@ -58,96 +59,96 @@ public partial class ServerBrowserViewModel : ObservableObject
     private ServerTabViewModel FavouritesTab { get; set; }
     public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
 
-        [ObservableProperty]
-        private ServerFilterViewModel _advancedServerFilter = new();
+    [ObservableProperty]
+    private ServerFilterViewModel _advancedServerFilter = new();
 
 
-        public event Action? ServerFilterChanged;
+    public event Action? ServerFilterChanged;
 
-        public IAsyncRelayCommand RefreshServersCommand { get; }
-        public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
-        public IRelayCommand LaunchH2MCommand { get; }
-        public IRelayCommand CopyToClipBoardCommand { get; }
-        public IRelayCommand SaveServersCommand { get; }
-        public IAsyncRelayCommand UpdateLauncherCommand { get; }
-        public IRelayCommand OpenReleaseNotesCommand { get; }
-        public IRelayCommand RestartCommand { get; }
-        public IRelayCommand ShowServerFilterCommand { get; }
+    public IAsyncRelayCommand RefreshServersCommand { get; }
+    public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
+    public IRelayCommand LaunchH2MCommand { get; }
+    public IRelayCommand CopyToClipBoardCommand { get; }
+    public IRelayCommand SaveServersCommand { get; }
+    public IAsyncRelayCommand UpdateLauncherCommand { get; }
+    public IRelayCommand OpenReleaseNotesCommand { get; }
+    public IRelayCommand RestartCommand { get; }
+    public IRelayCommand ShowServerFilterCommand { get; }
 
-        public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
+    public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
-        public ServerBrowserViewModel(
-            RaidMaxService raidMaxService,
-            H2MCommunicationService h2MCommunicationService,
-            GameServerCommunicationService gameServerCommunicationService,
-            H2MLauncherService h2MLauncherService,
-            IClipBoardService clipBoardService,
-            ILogger<ServerBrowserViewModel> logger,
-            ISaveFileService saveFileService,
-            IErrorHandlingService errorHandlingService,
-            DialogService dialogService,
-            IWritableOptions<H2MLauncherSettings> h2mLauncherOptions)
+    public ServerBrowserViewModel(
+        RaidMaxService raidMaxService,
+        H2MCommunicationService h2MCommunicationService,
+        GameServerCommunicationService gameServerCommunicationService,
+        H2MLauncherService h2MLauncherService,
+        IClipBoardService clipBoardService,
+        ILogger<ServerBrowserViewModel> logger,
+        ISaveFileService saveFileService,
+        IErrorHandlingService errorHandlingService,
+        DialogService dialogService,
+        IWritableOptions<H2MLauncherSettings> h2mLauncherOptions)
+    {
+        _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
+        _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
+        _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
+        _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
+        _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
+        _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+        _dialogService = dialogService;
+        ArgumentNullException.ThrowIfNull(h2mLauncherOptions);
+        _h2MLauncherOptions = h2mLauncherOptions;
+
+        RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
+        LaunchH2MCommand = new RelayCommand(LaunchH2M);
+        CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
+        CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
+        SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
+        UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
+        OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
+        RestartCommand = new RelayCommand(DoRestartCommand);
+        ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
+
+        if (TryAddNewTab("All Servers", out var allServersTab))
         {
-            _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
-            _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
-            _h2MCommunicationService = h2MCommunicationService ?? throw new ArgumentNullException(nameof(h2MCommunicationService));
-            _h2MLauncherService = h2MLauncherService ?? throw new ArgumentNullException(nameof(h2MLauncherService));
-            _clipBoardService = clipBoardService ?? throw new ArgumentNullException(nameof(clipBoardService));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _saveFileService = saveFileService ?? throw new ArgumentNullException(nameof(saveFileService));
-            _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
-            _dialogService = dialogService;
-            ArgumentNullException.ThrowIfNull(h2mLauncherOptions);
-            _h2MLauncherOptions = h2mLauncherOptions;
-
-            RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
-            LaunchH2MCommand = new RelayCommand(LaunchH2M);
-            CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
-            CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
-            SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
-            UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
-            OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
-            RestartCommand = new RelayCommand(DoRestartCommand);
-            ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
-
-            if (TryAddNewTab("All Servers", out var allServersTab))
-            {
-              AllServersTab = allServersTab;
-            }
-            else
-            {
-              throw new Exception("Could not add all servers tab");
-            }
-
-            if (TryAddNewTab("Favourites", out var favouritesTab))
-            {
-              FavouritesTab = favouritesTab;
-            }
-            else
-            {
-              throw new Exception("Could not add favourites tab");
-            }
-
-            SelectedTab = ServerTabs.First();
-  }
-
-        private void ShowServerFilter()
+            AllServersTab = allServersTab;
+        }
+        else
         {
-            if (_dialogService.OpenDialog<FilterDialogView>(AdvancedServerFilter) == true)
-            {
-                OnPropertyChanged(nameof(Servers));
-                ServerFilterChanged?.Invoke();
-                StatusText = "Server filter applied.";
-            }
+            throw new Exception("Could not add all servers tab");
         }
 
-        private void OnServerFilterClosed(object? sender, RequestCloseEventArgs e)
+        if (TryAddNewTab("Favourites", out var favouritesTab))
         {
-            if (e.DialogResult == true)
-            {
-                StatusText = "Server filter applied.";
-            }
+            FavouritesTab = favouritesTab;
         }
+        else
+        {
+            throw new Exception("Could not add favourites tab");
+        }
+
+        SelectedTab = ServerTabs.First();
+    }
+
+    private void ShowServerFilter()
+    {
+        if (_dialogService.OpenDialog<FilterDialogView>(AdvancedServerFilter) == true)
+        {
+            OnPropertyChanged(nameof(Servers));
+            ServerFilterChanged?.Invoke();
+            StatusText = "Server filter applied.";
+        }
+    }
+
+    private void OnServerFilterClosed(object? sender, RequestCloseEventArgs e)
+    {
+        if (e.DialogResult == true)
+        {
+            StatusText = "Server filter applied.";
+        }
+    }
 
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
@@ -284,10 +285,10 @@ public partial class ServerBrowserViewModel : ObservableObject
         StatusText = $"Copied to clipboard";
     }
 
-        public bool ServerFilter(ServerViewModel server)
-        {
-            return AdvancedServerFilter.ApplyFilter(server);
-        }
+    public bool ServerFilter(ServerViewModel server)
+    {
+        return AdvancedServerFilter.ApplyFilter(server);
+    }
 
     private async Task SaveServersAsync()
     {
@@ -304,12 +305,13 @@ public partial class ServerBrowserViewModel : ObservableObject
             // Store the server list into the corresponding directory
             _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
-            string fileName = "./players2/favourites.json";
-            string directoryPath = "./players2";
+            string directoryPath = "players2";
             if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
             {
                 directoryPath = Path.Combine(_h2MLauncherOptions.Value.MWRLocation, directoryPath);
             }
+
+            string fileName;
 
             if (!Directory.Exists(directoryPath))
             {
@@ -317,6 +319,10 @@ public partial class ServerBrowserViewModel : ObservableObject
                 fileName = await _saveFileService.SaveFileAs("favourites.json", "JSON file (*.json)|*.json") ?? "";
                 if (string.IsNullOrEmpty(fileName))
                     return;
+            }
+            else
+            {
+                fileName = Path.Combine(directoryPath, "favourites.json");
             }
 
             await File.WriteAllTextAsync(fileName, jsonString);
