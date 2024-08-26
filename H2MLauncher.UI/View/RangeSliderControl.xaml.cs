@@ -5,9 +5,6 @@ using System.Windows.Media;
 
 namespace H2MLauncher.UI.View.Controls;
 
-/// <summary>
-/// Interaktionslogik für RangeSliderControl.xaml
-/// </summary>
 public partial class RangeSliderControl : UserControl
 {
     public RangeSliderControl()

@@ -73,7 +73,6 @@ namespace H2MLauncher.UI.ViewModels
             {
                 return false;
             }
-
             return true;
         }
 

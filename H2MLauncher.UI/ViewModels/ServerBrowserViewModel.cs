@@ -62,7 +62,6 @@ public partial class ServerBrowserViewModel : ObservableObject
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter = new();
 
-
     public event Action? ServerFilterChanged;
 
     public IAsyncRelayCommand RefreshServersCommand { get; }
