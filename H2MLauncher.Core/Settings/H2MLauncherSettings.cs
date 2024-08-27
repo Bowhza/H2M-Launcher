@@ -2,12 +2,14 @@
 
 namespace H2MLauncher.Core.Settings
 {
-    public class H2MLauncherSettings
+    public record H2MLauncherSettings
     {
-        public string MWRLocation { get; set; } = string.Empty;
+        public string MWRLocation { get; init; } = string.Empty;
 
-        public string IW4MMasterServerUrl { get; set; } = string.Empty;
+        public string IW4MMasterServerUrl { get; init; } = string.Empty;
 
-        public List<UserFavourite> FavouriteServers { get; set; } = [];
+        public List<UserFavourite> FavouriteServers { get; init; } = [];
+
+        public ServerFilterSettings ServerFilter { get; init; } = new();
     }
 }

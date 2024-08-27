@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Text.Json.Serialization;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -10,6 +12,7 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private string _name = "";
 
+        [JsonIgnore]
         public T Model { get; }
 
         public SelectableItem(T model) => Model = model;

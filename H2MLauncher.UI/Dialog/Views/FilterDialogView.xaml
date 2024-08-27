@@ -59,7 +59,7 @@
             <TextBlock Text="{Binding MaxPlayers}" Width="13" Margin="10,0,0,0" DockPanel.Dock="Right" VerticalAlignment="Center"/>
             <controls:RangeSliderControl LowerValue="{Binding MinPlayers, Mode=TwoWay}" 
                                          UpperValue="{Binding MaxPlayers, Mode=TwoWay}" 
-                                         Minimum="1" 
+                                         Minimum="0" 
                                          Maximum="32"/>
         </DockPanel>
 

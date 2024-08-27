@@ -13,26 +13,28 @@ namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerFilterViewModel : DialogViewModelBase
     {
-        [ObservableProperty]
-        private bool _showEmpty = true;
+        private readonly ResourceSettings _resourceSettings;
 
         [ObservableProperty]
-        private bool _showFull = true;
+        private bool _showEmpty;
 
         [ObservableProperty]
-        private bool _showPrivate = true;
+        private bool _showFull;
 
         [ObservableProperty]
-        private int _maxPing = 999;
+        private bool _showPrivate;
 
         [ObservableProperty]
-        private int _minPlayers = 1;
+        private int _maxPing;
 
         [ObservableProperty]
-        private int _maxPlayers = 32;
+        private int _minPlayers;
 
         [ObservableProperty]
-        private int _maxSlots = 32;
+        private int _maxPlayers;
+
+        [ObservableProperty]
+        private int _maxSlots;
 
         [ObservableProperty]
         private int[] _maxSlotsItems = [6, 12, 18, 24, 32];
@@ -50,34 +52,39 @@ namespace H2MLauncher.UI.ViewModels
         public string SelectedGameModes => $"{GameModes.Where(x => x.IsSelected).Count()}/{GameModes.Count}";
 
         public ICommand ApplyCommand { get; set; }
-
         public ICommand ResetCommand { get; set; }
 
-        public ServerFilterViewModel(ResourceSettings resourceSettings)
+        public ServerFilterViewModel(ResourceSettings resourceSettings, ServerFilterSettings defaultSettings)
         {
             ApplyCommand = new RelayCommand(() => CloseCommand.Execute(true), () => CloseCommand.CanExecute(true));
             ResetCommand = new RelayCommand(() =>
             {
-                ShowEmpty = true;
-                ShowFull = true;
-                ShowPrivate = true;
-                MaxPing = 999;
-                MinPlayers = 1;
-                MaxPlayers = 32;
-                MaxSlots = 32;
-                foreach (SelectableItem<IW4MMapPack> item in MapPacks)
-                    item.IsSelected = true;
-                foreach (SelectableItem<IW4MObjectMap> item in GameModes)
-                    item.IsSelected = true;
+                // reset to default
+                ResetViewModel(defaultSettings);
             });
 
-            MapPacks = [..resourceSettings.MapPacks
+            _resourceSettings = resourceSettings;
+        }
+
+        public void ResetViewModel(ServerFilterSettings settings)
+        {
+            ShowEmpty = settings.ShowEmpty;
+            ShowFull = settings.ShowFull;
+            ShowPrivate = settings.ShowPrivate;
+            MaxPing = settings.MaxPing;
+            MinPlayers = settings.MinPlayers;
+            MaxPlayers = settings.MaxPlayers;
+            MaxSlots = settings.MaxSlots;
+
+            MapPacks.Clear();
+            MapPacks = [.._resourceSettings.MapPacks
                 .Select(mapPack =>
                 {
                     SelectableItem<IW4MMapPack> item = new(mapPack)
                     {
                         Name = mapPack.Name,
-                        IsSelected = true
+                        IsSelected = settings.SelectedMapPacks?.Any(id =>
+                            mapPack.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) ?? true
                     };
 
                     item.PropertyChanged += MapPackItem_PropertyChanged;
@@ -85,18 +92,21 @@ namespace H2MLauncher.UI.ViewModels
                     return item;
                 })];
 
-            MapPacks.Add(new SelectableItem<IW4MMapPack>(new IW4MMapPack() { Name = "Unknown", Maps = [] })
+            MapPacks.Add(new SelectableItem<IW4MMapPack>(new IW4MMapPack() { Name = "Unknown", Id = "unknown", Maps = [] })
             {
                 Name = "Unknown",
-                IsSelected = true
+                IsSelected = settings.SelectedMapPacks?.Any(id =>
+                    id.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true
             });
 
-            GameModes = [..resourceSettings.GameTypes
+            GameModes.Clear();
+            GameModes = [.._resourceSettings.GameTypes
                 .Select(gameMode => {
                     SelectableItem<IW4MObjectMap> item = new(gameMode)
                     {
                         Name = gameMode.Alias,
-                        IsSelected = true
+                        IsSelected = settings.SelectedGameModes?.Any(name =>
+                            gameMode.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) ?? true
                     };
 
                     item.PropertyChanged += GameModeItem_PropertyChanged;
@@ -107,7 +117,8 @@ namespace H2MLauncher.UI.ViewModels
             GameModes.Add(new SelectableItem<IW4MObjectMap>(new IW4MObjectMap("Unknown", "Unknown"))
             {
                 Name = "Unknown",
-                IsSelected = true
+                IsSelected = settings.SelectedGameModes?.Any(gameMode =>
+                    gameMode.Equals("Unknown", StringComparison.OrdinalIgnoreCase)) ?? true
             });
         }
 
@@ -210,6 +221,22 @@ namespace H2MLauncher.UI.ViewModels
             }
 
             return true;
+        }
+
+        public ServerFilterSettings ToSettings()
+        {
+            return new()
+            {
+                ShowEmpty = ShowEmpty,
+                ShowFull = ShowFull,
+                ShowPrivate = ShowPrivate,
+                MaxPing = MaxPing,
+                MinPlayers = MinPlayers,
+                MaxPlayers = MaxPlayers,
+                MaxSlots = MaxSlots,
+                SelectedGameModes = GameModes.Where(item => item.IsSelected).Select(item => item.Model.Name).ToList(),
+                SelectedMapPacks = MapPacks.Where(item => item.IsSelected).Select(item => item.Model.Id).ToList(),
+            };
         }
     }
 }

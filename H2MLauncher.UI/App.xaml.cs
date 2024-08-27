@@ -1,11 +1,8 @@
-﻿using System.CodeDom;
-using System.IO;
+﻿using System.IO;
 using System.Reflection;
-using System.Security.Policy;
 using System.Windows;
 
-using Awesome.Net.WritableOptions;
-using Awesome.Net.WritableOptions.Extensions;
+using Nogic.WritableOptions;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
@@ -15,7 +12,6 @@ using H2MLauncher.UI.ViewModels;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 using Serilog;
 
@@ -46,8 +42,13 @@ namespace H2MLauncher.UI
                 // make sure a valid master server url is set
                 if (string.IsNullOrEmpty(settings.IW4MMasterServerUrl))
                 {
-                    settings.IW4MMasterServerUrl = _defaultSettings.IW4MMasterServerUrl;
+                    return settings with
+                    {
+                        IW4MMasterServerUrl = _defaultSettings.IW4MMasterServerUrl
+                    };
                 }
+
+                return settings;
             });
 
             base.OnStartup(e);
@@ -68,11 +69,16 @@ namespace H2MLauncher.UI
                 H2MLauncherService.CurrentVersion);
         }
 
-        private static void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
+        private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
-            services.ConfigureWritableOptions<H2MLauncherSettings>(config, "H2MLauncher", Constants.LauncherSettingsFile);
+            services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
+                section: config.GetSection(Constants.LauncherSettingsSection),
+                directoryPath: Path.GetDirectoryName(Constants.LauncherSettingsFilePath) ?? Constants.LocalDir,
+                file: Constants.LauncherSettingsFileName);
 
             services.Configure<ResourceSettings>(config.GetSection(Constants.ResourceSection));
+
+            services.AddKeyedSingleton(Constants.DefaultSettingsKey, _defaultSettings);
 
             services.AddLogging(builder => builder.AddSerilog());
 
@@ -113,7 +119,7 @@ namespace H2MLauncher.UI
                 .AddConfiguration(defaultConfiguration);
 
             H2MLauncherSettings? defaultH2MLauncherSettings = defaultConfiguration.GetRequiredSection(Constants.LauncherSettingsSection)
-                                                                                    .Get<H2MLauncherSettings>();
+                                                                                  .Get<H2MLauncherSettings>();
             if (defaultH2MLauncherSettings is null)
             {
                 // should never happen, except the appsettings.json are not included properly.
@@ -124,15 +130,15 @@ namespace H2MLauncher.UI
 
             _defaultSettings = defaultH2MLauncherSettings;
 
-            string customSettings = Constants.LauncherSettingsFile;
-            if (!File.Exists(customSettings))
-            {
-                JsonFileHelper.AddOrUpdateSection(customSettings, Constants.LauncherSettingsSection, defaultH2MLauncherSettings);
-            }
+            string customSettings = Constants.LauncherSettingsFilePath;
+            //if (!File.Exists(customSettings))
+            //{
+            //    JsonFileHelper.AddOrUpdateSection(customSettings, Constants.LauncherSettingsSection, defaultH2MLauncherSettings);
+            //}
 
             coolerBuilder
-                .AddJsonFile(customSettings)
-                .AddJsonFile("appsettings.local.json", optional: true);
+                .AddJsonFile(customSettings, optional: false, reloadOnChange: true)
+                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
             return coolerBuilder.Build();
         }

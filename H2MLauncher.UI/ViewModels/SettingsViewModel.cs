@@ -1,8 +1,6 @@
 ﻿using System.IO;
 using System.Windows.Input;
 
-using Awesome.Net.WritableOptions;
-
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
@@ -10,6 +8,8 @@ using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Win32;
+
+using Nogic.WritableOptions;
 
 namespace H2MLauncher.UI.ViewModels;
 
@@ -32,10 +32,10 @@ public partial class SettingsViewModel : DialogViewModelBase
 
         ApplyCommand = new RelayCommand(() =>
         {
-            options.Update(settings =>
+            options.Update(options.CurrentValue with
             {
-                settings.IW4MMasterServerUrl = Iw4mMasterServerUrl;
-                settings.MWRLocation = MwrLocation;
+                IW4MMasterServerUrl = Iw4mMasterServerUrl,
+                MWRLocation = MwrLocation,
             }, true);
 
             CloseCommand.Execute(true);
