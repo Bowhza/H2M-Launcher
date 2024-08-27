@@ -35,6 +35,8 @@ public partial class ServerBrowserViewModel : ObservableObject
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly DialogService _dialogService;
     private CancellationTokenSource _loadCancellation = new();
+    private readonly Dictionary<string, string> _mapMap = [];
+    private readonly Dictionary<string, string> _gameTypeMap = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -133,6 +135,16 @@ public partial class ServerBrowserViewModel : ObservableObject
             throw new Exception("Could not add favourites tab");
         }
 
+        foreach (IW4MObjectMap oMap in resoureceOptions.Value.MapPacks.SelectMany(mappack => mappack.Maps))
+        {
+            _mapMap!.TryAdd(oMap.Name, oMap.Alias);
+        }
+
+        foreach (IW4MObjectMap oMap in resoureceOptions.Value.GameTypes)
+        {
+            _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
+        }
+
         SelectedTab = ServerTabs.First();
     }
 
@@ -153,7 +165,6 @@ public partial class ServerBrowserViewModel : ObservableObject
             StatusText = "Server filter applied.";
         }
     }
-
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {
@@ -243,7 +254,6 @@ public partial class ServerBrowserViewModel : ObservableObject
         // Remove from FavoriteServers collection
         FavouritesTab.Servers.Remove(server);
     }
-
 
     private void DoRestartCommand()
     {
@@ -373,7 +383,10 @@ public partial class ServerBrowserViewModel : ObservableObject
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
                 bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
-
+                
+                _mapMap.TryGetValue(gameServer.MapName, out string? mapDisplayName);
+                _gameTypeMap.TryGetValue(gameServer.GameType, out string? gameTypeDisplayName);
+                
                 ServerViewModel serverViewModel = new()
                 {
                     Id = server.Id,
@@ -384,7 +397,9 @@ public partial class ServerBrowserViewModel : ObservableObject
                     MaxClientNum = gameServer.MaxClients,
                     Game = server.Game,
                     GameType = gameServer.GameType,
+                    GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
                     Map = gameServer.MapName,
+                    MapDisplayName = mapDisplayName ?? gameServer.MapName,
                     Version = server.Version,
                     IsPrivate = gameServer.IsPrivate,
                     Ping = gameServer.Ping,

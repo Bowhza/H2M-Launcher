@@ -55,13 +55,8 @@
         <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
         <converters:PingColorConverter x:Key="PingColorConverter"/>
         <converters:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
-        <converters:MapConverter x:Key="MapConverter"/>
-        <converters:GameModeConverter x:Key="GameModeConverter"/>
-
         <local:PlayersSorter x:Key="PlayersSorter"/>
-        
-            <CollectionViewSource x:Key="MyCollectionViewSource" Source="{Binding SelectedTab.Servers}"/>
-        
+        <CollectionViewSource x:Key="MyCollectionViewSource" Source="{Binding SelectedTab.Servers}"/>
     </Window.Resources>
     <Window.InputBindings>
         <!-- Disable Shortcut Commands -->
@@ -217,8 +212,8 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTextColumn Header="Map" Binding="{Binding Map, Converter={StaticResource MapConverter}}" MinWidth="100" MaxWidth="200"/>
-                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType, Converter={StaticResource GameModeConverter}}" CanUserResize="False"/>
+                                    <DataGridTextColumn Header="Map" Binding="{Binding MapDisplayName}" MinWidth="100" MaxWidth="200"/>
+                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameTypeDisplayName}" CanUserResize="False"/>
                                     <DataGridTextColumn Header="Players" 
                                                         SortMemberPath="ClientNum"
                                                         Binding="{Binding Occupation}"
