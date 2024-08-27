@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using System.Windows.Data;
 
-namespace H2MLauncher.UI;
+namespace H2MLauncher.UI.Converters;
 
 public class EmptyItemConverter : IValueConverter
 {

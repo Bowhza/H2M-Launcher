@@ -1,24 +1,17 @@
 ﻿using System.Globalization;
 using System.Windows.Data;
-using System.Windows.Media;
 
 namespace H2MLauncher.UI.Converters;
 
-public class PingColorConverter : IValueConverter
+public class BooleanToStarConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        if (value is long ping)
+        if (value is bool isFavorite)
         {
-            return ping switch
-            {
-                < 50 => Brushes.LawnGreen,
-                < 80 => Brushes.Orange,
-                _ => Brushes.Red,
-            };
+            return isFavorite ? "★" : "☆";
         }
-
-        throw new ArgumentNullException(nameof(value));
+        return "☆";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
