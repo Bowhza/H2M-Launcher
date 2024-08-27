@@ -1,12 +1,22 @@
 ﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.ViewModels;
 
-public partial class ServerTabViewModel : ObservableObject
+public sealed partial class ServerTabViewModel : ServerTabViewModel<IServerViewModel>
 {
+    private ServerTabViewModel() : base(string.Empty, null)
+    {
+    }
+}
+
+public partial class ServerTabViewModel<T> : ObservableObject where T : IServerViewModel
+{
+    private readonly Action<IServerViewModel> _onServerJoin;
+
     [ObservableProperty]
     private string _tabName = "";
 
@@ -18,47 +28,69 @@ public partial class ServerTabViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
-    private ServerViewModel? _selectedServer;
+    private T? _selectedServer;
 
-    public ObservableCollection<ServerViewModel> Servers { get; } = [];
+    public ObservableCollection<T> Servers { get; } = [];
 
-    public required IRelayCommand<ServerViewModel> ToggleFavoriteCommand { get; init; }
+    public required IRelayCommand<IServerViewModel> ToggleFavouriteCommand { get; init; }
 
-    public IRelayCommand<ServerViewModel> JoinServerCommand { get; init; }
+    public IRelayCommand<IServerViewModel> JoinServerCommand { get; init; }
 
-    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin)
+    public ServerTabViewModel(string tabName, Action<IServerViewModel> onServerJoin)
     {
         TabName = tabName;
 
         Servers.CollectionChanged += OnServersCollectionChanged;
 
-        JoinServerCommand = new RelayCommand<ServerViewModel>((server) =>
+        _onServerJoin = onServerJoin;
+
+        JoinServerCommand = new RelayCommand<IServerViewModel>((server) =>
         {
             server ??= SelectedServer;
             if (server is not null)
             {
-                onServerJoin.Invoke(server);
+                _onServerJoin.Invoke(server);
             }
 
         }, (server) => (server ?? SelectedServer) is not null);
     }
 
-    private void OnServersCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private void OnServersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+        if (e.Action is NotifyCollectionChangedAction.Add)
         {
             TotalServers += e.NewItems!.Count;
-            TotalPlayers += e.NewItems!.OfType<ServerViewModel>().Sum(s => s.ClientNum);
+            TotalPlayers += e.NewItems!.OfType<T>().Sum(s => s.ClientNum);
         }
-        else if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
+        else if (e.Action is NotifyCollectionChangedAction.Remove)
         {
             TotalServers -= e.OldItems!.Count;
-            TotalPlayers -= e.OldItems!.OfType<ServerViewModel>().Sum(s => s.ClientNum);
+            TotalPlayers -= e.OldItems!.OfType<T>().Sum(s => s.ClientNum);
         }
-        else if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+        else if (e.Action is NotifyCollectionChangedAction.Reset)
         {
             TotalServers = Servers.Count;
             TotalPlayers = Servers.Sum(s => s.ClientNum);
         }
+    }
+
+    public static implicit operator ServerTabViewModel<T>(ServerTabViewModel<ServerViewModel> v)
+    {
+        ServerTabViewModel<T> s = new(v.TabName, v._onServerJoin)
+        {
+            ToggleFavouriteCommand = v.ToggleFavouriteCommand
+        };
+
+        return s;
+    }
+
+    public static implicit operator ServerTabViewModel<T>(ServerTabViewModel<RecentServerViewModel> v)
+    {
+        ServerTabViewModel<T> s = new(v.TabName, v._onServerJoin)
+        {
+            ToggleFavouriteCommand = v.ToggleFavouriteCommand
+        };
+
+        return s;
     }
 }

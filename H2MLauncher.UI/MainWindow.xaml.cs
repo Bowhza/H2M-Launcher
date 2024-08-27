@@ -16,11 +16,11 @@ namespace H2MLauncher.UI
         {
             InitializeComponent();
             DataContext = _viewModel = serverBrowserViewModel;
-            
-            var collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
-            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
+
+            ICollectionView collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
+            collectionView.Filter = o => _viewModel.ServerFilter((IServerViewModel)o);
             collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
-            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
+            collectionView.SortDescriptions.Add(new SortDescription(nameof(IServerViewModel.Ping), ListSortDirection.Ascending));
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
@@ -72,7 +72,7 @@ namespace H2MLauncher.UI
                 return;
             }
 
-            if (row.DataContext is not ServerViewModel serverVM)
+            if (row.DataContext is not IServerViewModel serverVM)
             {
                 return;
             }
@@ -86,12 +86,6 @@ namespace H2MLauncher.UI
         private void DataGridRow_GotFocus(object sender, RoutedEventArgs e)
         {
             ((DataGridRow)sender).IsSelected = true;
-        }
-
-        private void ComboBoxItem_Selected(object sender, RoutedEventArgs e)
-        {
-            ((ComboBoxItem)sender).IsSelected = false;
-            e.Handled = true;
         }
     }
 }

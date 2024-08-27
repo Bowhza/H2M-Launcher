@@ -10,12 +10,13 @@
         xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
         xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
         d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
+        x:Name="mainWindow"
         AllowsTransparency="True"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
         MinHeight="576"
-        MinWidth="950"
-        Width="950"
+        MinWidth="1030"
+        Width="1030"
         Height="576"
         Background="Transparent"
         mc:Ignorable="d"
@@ -164,6 +165,16 @@
                                 VerticalScrollBarVisibility="Hidden"
                                 SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
                                 RowBackground="Transparent">
+
+                                <DataGrid.Resources>
+                                    <DataGridTextColumn x:Key="ThatPeskyColumn"
+                                        Header="Last played" 
+                                        Visibility="{Binding Path=DataContext.IsRecentsSelected, Source={x:Reference mainWindow}, Converter={StaticResource booleanToVisibilityConverter}}" 
+                                        Binding="{Binding LastPlayed}"
+                                        >
+                                    </DataGridTextColumn>
+                                </DataGrid.Resources>
+                                
                                 <DataGrid.InputBindings>
                                     <!-- Key shortcut commands for row -->
                                     <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
@@ -192,8 +203,8 @@
                                     </Style>
                                 </DataGrid.ItemContainerStyle>
 
-                                <DataGrid.Columns >
-                                    <DataGridTemplateColumn Header="Hostname" Width="543" MinWidth="200" MaxWidth="750">
+                                <DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="Hostname" Width="*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate DataType="vm:ServerViewModel">
                                                 <ItemsControl                            
@@ -211,6 +222,8 @@
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
+
+                                    <StaticResource ResourceKey="ThatPeskyColumn"/>
 
                                     <DataGridTextColumn Header="Map" Binding="{Binding MapDisplayName}" MinWidth="100" MaxWidth="200"/>
                                     <DataGridTextColumn Header="Mode" Binding="{Binding GameTypeDisplayName}" CanUserResize="False"/>
@@ -230,7 +243,7 @@
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
-                                                        Command="{Binding DataContext.ToggleFavoriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                        Command="{Binding DataContext.ToggleFavouriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                         CommandParameter="{Binding}"
                                                         HorizontalAlignment="Center" 
                                                         VerticalAlignment="Center"

@@ -6,14 +6,14 @@ namespace H2MLauncher.UI
 {
     class PlayersSorter : IComparer
     {
-        public int Compare(ServerViewModel x, ServerViewModel y)
+        public int Compare(IServerViewModel x, IServerViewModel y)
         {
             if (x == null || y == null)
             {
                 return 0;
             }
 
-            var clientResult = Comparer<int>.Default.Compare(x.ClientNum, y.ClientNum);
+            int clientResult = Comparer<int>.Default.Compare(x.ClientNum, y.ClientNum);
             if (clientResult != 0)
             {
                 return clientResult;
@@ -24,7 +24,7 @@ namespace H2MLauncher.UI
 
         public int Compare(object? x, object? y)
         {
-            if (x is not ServerViewModel vmX || y is not ServerViewModel vmY)
+            if (x is not IServerViewModel vmX || y is not IServerViewModel vmY)
             {
                 return 0;
             }

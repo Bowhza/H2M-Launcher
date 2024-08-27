@@ -127,7 +127,7 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
-        private bool ApplyTextFilter(ServerViewModel server)
+        private bool ApplyTextFilter(IServerViewModel server)
         {
             if (string.IsNullOrEmpty(FilterText))
             {
@@ -143,7 +143,7 @@ namespace H2MLauncher.UI.ViewModels
             return true;
         }
 
-        public bool ApplyFilter(ServerViewModel server)
+        public bool ApplyFilter(IServerViewModel server)
         {
             if (!ApplyTextFilter(server))
             {
