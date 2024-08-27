@@ -229,10 +229,20 @@ public partial class ServerBrowserViewModel : ObservableObject
         // Add the new recent to the list.
         recents.Add(recent);
 
+        int recentLimit = 30;
+
         // Sort recents by Joined DateTime
-        if (recents.Count > 50)
+        if (recents.Count > recentLimit)
         {
-            recents = [.. recents.OrderBy(r => r.Joined).Take(50)];
+            recents = [.. recents.OrderByDescending(r => r.Joined).Take(recentLimit)];
+            // Remove from RecentsTab Server collection
+            List<RecentServerViewModel> recentsToDelete = RecentsTab.Servers
+                .OfType<RecentServerViewModel>()
+                .OrderByDescending(r => r.Joined)
+                .Skip(recentLimit)
+                .ToList();
+
+            recentsToDelete.ForEach((d) => RecentsTab.Servers.Remove(d));
         }
 
         // Save the updated list to the settings.

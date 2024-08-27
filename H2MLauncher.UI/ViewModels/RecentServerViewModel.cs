@@ -8,6 +8,8 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private DateTime _joined = DateTime.Now;
 
+        public string SortPath => Joined.ToString("s");
+        
         public string LastPlayed 
         { 
             get

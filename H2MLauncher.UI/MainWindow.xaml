@@ -170,6 +170,8 @@
                                     <DataGridTextColumn x:Key="ThatPeskyColumn"
                                         Header="Last played" 
                                         Visibility="{Binding Path=DataContext.IsRecentsSelected, Source={x:Reference mainWindow}, Converter={StaticResource booleanToVisibilityConverter}}" 
+                                        SortMemberPath="SortPath"
+                                        SortDirection="Descending"
                                         Binding="{Binding LastPlayed}"
                                         >
                                     </DataGridTextColumn>
@@ -225,10 +227,17 @@
 
                                     <StaticResource ResourceKey="ThatPeskyColumn"/>
 
-                                    <DataGridTextColumn Header="Map" Binding="{Binding MapDisplayName}" MinWidth="100" MaxWidth="200"/>
-                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameTypeDisplayName}" CanUserResize="False"/>
+                                    <DataGridTextColumn Header="Map" 
+                                                        Binding="{Binding MapDisplayName}" 
+                                                        MinWidth="83"
+                                                        CanUserResize="False"/>
+                                    <DataGridTextColumn Header="Mode" 
+                                                        Binding="{Binding GameTypeDisplayName}" 
+                                                        MinWidth="110"
+                                                        CanUserResize="False"/>
                                     <DataGridTextColumn Header="Players" 
                                                         SortMemberPath="ClientNum"
+                                                        MinWidth="65"
                                                         Binding="{Binding Occupation}"
                                                         CanUserResize="False">
                                         <DataGridTextColumn.ElementStyle>
@@ -239,7 +248,7 @@
                                     </DataGridTextColumn>
 
                                     <!-- Updated Favorite Column with Clickable Feature -->
-                                    <DataGridTemplateColumn Header="Favourite" CanUserResize="False">
+                                    <DataGridTemplateColumn Header="Favourite" MinWidth="69" CanUserResize="False">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
@@ -250,6 +259,7 @@
                                                         FontSize="16"
                                                         Background="Transparent"
                                                         BorderThickness="0"
+                                                        Margin="5,0,0,0"
                                                         Cursor="Hand"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
