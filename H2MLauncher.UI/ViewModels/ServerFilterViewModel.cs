@@ -75,15 +75,21 @@ namespace H2MLauncher.UI.ViewModels
                 .Select(mapPack =>
                 {
                     SelectableItem<IW4MMapPack> item = new(mapPack)
-                    { 
-                        Name = mapPack.Name, 
-                        IsSelected = true 
+                    {
+                        Name = mapPack.Name,
+                        IsSelected = true
                     };
 
                     item.PropertyChanged += MapPackItem_PropertyChanged;
 
                     return item;
                 })];
+
+            MapPacks.Add(new SelectableItem<IW4MMapPack>(new IW4MMapPack() { Name = "Unknown", Maps = [] })
+            {
+                Name = "Unknown",
+                IsSelected = true
+            });
 
             GameModes = [..resourceSettings.GameTypes
                 .Select(gameMode => {
@@ -97,6 +103,12 @@ namespace H2MLauncher.UI.ViewModels
 
                     return item;
                 })];
+
+            GameModes.Add(new SelectableItem<IW4MObjectMap>(new IW4MObjectMap("Unknown", "Unknown"))
+            {
+                Name = "Unknown",
+                IsSelected = true
+            });
         }
 
         private void GameModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -124,7 +136,7 @@ namespace H2MLauncher.UI.ViewModels
 
             string lowerCaseFilter = FilterText.ToLower();
 
-            if (!server.HostName.ToString().Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
+            if (!server.HostName.Contains(lowerCaseFilter, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -173,16 +185,31 @@ namespace H2MLauncher.UI.ViewModels
                 return false;
             }
 
-            if (!GameModes.Any(gameMode => 
-                gameMode.IsSelected && 
-                gameMode.Model.Name.Equals(server.GameType, StringComparison.OrdinalIgnoreCase))) 
+            // does the game mode exist?
+            SelectableItem<IW4MObjectMap>? gameType = GameModes.FirstOrDefault(gameMode => gameMode.Model.Name.Equals(server.GameType, StringComparison.OrdinalIgnoreCase));
+            
+            // if it doesn't exist, assume Unknown
+            gameType ??= GameModes.First(gameMode => gameMode.Model.Name.Equals("Unknown", StringComparison.OrdinalIgnoreCase));
+
+            // is it selected?
+            if (!gameType.IsSelected)
             {
                 return false;
             }
 
-            return MapPacks.Any(mapPackItem => 
-                mapPackItem.IsSelected && 
-                mapPackItem.Model.Maps.Any(m => m.Name.Equals(server.Map, StringComparison.OrdinalIgnoreCase)));
+            // does the game mode exist?
+            SelectableItem<IW4MMapPack>? map = MapPacks.FirstOrDefault(mapPack => mapPack.Model.Maps.Any(m => m.Name.Equals(server.Map, StringComparison.OrdinalIgnoreCase)));
+            
+            // if it doesn't exist, assume Unknown
+            map ??= MapPacks.First(mapPack => mapPack.Model.Name.Equals("Unknown", StringComparison.OrdinalIgnoreCase));
+
+            // is it selected?
+            if (!map.IsSelected)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

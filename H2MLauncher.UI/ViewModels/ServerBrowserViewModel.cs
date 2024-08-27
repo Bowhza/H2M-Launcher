@@ -144,7 +144,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         {
             _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
         }
-
+        
         SelectedTab = ServerTabs.First();
     }
 
