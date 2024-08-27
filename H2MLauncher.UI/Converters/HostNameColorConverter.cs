@@ -10,10 +10,14 @@ public class HostNameColorConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        string hostname = (string)value;
+        if (value is not string hostname)
+        {
+            return string.Empty;
+        }
+
         List<Run> runs = [];
         MatchCollection matches = Regex.Matches(hostname, @"(\^\d|\^\:)([^\^]*?)(?=\^\d|\^:|$)");
-        if (matches.Any())
+        if (matches.Count != 0)
         {
             if (matches[0].Index != 0)
             {
