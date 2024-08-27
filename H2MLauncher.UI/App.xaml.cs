@@ -21,7 +21,7 @@ namespace H2MLauncher.UI
 {
     public partial class App : Application
     {
-        public IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -55,7 +55,6 @@ namespace H2MLauncher.UI
 
             File.WriteAllText(userFavoritesFilePath, "[]");
         }
-
 
         private static void InitializeLogging()
         {

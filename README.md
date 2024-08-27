@@ -2,6 +2,9 @@
 
 **The H2M in-game server browser has a few bugs where it does not display the whole server list or does not join the correct server. The launcher aims to address these issues and provide more features.**
 
+![GitHub Release](https://img.shields.io/github/v/release/Bowhza/H2M-Launcher)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Bowhza/H2M-Launcher/total)
+
 ## Features
 
 - Launch H2M-Mod.
@@ -70,8 +73,8 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 > **If you and others can connect to the server in game, but it does not show up, please report the concrete case!**
 
-
 ### 5. Saving to clipboard failed
+
 <img src="./Images/ErrorOpenClipboardFailed.png">
 
 **Answer**: It is possible that the launcher fails to copy the server command to your clipboard, this could be because another application is currently using your clipboard and is still holding on to that process.
@@ -82,7 +85,6 @@ Go to your Windows Settings and search for Clear Clipboard.
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
 
 For other information and questions can be found at this **[Discord Thread](https://discord.com/channels/1272500523010097202/1275315609911169056)**.
-
 
 ## Compiling from Source Code
 

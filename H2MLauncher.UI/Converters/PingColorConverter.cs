@@ -1,9 +1,8 @@
 ﻿using System.Globalization;
 using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Media;
 
-namespace H2MLauncher.UI;
+namespace H2MLauncher.UI.Converters;
 
 public class PingColorConverter : IValueConverter
 {
