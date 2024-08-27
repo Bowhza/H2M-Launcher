@@ -12,7 +12,7 @@ public class HostNameColorConverter : IValueConverter
     {
         if (value is not string hostname)
         {
-            return string.Empty;
+            return Array.Empty<Run>();
         }
 
         List<Run> runs = [];
