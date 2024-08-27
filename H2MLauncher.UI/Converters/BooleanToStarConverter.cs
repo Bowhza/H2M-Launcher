@@ -24,4 +24,3 @@ public class BooleanToStarConverter : IValueConverter
         throw new NotImplementedException();
     }
 }
-}
