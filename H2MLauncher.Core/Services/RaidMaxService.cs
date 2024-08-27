@@ -7,6 +7,8 @@ using H2MLauncher.Core.Settings;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using Flurl;
+
 namespace H2MLauncher.Core.Services
 {
     public class RaidMaxService(HttpClient httpClient,
@@ -27,7 +29,7 @@ namespace H2MLauncher.Core.Services
 
             try
             {
-                string url = $"{_options.CurrentValue.IW4MMasterServerUrl.TrimEnd('/')}/instance";
+                string url = Url.Combine(_options.CurrentValue.IW4MMasterServerUrl, "instance");
                 if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? baseUrl))
                 {
                     _errorHandlingService.HandleError("Invalid master server url in settings.");
