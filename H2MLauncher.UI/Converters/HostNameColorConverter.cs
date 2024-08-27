@@ -30,7 +30,7 @@ namespace H2MLauncher.UI
                     string text = match.Groups[1].Value;
                     Brush brush = text switch
                     {
-                        "^0" => Brushes.Black,
+                        "^0" => Brushes.DimGray,
                         "^1" => Brushes.Red,
                         "^2" => Brushes.Green,
                         "^3" => Brushes.Yellow,
@@ -38,7 +38,7 @@ namespace H2MLauncher.UI
                         "^5" => Brushes.Cyan,
                         "^6" => Brushes.Magenta,
                         "^7" => Brushes.White,
-                        "^8" => Brushes.Black,
+                        "^8" => Brushes.DimGray,
                         _ => Brushes.White, // ^: rainbow
                     };
                     runs.Add(new Run()

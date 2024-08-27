@@ -12,10 +12,10 @@
         AllowsTransparency="True"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
-        MinHeight="576"
-        MinWidth="875"
-        Width="875"
-        Height="576"
+        MinHeight="570"
+        MinWidth="1000"
+        Width="1000"
+        Height="570"
         Background="Transparent"
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
@@ -92,8 +92,8 @@
                     </i:Interaction.Triggers>
                     </TextBlock>
                     <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateLauncherCommand.IsRunning, Converter={StaticResource booleanToVisibilityConverter}}">
-                        <ProgressBar Name="pbStatus"  Width="400" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}"/>
-                        <TextBlock Text="{Binding ElementName=pbStatus, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <ProgressBar Name="PbStatus"  Width="400" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}"/>
+                        <TextBlock Text="{Binding ElementName=PbStatus, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
                     <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateFinished, Converter={StaticResource booleanToVisibilityConverter}}">
                         <Grid.ColumnDefinitions>
@@ -119,11 +119,11 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBox TabIndex="1" Text="{Binding AdvancedServerFilter.FilterText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
-                                 TextChanged="TextBox_TextChanged" HorizontalAlignment="Stretch" Margin="0,0,5,0" 
+                                 TextChanged="TextBox_TextChanged" HorizontalAlignment="Stretch" Margin="10,0,10,0" 
                                  VerticalAlignment="Center"/>
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Grid.Column="2">                        
-                        <Button TabIndex="3" Content="Filter" Width="50" Command="{Binding ShowServerFilterCommand}" />
+                        <Button TabIndex="3" Content="Filter" Width="80" Command="{Binding ShowServerFilterCommand}" />
                         <Separator Opacity="0" Width="5" />
                         <Button TabIndex="3" Content="Join" Width="80" Command="{Binding SelectedTab.JoinServerCommand}" />
                         <Separator Opacity="0" Width="5" />
@@ -133,7 +133,7 @@
                     </StackPanel>
                 </Grid>
                 <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
-                            Grid.Row="2" Margin="0,10,0,5" Opacity="0.82">
+                            Grid.Row="2" Margin="0,10,0,5" Opacity="0.9" BorderThickness="1" BorderBrush="LightGray" Background="Transparent">
                     <TabControl.ItemTemplate>
                         <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
                             <TextBlock Text="{Binding TabName}"/>
@@ -145,7 +145,7 @@
                                 x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                                 Grid.Row="2"
                                 FontFamily="Consolas"
-                                Margin="-3,0,-2,0" Height="Auto" 
+                                Margin="-2,-2,-2,-2" Height="Auto" 
                                 KeyboardNavigation.TabNavigation="Once"
                                 TabIndex="2"
                                 CanUserReorderColumns="False" 
@@ -157,9 +157,9 @@
                                 GridLinesVisibility="None" 
                                 SelectionUnit="FullRow"
                                 HorizontalScrollBarVisibility="Hidden"
+                                BorderThickness="0"
                                 Background="Black"
                                 SelectionMode="Single"
-                                MaxColumnWidth="700"
                                 CanUserResizeColumns="true"
                                 Opacity="1"
                                 HeadersVisibility="Column"
@@ -195,7 +195,7 @@
                                 </DataGrid.ItemContainerStyle>
 
                                 <DataGrid.Columns >
-                                    <DataGridTemplateColumn Header="Hostname" Width="500" MinWidth="200" MaxWidth="700">
+                                    <DataGridTemplateColumn Header="Hostname" Width="60*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate DataType="vm:ServerViewModel">
                                                 <ItemsControl                            
@@ -214,12 +214,19 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" MinWidth="100" MaxWidth="200"/>
-                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False"/>
+                                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" Width="18*"/>
+                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False" Width="6*">
+                                        <DataGridTextColumn.ElementStyle>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="HorizontalAlignment" Value="Left"/>
+                                            </Style>
+                                        </DataGridTextColumn.ElementStyle>
+                                    </DataGridTextColumn>
                                     <DataGridTextColumn Header="Players" 
                                                         SortMemberPath="ClientNum"
                                                         Binding="{Binding Occupation}"
-                                                        CanUserResize="False">
+                                                        CanUserResize="False"
+                                                        Width="10*">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="HorizontalAlignment" Value="Right" />
@@ -228,7 +235,7 @@
                                     </DataGridTextColumn>
 
                                     <!-- Updated Favorite Column with Clickable Feature -->
-                                    <DataGridTemplateColumn Header="Favourite" CanUserResize="False">
+                                    <DataGridTemplateColumn Header="Favourite" CanUserResize="False" Width="10*">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate>
                                                 <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
@@ -244,10 +251,10 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False">
+                                    <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False" Width="6*">
                                         <DataGridTextColumn.ElementStyle>
                                             <Style TargetType="TextBlock">
-                                                <Setter Property="HorizontalAlignment" Value="Right" />
+                                                <Setter Property="HorizontalAlignment" Value="Left" />
                                                 <Setter Property="FontFamily" Value="Consolas" />
                                                 <Setter Property="FlowDirection" Value="RightToLeft" />
                                                 <Setter Property="Foreground" Value="{Binding Ping, Converter={StaticResource PingColorConverter}}" />
