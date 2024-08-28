@@ -15,7 +15,7 @@ namespace H2MLauncher.UI
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
-            _selectedTab = TabsEnum.AllServers;
+
             DataContext = _viewModel = serverBrowserViewModel;
             
             var collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
