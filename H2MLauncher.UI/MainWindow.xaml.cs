@@ -228,14 +228,16 @@ namespace H2MLauncher.UI
         {
             if (key == Key.S && modifiers.HasFlag(ModifierKeys.Control) && modifiers.HasFlag(ModifierKeys.Alt))
             {
-                // Show the overlay when Ctrl + Alt + S is pressed
-                ShowOverlay();
+                if(_overlayHiddenByUser)
+                {
+                    ShowOverlay(); 
+                }
+                else
+                {
+                    HideOverlay();
+                }
             }
-            else if (key == Key.H && modifiers.HasFlag(ModifierKeys.Control) && modifiers.HasFlag(ModifierKeys.Alt))
-            {
-                // Hide the overlay when Ctrl + Alt + H is pressed
-                HideOverlay();
-            }
+
         }
     }
 }
