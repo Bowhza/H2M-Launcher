@@ -123,6 +123,19 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelected = settings.SelectedGameModes?.Any(gameMode =>
                     gameMode.Equals("Unknown", StringComparison.OrdinalIgnoreCase)) ?? true
             });
+
+            foreach (var (keyword, isEnabled) in settings.ExcludeKeywords)
+            {
+                SelectableItem<string>? existingItem = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword));
+                if (existingItem is null)
+                {
+                    AddNewExcludeKeyword(keyword);
+                }
+                else
+                {
+                    existingItem.IsSelected = isEnabled;
+                }
+            }
         }
 
         private void GameModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -184,12 +197,19 @@ namespace H2MLauncher.UI.ViewModels
             {
                 return false;
             }
+
             return true;
         }
 
         public bool ApplyFilter(ServerViewModel server)
         {
             if (!ApplyTextFilter(server))
+            {
+                return false;
+            }
+
+            if (ExcludeFilters.Where(item => item.IsSelected)
+                              .Any(item => server.HostName.Contains(item.Model, StringComparison.OrdinalIgnoreCase)))
             {
                 return false;
             }
@@ -269,6 +289,7 @@ namespace H2MLauncher.UI.ViewModels
                 MaxSlots = MaxSlots,
                 SelectedGameModes = GameModes.Where(item => item.IsSelected).Select(item => item.Model.Name).ToList(),
                 SelectedMapPacks = MapPacks.Where(item => item.IsSelected).Select(item => item.Model.Id).ToList(),
+                ExcludeKeywords = ExcludeFilters.ToDictionary(item => item.Model, item => item.IsSelected)
             };
         }
     }

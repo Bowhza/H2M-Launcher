@@ -19,5 +19,7 @@
         public List<string>? SelectedMapPacks { get; init; }
 
         public List<string>? SelectedGameModes { get; init; }
+
+        public Dictionary<string, bool> ExcludeKeywords { get; init; } = [];
     }
 }
