@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -57,7 +56,6 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     [ObservableProperty]
     private ServerTabViewModel _selectedTab;
-
     private ServerTabViewModel AllServersTab { get; set; }
     private ServerTabViewModel FavouritesTab { get; set; }
     public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
@@ -65,8 +63,9 @@ public partial class ServerBrowserViewModel : ObservableObject
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter;
 
+    [ObservableProperty]
+    private PasswordViewModel _passwordViewModel = new();
     public event Action? ServerFilterChanged;
-
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -441,10 +440,27 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     private void JoinServer(ServerViewModel? serverViewModel)
     {
+        string password = null;
+
         if (serverViewModel is null)
             return;
 
-        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString())
+        if (serverViewModel.IsPrivate)
+        {
+            _passwordViewModel = new();
+
+            bool? result = _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+
+            password = _passwordViewModel.Password;
+
+            // Do not continue joining the server
+            if (result is null || result == false)
+                return;
+
+
+        }
+
+        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password)
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
     }

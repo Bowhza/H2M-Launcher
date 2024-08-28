@@ -129,10 +129,15 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool JoinServer(string ip, string port)
-        {
+        public bool JoinServer(string ip, string port,string? password=null)
+        {                       
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
+
+            if (password is not null)
+            {
+                connectCommand += $";password {password}";
+            }
 
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)

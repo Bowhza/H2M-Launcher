@@ -55,6 +55,8 @@
         <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
         <converters:PingColorConverter x:Key="PingColorConverter"/>
         <converters:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
+        <local:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
+
         <local:PlayersSorter x:Key="PlayersSorter"/>
         <CollectionViewSource x:Key="MyCollectionViewSource" Source="{Binding SelectedTab.Servers}"/>
     </Window.Resources>
@@ -208,6 +210,22 @@
                                                         </ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                 </ItemsControl>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+                                    </DataGridTemplateColumn>
+                                    
+                                    <DataGridTemplateColumn Header="" CanUserResize="False" SortMemberPath="IsPrivate">
+                                        <DataGridTemplateColumn.HeaderStyle>
+                                            <Style TargetType="DataGridColumnHeader">
+                                                <Setter Property="Padding" Value="0"/>
+                                                <Setter Property="BorderThickness" Value="0"/>
+                                                <Setter Property="Background" Value="Transparent"/>
+                                            </Style>
+                                        </DataGridTemplateColumn.HeaderStyle>
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BooleanToPrivateStatusConverter}}" 
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
