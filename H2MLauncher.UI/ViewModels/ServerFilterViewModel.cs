@@ -48,6 +48,9 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private ObservableCollection<SelectableItem<IW4MObjectMap>> _gameModes = [];
 
+        [ObservableProperty]
+        private ObservableCollection<SelectableItem<string>> _excludeFilters = [];
+
         public string SelectedMapPacks => $"{MapPacks.Where(x => x.IsSelected).Count()}/{MapPacks.Count}";
         public string SelectedGameModes => $"{GameModes.Where(x => x.IsSelected).Count()}/{GameModes.Count}";
 
@@ -138,6 +141,36 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
+        [RelayCommand(CanExecute = nameof(CanAddNexExcludeKeyword))]
+        public void AddNewExcludeKeyword(string keyword)
+        {
+            ExcludeFilters.Add(new(keyword, onRemove: () => RemoveExcludeKeyword(keyword))
+            {
+                IsSelected = true,
+                Name = keyword,
+            });
+        }
+
+        public bool CanAddNexExcludeKeyword(string keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return false;
+            }
+
+            return !ExcludeFilters.Any(i => i.Model.Equals(keyword));
+        }
+
+        [RelayCommand]
+        public void RemoveExcludeKeyword(string keyword)
+        {
+            SelectableItem<string>? item = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword));
+            if (item is not null)
+            {
+                ExcludeFilters.Remove(item);
+            }
+        }
+
         private bool ApplyTextFilter(ServerViewModel server)
         {
             if (string.IsNullOrEmpty(FilterText))
@@ -198,7 +231,7 @@ namespace H2MLauncher.UI.ViewModels
 
             // does the game mode exist?
             SelectableItem<IW4MObjectMap>? gameType = GameModes.FirstOrDefault(gameMode => gameMode.Model.Name.Equals(server.GameType, StringComparison.OrdinalIgnoreCase));
-            
+
             // if it doesn't exist, assume Unknown
             gameType ??= GameModes.First(gameMode => gameMode.Model.Name.Equals("Unknown", StringComparison.OrdinalIgnoreCase));
 
@@ -210,7 +243,7 @@ namespace H2MLauncher.UI.ViewModels
 
             // does the game mode exist?
             SelectableItem<IW4MMapPack>? map = MapPacks.FirstOrDefault(mapPack => mapPack.Model.Maps.Any(m => m.Name.Equals(server.Map, StringComparison.OrdinalIgnoreCase)));
-            
+
             // if it doesn't exist, assume Unknown
             map ??= MapPacks.First(mapPack => mapPack.Model.Name.Equals("Unknown", StringComparison.OrdinalIgnoreCase));
 
