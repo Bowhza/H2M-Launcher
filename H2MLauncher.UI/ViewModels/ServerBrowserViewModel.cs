@@ -123,24 +123,28 @@ public partial class ServerBrowserViewModel : ObservableObject
         ShowSettingsCommand = new RelayCommand(ShowSettings);
 
 
-        if (!TryAddNewTab("All Servers", out ServerTabViewModel<ServerViewModel>? allServersTab))
+        if (!TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
         {
             throw new Exception("Could not add all servers tab");
         }
 
-        if (!TryAddNewTab("Favourites", out ServerTabViewModel<ServerViewModel>? favouritesTab))
+        if (!TryAddNewTab("Favourites", out ServerTabViewModel? favouritesTab))
         {
             throw new Exception("Could not add favourites tab");
         }
 
-        if (!TryAddNewTab("Recents", out ServerTabViewModel<ServerViewModel>? recentsTab))
+        RecentsTab = new RecentServerTabViewModel(JoinServer, AdvancedServerFilter.ApplyFilter)
+        {
+            ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite)
+        };
+
+        if (!TryAddNewTab(RecentsTab))
         {
             throw new Exception("Could not add recents tab");
         }
 
         AllServersTab = allServersTab;
         FavouritesTab = favouritesTab;
-        RecentsTab = recentsTab;
 
         SelectedTab = ServerTabs.First();
 
@@ -183,8 +187,19 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
     }
 
-    private bool TryAddNewTab<TServerViewModel>(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel<TServerViewModel> tabViewModel)
+    private bool TryAddNewTab<TServerViewModel>(ServerTabViewModel<TServerViewModel> tabViewModel)
         where TServerViewModel : ServerViewModel
+    {
+        if (ServerTabs.Any(tab => tab.TabName.Equals(tabViewModel.TabName, StringComparison.Ordinal)))
+        {
+            return false;
+        }
+
+        ServerTabs.Add(tabViewModel);
+        return true;
+    }
+
+    private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {
         if (ServerTabs.Any(tab => tab.TabName.Equals(tabName, StringComparison.Ordinal)))
         {
@@ -192,9 +207,9 @@ public partial class ServerBrowserViewModel : ObservableObject
             return false;
         }
 
-        tabViewModel = new ServerTabViewModel<TServerViewModel>(tabName, JoinServer)
+        tabViewModel = new ServerTabViewModel(tabName, JoinServer, AdvancedServerFilter.ApplyFilter)
         {
-            ToggleFavouriteCommand = new RelayCommand<TServerViewModel>(ToggleFavorite),
+            ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite),
         };
 
         ServerTabs.Add(tabViewModel);
@@ -300,7 +315,7 @@ public partial class ServerBrowserViewModel : ObservableObject
             // Add to FavoriteServers collection if not already added
             if (!FavouritesTab.Servers.Any(s => s.Ip == server.Ip && s.Port == server.Port))
             {
-                FavouritesTab.Servers.Add((ServerViewModel)server);
+                FavouritesTab.Servers.Add(server);
             }
 
             return;
@@ -310,17 +325,17 @@ public partial class ServerBrowserViewModel : ObservableObject
         RemoveFavoriteFromSettings(server.Ip, server.Port);
 
         // Remove from FavoriteServers collection
-        FavouritesTab.Servers.Remove((ServerViewModel)server);
+        FavouritesTab.Servers.Remove(server);
     }
 
-    private void UpdateJoinedTime(ServerViewModel? server, DateTime joinedTime)
+    private void UpdateRecentJoinTime(ServerViewModel? server, DateTime joinedTime)
     {
         if (server is null)
             return;
 
         server.Joined = joinedTime;
 
-        // Add to settings
+        // Update in settings
         AddOrUpdateRecentServerInSettings(new RecentServerInfo
         {
             ServerIp = server.Ip,
@@ -526,7 +541,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString());
         if (hasJoined)
         {
-            UpdateJoinedTime(serverViewModel, DateTime.Now);
+            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
         }
 
         StatusText = hasJoined

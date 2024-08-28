@@ -17,10 +17,6 @@ namespace H2MLauncher.UI
             InitializeComponent();
             DataContext = _viewModel = serverBrowserViewModel;
 
-            ICollectionView collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
-            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
-            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
