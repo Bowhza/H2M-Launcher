@@ -4,7 +4,6 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 
-using H2MLauncher.Core.Models;
 using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
@@ -12,8 +11,6 @@ namespace H2MLauncher.UI
     public partial class MainWindow : Window
     {
         private readonly ServerBrowserViewModel _viewModel;
-
-        private TabsEnum _selectedTab;
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
@@ -90,6 +87,12 @@ namespace H2MLauncher.UI
         private void DataGridRow_GotFocus(object sender, RoutedEventArgs e)
         {
             ((DataGridRow)sender).IsSelected = true;
+        }
+
+        private void ComboBoxItem_Selected(object sender, RoutedEventArgs e)
+        {
+            ((ComboBoxItem)sender).IsSelected = false;
+            e.Handled = true;
         }
     }
 }

@@ -7,14 +7,15 @@
         xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
         xmlns:models="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
         xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
+        xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
         xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views" 
         d:DataContext="{d:DesignInstance Type=vm:ServerBrowserViewModel}"
         AllowsTransparency="True"
         WindowStyle="None"
         ResizeMode="CanResizeWithGrip"
         MinHeight="576"
-        MinWidth="875"
-        Width="875"
+        MinWidth="950"
+        Width="950"
         Height="576"
         Background="Transparent"
         mc:Ignorable="d"
@@ -51,15 +52,13 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <local:HostNameColorConverter x:Key="HostNameColorConverter" />
-        <local:PingColorConverter x:Key="PingColorConverter"/>
-        <local:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
-        <local:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
+        <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
+        <converters:PingColorConverter x:Key="PingColorConverter"/>
+        <converters:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
+        <converters:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
 
         <local:PlayersSorter x:Key="PlayersSorter"/>
-        
-            <CollectionViewSource x:Key="MyCollectionViewSource" Source="{Binding SelectedTab.Servers}"/>
-        
+        <CollectionViewSource x:Key="MyCollectionViewSource" Source="{Binding SelectedTab.Servers}"/>
     </Window.Resources>
     <Window.InputBindings>
         <!-- Disable Shortcut Commands -->
@@ -196,7 +195,7 @@
                                 </DataGrid.ItemContainerStyle>
 
                                 <DataGrid.Columns >
-                                    <DataGridTemplateColumn Header="Hostname" Width="500" MinWidth="200" MaxWidth="700">
+                                    <DataGridTemplateColumn Header="Hostname" Width="543" MinWidth="200" MaxWidth="750">
                                         <DataGridTemplateColumn.CellTemplate>
                                             <DataTemplate DataType="vm:ServerViewModel">
                                                 <ItemsControl                            
@@ -215,24 +214,8 @@
                                         </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
 
-                                    <DataGridTemplateColumn Header="" CanUserResize="False" SortMemberPath="IsPrivate">
-                                        <DataGridTemplateColumn.HeaderStyle>
-                                            <Style TargetType="DataGridColumnHeader">
-                                                <Setter Property="Padding" Value="0"/>
-                                                <Setter Property="BorderThickness" Value="0"/>
-                                                <Setter Property="Background" Value="Transparent"/>
-                                            </Style>
-                                        </DataGridTemplateColumn.HeaderStyle>
-                                        <DataGridTemplateColumn.CellTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BooleanToPrivateStatusConverter}}" 
-                                                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                            </DataTemplate>
-                                        </DataGridTemplateColumn.CellTemplate>
-                                    </DataGridTemplateColumn>
-
-                                    <DataGridTextColumn Header="Map" Binding="{Binding Map}" MinWidth="100" MaxWidth="200"/>
-                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False"/>
+                                    <DataGridTextColumn Header="Map" Binding="{Binding MapDisplayName}" MinWidth="100" MaxWidth="200"/>
+                                    <DataGridTextColumn Header="Mode" Binding="{Binding GameTypeDisplayName}" CanUserResize="False"/>
                                     <DataGridTextColumn Header="Players" 
                                                         SortMemberPath="ClientNum"
                                                         Binding="{Binding Occupation}"
@@ -278,6 +261,11 @@
                 </TabControl>
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
                     <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
+                    <StatusBarItem HorizontalAlignment="Right">
+                        <Button Padding="20" Style="{StaticResource LinkButtonStyle}" Command="{Binding ShowSettingsCommand}">
+                            <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
+                        </Button>
+                    </StatusBarItem>
                 </StatusBar>
             </Grid>
         </Border>
