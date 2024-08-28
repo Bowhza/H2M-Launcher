@@ -1,6 +1,6 @@
 ﻿using System.Windows.Data;
 
-namespace H2MLauncher.UI
+namespace H2MLauncher.UI.Converters
 {
     public class BooleanToPrivateStatusConverter : IValueConverter
     {
@@ -18,5 +18,4 @@ namespace H2MLauncher.UI
             throw new NotImplementedException();
         }
     }
-
 }
