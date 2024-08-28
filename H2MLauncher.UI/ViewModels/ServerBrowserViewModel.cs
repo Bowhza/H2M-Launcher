@@ -412,6 +412,7 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         if (serverViewModel.IsPrivate)
         {
+            _passwordViewModel = new();
             _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
             password = _passwordViewModel.Password;
 
