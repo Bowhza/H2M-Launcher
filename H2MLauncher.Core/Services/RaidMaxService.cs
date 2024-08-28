@@ -1,23 +1,26 @@
-﻿using System.Diagnostics;
-using System.Net.Http.Json;
-using System.Text.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Settings;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+using Flurl;
 
 namespace H2MLauncher.Core.Services
 {
     public class RaidMaxService(HttpClient httpClient,
         IErrorHandlingService errorHandlingService, 
-        ILogger<RaidMaxService> logger)
+        ILogger<RaidMaxService> logger,
+        IOptionsMonitor<H2MLauncherSettings> options)
     {
-        private const string APILINK = "http://master.iw4.zip/instance";
         private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
         private readonly List<RaidMaxServer> _servers = [];
         private readonly ILogger<RaidMaxService> _logger = logger;
+        private readonly IOptionsMonitor<H2MLauncherSettings> _options = options;
 
         public async Task<List<RaidMaxServer>> GetServerInfosAsync(CancellationToken cancellationToken)
         {
@@ -26,9 +29,15 @@ namespace H2MLauncher.Core.Services
 
             try
             {
-                HttpResponseMessage response = await _httpClient.GetAsync(APILINK, cancellationToken);
-                response.EnsureSuccessStatusCode();
-                JsonSerializerOptions options = new JsonSerializerOptions();
+                string url = Url.Combine(_options.CurrentValue.IW4MMasterServerUrl, "instance");
+                if (!Uri.TryCreate(url, UriKind.Absolute, out Uri? baseUrl))
+                {
+                    _errorHandlingService.HandleError("Invalid master server url in settings.");
+                    return _servers;
+                }
+
+                HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
+                response.EnsureSuccessStatusCode();                
                 servers = await response.Content.ReadFromJsonAsync<List<RaidMaxServerInstance>>(cancellationToken);
             }
             catch (Exception ex)

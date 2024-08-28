@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
@@ -18,6 +17,7 @@ using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.UI.ViewModels;
 
@@ -34,6 +34,8 @@ public partial class ServerBrowserViewModel : ObservableObject
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly DialogService _dialogService;
     private CancellationTokenSource _loadCancellation = new();
+    private readonly Dictionary<string, string> _mapMap = [];
+    private readonly Dictionary<string, string> _gameTypeMap = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -54,16 +56,16 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     [ObservableProperty]
     private ServerTabViewModel _selectedTab;
-
     private ServerTabViewModel AllServersTab { get; set; }
     private ServerTabViewModel FavouritesTab { get; set; }
     public ObservableCollection<ServerTabViewModel> ServerTabs { get; set; } = [];
 
     [ObservableProperty]
-    private ServerFilterViewModel _advancedServerFilter = new();
+    private ServerFilterViewModel _advancedServerFilter;
 
+    [ObservableProperty]
+    private PasswordViewModel _passwordViewModel = new();
     public event Action? ServerFilterChanged;
-
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -73,6 +75,7 @@ public partial class ServerBrowserViewModel : ObservableObject
     public IRelayCommand OpenReleaseNotesCommand { get; }
     public IRelayCommand RestartCommand { get; }
     public IRelayCommand ShowServerFilterCommand { get; }
+    public IRelayCommand ShowSettingsCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -86,7 +89,8 @@ public partial class ServerBrowserViewModel : ObservableObject
         ISaveFileService saveFileService,
         IErrorHandlingService errorHandlingService,
         DialogService dialogService,
-        IWritableOptions<H2MLauncherSettings> h2mLauncherOptions)
+        IWritableOptions<H2MLauncherSettings> h2mLauncherOptions,
+        IOptions<ResourceSettings> resoureceOptions)
     {
         _raidMaxService = raidMaxService ?? throw new ArgumentNullException(nameof(raidMaxService));
         _gameServerCommunicationService = gameServerCommunicationService ?? throw new ArgumentNullException(nameof(gameServerCommunicationService));
@@ -99,6 +103,9 @@ public partial class ServerBrowserViewModel : ObservableObject
         _dialogService = dialogService;
         ArgumentNullException.ThrowIfNull(h2mLauncherOptions);
         _h2MLauncherOptions = h2mLauncherOptions;
+        ArgumentNullException.ThrowIfNull(resoureceOptions);
+
+        _advancedServerFilter = new(resoureceOptions.Value);
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -109,6 +116,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
         RestartCommand = new RelayCommand(DoRestartCommand);
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
+        ShowSettingsCommand = new RelayCommand(ShowSettings);
 
         if (TryAddNewTab("All Servers", out var allServersTab))
         {
@@ -128,7 +136,27 @@ public partial class ServerBrowserViewModel : ObservableObject
             throw new Exception("Could not add favourites tab");
         }
 
+        foreach (IW4MObjectMap oMap in resoureceOptions.Value.MapPacks.SelectMany(mappack => mappack.Maps))
+        {
+            _mapMap!.TryAdd(oMap.Name, oMap.Alias);
+        }
+
+        foreach (IW4MObjectMap oMap in resoureceOptions.Value.GameTypes)
+        {
+            _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
+        }
+        
         SelectedTab = ServerTabs.First();
+    }
+
+    private void ShowSettings()
+    {
+        SettingsViewModel settingsViewModel = new(_h2MLauncherOptions);
+
+        if (_dialogService.OpenDialog<SettingsDialogView>(settingsViewModel) == true)
+        {
+            // settings saved;
+        }
     }
 
     private void ShowServerFilter()
@@ -148,7 +176,6 @@ public partial class ServerBrowserViewModel : ObservableObject
             StatusText = "Server filter applied.";
         }
     }
-
 
     private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
     {
@@ -238,7 +265,6 @@ public partial class ServerBrowserViewModel : ObservableObject
         // Remove from FavoriteServers collection
         FavouritesTab.Servers.Remove(server);
     }
-
 
     private void DoRestartCommand()
     {
@@ -368,7 +394,10 @@ public partial class ServerBrowserViewModel : ObservableObject
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
                 bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
-
+                
+                _mapMap.TryGetValue(gameServer.MapName, out string? mapDisplayName);
+                _gameTypeMap.TryGetValue(gameServer.GameType, out string? gameTypeDisplayName);
+                
                 ServerViewModel serverViewModel = new()
                 {
                     Id = server.Id,
@@ -379,7 +408,9 @@ public partial class ServerBrowserViewModel : ObservableObject
                     MaxClientNum = gameServer.MaxClients,
                     Game = server.Game,
                     GameType = gameServer.GameType,
+                    GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
                     Map = gameServer.MapName,
+                    MapDisplayName = mapDisplayName ?? gameServer.MapName,
                     Version = server.Version,
                     IsPrivate = gameServer.IsPrivate,
                     Ping = gameServer.Ping,
@@ -409,10 +440,27 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     private void JoinServer(ServerViewModel? serverViewModel)
     {
+        string password = null;
+
         if (serverViewModel is null)
             return;
 
-        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString())
+        if (serverViewModel.IsPrivate)
+        {
+            _passwordViewModel = new();
+
+            bool? result = _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+
+            password = _passwordViewModel.Password;
+
+            // Do not continue joining the server
+            if (result is null || result == false)
+                return;
+
+
+        }
+
+        StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password)
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
     }

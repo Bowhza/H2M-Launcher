@@ -15,6 +15,7 @@ namespace H2MLauncher.UI
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+
             DataContext = _viewModel = serverBrowserViewModel;
             
             var collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
@@ -86,6 +87,12 @@ namespace H2MLauncher.UI
         private void DataGridRow_GotFocus(object sender, RoutedEventArgs e)
         {
             ((DataGridRow)sender).IsSelected = true;
+        }
+
+        private void ComboBoxItem_Selected(object sender, RoutedEventArgs e)
+        {
+            ((ComboBoxItem)sender).IsSelected = false;
+            e.Handled = true;
         }
     }
 }

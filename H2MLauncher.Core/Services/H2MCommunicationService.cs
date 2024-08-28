@@ -16,14 +16,14 @@ namespace H2MLauncher.Core.Services
         private const int WM_KEYDOWN = 0x0100; // Message code for key down
         private const int WM_KEYUP = 0x0101;   // Message code for key up
 
-        private readonly H2MLauncherSettings _h2mLauncherSettings;
+        private readonly IOptionsMonitor<H2MLauncherSettings> _h2mLauncherSettings;
         private readonly IErrorHandlingService _errorHandlingService;
 
-        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IOptions<H2MLauncherSettings> options)
+        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IOptionsMonitor<H2MLauncherSettings> options)
         {
             _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
             ArgumentNullException.ThrowIfNull(options, nameof(options));
-            _h2mLauncherSettings = options.Value;
+            _h2mLauncherSettings = options;
         }
 
         //Windows API functions to send input to a window
@@ -102,17 +102,17 @@ namespace H2MLauncher.Core.Services
                 // We assume that the user has properly put the exe in the MWR directory
                 // TODO: Or in the future sets its location in the settings.
                 string exeFilePath = "./h2m-mod.exe";
-                if (!string.IsNullOrEmpty(_h2mLauncherSettings.MWRLocation))
+                if (!string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
                 {
-                    exeFilePath = $"{_h2mLauncherSettings.MWRLocation}h2m-mod.exe";
+                    exeFilePath = $"{_h2mLauncherSettings.CurrentValue.MWRLocation}h2m-mod.exe";
                 }
 
                 // Proceed to launch the process if it's not running
                 if (File.Exists(exeFilePath))
                 {
                     ProcessStartInfo startInfo = new(exeFilePath);
-                    if (!string.IsNullOrEmpty(_h2mLauncherSettings.MWRLocation))
-                        startInfo.WorkingDirectory = _h2mLauncherSettings.MWRLocation;
+                    if (!string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
+                        startInfo.WorkingDirectory = _h2mLauncherSettings.CurrentValue.MWRLocation;
 
                     Process.Start(startInfo);
                 }
@@ -129,10 +129,15 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool JoinServer(string ip, string port)
-        {
+        public bool JoinServer(string ip, string port,string? password=null)
+        {                       
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
+
+            if (password is not null)
+            {
+                connectCommand += $";password {password}";
+            }
 
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)

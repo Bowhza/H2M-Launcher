@@ -60,4 +60,10 @@
     <Resource Include="GlobalResources.xaml" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Update="ViewModels\PasswordViewModel.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+
 </Project>

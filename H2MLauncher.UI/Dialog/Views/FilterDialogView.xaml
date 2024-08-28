@@ -12,7 +12,7 @@
              Width="300"
              d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}">
     <UserControl.Resources>
-        <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
+        <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
                     <Setter Property="Content" Value="Yes"/>
@@ -22,10 +22,11 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-
     </UserControl.Resources>
     <Grid Margin="25,15,25,0">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -58,7 +59,7 @@
             <TextBlock Text="{Binding MaxPlayers}" Width="13" Margin="10,0,0,0" DockPanel.Dock="Right" VerticalAlignment="Center"/>
             <controls:RangeSliderControl LowerValue="{Binding MinPlayers, Mode=TwoWay}" 
                                          UpperValue="{Binding MaxPlayers, Mode=TwoWay}" 
-                                         Minimum="1" 
+                                         Minimum="0" 
                                          Maximum="32"/>
         </DockPanel>
 
@@ -69,14 +70,42 @@
             </ComboBox>
         </DockPanel>
 
-        <TextBlock Text="Max Ping:" Grid.Row="6" Margin="15,10" HorizontalAlignment="Right"/>
-        <DockPanel Grid.Row="6" Grid.Column="1">
+        <TextBlock Text="Map Packs:" Grid.Row="6" Margin="15,10" HorizontalAlignment="Right"/>
+        <controls:MagicNoSelectDropDownControl 
+            ItemsSource="{Binding MapPacks}" Text="{Binding SelectedMapPacks}" 
+            Height="22" Grid.Row="6" Grid.Column="1" Margin="0,0,0,0">
+            <controls:MagicNoSelectDropDownControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox 
+                            Foreground="White"
+                            Content="{Binding Path=Name}"
+                            IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
+                    </DataTemplate>
+                </controls:MagicNoSelectDropDownControl.ItemTemplate>
+        </controls:MagicNoSelectDropDownControl>
+
+        <TextBlock Text="Game Modes:" Grid.Row="7" Margin="15,10" HorizontalAlignment="Right"/>
+        <controls:MagicNoSelectDropDownControl 
+            ItemsSource="{Binding GameModes}" Text="{Binding SelectedGameModes}" 
+            Height="22" Grid.Row="7" Grid.Column="1" Margin="0,0,0,0">
+            <controls:MagicNoSelectDropDownControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox 
+                    Foreground="White"
+                    Content="{Binding Path=Name}"
+                    IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
+                </DataTemplate>
+            </controls:MagicNoSelectDropDownControl.ItemTemplate>
+        </controls:MagicNoSelectDropDownControl>
+
+        <TextBlock Text="Max Ping:" Grid.Row="8" Margin="15,10" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="8" Grid.Column="1">
             <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" Margin="0,0,10,0" VerticalAlignment="Center" 
                      Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
             <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 
-        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15">
+        <Grid Grid.Row="9" Grid.ColumnSpan="2" Margin="0,10,0,15">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>
