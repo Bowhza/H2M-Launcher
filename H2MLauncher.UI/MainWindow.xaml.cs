@@ -18,9 +18,9 @@ namespace H2MLauncher.UI
             DataContext = _viewModel = serverBrowserViewModel;
 
             ICollectionView collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
-            collectionView.Filter = o => _viewModel.ServerFilter((IServerViewModel)o);
+            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
             collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
-            collectionView.SortDescriptions.Add(new SortDescription(nameof(IServerViewModel.Ping), ListSortDirection.Ascending));
+            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
@@ -72,7 +72,7 @@ namespace H2MLauncher.UI
                 return;
             }
 
-            if (row.DataContext is not IServerViewModel serverVM)
+            if (row.DataContext is not ServerViewModel serverVM)
             {
                 return;
             }

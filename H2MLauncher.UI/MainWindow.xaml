@@ -134,12 +134,12 @@
                 <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
                             Grid.Row="2" Margin="0,10,0,5" Opacity="0.82">
                     <TabControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
+                        <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                             <TextBlock Text="{Binding TabName}"/>
                         </DataTemplate>
                     </TabControl.ItemTemplate>
                     <TabControl.ContentTemplate>
-                        <DataTemplate DataType="{x:Type vm:ServerTabViewModel}">
+                        <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                             <local:CustomDataGrid 
                                 x:Name="serverDataGrid" ItemsSource="{Binding Servers}" 
                                 Grid.Row="2"

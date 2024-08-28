@@ -6,16 +6,34 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.ViewModels;
 
-public sealed partial class ServerTabViewModel : ServerTabViewModel<IServerViewModel>
+public interface IServerTabViewModel
 {
-    private ServerTabViewModel() : base(string.Empty, null)
-    {
-    }
+    string TabName { get; }
+
+    int TotalServers { get; }
+
+    int TotalPlayers { get; }
+
+    ServerViewModel? SelectedServer { get; }
+
+    IEnumerable<ServerViewModel> Servers { get; }
 }
 
-public partial class ServerTabViewModel<T> : ObservableObject where T : IServerViewModel
+public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel where TServerViewModel : ServerViewModel
 {
-    private readonly Action<IServerViewModel> _onServerJoin;
+    new TServerViewModel? SelectedServer { get; }
+
+    new ICollection<TServerViewModel> Servers { get; }
+
+    IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; }
+
+    IRelayCommand<TServerViewModel> JoinServerCommand { get; }
+}
+
+public partial class ServerTabViewModel<TServerViewModel> : ObservableObject, IServerTabViewModel<TServerViewModel>
+    where TServerViewModel : ServerViewModel
+{
+    private readonly Action<ServerViewModel> _onServerJoin;
 
     [ObservableProperty]
     private string _tabName = "";
@@ -28,15 +46,19 @@ public partial class ServerTabViewModel<T> : ObservableObject where T : IServerV
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
-    private T? _selectedServer;
+    private TServerViewModel? _selectedServer;
 
-    public ObservableCollection<T> Servers { get; } = [];
+    public ObservableCollection<TServerViewModel> Servers { get; } = [];
+    ICollection<TServerViewModel> IServerTabViewModel<TServerViewModel>.Servers => Servers;
+    IEnumerable<ServerViewModel> IServerTabViewModel.Servers => Servers;
 
-    public required IRelayCommand<IServerViewModel> ToggleFavouriteCommand { get; init; }
+    public required IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; init; }
 
-    public IRelayCommand<IServerViewModel> JoinServerCommand { get; init; }
+    public IRelayCommand<TServerViewModel> JoinServerCommand { get; init; }
 
-    public ServerTabViewModel(string tabName, Action<IServerViewModel> onServerJoin)
+    ServerViewModel? IServerTabViewModel.SelectedServer => SelectedServer;
+
+    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin)
     {
         TabName = tabName;
 
@@ -44,7 +66,7 @@ public partial class ServerTabViewModel<T> : ObservableObject where T : IServerV
 
         _onServerJoin = onServerJoin;
 
-        JoinServerCommand = new RelayCommand<IServerViewModel>((server) =>
+        JoinServerCommand = new RelayCommand<TServerViewModel>((server) =>
         {
             server ??= SelectedServer;
             if (server is not null)
@@ -60,37 +82,17 @@ public partial class ServerTabViewModel<T> : ObservableObject where T : IServerV
         if (e.Action is NotifyCollectionChangedAction.Add)
         {
             TotalServers += e.NewItems!.Count;
-            TotalPlayers += e.NewItems!.OfType<T>().Sum(s => s.ClientNum);
+            TotalPlayers += e.NewItems!.OfType<TServerViewModel>().Sum(s => s.ClientNum);
         }
         else if (e.Action is NotifyCollectionChangedAction.Remove)
         {
             TotalServers -= e.OldItems!.Count;
-            TotalPlayers -= e.OldItems!.OfType<T>().Sum(s => s.ClientNum);
+            TotalPlayers -= e.OldItems!.OfType<TServerViewModel>().Sum(s => s.ClientNum);
         }
         else if (e.Action is NotifyCollectionChangedAction.Reset)
         {
             TotalServers = Servers.Count;
             TotalPlayers = Servers.Sum(s => s.ClientNum);
         }
-    }
-
-    public static implicit operator ServerTabViewModel<T>(ServerTabViewModel<ServerViewModel> v)
-    {
-        ServerTabViewModel<T> s = new(v.TabName, v._onServerJoin)
-        {
-            ToggleFavouriteCommand = v.ToggleFavouriteCommand
-        };
-
-        return s;
-    }
-
-    public static implicit operator ServerTabViewModel<T>(ServerTabViewModel<RecentServerViewModel> v)
-    {
-        ServerTabViewModel<T> s = new(v.TabName, v._onServerJoin)
-        {
-            ToggleFavouriteCommand = v.ToggleFavouriteCommand
-        };
-
-        return s;
     }
 }
