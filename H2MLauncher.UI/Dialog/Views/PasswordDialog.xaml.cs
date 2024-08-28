@@ -11,7 +11,6 @@ namespace H2MLauncher.UI
         public PasswordDialog()
         {
             InitializeComponent();
-
         }
         private void OK_Click(object sender, RoutedEventArgs e)
         {
@@ -19,15 +18,15 @@ namespace H2MLauncher.UI
                 return;
 
             viewModel.Password = PasswordInput.Password;
-
-            Window.GetWindow(this).DialogResult = true;
-            Window.GetWindow(this).Close();
+            viewModel.CloseCommand.Execute(true);
         }
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            Window.GetWindow(this).DialogResult = false;
-            Window.GetWindow(this).Close();
+            if (this.DataContext is not PasswordViewModel viewModel)
+                return;
+
+            viewModel.CloseCommand.Execute(false);
         }
     }
 }

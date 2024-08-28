@@ -448,12 +448,16 @@ public partial class ServerBrowserViewModel : ObservableObject
         if (serverViewModel.IsPrivate)
         {
             _passwordViewModel = new();
-            _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+
+            bool? result = _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+
             password = _passwordViewModel.Password;
 
-            //Do not continue joining the server
-            if (string.IsNullOrEmpty(password))           
-                return;           
+            // Do not continue joining the server
+            if (result is null || result == false)
+                return;
+
+
         }
 
         StatusText = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password)

@@ -134,7 +134,7 @@ namespace H2MLauncher.Core.Services
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
 
-            if (!String.IsNullOrEmpty(password))
+            if (password is not null)
             {
                 connectCommand += $";password {password}";
             }
