@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Services;
 using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Model;
 
@@ -52,7 +53,9 @@ namespace H2MLauncher.UI
         }
 
         private TabsEnum _selectedTab;
-        
+
+        private IPasswordDialogService _passwordDialogService;
+
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();

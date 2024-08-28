@@ -49,6 +49,7 @@
         <local:HostNameColorConverter x:Key="HostNameColorConverter" />
         <local:PingColorConverter x:Key="PingColorConverter"/>
         <local:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
+        <local:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
 
         <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
@@ -196,6 +197,24 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
+                            <DataGridTemplateColumn Header="" CanUserResize="False" SortMemberPath="IsPrivate">
+                                <DataGridTemplateColumn.HeaderStyle>
+                                    <Style TargetType="DataGridColumnHeader">
+                                        <Setter Property="Padding" Value="0"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
+                                        <Setter Property="Background" Value="Transparent"/>
+                                    </Style>
+                                </DataGridTemplateColumn.HeaderStyle>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BooleanToPrivateStatusConverter}}" 
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+
+
                             <DataGridTextColumn Header="Map" Binding="{Binding Map}" MinWidth="100" MaxWidth="200"/>
                             <DataGridTextColumn Header="Mode" Binding="{Binding GameType}" CanUserResize="False"/>
                             <DataGridTextColumn Header="Players" 
@@ -238,8 +257,6 @@
                             </DataGridTextColumn>
                         </DataGrid.Columns>
                     </DataGrid>
-
-
                 </TabItem>
                 <TabItem Header="Favourites">
                     <DataGrid x:Name="serverDataGridFavorite" ItemsSource="{Binding FavoriteServers}" 
