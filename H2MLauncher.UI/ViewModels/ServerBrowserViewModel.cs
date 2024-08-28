@@ -187,7 +187,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
     }
 
-    private bool TryAddNewTab<TServerViewModel>(ServerTabViewModel<TServerViewModel> tabViewModel)
+    private bool TryAddNewTab<TServerViewModel>(IServerTabViewModel<TServerViewModel> tabViewModel)
         where TServerViewModel : ServerViewModel
     {
         if (ServerTabs.Any(tab => tab.TabName.Equals(tabViewModel.TabName, StringComparison.Ordinal)))
