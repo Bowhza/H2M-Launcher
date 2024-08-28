@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Reflection;
+using System.Security.Policy;
 using System.Windows;
 
 using Awesome.Net.WritableOptions.Extensions;
@@ -7,11 +8,12 @@ using Awesome.Net.WritableOptions.Extensions;
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
-using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.ViewModels;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 using Serilog;
 
@@ -19,7 +21,7 @@ namespace H2MLauncher.UI
 {
     public partial class App : Application
     {
-        public IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
@@ -27,7 +29,7 @@ namespace H2MLauncher.UI
             InitializeLogging();
             CreateNeededConfiguration();
             IConfigurationRoot config = BuildConfiguration();
-            
+
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection, config);
 
@@ -54,7 +56,6 @@ namespace H2MLauncher.UI
             File.WriteAllText(userFavoritesFilePath, "[]");
         }
 
-
         private static void InitializeLogging()
         {
             Log.Logger = new LoggerConfiguration()
@@ -78,11 +79,6 @@ namespace H2MLauncher.UI
 
             services.AddLogging(builder => builder.AddSerilog());
 
-            services.AddSingleton<DialogViewModel>((s) =>
-            {
-                return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
-            });
-
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
 
@@ -90,7 +86,19 @@ namespace H2MLauncher.UI
             services.AddHttpClient<H2MLauncherService>();
 
             services.AddTransient<RaidMaxService>();
-            services.AddHttpClient<RaidMaxService>();
+            services.AddHttpClient<RaidMaxService>((sp, httpClient) =>
+            {
+                IOptions<H2MLauncherSettings> options = sp.GetRequiredService<IOptions<H2MLauncherSettings>>();
+
+                if (Uri.TryCreate(options.Value.IW4MMasterServerUrl, UriKind.Absolute, out Uri? baseUrl))
+                {
+                    httpClient.BaseAddress = baseUrl;
+                }
+                else
+                {
+                    throw new Exception("Invalid master server url in settings.");
+                }
+            });
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();

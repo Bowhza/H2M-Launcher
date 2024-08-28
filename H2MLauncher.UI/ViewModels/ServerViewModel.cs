@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace H2MLauncher.Core.ViewModels
+namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerViewModel : ObservableObject
     {
@@ -25,13 +25,17 @@ namespace H2MLauncher.Core.ViewModels
         [ObservableProperty]
         private string _map = "";
 
-
         [ObservableProperty]
         private bool _isFavorite = false;
 
         [ObservableProperty]
         private string _gameType = "";
 
+        [ObservableProperty]
+        private string _mapDisplayName = "";
+
+        [ObservableProperty]
+        private string _gameTypeDisplayName = "";
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(Occupation))]

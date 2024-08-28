@@ -1,0 +1,58 @@
+﻿<UserControl x:Class="H2MLauncher.UI.View.Controls.MagicNoSelectDropDownControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:H2MLauncher.UI.View.Controls"
+             x:Name="Root"
+             mc:Ignorable="d">
+
+    <Grid>
+        <ToggleButton Template="{StaticResource ComboBoxToggleButton}"
+                    x:Name="ToggleButton" 
+                    Grid.Column="2" 
+                    Content="{Binding ElementName=Root, Path=Text}"
+                    IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, ElementName=Root}"
+                    Focusable="false" ClickMode="Release" HorizontalContentAlignment="Left" >
+        </ToggleButton>
+        <ContentPresenter Name="ContentSite" IsHitTestVisible="False" Content="{Binding Text, ElementName=Root}"
+                            Margin="3,3,23,3"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Left" />
+        <Popup 
+                    Name="Popup"
+                    Placement="Bottom"                        
+                    AllowsTransparency="True" 
+                    Focusable="False" 
+                    IsOpen="{Binding ElementName=Root, Path=IsDropDownOpen, Mode=TwoWay}"
+                    StaysOpen="False"
+                    PopupAnimation="Slide">
+            <Grid 
+                        Name="DropDown"
+                        SnapsToDevicePixels="True"                                              
+                        MaxHeight="{Binding ElementName=Root, Path=MaxDropDownHeight}"
+                        MinWidth="{Binding ElementName=Root, Path=ActualWidth}">
+                
+                <Border 
+                    x:Name="DropDownBorder"
+                    Background="#373737"
+
+                    BorderThickness="1"
+                    BorderBrush="Transparent"/>
+                <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True" VerticalScrollBarVisibility="Hidden">
+                    <ItemsControl 
+                            ItemsSource="{Binding ElementName=Root, Path=ItemsSource}"
+                            ItemTemplate="{Binding ItemTemplate, ElementName=Root}"                            
+                            SnapsToDevicePixels="True"
+                            Foreground="White">
+                        <ItemsControl.Template>
+                            <ControlTemplate>
+                                <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                            </ControlTemplate>
+                        </ItemsControl.Template>
+                    </ItemsControl>
+                </ScrollViewer>
+            </Grid>
+        </Popup>
+    </Grid>
+</UserControl>
