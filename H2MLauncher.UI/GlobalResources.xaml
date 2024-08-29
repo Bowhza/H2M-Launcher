@@ -295,16 +295,7 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ComboBox}">
                     <Grid>
-                        <!--<Grid.ColumnDefinitions>
-                     <ColumnDefinition Width="*"/>
-                     <ColumnDefinition Width="Auto"/>
-                 </Grid.ColumnDefinitions>-->
                         <Border Name="Border" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
-                        <!--<ToggleButton Name="ToggleButton2" Focusable="False" IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press" Grid.ColumnSpan="2" Background="Transparent"/>
-                 -->
-                        <!-- Allows clicking anywhere on the combobox, not only the visible button on the right -->
-                        <!--
-                 <ToggleButton Focusable="false" Grid.Column="1" x:Name="ToggleButton" IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press" Template="{StaticResource ComboBoxToggleButton}"/>-->
                         <ToggleButton 
                              Name="ToggleButton" 
                              Template="{StaticResource ComboBoxToggleButton}" 
