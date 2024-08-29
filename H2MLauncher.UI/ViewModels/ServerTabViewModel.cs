@@ -1,12 +1,66 @@
 ﻿using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Data;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.ViewModels;
 
-public partial class ServerTabViewModel : ObservableObject
+public interface IServerTabViewModel
 {
+    string TabName { get; }
+
+    int TotalServers { get; }
+
+    int TotalPlayers { get; }
+
+    ServerViewModel? SelectedServer { get; }
+
+    IEnumerable<ServerViewModel> Servers { get; }
+
+    ICollectionView ServerCollectionView { get; }
+}
+
+public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel where TServerViewModel : ServerViewModel
+{
+    new TServerViewModel? SelectedServer { get; }
+
+    new ICollection<TServerViewModel> Servers { get; }
+
+    IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; }
+
+    IRelayCommand<TServerViewModel> JoinServerCommand { get; }
+}
+
+public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
+{
+    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin, 
+        Predicate<ServerViewModel>? filterPredicate = null) : base(tabName, onServerJoin, filterPredicate)
+    {
+    }
+}
+
+public class RecentServerTabViewModel : ServerTabViewModel<ServerViewModel>
+{
+    public RecentServerTabViewModel(Action<ServerViewModel> onServerJoin, 
+        Predicate<ServerViewModel>? filterPredicate = null) : base("Recents", onServerJoin, filterPredicate)
+    {
+    }
+
+    protected override SortDescriptionCollection DefaultSorting { get; } = [
+        new SortDescription(nameof(ServerViewModel.SortPath), ListSortDirection.Descending),
+        new SortDescription(nameof(ServerViewModel.ClientNum), ListSortDirection.Descending),
+        new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending)
+    ];
+}
+
+public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableObject, IServerTabViewModel<TServerViewModel>
+    where TServerViewModel : ServerViewModel
+{
+    private readonly Action<ServerViewModel> _onServerJoin;
+
     [ObservableProperty]
     private string _tabName = "";
 
@@ -18,44 +72,85 @@ public partial class ServerTabViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
-    private ServerViewModel? _selectedServer;
+    private TServerViewModel? _selectedServer;
 
-    public ObservableCollection<ServerViewModel> Servers { get; } = [];
+    private readonly CollectionViewSource _collectionViewSource;
 
-    public required IRelayCommand<ServerViewModel> ToggleFavoriteCommand { get; init; }
+    public ObservableCollection<TServerViewModel> Servers { get; } = [];
+    ICollection<TServerViewModel> IServerTabViewModel<TServerViewModel>.Servers => Servers;
+    IEnumerable<ServerViewModel> IServerTabViewModel.Servers => Servers;
 
-    public IRelayCommand<ServerViewModel> JoinServerCommand { get; init; }
+    public ICollectionView ServerCollectionView => _collectionViewSource.View;
 
-    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin)
+    public required IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; set; }
+
+    public IRelayCommand<TServerViewModel> JoinServerCommand { get; set; }
+
+    ServerViewModel? IServerTabViewModel.SelectedServer => SelectedServer;
+
+    protected virtual IEnumerable<SortDescription> DefaultSorting { get; } = [
+        new SortDescription(nameof(ServerViewModel.ClientNum), ListSortDirection.Descending),
+        new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending)
+    ];
+
+    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin, Predicate<TServerViewModel>? filterPredicate = null)
     {
         TabName = tabName;
 
+        // initalize collection view
+        _collectionViewSource = new()
+        {
+            Source = Servers,
+        };
+
+        // apply default sorting
+        foreach (SortDescription sortDescriptor in DefaultSorting)
+        {
+            _collectionViewSource.SortDescriptions.Add(sortDescriptor);
+        }
+
+        // set filter function
+        if (filterPredicate is not null)
+        {
+            _collectionViewSource.View.Filter = (o) =>
+            {
+                if (o is not TServerViewModel serverViewModel)
+                {
+                    return false;
+                }
+
+                return filterPredicate(serverViewModel);
+            };
+        }
+
         Servers.CollectionChanged += OnServersCollectionChanged;
 
-        JoinServerCommand = new RelayCommand<ServerViewModel>((server) =>
+        _onServerJoin = onServerJoin;
+
+        JoinServerCommand = new RelayCommand<TServerViewModel>((server) =>
         {
             server ??= SelectedServer;
             if (server is not null)
             {
-                onServerJoin.Invoke(server);
+                _onServerJoin.Invoke(server);
             }
 
         }, (server) => (server ?? SelectedServer) is not null);
     }
 
-    private void OnServersCollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+    private void OnServersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
     {
-        if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Add)
+        if (e.Action is NotifyCollectionChangedAction.Add)
         {
             TotalServers += e.NewItems!.Count;
-            TotalPlayers += e.NewItems!.OfType<ServerViewModel>().Sum(s => s.ClientNum);
+            TotalPlayers += e.NewItems!.OfType<TServerViewModel>().Sum(s => s.ClientNum);
         }
-        else if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Remove)
+        else if (e.Action is NotifyCollectionChangedAction.Remove)
         {
             TotalServers -= e.OldItems!.Count;
-            TotalPlayers -= e.OldItems!.OfType<ServerViewModel>().Sum(s => s.ClientNum);
+            TotalPlayers -= e.OldItems!.OfType<TServerViewModel>().Sum(s => s.ClientNum);
         }
-        else if (e.Action is System.Collections.Specialized.NotifyCollectionChangedAction.Reset)
+        else if (e.Action is NotifyCollectionChangedAction.Reset)
         {
             TotalServers = Servers.Count;
             TotalPlayers = Servers.Sum(s => s.ClientNum);

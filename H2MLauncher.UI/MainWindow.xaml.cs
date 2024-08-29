@@ -15,12 +15,9 @@ namespace H2MLauncher.UI
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+
             DataContext = _viewModel = serverBrowserViewModel;
-            
-            var collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.SelectedTab.Servers);
-            collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
-            collectionView.SortDescriptions.Add(new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending));
+
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
@@ -29,11 +26,7 @@ namespace H2MLauncher.UI
 
         private void ServerBrowserViewModel_ServerFilterChanged()
         {
-            var collectionView = CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers);
-            if (collectionView is not null)
-            {
-                collectionView.Refresh();
-            }
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -54,7 +47,7 @@ namespace H2MLauncher.UI
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers).Refresh();
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -86,12 +79,6 @@ namespace H2MLauncher.UI
         private void DataGridRow_GotFocus(object sender, RoutedEventArgs e)
         {
             ((DataGridRow)sender).IsSelected = true;
-        }
-
-        private void ComboBoxItem_Selected(object sender, RoutedEventArgs e)
-        {
-            ((ComboBoxItem)sender).IsSelected = false;
-            e.Handled = true;
         }
     }
 }

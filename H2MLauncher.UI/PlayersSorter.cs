@@ -13,7 +13,7 @@ namespace H2MLauncher.UI
                 return 0;
             }
 
-            var clientResult = Comparer<int>.Default.Compare(x.ClientNum, y.ClientNum);
+            int clientResult = Comparer<int>.Default.Compare(x.ClientNum, y.ClientNum);
             if (clientResult != 0)
             {
                 return clientResult;

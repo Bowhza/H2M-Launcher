@@ -156,10 +156,15 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool JoinServer(string ip, string port)
-        {
+        public bool JoinServer(string ip, string port,string? password=null)
+        {                       
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
+
+            if (password is not null)
+            {
+                connectCommand += $";password {password}";
+            }
 
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)
@@ -211,6 +216,10 @@ namespace H2MLauncher.Core.Services
             // Set H2M to foreground window
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
             SetForegroundWindow(h2mModProcess.MainWindowHandle);
+
+
+            // TODO: confirm the user joined this server
+
 
             return true;
         }

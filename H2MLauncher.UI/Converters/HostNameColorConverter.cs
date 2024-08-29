@@ -6,8 +6,11 @@ using System.Windows.Media;
 
 namespace H2MLauncher.UI.Converters;
 
-public class HostNameColorConverter : IValueConverter
+public partial class HostNameColorConverter : IValueConverter
 {
+    private static readonly FontFamily Font = new("Consolas");
+    private static readonly SolidColorBrush LighterBlueBrush = new(Color.FromRgb(37, 62, 235));
+
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
         if (value is not string hostname)
@@ -16,7 +19,7 @@ public class HostNameColorConverter : IValueConverter
         }
 
         List<Run> runs = [];
-        MatchCollection matches = Regex.Matches(hostname, @"(\^\d|\^\:)([^\^]*?)(?=\^\d|\^:|$)");
+        MatchCollection matches = ColorRegex().Matches(hostname);
         if (matches.Count != 0)
         {
             if (matches[0].Index != 0)
@@ -26,7 +29,7 @@ public class HostNameColorConverter : IValueConverter
                     Text = hostname[..matches[0].Index],
                     Foreground = Brushes.White,
                     FlowDirection = System.Windows.FlowDirection.LeftToRight,
-                    FontFamily = new FontFamily("Consolas"),
+                    FontFamily = Font,
                 });
             }
             foreach (Match match in matches)
@@ -34,15 +37,15 @@ public class HostNameColorConverter : IValueConverter
                 string text = match.Groups[1].Value;
                 Brush brush = text switch
                 {
-                    "^0" => Brushes.Black,
+                    "^0" => Brushes.DimGray,
                     "^1" => Brushes.Red,
                     "^2" => Brushes.Green,
                     "^3" => Brushes.Yellow,
-                    "^4" => Brushes.Blue,
+                    "^4" => LighterBlueBrush,
                     "^5" => Brushes.Cyan,
                     "^6" => Brushes.Magenta,
                     "^7" => Brushes.White,
-                    "^8" => Brushes.Black,
+                    "^8" => Brushes.DimGray,
                     _ => Brushes.White, // ^: rainbow
                 };
                 runs.Add(new Run()
@@ -50,7 +53,7 @@ public class HostNameColorConverter : IValueConverter
                     Text = match.Groups[2].Value,
                     Foreground = brush,
                     FlowDirection = System.Windows.FlowDirection.LeftToRight,
-                    FontFamily = new FontFamily("Consolas"),
+                    FontFamily = Font,
                 });
             }
         }
@@ -61,7 +64,7 @@ public class HostNameColorConverter : IValueConverter
                 Text = hostname,
                 Foreground = Brushes.White,
                 FlowDirection = System.Windows.FlowDirection.LeftToRight,
-                FontFamily = new FontFamily("Consolas")
+                FontFamily = Font
             });
         }
         return runs.ToArray();
@@ -71,4 +74,7 @@ public class HostNameColorConverter : IValueConverter
     {
         throw new NotImplementedException();
     }
+
+    [GeneratedRegex(@"(\^\d|\^\:)([^\^]*?)(?=\^\d|\^:|$)")]
+    private static partial Regex ColorRegex();
 }
