@@ -190,6 +190,10 @@ namespace H2MLauncher.Core.Services
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
             SetForegroundWindow(h2mModProcess.MainWindowHandle);
 
+
+            // TODO: confirm the user joined this server
+
+
             return true;
         }
 

@@ -8,6 +8,8 @@ namespace H2MLauncher.Core.Settings
 
         public string IW4MMasterServerUrl { get; set; } = string.Empty;
 
-        public List<UserFavourite> FavouriteServers { get; set; } = [];
+        public List<SimpleServerInfo> FavouriteServers { get; set; } = [];
+
+        public List<RecentServerInfo> RecentServers { get; set; } = [];
     }
 }

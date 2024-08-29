@@ -1,6 +1,6 @@
 ﻿namespace H2MLauncher.Core.Models
 {
-    public class UserFavourite
+    public class SimpleServerInfo
     {
         public required string ServerIp { get; set; }
         public required int ServerPort { get; set; }
