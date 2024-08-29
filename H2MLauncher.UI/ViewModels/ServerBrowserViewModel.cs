@@ -1,5 +1,6 @@
 ﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 
@@ -55,14 +56,14 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecentsSelected))]
-    private ServerTabViewModel<IServerViewModel> _selectedTab;
+    private IServerTabViewModel _selectedTab;
 
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
-    private ServerTabViewModel<IServerViewModel> AllServersTab { get; set; }
-    private ServerTabViewModel<IServerViewModel> FavouritesTab { get; set; }
-    private ServerTabViewModel<IServerViewModel> RecentsTab { get; set; }
-    public ObservableCollection<ServerTabViewModel<IServerViewModel>> ServerTabs { get; set; } = [];
+    private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
+    private ServerTabViewModel<ServerViewModel> FavouritesTab { get; set; }
+    private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
+    public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
 
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter;
@@ -80,7 +81,7 @@ public partial class ServerBrowserViewModel : ObservableObject
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
 
-    public ObservableCollection<IServerViewModel> Servers { get; set; } = [];
+    public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
     public ServerBrowserViewModel(
         RaidMaxService raidMaxService,
@@ -113,7 +114,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
         CheckUpdateStatusCommand = new AsyncRelayCommand(CheckUpdateStatusAsync);
-        CopyToClipBoardCommand = new RelayCommand<IServerViewModel>(DoCopyToClipBoardCommand);
+        CopyToClipBoardCommand = new RelayCommand<ServerViewModel>(DoCopyToClipBoardCommand);
         SaveServersCommand = new AsyncRelayCommand(SaveServersAsync);
         UpdateLauncherCommand = new AsyncRelayCommand(DoUpdateLauncherCommand, () => UpdateStatusText != "");
         OpenReleaseNotesCommand = new RelayCommand(DoOpenReleaseNotesCommand);
@@ -121,29 +122,31 @@ public partial class ServerBrowserViewModel : ObservableObject
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
 
-        ServerTabViewModel<IServerViewModel> allServersTab = new ServerTabViewModel<ServerViewModel>("All Servers", JoinServer)
-        {
-            ToggleFavouriteCommand = new RelayCommand<IServerViewModel>(ToggleFavorite),
-        };
-        AllServersTab = TryAddNewTab(allServersTab) 
-            ? allServersTab 
-            : throw new Exception("Could not add all servers tab");
 
-        ServerTabViewModel<IServerViewModel> favouritesTab = new ServerTabViewModel<ServerViewModel>("Favourites", JoinServer)
+        if (!TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
         {
-            ToggleFavouriteCommand = new RelayCommand<IServerViewModel>(ToggleFavorite),
-        };
-        FavouritesTab = TryAddNewTab(favouritesTab)
-            ? favouritesTab
-            : throw new Exception("Could not add favourites tab");
+            throw new Exception("Could not add all servers tab");
+        }
 
-        ServerTabViewModel<IServerViewModel> recentsTab = new ServerTabViewModel<RecentServerViewModel>("Recents", JoinServer)
+        if (!TryAddNewTab("Favourites", out ServerTabViewModel? favouritesTab))
         {
-            ToggleFavouriteCommand = new RelayCommand<IServerViewModel>(ToggleFavorite),
+            throw new Exception("Could not add favourites tab");
+        }
+
+        RecentsTab = new RecentServerTabViewModel(JoinServer, AdvancedServerFilter.ApplyFilter)
+        {
+            ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite)
         };
-        RecentsTab = TryAddNewTab(recentsTab)
-            ? recentsTab
-            : throw new Exception("Could not add recents tab");
+
+        if (!TryAddNewTab(RecentsTab))
+        {
+            throw new Exception("Could not add recents tab");
+        }
+
+        AllServersTab = allServersTab;
+        FavouritesTab = favouritesTab;
+
+        SelectedTab = ServerTabs.First();
 
         foreach (IW4MObjectMap oMap in resoureceOptions.Value.MapPacks.SelectMany(mappack => mappack.Maps))
         {
@@ -154,8 +157,6 @@ public partial class ServerBrowserViewModel : ObservableObject
         {
             _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
         }
-        
-        SelectedTab = ServerTabs.First();
     }
 
     private void ShowSettings()
@@ -186,12 +187,30 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
     }
 
-    private bool TryAddNewTab(ServerTabViewModel<IServerViewModel> tabViewModel)
+    private bool TryAddNewTab<TServerViewModel>(IServerTabViewModel<TServerViewModel> tabViewModel)
+        where TServerViewModel : ServerViewModel
     {
         if (ServerTabs.Any(tab => tab.TabName.Equals(tabViewModel.TabName, StringComparison.Ordinal)))
         {
             return false;
         }
+
+        ServerTabs.Add(tabViewModel);
+        return true;
+    }
+
+    private bool TryAddNewTab(string tabName, [MaybeNullWhen(false)] out ServerTabViewModel tabViewModel)
+    {
+        if (ServerTabs.Any(tab => tab.TabName.Equals(tabName, StringComparison.Ordinal)))
+        {
+            tabViewModel = null;
+            return false;
+        }
+
+        tabViewModel = new ServerTabViewModel(tabName, JoinServer, AdvancedServerFilter.ApplyFilter)
+        {
+            ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite),
+        };
 
         ServerTabs.Add(tabViewModel);
         return true;
@@ -222,28 +241,18 @@ public partial class ServerBrowserViewModel : ObservableObject
     }
 
     // Method to add a recent to the settings.
-    public void AddRecentToSettings(RecentServerInfo recent)
+    public void AddOrUpdateRecentServerInSettings(RecentServerInfo recent)
     {
         List<RecentServerInfo> recents = GetRecentsFromSettings();
 
-        // Add the new recent to the list.
-        recents.Add(recent);
-
         int recentLimit = 30;
 
-        // Sort recents by Joined DateTime
-        if (recents.Count > recentLimit)
-        {
-            recents = [.. recents.OrderByDescending(r => r.Joined).Take(recentLimit)];
-            // Remove from RecentsTab Server collection
-            List<RecentServerViewModel> recentsToDelete = RecentsTab.Servers
-                .OfType<RecentServerViewModel>()
-                .OrderByDescending(r => r.Joined)
-                .Skip(recentLimit)
-                .ToList();
+        // Remove existing servers with the same IP and port
+        int removed = recents.RemoveAll(s => s.ServerIp == recent.ServerIp && s.ServerPort == recent.ServerPort);
 
-            recentsToDelete.ForEach((d) => RecentsTab.Servers.Remove(d));
-        }
+        // Add the server with the updated date to the start of the list.
+        // If the list exceeds the max size, remove the oldest entries (which are now at the end)
+        recents = [recent, .. recents.OrderByDescending(r => r.Joined).Take(recentLimit - 1)]; ;
 
         // Save the updated list to the settings.
         SaveRecents(recents);
@@ -279,7 +288,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         }, true);
     }
 
-    private void ToggleFavorite(IServerViewModel? server)
+    private void ToggleFavorite(ServerViewModel? server)
     {
         if (server is null)
             return;
@@ -299,7 +308,7 @@ public partial class ServerBrowserViewModel : ObservableObject
             // Add to FavoriteServers collection if not already added
             if (!FavouritesTab.Servers.Any(s => s.Ip == server.Ip && s.Port == server.Port))
             {
-                FavouritesTab.Servers.Add((ServerViewModel)server);
+                FavouritesTab.Servers.Add(server);
             }
 
             return;
@@ -309,7 +318,32 @@ public partial class ServerBrowserViewModel : ObservableObject
         RemoveFavoriteFromSettings(server.Ip, server.Port);
 
         // Remove from FavoriteServers collection
-        FavouritesTab.Servers.Remove((ServerViewModel)server);
+        FavouritesTab.Servers.Remove(server);
+    }
+
+    private void UpdateRecentJoinTime(ServerViewModel? server, DateTime joinedTime)
+    {
+        if (server is null)
+            return;
+
+        server.Joined = joinedTime;
+
+        // Update in settings
+        AddOrUpdateRecentServerInSettings(new RecentServerInfo
+        {
+            ServerIp = server.Ip,
+            ServerName = server.HostName,
+            ServerPort = server.Port,
+            Joined = joinedTime
+        });
+
+        // Add to RecentServers collection if not already added
+        if (!RecentsTab.Servers.Any(s => s.Ip == server.Ip && s.Port == server.Port))
+        {
+            RecentsTab.Servers.Add(server);
+        }
+
+        return;
     }
 
     private void DoRestartCommand()
@@ -340,7 +374,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         }, CancellationToken.None);
     }
 
-    private void DoCopyToClipBoardCommand(IServerViewModel? server)
+    private void DoCopyToClipBoardCommand(ServerViewModel? server)
     {
         if (server is null)
         {
@@ -356,7 +390,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         StatusText = $"Copied to clipboard";
     }
 
-    public bool ServerFilter(IServerViewModel server)
+    public bool ServerFilter(ServerViewModel server)
     {
         return AdvancedServerFilter.ApplyFilter(server);
     }
@@ -442,11 +476,11 @@ public partial class ServerBrowserViewModel : ObservableObject
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
                 bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
-                List<RecentServerInfo> recents = userRecents.Where(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port).ToList();
+                RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
 
                 _mapMap.TryGetValue(gameServer.MapName, out string? mapDisplayName);
                 _gameTypeMap.TryGetValue(gameServer.GameType, out string? gameTypeDisplayName);
-                
+
                 ServerViewModel serverViewModel = new()
                 {
                     Id = server.Id,
@@ -475,32 +509,10 @@ public partial class ServerBrowserViewModel : ObservableObject
                     FavouritesTab.Servers.Add(serverViewModel);
                 }
 
-                if (recents.Count != 0)
+                if (recentInfo is not null)
                 {
-                    foreach (RecentServerInfo rec in recents)
-                    {
-                        RecentServerViewModel recentServerViewModel = new() 
-                        {
-                            Id = serverViewModel.Id,
-                            Ip = serverViewModel.Ip,
-                            Port = serverViewModel.Port,
-                            HostName = serverViewModel.HostName,
-                            ClientNum = serverViewModel.ClientNum,
-                            MaxClientNum = serverViewModel.MaxClientNum,
-                            Game = serverViewModel.Game,
-                            GameType = serverViewModel.GameType,
-                            GameTypeDisplayName = serverViewModel.GameTypeDisplayName,
-                            Map = serverViewModel.Map,
-                            MapDisplayName = serverViewModel.MapDisplayName,
-                            Version = serverViewModel.Version,
-                            IsPrivate = serverViewModel.IsPrivate,
-                            Ping = serverViewModel.Ping,
-                            BotsNum = serverViewModel.BotsNum,
-                            IsFavorite = serverViewModel.IsFavorite,
-                            Joined = rec.Joined
-                        };
-                        RecentsTab.Servers.Add(recentServerViewModel);
-                    }
+                    serverViewModel.Joined = recentInfo.Joined;
+                    RecentsTab.Servers.Add(serverViewModel);
                 }
                 // Game server responded -> online
 
@@ -514,26 +526,20 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
     }
 
-    private void JoinServer(IServerViewModel? serverViewModel)
+    private void JoinServer(ServerViewModel? serverViewModel)
     {
         if (serverViewModel is null)
             return;
 
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString());
-        
-        AddRecentToSettings(new RecentServerInfo()
+        if (hasJoined)
         {
-            Joined = DateTime.Now,
-            ServerIp = serverViewModel.Ip,
-            ServerName = serverViewModel.HostName,
-            ServerPort = serverViewModel.Port
-        });
+            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+        }
 
         StatusText = hasJoined
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
-
-        RefreshServersCommand.Execute(this);
     }
 
     private void LaunchH2M()

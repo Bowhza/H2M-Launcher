@@ -2,7 +2,7 @@
 
 namespace H2MLauncher.UI.ViewModels
 {
-    public partial class ServerViewModel : ObservableObject, IServerViewModel
+    public partial class ServerViewModel : ObservableObject
     {
         [ObservableProperty]
         private double _id;
@@ -55,27 +55,36 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private bool _isPrivate;
 
-        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
-    }
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(LastPlayed))]
+        private DateTime? _joined;
+        public string? SortPath => Joined?.ToString("s");
 
-    public interface IServerViewModel
-    {
-        public double Id { get; set; }
-        public string Version { get; set; }
-        public string Game { get; set; }
-        public string HostName { get; set; }
-        public string Ip { get; set; }
-        public int Port { get; set; }
-        public string GameType { get; set; }
-        public string GameTypeDisplayName { get; set; }
-        public string Map { get; set; }
-        public string MapDisplayName { get; set; }
-        public int ClientNum { get; set; }
-        public int MaxClientNum { get; set; }
-        public int BotsNum { get; set; }
-        public long Ping { get; set; }
-        public bool IsPrivate { get; set; }
-        public string Occupation { get; }
-        public bool IsFavorite { get; set; }
+        public string LastPlayed
+        {
+            get
+            {
+                if (!Joined.HasValue)
+                {
+                    return "Never";
+                }
+
+                string ago = " ago";
+                DateTime now = DateTime.Now;
+                TimeSpan timespan = now - Joined.Value;
+                if (timespan.TotalSeconds < 60)
+                    return $"{(int)timespan.TotalSeconds}s{ago}";
+                if (timespan.TotalMinutes < 60)
+                    return $"{(int)timespan.TotalMinutes}m{ago}";
+                if (timespan.TotalHours < 24)
+                    return $"{(int)timespan.TotalHours}h{ago}";
+                if (timespan.TotalDays < 7)
+                    return $"{(int)timespan.TotalDays}d{ago}";
+                int weeks = (int)(timespan.TotalDays / 7);
+                return $"{weeks}w{ago}";
+            }
+        }
+
+        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
     }
 }

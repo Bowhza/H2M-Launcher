@@ -6,7 +6,7 @@ namespace H2MLauncher.UI
 {
     class PlayersSorter : IComparer
     {
-        public int Compare(IServerViewModel x, IServerViewModel y)
+        public int Compare(ServerViewModel x, ServerViewModel y)
         {
             if (x == null || y == null)
             {
@@ -24,7 +24,7 @@ namespace H2MLauncher.UI
 
         public int Compare(object? x, object? y)
         {
-            if (x is not IServerViewModel vmX || y is not IServerViewModel vmY)
+            if (x is not ServerViewModel vmX || y is not ServerViewModel vmY)
             {
                 return 0;
             }

@@ -1,21 +1,65 @@
 ﻿using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Windows.Data;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.ViewModels;
 
-public sealed partial class ServerTabViewModel : ServerTabViewModel<IServerViewModel>
+public interface IServerTabViewModel
 {
-    private ServerTabViewModel() : base(string.Empty, null)
+    string TabName { get; }
+
+    int TotalServers { get; }
+
+    int TotalPlayers { get; }
+
+    ServerViewModel? SelectedServer { get; }
+
+    IEnumerable<ServerViewModel> Servers { get; }
+
+    ICollectionView ServerCollectionView { get; }
+}
+
+public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel where TServerViewModel : ServerViewModel
+{
+    new TServerViewModel? SelectedServer { get; }
+
+    new ICollection<TServerViewModel> Servers { get; }
+
+    IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; }
+
+    IRelayCommand<TServerViewModel> JoinServerCommand { get; }
+}
+
+public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
+{
+    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin, 
+        Predicate<ServerViewModel>? filterPredicate = null) : base(tabName, onServerJoin, filterPredicate)
     {
     }
 }
 
-public partial class ServerTabViewModel<T> : ObservableObject where T : IServerViewModel
+public class RecentServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
-    private readonly Action<IServerViewModel> _onServerJoin;
+    public RecentServerTabViewModel(Action<ServerViewModel> onServerJoin, 
+        Predicate<ServerViewModel>? filterPredicate = null) : base("Recents", onServerJoin, filterPredicate)
+    {
+    }
+
+    protected override SortDescriptionCollection DefaultSorting { get; } = [
+        new SortDescription(nameof(ServerViewModel.SortPath), ListSortDirection.Descending),
+        new SortDescription(nameof(ServerViewModel.ClientNum), ListSortDirection.Descending),
+        new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending)
+    ];
+}
+
+public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableObject, IServerTabViewModel<TServerViewModel>
+    where TServerViewModel : ServerViewModel
+{
+    private readonly Action<ServerViewModel> _onServerJoin;
 
     [ObservableProperty]
     private string _tabName = "";
@@ -28,23 +72,62 @@ public partial class ServerTabViewModel<T> : ObservableObject where T : IServerV
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
-    private T? _selectedServer;
+    private TServerViewModel? _selectedServer;
 
-    public ObservableCollection<T> Servers { get; } = [];
+    private readonly CollectionViewSource _collectionViewSource;
 
-    public required IRelayCommand<IServerViewModel> ToggleFavouriteCommand { get; init; }
+    public ObservableCollection<TServerViewModel> Servers { get; } = [];
+    ICollection<TServerViewModel> IServerTabViewModel<TServerViewModel>.Servers => Servers;
+    IEnumerable<ServerViewModel> IServerTabViewModel.Servers => Servers;
 
-    public IRelayCommand<IServerViewModel> JoinServerCommand { get; init; }
+    public ICollectionView ServerCollectionView => _collectionViewSource.View;
 
-    public ServerTabViewModel(string tabName, Action<IServerViewModel> onServerJoin)
+    public required IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; set; }
+
+    public IRelayCommand<TServerViewModel> JoinServerCommand { get; set; }
+
+    ServerViewModel? IServerTabViewModel.SelectedServer => SelectedServer;
+
+    protected virtual IEnumerable<SortDescription> DefaultSorting { get; } = [
+        new SortDescription(nameof(ServerViewModel.ClientNum), ListSortDirection.Descending),
+        new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending)
+    ];
+
+    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin, Predicate<TServerViewModel>? filterPredicate = null)
     {
         TabName = tabName;
+
+        // initalize collection view
+        _collectionViewSource = new()
+        {
+            Source = Servers,
+        };
+
+        // apply default sorting
+        foreach (SortDescription sortDescriptor in DefaultSorting)
+        {
+            _collectionViewSource.SortDescriptions.Add(sortDescriptor);
+        }
+
+        // set filter function
+        if (filterPredicate is not null)
+        {
+            _collectionViewSource.View.Filter = (o) =>
+            {
+                if (o is not TServerViewModel serverViewModel)
+                {
+                    return false;
+                }
+
+                return filterPredicate(serverViewModel);
+            };
+        }
 
         Servers.CollectionChanged += OnServersCollectionChanged;
 
         _onServerJoin = onServerJoin;
 
-        JoinServerCommand = new RelayCommand<IServerViewModel>((server) =>
+        JoinServerCommand = new RelayCommand<TServerViewModel>((server) =>
         {
             server ??= SelectedServer;
             if (server is not null)
@@ -60,37 +143,17 @@ public partial class ServerTabViewModel<T> : ObservableObject where T : IServerV
         if (e.Action is NotifyCollectionChangedAction.Add)
         {
             TotalServers += e.NewItems!.Count;
-            TotalPlayers += e.NewItems!.OfType<T>().Sum(s => s.ClientNum);
+            TotalPlayers += e.NewItems!.OfType<TServerViewModel>().Sum(s => s.ClientNum);
         }
         else if (e.Action is NotifyCollectionChangedAction.Remove)
         {
             TotalServers -= e.OldItems!.Count;
-            TotalPlayers -= e.OldItems!.OfType<T>().Sum(s => s.ClientNum);
+            TotalPlayers -= e.OldItems!.OfType<TServerViewModel>().Sum(s => s.ClientNum);
         }
         else if (e.Action is NotifyCollectionChangedAction.Reset)
         {
             TotalServers = Servers.Count;
             TotalPlayers = Servers.Sum(s => s.ClientNum);
         }
-    }
-
-    public static implicit operator ServerTabViewModel<T>(ServerTabViewModel<ServerViewModel> v)
-    {
-        ServerTabViewModel<T> s = new(v.TabName, v._onServerJoin)
-        {
-            ToggleFavouriteCommand = v.ToggleFavouriteCommand
-        };
-
-        return s;
-    }
-
-    public static implicit operator ServerTabViewModel<T>(ServerTabViewModel<RecentServerViewModel> v)
-    {
-        ServerTabViewModel<T> s = new(v.TabName, v._onServerJoin)
-        {
-            ToggleFavouriteCommand = v.ToggleFavouriteCommand
-        };
-
-        return s;
     }
 }
