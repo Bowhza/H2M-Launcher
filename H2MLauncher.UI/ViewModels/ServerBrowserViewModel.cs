@@ -130,7 +130,7 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
 
-        if (TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
+        if (!TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
         {
             throw new Exception("Could not add all servers tab");
         }
@@ -309,7 +309,7 @@ public partial class ServerBrowserViewModel : ObservableObject
     {
         _h2MLauncherOptions.Update(settings =>
         {
-            settings.RecentServers = recents;
+            return settings with { RecentServers = recents };
         }, true);
     }
 
@@ -553,18 +553,18 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     private void JoinServer(ServerViewModel? serverViewModel)
     {
-        string password = null;
+        string? password = null;
 
         if (serverViewModel is null)
             return;
 
         if (serverViewModel.IsPrivate)
         {
-            _passwordViewModel = new();
+            PasswordViewModel = new();
 
-            bool? result = _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+            bool? result = _dialogService.OpenDialog<PasswordDialog>(PasswordViewModel);
 
-            password = _passwordViewModel.Password;
+            password = PasswordViewModel.Password;
 
             // Do not continue joining the server
             if (result is null || result == false)
