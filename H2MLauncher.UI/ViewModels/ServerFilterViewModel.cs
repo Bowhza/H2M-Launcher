@@ -95,12 +95,14 @@ namespace H2MLauncher.UI.ViewModels
                     return item;
                 })];
 
-            MapPacks.Add(new SelectableItem<IW4MMapPack>(new IW4MMapPack() { Name = "Unknown", Id = "unknown", Maps = [] })
+            SelectableItem<IW4MMapPack> unknownMapPack = new(new IW4MMapPack() { Name = "Unknown", Id = "unknown", Maps = [] })
             {
                 Name = "Unknown",
                 IsSelected = settings.SelectedMapPacks?.Any(id =>
-                    id.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true
-            });
+                    id.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true,
+            };
+            unknownMapPack.PropertyChanged += MapPackItem_PropertyChanged;
+            MapPacks.Add(unknownMapPack);
 
             GameModes.Clear();
             GameModes = [.._resourceSettings.GameTypes
@@ -117,12 +119,14 @@ namespace H2MLauncher.UI.ViewModels
                     return item;
                 })];
 
-            GameModes.Add(new SelectableItem<IW4MObjectMap>(new IW4MObjectMap("Unknown", "Unknown"))
+            SelectableItem<IW4MObjectMap> unknownGameMode = new(new IW4MObjectMap("Unknown", "Unknown"))
             {
                 Name = "Unknown",
                 IsSelected = settings.SelectedGameModes?.Any(gameMode =>
                     gameMode.Equals("Unknown", StringComparison.OrdinalIgnoreCase)) ?? true
-            });
+            };
+            unknownGameMode.PropertyChanged += MapPackItem_PropertyChanged;
+            GameModes.Add(unknownGameMode);
 
             foreach (var (keyword, isEnabled) in settings.ExcludeKeywords)
             {

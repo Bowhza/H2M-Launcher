@@ -436,9 +436,12 @@ public partial class ServerBrowserViewModel : ObservableObject
             _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
             string directoryPath = "players2";
+            
             if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
             {
-                directoryPath = Path.Combine(_h2MLauncherOptions.Value.MWRLocation, directoryPath);
+                string? gameDirectory = Path.GetDirectoryName(_h2MLauncherOptions.Value.MWRLocation);
+
+                directoryPath = Path.Combine(gameDirectory ?? "", directoryPath);
             }
 
             string fileName;
