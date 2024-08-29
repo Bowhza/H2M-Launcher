@@ -65,11 +65,13 @@ public partial class ServerBrowserViewModel : ObservableObject
     private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
     public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
 
+
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter;
 
+    [ObservableProperty]
+    private PasswordViewModel _passwordViewModel = new();
     public event Action? ServerFilterChanged;
-
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -528,10 +530,25 @@ public partial class ServerBrowserViewModel : ObservableObject
 
     private void JoinServer(ServerViewModel? serverViewModel)
     {
+        string password = null;
+
         if (serverViewModel is null)
             return;
 
-        bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString());
+        if (serverViewModel.IsPrivate)
+        {
+            _passwordViewModel = new();
+
+            bool? result = _dialogService.OpenDialog<PasswordDialog>(_passwordViewModel);
+
+            password = _passwordViewModel.Password;
+
+            // Do not continue joining the server
+            if (result is null || result == false)
+                return;
+        } 
+        
+        bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);

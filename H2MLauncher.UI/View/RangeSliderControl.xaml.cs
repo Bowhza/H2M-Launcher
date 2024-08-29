@@ -15,18 +15,18 @@ public partial class RangeSliderControl : UserControl
 
     void RangeSlider_Loaded(object sender, RoutedEventArgs e)
     {
-        lowerSlider.ValueChanged += LowerSlider_ValueChanged;
-        upperSlider.ValueChanged += UpperSlider_ValueChanged;
+        LowerSlider.ValueChanged += LowerSlider_ValueChanged;
+        UpperSlider.ValueChanged += UpperSlider_ValueChanged;
     }
 
     private void LowerSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        upperSlider.Value = Math.Max(upperSlider.Value, lowerSlider.Value);
+        UpperSlider.Value = Math.Max(UpperSlider.Value, LowerSlider.Value);
     }
 
     private void UpperSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
     {
-        lowerSlider.Value = Math.Min(upperSlider.Value, lowerSlider.Value);
+        LowerSlider.Value = Math.Min(UpperSlider.Value, LowerSlider.Value);
     }
 
     public static readonly DependencyProperty MinimumProperty =

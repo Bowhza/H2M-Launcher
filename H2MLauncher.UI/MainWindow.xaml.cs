@@ -15,6 +15,7 @@ namespace H2MLauncher.UI
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+
             DataContext = _viewModel = serverBrowserViewModel;
 
 
