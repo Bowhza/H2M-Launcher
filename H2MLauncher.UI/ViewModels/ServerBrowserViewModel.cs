@@ -165,13 +165,22 @@ public partial class ServerBrowserViewModel : ObservableObject
             _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
         }
 
+        H2MLauncherSettings oldSettings = _h2MLauncherOptions.CurrentValue;
         _h2MLauncherOptions.OnChange((newSettings, _) =>
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
+                if (!oldSettings.IW4MMasterServerUrl.Equals(newSettings.IW4MMasterServerUrl))
+                {
+                    // refresh servers when master server url changes
+                    RefreshServersCommand.Execute(null);
+                }
+
                 // reset filter to stored values
                 AdvancedServerFilter.ResetViewModel(newSettings.ServerFilter);
-            });            
+
+                oldSettings = newSettings;
+            });
         });
 
         // initialize server filter view model with stored values
@@ -436,9 +445,12 @@ public partial class ServerBrowserViewModel : ObservableObject
             _logger.LogDebug("Storing server list into \"/players2/favourites.json\"");
 
             string directoryPath = "players2";
+
             if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
             {
-                directoryPath = Path.Combine(_h2MLauncherOptions.Value.MWRLocation, directoryPath);
+                string? gameDirectory = Path.GetDirectoryName(_h2MLauncherOptions.Value.MWRLocation);
+
+                directoryPath = Path.Combine(gameDirectory ?? "", directoryPath);
             }
 
             string fileName;
@@ -569,8 +581,8 @@ public partial class ServerBrowserViewModel : ObservableObject
             // Do not continue joining the server
             if (result is null || result == false)
                 return;
-        } 
-        
+        }
+
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {

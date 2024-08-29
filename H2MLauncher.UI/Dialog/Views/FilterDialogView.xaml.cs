@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Controls;
 
 using H2MLauncher.UI.ViewModels;
@@ -56,5 +57,14 @@ namespace H2MLauncher.UI.Dialog.Views
         {
             ExcludeFilterComboBox.IsDropDownOpen = true;
         }
+
+        private void PingTextBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            Regex regex = NumberRegex();
+            e.Handled = regex.IsMatch(e.Text);
+        }
+
+        [GeneratedRegex("[^0-9]+")]
+        private static partial Regex NumberRegex();
     }
 }

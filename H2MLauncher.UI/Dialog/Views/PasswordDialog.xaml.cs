@@ -1,8 +1,7 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
 
-using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
