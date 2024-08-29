@@ -20,17 +20,5 @@ namespace H2MLauncher.UI
             // to do nothing fixes that issue, and keeps column sorting intact when changing ItemsSource.
             return newValue;
         }
-
-        protected override void OnItemsSourceChanged(IEnumerable oldValue, IEnumerable newValue)
-        {
-            //// Keep the old filter by reapplying it to the new collection view
-            //ICollectionView oldCollectionView = CollectionViewSource.GetDefaultView(oldValue);
-            //ICollectionView newCollectionView = CollectionViewSource.GetDefaultView(newValue);
-            //if (oldCollectionView is not null && newCollectionView is not null)
-            //{
-            //    newCollectionView.Filter = oldCollectionView.Filter;
-            //}
-            base.OnItemsSourceChanged(oldValue, newValue);
-        }
     }
 }
