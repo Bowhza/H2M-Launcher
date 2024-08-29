@@ -113,7 +113,7 @@ namespace H2MLauncher.UI
                 .AddJsonStream(input);
 
             // NOTE: using two builders because we use the embedded resource as a stream
-            var defaultConfiguration = builder.Build();
+            IConfigurationRoot defaultConfiguration = builder.Build();
 
             IConfigurationBuilder coolerBuilder = new ConfigurationBuilder()
                 .AddConfiguration(defaultConfiguration);
@@ -130,14 +130,8 @@ namespace H2MLauncher.UI
 
             _defaultSettings = defaultH2MLauncherSettings;
 
-            string customSettings = Constants.LauncherSettingsFilePath;
-            //if (!File.Exists(customSettings))
-            //{
-            //    JsonFileHelper.AddOrUpdateSection(customSettings, Constants.LauncherSettingsSection, defaultH2MLauncherSettings);
-            //}
-
             coolerBuilder
-                .AddJsonFile(customSettings, optional: false, reloadOnChange: true)
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: false, reloadOnChange: true)
                 .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
             return coolerBuilder.Build();

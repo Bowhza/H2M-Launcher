@@ -84,17 +84,15 @@ namespace H2MLauncher.Core.Services
             return null;
         }
 
-        private (string fileName, bool found) TryFindValidGameFile()
+        private bool TryFindValidGameFile(out string fileName)
         {
             const string exeFileName = "h2m-mod.exe";
 
             if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
             {
                 // no location set, try relative path
-                string fullPath = Path.GetFullPath(exeFileName);
-                return File.Exists(fullPath)
-                    ? (fullPath, true)
-                    : (fullPath, false);
+                fileName = Path.GetFullPath(exeFileName);
+                return File.Exists(fileName);
             }
 
             string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.CurrentValue.MWRLocation);
@@ -102,29 +100,21 @@ namespace H2MLauncher.Core.Services
             if (!Path.Exists(userDefinedLocation))
             {
                 // neither dir or file exists
-                return (userDefinedLocation, false);
+                fileName = userDefinedLocation;
+                return false;
             }
 
             if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
             {
                 // is a directory, get full file name
-                string? fileName = Path.Combine(userDefinedLocation, exeFileName);
+                fileName = Path.Combine(userDefinedLocation, exeFileName);
 
-                if (File.Exists(fileName))
-                {
-                    return (fileName, true);
-                }
-
-                return (fileName, false);
+                return File.Exists(fileName);
             }
 
-            // is a file
-            if (File.Exists(userDefinedLocation))
-            {
-                return (userDefinedLocation, true);
-            }
-
-            return (userDefinedLocation, false);
+            // is a file?
+            fileName = userDefinedLocation;
+            return File.Exists(userDefinedLocation);
         }
 
         public void LaunchH2MMod()
@@ -142,10 +132,9 @@ namespace H2MLauncher.Core.Services
                     return;
                 }
 
-                (string gameFileName, bool found) = TryFindValidGameFile();
-
                 // Proceed to launch the process if it's not running
-                if (found && !string.IsNullOrEmpty(gameFileName))
+                if (TryFindValidGameFile(out string gameFileName) && 
+                    !string.IsNullOrEmpty(gameFileName))
                 {
                     ProcessStartInfo startInfo = new(gameFileName)
                     {
