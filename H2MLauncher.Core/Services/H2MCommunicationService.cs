@@ -215,7 +215,7 @@ namespace H2MLauncher.Core.Services
 
             // Set H2M to foreground window
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
-            SetForegroundWindow(h2mModProcess.MainWindowHandle);
+            SetForegroundWindow(hGameWindow);
 
 
             // TODO: confirm the user joined this server
@@ -276,9 +276,9 @@ namespace H2MLauncher.Core.Services
             foreach (IntPtr hChild in EnumerateProcessWindowHandles(process.Id))
             {
                 string? title = GetWindowTitle(hChild);
-                if (title != null && title.Equals("H2M-Mod"))
+                if (title != null && title.Equals(GAME_WINDOW_TITLE))
                 {
-                    //return hChild;
+                    return hChild;
                 }
             }
 
