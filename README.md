@@ -5,26 +5,44 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Bowhza/H2M-Launcher)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Bowhza/H2M-Launcher/total)
 
+<img src="./Images/H2M-Launcher.png">
+
 ## Features
 
 - Launch H2M-Mod.
 - Displays the server count and the total players.
-- Filter and sort servers by **name, map, mode, player count, and ping**.
+- Join other servers without having to disconnect first.
 - Utilizes the **[IW4MAdmin API](https://master.iw4.zip/instance/)** to get accurate and up to date server information.
-- Option to store the servers to a favourites.json file inside the /players2 folder. Saves the whole server list or filtered if one is applied.
+- Sort servers by **name, map, mode, player count, and ping**.
+- **Additional filter options:**
+  - View empty, full, or private servers.
+  - Minimum and maximum players.
+  - Maximum server slots.
+  - Map packs (MWR, MW2, MW2CR, Etc...)
+  - Gamemodes.
+  - Maximum Ping.
+  - Filter out any keywords from the hostname, for instance, "trickshot" to filter out trickshot servers.
+- Add servers to favourites and view recently played servers.
+- Support for private servers, you can enter the password from the launcher.
+- Settings menu to set the master server URL or set the directory of the H2M-Mod Executable.
 - Automatically sets H2M as foreground window and copies the connect string to clipboard on server join.
-- Auto-Updater (Click on the new version available text to download latest release).
+- Auto-Updater **(Click on the new version available text to download latest release).**
 - Filters out dead/zombie servers that do not respond to UDP packets being sent.
 
-<img src="./Images/H2MImg.png">
+<img src="./Images/Filter-Modal.png">
 
 ## Instructions
 
-1. Download the latest release from **[HERE](https://github.com/Bowhza/H2M-Launcher/releases).**
+1. Download the latest release from **[HERE](https://github.com/Bowhza/H2M-Launcher/releases)**.
 
-2. Paste the `H2M-Launcher.exe` inside the root of the game directory and run it.
+2. Paste the `H2M-Launcher.UI.exe` inside the root of the game directory and run it.
 
 <img src="./Images/Directory.png">
+
+- **If you want to store the launcher elsewhere**, you can set the path to the `h2m-mod.exe` in the settings.
+- Click the settings icon in the bottom right corner of the launcher, and you should see the `Game Location` option that you can change.
+
+<img src="./Images/Settings-Modal.png">
 
 3. Before using the server browser make sure H2M is running. You can press `Launch H2M` to run the game.
 
