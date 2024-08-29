@@ -1,4 +1,8 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Text.Json.Serialization;
+using System.Windows.Input;
+
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -10,8 +14,19 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private string _name = "";
 
+        [JsonIgnore]
         public T Model { get; }
 
-        public SelectableItem(T model) => Model = model;
+        public ICommand? RemoveCommand { get; set; }
+
+        public SelectableItem(T model, Action? onRemove = null)
+        {
+            Model = model;
+
+            if (onRemove != null)
+            {
+                RemoveCommand = new RelayCommand(onRemove);
+            }            
+        }
     }
 }

@@ -10,7 +10,8 @@
 
     public class IW4MMapPack()
     {
-        public string Name { get; set; } = string.Empty;
-        public List<IW4MObjectMap> Maps { get; set; } = [];
+        public required string Name { get; init; }
+        public required string Id { get; init; }
+        public List<IW4MObjectMap> Maps { get; init; } = [];
     }
 }

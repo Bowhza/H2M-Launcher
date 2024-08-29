@@ -11,6 +11,6 @@ namespace H2MLauncher.UI
     public partial class PasswordViewModel : DialogViewModelBase
     {
         [ObservableProperty]
-        private string _password = null;
+        private string? _password = null;
     }
 }

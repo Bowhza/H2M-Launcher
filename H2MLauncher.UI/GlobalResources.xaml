@@ -4,6 +4,7 @@
                     xmlns:converters="clr-namespace:H2MLauncher.UI.Converters;assembly=H2MLauncher.UI" 
                     xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
+                    xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
                     x:Name="GlobalResources">
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="#373737" />
@@ -193,9 +194,13 @@
         <Border x:Name="PART_ContentHost" Focusable="False" Background="{TemplateBinding Background}" />
     </ControlTemplate>
 
+    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="#373737" />
+    <SolidColorBrush x:Key="ComboBoxForegroundColor" Color="White" />
+    <SolidColorBrush x:Key="ComboBoxPopupBorderColor" Color="#AAA" />
+
     <Style TargetType="{x:Type ComboBox}">
-        <Setter Property="Background" Value="#373737" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{StaticResource ComboBoxBackgroundColor}" />
+        <Setter Property="Foreground" Value="{StaticResource ComboBoxForegroundColor}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
@@ -220,17 +225,17 @@
                                           HorizontalAlignment="Left" />
 
                         <TextBox x:Name="PART_EditableTextBox"
-                                 Style="{x:Null}"
-                                 Template="{StaticResource ComboBoxTextBox}"
-                                 HorizontalAlignment="Left"
-                                 VerticalAlignment="Center"
-                                 Margin="3,3,23,3"
-                                 Focusable="True"
-                                 Background="#373737"
-                                 Foreground="Green"
-                                 Visibility="Hidden"
-                                 IsReadOnly="{TemplateBinding IsReadOnly}" />
-                        <Popup
+                            Style="{x:Null}" 
+                            Template="{StaticResource ComboBoxTextBox}" 
+                            HorizontalAlignment="Left" 
+                            VerticalAlignment="Center" 
+                            Margin="3,3,23,3"
+                            Focusable="True" 
+                            Background="{StaticResource ComboBoxBackgroundColor}"
+                            Foreground="Green"
+                            Visibility="Hidden"
+                            IsReadOnly="{TemplateBinding IsReadOnly}"/>
+                        <Popup 
                             Name="Popup"
                             Placement="Bottom"
                             IsOpen="{TemplateBinding IsDropDownOpen}"
@@ -239,15 +244,14 @@
                             PopupAnimation="Slide">
 
                             <Grid Name="DropDown"
-                                  SnapsToDevicePixels="True"
-                                  MinWidth="{TemplateBinding ActualWidth}"
-                                  MaxHeight="{TemplateBinding MaxDropDownHeight}">
-                                <Border
-                                    x:Name="DropDownBorder"
-                                    Background="#373737"
-
-                                    BorderThickness="1"
-                                    BorderBrush="Transparent" />
+                              SnapsToDevicePixels="True"                
+                              MinWidth="{TemplateBinding ActualWidth}"
+                              MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                <Border 
+                                x:Name="DropDownBorder"
+                                Background="{StaticResource ComboBoxBackgroundColor}"
+                                BorderThickness="1"
+                                BorderBrush="{StaticResource ComboBoxPopupBorderColor}"/>
                                 <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
                                     <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
                                 </ScrollViewer>
@@ -332,7 +336,94 @@
         </Setter>
     </Style>
 
-    
+    <Style x:Key="NoSelectComboBoxStyle" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource {x:Type ComboBox}}">
+        <Setter Property="ItemContainerStyle">
+            <Setter.Value>
+                <Style TargetType="ListBoxItem">
+                    <!-- Make it totally non selectable -->
+                    <Setter Property="Focusable" Value="False"/>
+                </Style>
+            </Setter.Value>
+        </Setter>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBox}">
+                    <Grid>
+                        <Border Name="Border" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
+                        <ToggleButton 
+                             Name="ToggleButton" 
+                             Template="{StaticResource ComboBoxToggleButton}" 
+                             Grid.Column="2" 
+                             Focusable="false"
+                             IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                             ClickMode="Press">
+                        </ToggleButton>
+
+                        <ContentPresenter 
+                            Name="ContentSite" 
+                            IsHitTestVisible="{Binding Path=(controls:ComboBoxSelectionBoxAltTemplateBehaviour.IsHitTestVisible), RelativeSource={RelativeSource Mode=TemplatedParent}}"  
+                            Content="{Binding Path=(controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent), RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                            ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                            Margin="3,3,23,3"
+                            VerticalAlignment="Stretch"
+                            HorizontalAlignment="Stretch" />
+
+
+                        <TextBox x:Name="PART_EditableTextBox"
+                             Style="{x:Null}" 
+                             Template="{StaticResource ComboBoxTextBox}" 
+                             HorizontalAlignment="Left" 
+                             VerticalAlignment="Center" 
+                             Margin="3,3,23,3"
+                             Focusable="True" 
+                             Background="{StaticResource ComboBoxBackgroundColor}"
+                             Foreground="Green"
+                             Visibility="Hidden"
+                             IsReadOnly="{TemplateBinding IsReadOnly}"/>
+
+                        <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" x:Name="Popup" Focusable="False" AllowsTransparency="True" PopupAnimation="Slide">
+                            <Grid MaxHeight="{TemplateBinding MaxDropDownHeight}" MinWidth="{TemplateBinding ActualWidth}" x:Name="DropDown" SnapsToDevicePixels="True">
+                                <Border x:Name="DropDownBorder" Background="{StaticResource ComboBoxBackgroundColor}" BorderBrush="{StaticResource ComboBoxPopupBorderColor}" BorderThickness="1" Padding="0,4">
+                                    <ScrollViewer SnapsToDevicePixels="True" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" 
+                                                  CanContentScroll="True" Style="{x:Null}"
+                                                  MaxHeight="100">
+                                        <!-- Use a ListBox to directly present the items without ComboBoxItem wrapping and dont bind selected item -->
+                                        <ListBox ItemsSource="{TemplateBinding ItemsSource}" 
+                                                 Background="Transparent"
+                                                 BorderThickness="0"
+                                                 ItemTemplate="{TemplateBinding ItemTemplate}"
+                                                 ItemContainerStyle="{TemplateBinding ItemContainerStyle}"
+                                                 IsHitTestVisible="True"
+                                                 Focusable="False"
+                                                 HorizontalContentAlignment="Stretch" ScrollViewer.CanContentScroll="False">
+                                            <ListBox.Template>
+                                                <ControlTemplate>
+                                                    <!-- Empty template to allow ScrollViewer to capture mouse scroll -->
+                                                    <ItemsPresenter />
+                                                </ControlTemplate>
+                                            </ListBox.Template>
+                                            <!--Setting ItemsPanel to StackPanel to keep same behavior-->
+                                            <ListBox.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel />
+                                                </ItemsPanelTemplate>
+                                            </ListBox.ItemsPanel>
+                                        </ListBox>
+                                    </ScrollViewer>
+                                </Border>
+                            </Grid>
+                        </Popup>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent" Value="{x:Null}">
+                            <Setter Property="Content" TargetName="ContentSite" Value="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
     <converters:EmptyItemConverter x:Key="emptyItemConverter" />
 </ResourceDictionary>
