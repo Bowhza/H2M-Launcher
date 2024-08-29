@@ -25,11 +25,7 @@ namespace H2MLauncher.UI
 
         private void ServerBrowserViewModel_ServerFilterChanged()
         {
-            var collectionView = CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers);
-            if (collectionView is not null)
-            {
-                collectionView.Refresh();
-            }
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -50,7 +46,7 @@ namespace H2MLauncher.UI
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            CollectionViewSource.GetDefaultView(_viewModel.SelectedTab.Servers).Refresh();
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)

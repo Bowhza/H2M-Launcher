@@ -247,19 +247,12 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         int recentLimit = 30;
 
-        // Find the index of the existing server with the same IP and port
-        int index = recents.FindIndex(s => s.ServerIp == recent.ServerIp && s.ServerPort == recent.ServerPort);
-        if (index >= 0)
-        {
-            // If the server exists, remove it from its current position
-            recents.RemoveAt(index);
-        }
+        // Remove existing servers with the same IP and port
+        int removed = recents.RemoveAll(s => s.ServerIp == recent.ServerIp && s.ServerPort == recent.ServerPort);
 
-        // Add the server with the updated date to the end of the list
-        recents.Add(recent);
-
-        // If the list exceeds the max size, remove the oldest entry (which is now at the start)
-        recents = recents.AsEnumerable().Reverse().Take(recentLimit).ToList();
+        // Add the server with the updated date to the start of the list.
+        // If the list exceeds the max size, remove the oldest entries (which are now at the end)
+        recents = [recent, .. recents.OrderByDescending(r => r.Joined).Take(recentLimit - 1)]; ;
 
         // Save the updated list to the settings.
         SaveRecents(recents);
