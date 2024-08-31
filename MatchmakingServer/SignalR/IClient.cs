@@ -2,7 +2,7 @@
 {
     public interface IClient
     {
-        Task<bool> NotifyJoin(string serverIp, int serverPort);
+        Task<bool> NotifyJoin(string serverIp, int serverPort, CancellationToken cancellationToken);
 
         Task QueuePositionChanged(int queuePosition, int queueSize);
 

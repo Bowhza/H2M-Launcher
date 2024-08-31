@@ -1,13 +1,8 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Numerics;
 
-using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
-using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
@@ -21,6 +16,23 @@ namespace MatchmakingServer.SignalR
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
+
+        /// <summary>
+        /// The maximum amount of time a player can block the queue since the first time a slot becomes available for him.
+        /// </summary>
+        private static readonly TimeSpan TotalJoinTimeLimit = TimeSpan.FromSeconds(30);
+
+        /// <summary>
+        /// The timeout for a join request after which the player will be removed from the queue;
+        /// </summary>
+        private static readonly TimeSpan JoinTimeout = TotalJoinTimeLimit / MAX_JOIN_ATTEMPTS;
+
+        /// <summary>
+        /// The maximum number of join attempts for a player per queue.
+        /// </summary>
+        private const int MAX_JOIN_ATTEMPTS = 3;
+
+        private static readonly bool ConfirmJoinsWithWebfrontApi = false;
 
         public QueueingService(
             GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService,
@@ -76,21 +88,78 @@ namespace MatchmakingServer.SignalR
             return player;
         }
 
+
+        /// <summary>
+        /// Handle the case when a player reports that the join failed late (e.g. server full) 
+        /// </summary>
+        public void OnPlayerJoinFailed(string connectionId)
+        {
+            if (!_connectedPlayers.TryRemove(connectionId, out var player))
+            {
+                // not found
+                return;
+            }
+
+            if (player.State is not PlayerState.Joining || player.Server is null)
+            {
+                // not joining
+                return;
+            }
+
+            if (player.JoinAttempts.Count >= MAX_JOIN_ATTEMPTS)
+            {
+                // max join attempts reached -> remove player from queue 
+                DequeuePlayer(player, PlayerState.Connected, DequeueReason.MaxJoinAttemptsReached);
+                return;
+            }
+
+            if (player.Server.LastServerInfo is not null && 
+                player.Server.LastServerInfo.FreeSlots == 0)
+            {
+                // server was probably full
+
+                // allow retry and keep player in queue
+                player.State = PlayerState.Queued;
+                player.Server.JoiningPlayerCount--;
+
+                // TODO: reset join attempts?
+                // player.JoinAttempts.Clear();
+            }
+
+            // otherwise dequeue the player
+            // TODO: maybe allow player to stay in queue until max join attempts / time limit reached
+            DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayer: false);
+        }
+
+        public void OnPlayerJoinConfirmed(string connectionId)
+        {
+            if (!_connectedPlayers.TryRemove(connectionId, out var player))
+            {
+                // not found
+                return;
+            }
+
+            if (player.State is not PlayerState.Joining || player.Server is null)
+            {
+                // not joining
+                return;
+            }
+
+            DequeuePlayer(player, PlayerState.Joined, DequeueReason.Joined, notifyPlayer: false);
+        }
+
         private async Task TryJoinPlayer(Player player, GameServer server)
         {
             _logger.LogDebug("Notifying {player} to join server {server}...", player, server);
 
+            CancellationTokenSource cancellation = new(JoinTimeout);
             try
             {
-                if (++player.JoinAttempts > 5)
-                {
-                    // max join attempts reached -> remove player from queue
-                    DequeuePlayer(player, PlayerState.Connected, DequeueReason.MaxJoinAttemptsReached);
-                }
+                player.JoinAttempts.Add(DateTimeOffset.Now);
 
                 // notify client to join
                 var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.ConnectionId)
-                    .NotifyJoin(server.ServerIp, server.ServerPort);
+                    .NotifyJoin(server.ServerIp, server.ServerPort, cancellation.Token);
 
                 if (joinTriggeredSuccessfully)
                 {
@@ -99,6 +168,18 @@ namespace MatchmakingServer.SignalR
 
                     _logger.LogDebug("Player {player} triggered join to {server} successfully.", player, server);
                 }
+                else
+                {
+                    // TODO: move this to ack method?
+                    OnPlayerJoinFailed(player.ConnectionId);
+                }
+            }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            {
+                // timeout
+                _logger.LogDebug("Timed out while waiting for player {player} to join", player);
+
+                DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinTimeout);
             }
             catch (Exception ex)
             {
@@ -113,41 +194,27 @@ namespace MatchmakingServer.SignalR
         {
             _logger.LogDebug("Confirming joined players of {server}", server);
 
-            IterateRemovable(server.PlayerQueue, (node) =>
+            foreach (var node in server.PlayerQueue.GetNodeSnapshot())
             {
                 Player player = node.Value;
 
                 if (player.State is PlayerState.Joining &&
                     server.ActualPlayers.Contains(player.Name))
                 {
-                    server.PlayerQueue.Remove(node);
-                    server.JoiningPlayerCount--;
+                    if (server.PlayerQueue.TryRemove(node))
+                    {
+                        server.JoiningPlayerCount--;
+                        player.State = PlayerState.Joined;
 
-                    _logger.LogInformation("Confirmed player {player} on server {server}!", player, server);
-                    // yippeeeee
+                        _logger.LogInformation("Confirmed player {player} on server {server}!", player, server);
+                        // yippeeeee
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Player {player} is removed from queue but still in joining state", player);
+                    }
                 }
-            });
-        }
-
-        public static int IterateRemovable<T>(LinkedList<T> list, Action<LinkedListNode<T>> onNext)
-        {
-            if (list == null)
-            {
-                throw new ArgumentNullException("list");
-            }
-            if (onNext == null)
-            {
-                throw new ArgumentNullException("match");
-            }
-            var count = 0;
-            var node = list.First;
-            while (node != null)
-            {
-                var next = node.Next;
-                onNext(node);
-                node = next;
-            }
-            return count;
+            };
         }
 
         private async Task UpdateActualPlayersFromWebfront(GameServer server, CancellationToken cancellationToken)
@@ -168,19 +235,20 @@ namespace MatchmakingServer.SignalR
 
                 server.ActualPlayers.Clear();
 
-                IterateRemovable(server.PlayerQueue, (node) =>
+                foreach (var node in server.PlayerQueue.GetNodeSnapshot())
                 {
                     if (node.Value.State is PlayerState.Joining)
                     {
                         Player joiningPlayer = node.Value;
 
                         // no information about actual players -> assume players are joined
-                        server.PlayerQueue.Remove(node);
-                        server.JoiningPlayerCount--;
-
-                        _logger.LogInformation("Assumed player {player} joined on server {server}!", joiningPlayer, server);
+                        if (server.PlayerQueue.TryRemove(node))
+                        {
+                            server.JoiningPlayerCount--;
+                            _logger.LogInformation("Assumed player {player} joined on server {server}!", joiningPlayer, server);
+                        }
                     }
-                });
+                };
                 return;
             }
 
@@ -191,6 +259,23 @@ namespace MatchmakingServer.SignalR
 
             // confirm all the players that are joined after fetching the actual players                    
             ConfirmJoinedPlayers(server);
+        }
+
+        private void CheckJoinTimeout(GameServer server)
+        {
+            foreach (Player player in server.JoiningPlayers.ToList())
+            {
+                if (player.JoinAttempts.Count == 0)
+                {
+                    return;
+                }
+
+                TimeSpan totalJoinTime = DateTimeOffset.Now - player.JoinAttempts[0];
+                if (totalJoinTime > TotalJoinTimeLimit)
+                {
+                    DequeuePlayer(player, PlayerState.Joined, DequeueReason.JoinTimeout);
+                }
+            }
         }
 
         private async Task ProcessQueuedPlayers(GameServer server)
@@ -223,7 +308,7 @@ namespace MatchmakingServer.SignalR
 
                         // only need to recheck if players are joining
                         // no reserved slots means all players are still queued
-                        if (server.JoiningPlayerCount > 0)
+                        if (ConfirmJoinsWithWebfrontApi && server.JoiningPlayerCount > 0)
                         {
                             _logger.LogDebug("{joiningPlayersCount}/{numberOfQueuedPlayers} joining players found, updating actual player list for server {server}",
                                 server.JoiningPlayerCount, server.PlayerQueue.Count, server);
@@ -281,6 +366,9 @@ namespace MatchmakingServer.SignalR
             }
         }
 
+
+
+
         private async Task HandlePlayerJoinsAsync(GameServer server, CancellationToken cancellationToken)
         {
             if (server.LastServerInfo is null)
@@ -291,17 +379,39 @@ namespace MatchmakingServer.SignalR
             _logger.LogDebug("Server {server} has {freeSlots} free, {reservedSlots} reserved slots",
                            server, server.LastServerInfo.FreeSlots, server.JoiningPlayerCount);
 
+            // get the number of available slots (not reserved by joining players)
             int nonReservedFreeSlots = server.LastServerInfo.FreeSlots - server.JoiningPlayerCount;
 
             _logger.LogDebug("Can join up to {numberOfPeople} people to {server}",
                 nonReservedFreeSlots, server);
 
+
             // try to join as many players as slots available
-            for (int i = 0; i < nonReservedFreeSlots; i++)
+            int joinedPlayers = 0;
+            foreach (Player player in server.PlayerQueue)
             {
-                foreach (Player player in server.QueuedPlayers.Take(nonReservedFreeSlots))
+                if (player.State is PlayerState.Joining)
+                {
+                    if (player.JoinAttempts.Count == 0)
+                    {
+                        return;
+                    }
+
+                    // check total join time limit since first join attempt for this server
+                    TimeSpan totalJoinTime = DateTimeOffset.Now - player.JoinAttempts[0];
+                    if (totalJoinTime > TotalJoinTimeLimit)
+                    {
+                        DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinTimeout);
+                    }
+                }
+                else if (player.State is PlayerState.Queued && joinedPlayers < nonReservedFreeSlots)
                 {
                     await TryJoinPlayer(player, server);
+                    joinedPlayers++;
+                }
+                else
+                {
+                    // unknown player state
                 }
             }
         }
@@ -346,10 +456,10 @@ namespace MatchmakingServer.SignalR
             }
 
             // queue the player
-            server.PlayerQueue.AddFirst(player);
+            server.PlayerQueue.Enqueue(player);
             player.State = PlayerState.Queued;
             player.Server = server;
-            player.JoinAttempts = 0;
+            player.JoinAttempts = [];
 
             await NotifyPlayerQueuePositions(server);
 
@@ -367,7 +477,7 @@ namespace MatchmakingServer.SignalR
             DequeuePlayer(player, PlayerState.Connected, DequeueReason.UserLeave);
         }
 
-        private void DequeuePlayer(Player player, PlayerState newState, DequeueReason reason)
+        private void DequeuePlayer(Player player, PlayerState newState, DequeueReason reason, bool notifyPlayer = true)
         {
             if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
             {
@@ -377,7 +487,12 @@ namespace MatchmakingServer.SignalR
             _logger.LogDebug("Dequeueing player {player} from server {server}, reason '{reason}'",
                 player, player.Server, reason);
 
-            player.Server.PlayerQueue.Remove(player);
+            if (!player.Server.PlayerQueue.Remove(player))
+            {
+                // invalid state, player expected in queue
+                _logger.LogWarning("Invalid state, expected player {player} with joining state to be in queue", player);
+                return;
+            }
 
             if (player.State is PlayerState.Joining)
             {
@@ -389,7 +504,7 @@ namespace MatchmakingServer.SignalR
             // TODO
             _ = NotifyPlayerQueuePositions(player.Server);
 
-            if (reason is DequeueReason.UserLeave or DequeueReason.Disconnect)
+            if (reason is DequeueReason.UserLeave or DequeueReason.Disconnect || !notifyPlayer)
             {
                 return;
             }
@@ -426,13 +541,5 @@ namespace MatchmakingServer.SignalR
         {
             return _ctx.Clients.Client(player.ConnectionId).RemovedFromQueue(reason);
         }
-    }
-
-    public enum DequeueReason
-    {
-        Unknown,
-        UserLeave,
-        MaxJoinAttemptsReached,
-        Disconnect,
     }
 }

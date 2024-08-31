@@ -8,7 +8,8 @@ namespace MatchmakingServer
         public required string ServerIp { get; init; }
 
         public required int ServerPort { get; init; }
-        public LinkedList<Player> PlayerQueue { get; } = [];
+
+        public ConcurrentLinkedQueue<Player> PlayerQueue { get; } = [];
 
         public IEnumerable<Player> JoiningPlayers => PlayerQueue.Where(p => p.State is PlayerState.Joining);
 

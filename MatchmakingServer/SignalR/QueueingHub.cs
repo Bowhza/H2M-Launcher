@@ -13,6 +13,20 @@ namespace MatchmakingServer.SignalR
             _queueingService = queueingService;
         }
 
+        public Task JoinAck(string serverIp, int serverPort, bool successful)
+        {
+            if (successful)
+            {
+                _queueingService.OnPlayerJoinConfirmed(Context.ConnectionId);
+            }
+            else
+            {
+                _queueingService.OnPlayerJoinFailed(Context.ConnectionId);
+            }
+
+            return Task.CompletedTask;
+        }
+
         public Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId, string playerName)
         {
             var player = _queueingService.AddPlayer(Context.ConnectionId, playerName);

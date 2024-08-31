@@ -8,8 +8,7 @@
 
         public PlayerState State { get; set; }
 
-        public int JoinAttempts { get; set; }
-
+        public List<DateTimeOffset> JoinAttempts { get; set; } = [];
 
         /// <summary>
         /// The server the player is queued or joined.
