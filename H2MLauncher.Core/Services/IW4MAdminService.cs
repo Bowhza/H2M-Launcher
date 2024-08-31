@@ -1,5 +1,6 @@
 ﻿using System.Net;
-using System.Net.Http.Json;
+
+using Flurl;
 
 using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
@@ -10,16 +11,13 @@ namespace H2MLauncher.Core.Services
 {
     public class IW4MAdminService(ILogger<IW4MAdminService> logger, HttpClient httpClient) : IIW4MAdminService
     {
-        private readonly ILogger<IW4MAdminService> _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        private readonly HttpClient _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        private readonly ILogger<IW4MAdminService> _logger = logger;
+        private readonly HttpClient _httpClient = httpClient;
 
-        public async Task<IW4MServerDetails?> GetServerDetailsAsync(string serverInstanceAddress, string id, CancellationToken cancellationToken)
+        public async Task<IW4MServerDetails?> GetServerDetailsAsync(string serverInstanceAddress, string serverId, CancellationToken cancellationToken)
         {
-            // Validate parameters
-            _logger.LogDebug("Validating parameters..");
-
             // Fetch server details from the Api
-            string address = $"{serverInstanceAddress.TrimEnd('/')}/Api/Server/{id}";
+            string address = Url.Combine(serverInstanceAddress, "api", "server", serverId);
             _logger.LogDebug("Fetching server details from iw4m api..");
             HttpResponseMessage result = await _httpClient.GetAsync(address, cancellationToken).ConfigureAwait(false);
             if (result.StatusCode is not HttpStatusCode.OK)
@@ -50,7 +48,7 @@ namespace H2MLauncher.Core.Services
             _logger.LogDebug("Validating parameters..");
 
             // Fetch server list from iw4m admin server instance
-            string address = $"{serverInstanceAddress.TrimEnd('/')}/Api/Server";
+            string address = Url.Combine(serverInstanceAddress, "api", "server");
             _logger.LogDebug("Fetching server list from iw4m api..");
             HttpResponseMessage result = await _httpClient.GetAsync(address, cancellationToken).ConfigureAwait(false);
             if (result.StatusCode is not HttpStatusCode.OK)
@@ -76,13 +74,13 @@ namespace H2MLauncher.Core.Services
             return servers.AsReadOnly();
         }        
 
-        public async Task<IW4MServerStatus?> GetServerStatusAsync(string serverInstanceAddress, string id, CancellationToken cancellationToken)
+        public async Task<IW4MServerStatus?> GetServerStatusAsync(string serverInstanceAddress, string serverId, CancellationToken cancellationToken)
         {
             // Validate parameters
             _logger.LogDebug("Validating parameters..");
 
             // Fetch server status from the Api
-            string address = $"{serverInstanceAddress.TrimEnd('/')}/Api/Status?id={id}";
+            Url address = Url.Combine(serverInstanceAddress, "api", "status").SetQueryParam("id", serverId);
             _logger.LogDebug("Fetching server status from iw4m api..");
             HttpResponseMessage result = await _httpClient.GetAsync(address, cancellationToken).ConfigureAwait(false);
             if (result.StatusCode is not HttpStatusCode.OK)
@@ -123,7 +121,7 @@ namespace H2MLauncher.Core.Services
             _logger.LogDebug("Validating parameters..");
 
             // Fetch server details from the Api
-            string address = $"{serverInstanceAddress.TrimEnd('/')}/Api/Status/";
+            string address = Url.Combine(serverInstanceAddress, "api", "status");
             _logger.LogDebug("Fetching server details from iw4m api..");
             HttpResponseMessage result = await _httpClient.GetAsync(address, cancellationToken).ConfigureAwait(false);
             if (result.StatusCode is not HttpStatusCode.OK)

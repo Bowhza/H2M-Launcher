@@ -1,5 +1,6 @@
 ﻿using System.Net;
-using System.Net.Http.Json;
+
+using Flurl;
 
 using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
@@ -8,26 +9,17 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public class IW4MAdminMasterService : IIW4MAdminMasterService
+    public class IW4MAdminMasterService(ILogger<IW4MAdminMasterService> logger, HttpClient httpClient) : IIW4MAdminMasterService
     {
-        private readonly ILogger<IW4MAdminMasterService> _logger;
-        private readonly HttpClient _httpClient;
-        // TODO: create configuration/settings file
-        private readonly string _masterServiceUrl = "http://master.iw4.zip/";
-
-        public IW4MAdminMasterService(ILogger<IW4MAdminMasterService> logger, HttpClient httpClient)
-        {
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
-        }
+        private readonly ILogger<IW4MAdminMasterService> _logger = logger;
+        private readonly HttpClient _httpClient = httpClient;
 
         public async Task<IReadOnlyList<IW4MServerInstance>> GetAllServerInstancesAsync(CancellationToken cancellationToken)
         {
             // Fetch server list from iw4m admin master server instance
-            string address = $"{_masterServiceUrl}/instance";
-            _logger.LogDebug("Fetching master server list from iw4m master server api..");
+            _logger.LogDebug("Fetching master server instance list from iw4m master server api..");
 
-            HttpResponseMessage result = await _httpClient.GetAsync(address, cancellationToken).ConfigureAwait(false);
+            HttpResponseMessage result = await _httpClient.GetAsync("instance", cancellationToken).ConfigureAwait(false);
             if (result.StatusCode is not HttpStatusCode.OK)
             {
                 return [];
@@ -58,9 +50,9 @@ namespace H2MLauncher.Core.Services
         public async Task<IW4MServerInstance?> GetServerInstanceAsync(string id, CancellationToken cancellationToken)
         {
             // Fetch server instance from iw4m admin master server api
-            string address = $"{_masterServiceUrl}/instance/{id}";
-            _logger.LogDebug("Fetching server instance from iw4m master server api..");
-            HttpResponseMessage result = await _httpClient.GetAsync(address, cancellationToken).ConfigureAwait(false);
+            string requestUrl = Url.Combine("instance", id);
+            _logger.LogDebug("Fetching server instance {instanceId} from iw4m master server api..", id);
+            HttpResponseMessage result = await _httpClient.GetAsync(requestUrl, cancellationToken).ConfigureAwait(false);
 
             if (result.StatusCode is not HttpStatusCode.OK)
             {

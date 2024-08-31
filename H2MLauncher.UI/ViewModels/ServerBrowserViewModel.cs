@@ -505,7 +505,7 @@ public partial class ServerBrowserViewModel : ObservableObject
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList<IW4MServer> servers = await _raidMaxService.GetServersAsync(_loadCancellation.Token);
+            IReadOnlyList<IW4MServer> servers = await _raidMaxService.FetchServersAsync(_loadCancellation.Token);
 
             // Let's prioritize populated servers first for getting game server info.
             IEnumerable<IW4MServer> serversOrderedByOccupation = servers
