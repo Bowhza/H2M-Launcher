@@ -37,6 +37,8 @@ namespace MatchmakingServer
 
         public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
 
+        public AutoResetEvent PlayersAvailable { get; } = new(false);
+
         public GameServer(string instanceId)
         {
             InstanceId = instanceId;

@@ -21,6 +21,11 @@ namespace MatchmakingServer.SignalR
         public IEnumerable<GameServer> QueuedServers => _servers.Values;
 
         /// <summary>
+        /// Inactivity timeout until the server processing stops.
+        /// </summary>
+        private readonly static TimeSpan QueueInactivityIdleTimeout = TimeSpan.FromMinutes(3);
+
+        /// <summary>
         /// The maximum amount of time a player can block the queue since the first time a slot becomes available for him.
         /// </summary>
         private static readonly TimeSpan TotalJoinTimeLimit = TimeSpan.FromSeconds(30);
@@ -88,7 +93,7 @@ namespace MatchmakingServer.SignalR
             }
 
             // clean up
-            DequeuePlayer(player, default, DequeueReason.Disconnect);
+            DequeuePlayer(player, default, DequeueReason.Disconnect, notifyPlayerDequeued: false);
 
             return player;
         }
@@ -334,7 +339,52 @@ namespace MatchmakingServer.SignalR
             }
         }
 
-        private async Task ProcessQueuedPlayers(GameServer server)
+        private async Task ProcessQueuedPlayers(GameServer server, CancellationToken cancellationToken)
+        {
+            try
+            {
+                _logger.LogTrace("Processing {numberOfQueuedPlayers} queued ({joiningPlayersCount} joining) players for server {server}",
+                    server.PlayerQueue.Count, server.JoiningPlayerCount, server);
+
+                // only need to recheck if players are joining
+                // no reserved slots means all players are still queued
+                if (ConfirmJoinsWithWebfrontApi && server.JoiningPlayerCount > 0)
+                {
+                    _logger.LogDebug("{joiningPlayersCount}/{numberOfQueuedPlayers} joining players found, updating actual player list for server {server}",
+                        server.JoiningPlayerCount, server.PlayerQueue.Count, server);
+
+                    // fetch actual players from web front and update join state
+                    await UpdateActualPlayersFromWebfront(server, cancellationToken);
+                }
+
+                // dequeue players that have been joining too long
+                CheckJoinTimeout(server);
+
+                // check whether to continue
+                if (server.JoiningPlayerCount == server.PlayerQueue.Count)
+                {
+                    // all players in queue already joining -> nothing to do anymore
+                    _logger.LogTrace("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
+                    return;
+                }
+
+                // request the latest game server info
+                if (!await FetchGameServerInfoAsync(server, cancellationToken))
+                {
+                    return;
+                }
+
+                // now do the actual check for joining
+                await HandlePlayerJoinsAsync(server, cancellationToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                // TODO: should we break the entire loop?
+                _logger.LogError(ex, "Error during server process queue. {server}", server);
+            }
+        }
+
+        private async Task ServerProcessingLoop(GameServer server)
         {
             CancellationToken cancellationToken = server.ProcessingCancellation.Token;
 
@@ -346,62 +396,34 @@ namespace MatchmakingServer.SignalR
             {
                 while (!cancellationToken.IsCancellationRequested)
                 {
-                    try
+                    // only need to do something when player is queued
+                    var hasQueuedPlayers = server.PlayerQueue.Count > 0;
+                    if (hasQueuedPlayers)
                     {
-                        // only need to do something when player is queued
-                        var hasQueuedPlayers = server.PlayerQueue.Count > 0;
-                        if (!hasQueuedPlayers)
-                        {
-                            // TODO: what to do when queue is empty?
-                            await Task.Delay(100, cancellationToken);
-                            continue;
-                        }
-
-                        _logger.LogTrace("Processing {numberOfQueuedPlayers} queued ({joiningPlayersCount} joining) players for server {server}",
-                            server.PlayerQueue.Count, server.JoiningPlayerCount, server);
-
                         // start the delay
                         Task delayTask = Task.Delay(1000, cancellationToken);
 
-                        // only need to recheck if players are joining
-                        // no reserved slots means all players are still queued
-                        if (ConfirmJoinsWithWebfrontApi && server.JoiningPlayerCount > 0)
-                        {
-                            _logger.LogDebug("{joiningPlayersCount}/{numberOfQueuedPlayers} joining players found, updating actual player list for server {server}",
-                                server.JoiningPlayerCount, server.PlayerQueue.Count, server);
-
-                            // fetch actual players from web front and update join state
-                            await UpdateActualPlayersFromWebfront(server, cancellationToken);
-                        }
-
-                        // dequeue players that have been joining too long
-                        CheckJoinTimeout(server);
-
-                        // check whether to continue
-                        if (server.JoiningPlayerCount == server.PlayerQueue.Count)
-                        {
-                            // all players in queue already joining -> nothing to do anymore
-                            _logger.LogTrace("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
-                            await delayTask;
-                            continue;
-                        }
-
-                        // request the latest game server info
-                        if (!await FetchGameServerInfoAsync(server, cancellationToken))
-                        {
-                            await delayTask;
-                            continue;
-                        }
-
-                        // now do the actual check for joining
-                        await HandlePlayerJoinsAsync(server, cancellationToken);
+                        await ProcessQueuedPlayers(server, cancellationToken);
 
                         await delayTask;
                     }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
+                    else
                     {
-                        // TODO: should we break the entire loop?
-                        _logger.LogError(ex, "Error during server process queue. {server}", server);
+                        server.ProcessingState = QueueProcessingState.Idle;
+                        _logger.LogInformation("No players in queue for server {server}, switched to idle state", server);
+
+                        // wait for the timeout period to see if new players join the queue
+                        Task idleTimeoutTask = Task.Delay(QueueInactivityIdleTimeout, cancellationToken);
+
+                        // if new players arrive during this time, break out of the waiting period
+                        await Task.WhenAny(idleTimeoutTask, server.PlayersAvailable.WaitOneAsync());
+
+                        // if the delay completed (i.e., timeout passed without new players), stop the processing loop
+                        if (idleTimeoutTask.IsCompleted)
+                        {
+                            server.ProcessingState = QueueProcessingState.Stopped;
+                            break;
+                        }
                     }
                 }
             }
@@ -638,7 +660,7 @@ namespace MatchmakingServer.SignalR
                     {
                         // restart processing queued players
                         server.ProcessingCancellation = new();
-                        server.ProcessingTask = ProcessQueuedPlayers(server);
+                        server.ProcessingTask = ServerProcessingLoop(server);
                     }
 
                     return server;
@@ -659,7 +681,7 @@ namespace MatchmakingServer.SignalR
 
                 // start processing queued players
                 server.ProcessingCancellation = new();
-                server.ProcessingTask = ProcessQueuedPlayers(server);
+                server.ProcessingTask = ServerProcessingLoop(server);
 
                 return server;
             }
@@ -702,11 +724,14 @@ namespace MatchmakingServer.SignalR
             }
 
             // queue the player
-            server.PlayerQueue.Enqueue(player);
             player.State = PlayerState.Queued;
             player.QueuedAt = DateTimeOffset.Now;
             player.Server = server;
             player.JoinAttempts = [];
+            server.PlayerQueue.Enqueue(player);
+
+            // signal available
+            server.PlayersAvailable.Set();
 
             await NotifyPlayerQueuePositions(server);
 
