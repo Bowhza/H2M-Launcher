@@ -14,6 +14,8 @@ namespace H2MLauncher.Core.Services
 
         public MatchmakingService(ILogger<MatchmakingService> logger, H2MCommunicationService h2MCommunicationService)
         {
+            _logger = logger;
+
             _connection = new HubConnectionBuilder()
                     .WithUrl("http://localhost:5041/Queue")
                     .Build();
@@ -23,7 +25,25 @@ namespace H2MLauncher.Core.Services
                 // TODO: join the server
                 logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
 
-                return h2MCommunicationService.JoinServer(ip, port.ToString());
+                if (h2MCommunicationService.JoinServer(ip, port.ToString()))
+                {
+                    // simulate join time
+                    Task.Delay(5000).ContinueWith(async _ =>
+                    {
+                        try
+                        {
+                            await _connection.SendAsync("JoinAck", ip, port, true);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error while sending join ack");
+                        }
+                    });
+
+                    return true;
+                }
+
+                return false;
             });
 
             _connection.On("QueuePositionChanged", (int position, int totalPlayersInQueue) =>
@@ -31,7 +51,6 @@ namespace H2MLauncher.Core.Services
                 logger.LogInformation("Received update queue position {queuePosition}/{queueLength}", position, totalPlayersInQueue);
             });
 
-            _logger = logger;
             _h2MCommunicationService = h2MCommunicationService;
         }
 

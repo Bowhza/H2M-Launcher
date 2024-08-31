@@ -598,22 +598,24 @@ public partial class ServerBrowserViewModel : ObservableObject
                 return;
         }
 
-        if (serverViewModel.ClientNum >= serverViewModel.MaxClientNum)
-        {
-            //QueueServer(SelectedServer.Server);
-            await _matchmakingService.JoinQueueAsync(serverViewModel.Server, "TestPlayer");
+        //if (serverViewModel.ClientNum >= serverViewModel.MaxClientNum)
+        //{
+
+        //QueueServer(SelectedServer.Server);
+        await _matchmakingService.JoinQueueAsync(serverViewModel.Server, "TestPlayer");
             return;
-        }
 
-        bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
-        if (hasJoined)
-        {
-            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-        }
+        //}
 
-        StatusText = hasJoined
-            ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
-            : "Ready";
+        //bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
+        //if (hasJoined)
+        //{
+        //    UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+        //}
+
+        //StatusText = hasJoined
+        //    ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
+        //    : "Ready";
     }
 
     private void LaunchH2M()
