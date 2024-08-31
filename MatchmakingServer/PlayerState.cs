@@ -5,7 +5,6 @@
         Connected,
         Queued,
         Joining,
-        JoinFailed,
         Joined
     }
 }

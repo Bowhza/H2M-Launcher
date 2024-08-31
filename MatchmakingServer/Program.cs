@@ -48,6 +48,8 @@ builder.Services.AddSingleton<QueueingService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddControllers();
+
 builder.Services.AddSignalR();
 
 WebApplication app = builder.Build();
@@ -58,6 +60,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.MapControllers();
 
 //app.UseHttpsRedirection();
 

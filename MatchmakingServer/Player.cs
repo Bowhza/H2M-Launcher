@@ -8,6 +8,9 @@
 
         public PlayerState State { get; set; }
 
+
+        public DateTimeOffset? QueuedAt { get; set; }
+
         public List<DateTimeOffset> JoinAttempts { get; set; } = [];
 
         /// <summary>

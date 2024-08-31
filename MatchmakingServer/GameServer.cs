@@ -28,9 +28,14 @@ namespace MatchmakingServer
 
         public string InstanceId { get; }
 
+
+        public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
+
         public Task? ProcessingTask { get; set; }
 
         public CancellationTokenSource ProcessingCancellation { get; set; } = new();
+
+        public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
 
         public GameServer(string instanceId)
         {
@@ -39,7 +44,7 @@ namespace MatchmakingServer
 
         public override string ToString()
         {
-            return $"[{ServerIp}:{ServerPort}]";
+            return $"[{ServerIp}:{ServerPort}] [{ProcessingState}]";
         }
     }
 }
