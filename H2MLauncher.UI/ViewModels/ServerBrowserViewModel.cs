@@ -187,9 +187,6 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         // initialize server filter view model with stored values
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
-
-        // listen to info responses from game servers
-        _gameServerCommunicationService.ServerInfoReceived += OnGameServerInfoReceived;
     }
 
     private void ShowSettings()
@@ -512,7 +509,11 @@ public partial class ServerBrowserViewModel : ObservableObject
                 .OrderByDescending((server) => server.ClientNum);
 
             // Start by sending info requests to the game servers
-            await Task.Run(() => _gameServerCommunicationService.SendInfoRequestsAsync(serversOrderedByOccupation, _loadCancellation.Token));
+
+            // NOTE: we are using Task.Run to run this in a background thread,
+            // because the non async timer blocks the UI
+            await Task.Run(() => _gameServerCommunicationService.RequestServerInfoAsync(
+                serversOrderedByOccupation, OnGameServerInfoReceived, _loadCancellation.Token));
 
             StatusText = "Ready";
         }
@@ -523,7 +524,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         }
     }
 
-    private void OnGameServerInfoReceived(object? sender, ServerInfoEventArgs<IW4MServer> e)
+    private void OnGameServerInfoReceived(ServerInfoEventArgs<IW4MServer> e)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();

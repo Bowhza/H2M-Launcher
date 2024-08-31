@@ -6,25 +6,9 @@ using H2MLauncher.Core.Models;
 using Haukcode.HighResolutionTimer;
 
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace H2MLauncher.Core.Services
 {
-    public interface IServerConnectionDetails
-    {
-        string Ip { get; }
-
-        int Port { get; }
-    }
-
-    public class ServerInfoEventArgs<TServer> : EventArgs
-         where TServer : IServerConnectionDetails
-    {
-        public required GameServerInfo ServerInfo { get; init; }
-
-        public required TServer Server { get; init; }
-    }
-
     public class GameServerCommunicationService<TServer> : IAsyncDisposable
         where TServer : IServerConnectionDetails
     {
@@ -33,18 +17,23 @@ namespace H2MLauncher.Core.Services
         private GameServerCommunication? _gameServerCommunication;
         private readonly List<IDisposable> _registrations = [];
 
+        private readonly IEndpointResolver _endpointResolver;
+
         private readonly ILogger<GameServerCommunicationService<TServer>> _logger;
-        private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions());
 
         private const int MIN_REQUEST_DELAY = 1;
+        private const int MAX_PARALLEL_RESOLVE = 40;
+        private const string INFO_REQUEST = "getinfo";
+        private const string INFO_RESPONSE = "inforesponse";
 
         public event EventHandler<ServerInfoEventArgs<TServer>>? ServerInfoReceived;
 
-        public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger)
+        public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger, IEndpointResolver endpointResolver)
         {
             _logger = logger;
 
             StartCommunication();
+            _endpointResolver = endpointResolver;
         }
 
         private record struct InfoRequest(TServer Server)
@@ -52,8 +41,6 @@ namespace H2MLauncher.Core.Services
             public DateTimeOffset TimeStamp { get; init; } = DateTimeOffset.Now;
             public TaskCompletionSource<GameServerInfo>? InfoResponseCompletionSource { get; init; }
         }
-
-        private record struct IpEndpointCacheKey(string IpOrHostName, int Port) { }
 
 
         /// <summary>
@@ -64,7 +51,7 @@ namespace H2MLauncher.Core.Services
             _gameServerCommunication = new();
 
             // Register info response command handler
-            var handlerRegistration = _gameServerCommunication.On("infoResponse", OnInfoResponse);
+            var handlerRegistration = _gameServerCommunication.On(INFO_RESPONSE, OnInfoResponse);
 
             _registrations.Add(handlerRegistration);
         }
@@ -134,66 +121,6 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        /// <summary>
-        /// Tries to resolve the <see cref="IPEndPoint"/> of the given <paramref name="server"/> using it's hostname.
-        /// </summary>
-        private async Task<IPEndPoint?> ResolveEndpointAsync(TServer server, CancellationToken cancellationToken)
-        {
-            _logger.LogDebug("Resolving endpoint for server {Server}...", server);
-
-            // ip likely contains a hostname
-            try
-            {
-                // resolve ip addresses from hostname
-                var ipAddressList = await Dns.GetHostAddressesAsync(server.Ip, cancellationToken);
-                var compatibleIp = ipAddressList.FirstOrDefault();
-                if (compatibleIp == null)
-                {
-                    // could not resolve ip address
-                    _logger.LogDebug("Not IP address found for {HostName}", server.Ip);
-                    return null;
-                }
-
-                _logger.LogDebug("Found IP address for {HostName}: {IP} ", server.Ip, compatibleIp);
-                return new IPEndPoint(compatibleIp.MapToIPv6(), server.Port);
-            }
-            catch (Exception ex)
-            {
-                // invalid ip field
-                _logger.LogWarning(ex, "Error while resolving endpoint for server {Server}", server);
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Gets the <see cref="IPEndPoint"/> for the given <paramref name="server"/> from the cache,
-        /// or tries to create / resolve it when no valid cache entry is found.
-        /// </summary>
-        private Task<IPEndPoint?> GetOrResolveEndpointAsync(TServer server, CancellationToken cancellationToken)
-        {
-            return _memoryCache.GetOrCreateAsync(
-                new IpEndpointCacheKey(server.Ip, server.Port),
-                async (cacheEntry) =>
-                {
-                    if (IPAddress.TryParse(server.Ip, out var ipAddress))
-                    {
-                        cacheEntry.SlidingExpiration = TimeSpan.FromHours(10);
-
-                        // ip contains an actual ip address -> use that to create endpoint
-                        return new IPEndPoint(ipAddress.MapToIPv6(), server.Port);
-                    }
-
-                    var endpoint = await ResolveEndpointAsync(server, cancellationToken);
-                    if (endpoint is null)
-                    {
-                        cacheEntry.SlidingExpiration = TimeSpan.FromSeconds(120);
-                        return null;
-                    }
-
-                    return endpoint;
-                });
-        }
-
         public async Task<string?> RequestCommandAsync(TServer server, string command, CancellationToken cancellationToken)
         {
             if (_gameServerCommunication is null)
@@ -202,7 +129,7 @@ namespace H2MLauncher.Core.Services
             }
 
             // create an endpoint to send to and receive from
-            IPEndPoint? endpoint = await GetOrResolveEndpointAsync(server, cancellationToken);
+            IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
             if (endpoint is null)
             {
                 return null;
@@ -221,7 +148,7 @@ namespace H2MLauncher.Core.Services
             try
             {
                 // send 'getinfo' command
-                await _gameServerCommunication.SendAsync(endpoint, "getinfo", cancellationToken: cancellationToken);
+                await _gameServerCommunication.SendAsync(endpoint, command, cancellationToken: cancellationToken);
 
                 return await tcs.Task.ConfigureAwait(false);
             }
@@ -238,7 +165,7 @@ namespace H2MLauncher.Core.Services
         public async Task<GameServerInfo?> RequestServerInfoAsync(TServer server, CancellationToken cancellationToken)
         {
             // create an endpoint to send to and receive from
-            IPEndPoint? endpoint = await GetOrResolveEndpointAsync(server, cancellationToken);
+            IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
             if (endpoint is null)
             {
                 return null;
@@ -248,11 +175,6 @@ namespace H2MLauncher.Core.Services
 
             // cancel task when token requests cancellation
             cancellationToken.UnsafeRegister((o) => ((TaskCompletionSource<GameServerInfo>)o!).TrySetCanceled(), tcs);
-            cancellationToken.Register(() =>
-            {
-                // remove queued server request
-                _queuedServers.TryRemove(endpoint, out _);
-            });
 
             InfoRequest request = new(server)
             {
@@ -276,6 +198,51 @@ namespace H2MLauncher.Core.Services
                 _queuedServers.GetValueOrDefault(endpoint).InfoResponseCompletionSource?.TrySetCanceled(cancellationToken);
                 _queuedServers[endpoint] = request;
             }
+
+            cancellationToken.Register(() => _queuedServers.TryRemove(endpoint, out _));
+        }
+
+        /// <summary>
+        /// Send info requests to all given game servers.
+        /// </summary>
+        public async Task RequestServerInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer>> onInfoResponse, 
+            CancellationToken cancellationToken)
+        {
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+
+            if (endpointServerMap.Count == 0)
+            {
+                // early return to avoid allocations
+            }
+
+            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer> args)
+            {
+                // only invoke the callback for responses from the given servers
+                if (endpointServerMap.ContainsKey(args.ServerInfo.Address))
+                {
+                    onInfoResponse(args);
+                }
+            }
+
+            // subscribe to server info handlers
+            ServerInfoReceived += onServerInfoReceived;
+            cancellationToken.Register(() => ServerInfoReceived -= onServerInfoReceived);
+
+            // start sending requests
+            using HighResolutionTimer timer = new();
+            timer.SetPeriod(MIN_REQUEST_DELAY);
+            timer.Start();
+
+            foreach (var (endpoint, server) in endpointServerMap)
+            {
+                InfoRequest request = new(server);
+
+                _ = await SendInfoRequestInternalAsync(endpoint, request, cancellationToken);
+
+                // wait for some bit. This is somehow necessary to receive all server responses.
+                // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
+                timer.WaitForTrigger();
+            }
         }
 
         /// <summary>
@@ -283,29 +250,12 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         public async Task SendInfoRequestsAsync(IEnumerable<TServer> servers, CancellationToken cancellationToken)
         {
-            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
 
-            // resolve host names in parallel
-            await Parallel.ForEachAsync(
-                servers,
-                new ParallelOptions()
-                {
-                    CancellationToken = cancellationToken,
-                    MaxDegreeOfParallelism = 40
-                },
-                async (server, token) =>
-                {
-                    // create an endpoint to send to and receive from
-                    IPEndPoint? endpoint = await GetOrResolveEndpointAsync(server, token);
-                    if (endpoint != null)
-                    {
-                        // filter out duplicates
-                        if (!endpointServerMap.TryAdd(endpoint, server))
-                        {
-                            // duplicate
-                        }
-                    }
-                });
+            if (endpointServerMap.Count == 0)
+            {
+                // early return to avoid timer allocation
+            }
 
             using HighResolutionTimer timer = new();
             timer.SetPeriod(MIN_REQUEST_DELAY);
@@ -330,7 +280,7 @@ namespace H2MLauncher.Core.Services
         public async Task<bool> SendInfoRequestAsync(TServer server, CancellationToken cancellationToken)
         {
             // create an endpoint to send to and receive from
-            var serverEndpoint = await GetOrResolveEndpointAsync(server, cancellationToken);
+            var serverEndpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
             if (serverEndpoint is null)
             {
                 return false;
@@ -352,7 +302,7 @@ namespace H2MLauncher.Core.Services
             try
             {
                 // send 'getinfo' command
-                await _gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken);
+                await _gameServerCommunication.SendAsync(serverEndpoint, INFO_REQUEST, cancellationToken: cancellationToken);
 
                 return true;
             }
@@ -363,6 +313,39 @@ namespace H2MLauncher.Core.Services
 
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Creates a dictionary of ip endpoints to servers by resolving the addresses in parallel and filtering out duplicates.
+        /// </summary>
+        private async Task<IReadOnlyDictionary<IPEndPoint, TServer>> CreateEndpointServerMap(
+            IEnumerable<TServer> servers, CancellationToken cancellationToken)
+        {
+            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
+
+            // resolve host names in parallel
+            await Parallel.ForEachAsync(
+                servers,
+                new ParallelOptions()
+                {
+                    CancellationToken = cancellationToken,
+                    MaxDegreeOfParallelism = MAX_PARALLEL_RESOLVE
+                },
+                async (server, token) =>
+                {
+                    // create an endpoint to send to and receive from
+                    IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, token);
+                    if (endpoint != null)
+                    {
+                        // filter out duplicates
+                        if (!endpointServerMap.TryAdd(endpoint, server))
+                        {
+                            // duplicate
+                        }
+                    }
+                });
+
+            return endpointServerMap.AsReadOnly();
         }
 
         public ValueTask DisposeAsync()

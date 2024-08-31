@@ -25,6 +25,7 @@ builder.Services.AddScoped<IIW4MAdminMasterService, IW4MAdminMasterService>();
 builder.Services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>();
 
 builder.Services.AddSingleton<GameServerCommunicationService<IServerConnectionDetails>>();
+builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
 

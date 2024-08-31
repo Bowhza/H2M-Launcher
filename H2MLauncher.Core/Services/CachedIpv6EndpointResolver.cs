@@ -1,0 +1,80 @@
+﻿using System.Net;
+
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Caching.Memory;
+
+namespace H2MLauncher.Core.Services
+{
+    public sealed class CachedIpv6EndpointResolver(ILogger<CachedIpv6EndpointResolver> logger) : IEndpointResolver
+    {
+        private readonly ILogger<CachedIpv6EndpointResolver> _logger = logger;
+        private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions());
+
+        private record struct IpEndpointCacheKey(string IpOrHostName, int Port) { }
+
+        /// <summary>
+        /// Tries to resolve the <see cref="IPEndPoint"/> of the given <paramref name="server"/> using it's hostname.
+        /// </summary>
+        private async Task<IPEndPoint?> ResolveEndpointAsync(IServerConnectionDetails server, CancellationToken cancellationToken)
+        {
+            _logger.LogDebug("Resolving endpoint for server {Server}...", server);
+
+            // ip likely contains a hostname
+            try
+            {
+                // resolve ip addresses from hostname
+                var ipAddressList = await Dns.GetHostAddressesAsync(server.Ip, cancellationToken);
+                var compatibleIp = ipAddressList.FirstOrDefault();
+                if (compatibleIp == null)
+                {
+                    // could not resolve ip address
+                    _logger.LogDebug("Not IP address found for {HostName}", server.Ip);
+                    return null;
+                }
+
+                _logger.LogDebug("Found IP address for {HostName}: {IP} ", server.Ip, compatibleIp);
+                return new IPEndPoint(compatibleIp.MapToIPv6(), server.Port);
+            }
+            catch (Exception ex)
+            {
+                // invalid ip field
+                _logger.LogWarning(ex, "Error while resolving endpoint for server {Server}", server);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the <see cref="IPEndPoint"/> for the given <paramref name="server"/> from the cache,
+        /// or tries to create / resolve it when no valid cache entry is found.
+        /// </summary>
+        private Task<IPEndPoint?> GetOrResolveEndpointAsync(IServerConnectionDetails server, CancellationToken cancellationToken)
+        {
+            return _memoryCache.GetOrCreateAsync(
+                new IpEndpointCacheKey(server.Ip, server.Port),
+                async (cacheEntry) =>
+                {
+                    if (IPAddress.TryParse(server.Ip, out var ipAddress))
+                    {
+                        cacheEntry.SlidingExpiration = TimeSpan.FromHours(10);
+
+                        // ip contains an actual ip address -> use that to create endpoint
+                        return new IPEndPoint(ipAddress.MapToIPv6(), server.Port);
+                    }
+
+                    var endpoint = await ResolveEndpointAsync(server, cancellationToken);
+                    if (endpoint is null)
+                    {
+                        cacheEntry.SlidingExpiration = TimeSpan.FromSeconds(120);
+                        return null;
+                    }
+
+                    return endpoint;
+                });
+        }
+
+        public Task<IPEndPoint?> GetEndpointAsync(IServerConnectionDetails server, CancellationToken cancellationToken)
+        {
+            return GetOrResolveEndpointAsync(server, cancellationToken);
+        }
+    }
+}
