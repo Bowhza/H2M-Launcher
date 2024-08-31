@@ -43,6 +43,7 @@ public partial class ServerBrowserViewModel : ObservableObject
     private readonly Dictionary<string, string> _gameTypeMap = [];
     private readonly IOptions<ResourceSettings> _resourceSettings;
     private readonly H2MLauncherSettings _defaultSettings;
+    private readonly MatchmakingService _matchmakingService;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -104,7 +105,8 @@ public partial class ServerBrowserViewModel : ObservableObject
         DialogService dialogService,
         IWritableOptions<H2MLauncherSettings> h2mLauncherOptions,
         IOptions<ResourceSettings> resourceSettings,
-        [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings)
+        [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
+        MatchmakingService matchmakingService)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -118,6 +120,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         _h2MLauncherOptions = h2mLauncherOptions;
         _defaultSettings = defaultSettings;
         _resourceSettings = resourceSettings;
+        _matchmakingService = matchmakingService;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -540,6 +543,7 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         ServerViewModel serverViewModel = new()
         {
+            Server = server,
             Id = server.Id,
             Ip = server.Ip,
             Port = server.Port,
@@ -574,7 +578,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         // Game server responded -> online
     }
 
-    private void JoinServer(ServerViewModel? serverViewModel)
+    private async Task JoinServer(ServerViewModel? serverViewModel)
     {
         string? password = null;
 
@@ -592,6 +596,13 @@ public partial class ServerBrowserViewModel : ObservableObject
             // Do not continue joining the server
             if (result is null || result == false)
                 return;
+        }
+
+        if (serverViewModel.ClientNum >= serverViewModel.MaxClientNum)
+        {
+            //QueueServer(SelectedServer.Server);
+            await _matchmakingService.JoinQueueAsync(serverViewModel.Server, "TestPlayer");
+            return;
         }
 
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);

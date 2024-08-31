@@ -1,9 +1,13 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
+using H2MLauncher.Core.Models;
+
 namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerViewModel : ObservableObject
     {
+        public required IW4MServer Server { get; init; }
+
         [ObservableProperty]
         private double _id;
 
