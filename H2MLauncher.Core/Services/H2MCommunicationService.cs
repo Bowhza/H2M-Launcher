@@ -3,23 +3,54 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Settings;
+
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.Core.Services
 {
-    public class H2MCommunicationService(IErrorHandlingService errorHandlingService)
+    public class H2MCommunicationService
     {
-        private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+        private const string GAME_WINDOW_TITLE = "H2M-Mod";
+        //Windows API constants
+        private const int WM_CHAR = 0x0102; // Message code for sending a character
+        private const int WM_KEYDOWN = 0x0100; // Message code for key down
+        private const int WM_KEYUP = 0x0101;   // Message code for key up
+
+        private readonly IOptionsMonitor<H2MLauncherSettings> _h2mLauncherSettings;
+        private readonly IErrorHandlingService _errorHandlingService;
+
+        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IOptionsMonitor<H2MLauncherSettings> options)
+        {
+            _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
+            ArgumentNullException.ThrowIfNull(options, nameof(options));
+            _h2mLauncherSettings = options;
+        }
 
         //Windows API functions to send input to a window
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
         [DllImport("user32.dll")]
         public static extern bool ReleaseCapture();
+
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        internal static extern bool EnumThreadWindows(int dwThreadId, EnumWindowsProc lpfn, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        internal static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+
+        internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
 
         internal static IEnumerable<IntPtr> EnumerateProcessWindowHandles(int processId)
         {
@@ -32,12 +63,6 @@ namespace H2MLauncher.Core.Services
             return handles;
         }
 
-
-        [DllImport("user32.dll")]
-        internal static extern bool EnumThreadWindows(int dwThreadId, EnumWindowsProc lpfn,
-           IntPtr lParam);
-
-        internal delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
         internal static IEnumerable<IntPtr> EnumerateWindowHandles()
         {
             var handles = new List<IntPtr>();
@@ -46,9 +71,6 @@ namespace H2MLauncher.Core.Services
 
             return handles;
         }
-
-        [DllImport("user32.dll")]
-        internal static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
 
         private static string? GetWindowTitle(IntPtr hWnd)
         {
@@ -63,11 +85,38 @@ namespace H2MLauncher.Core.Services
             return null;
         }
 
+        private bool TryFindValidGameFile(out string fileName)
+        {
+            const string exeFileName = "h2m-mod.exe";
 
-        //Windows API constants
-        internal const int WM_CHAR = 0x0102; // Message code for sending a character
-        internal const int WM_KEYDOWN = 0x0100; // Message code for key down
-        internal const int WM_KEYUP = 0x0101;   // Message code for key up
+            if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
+            {
+                // no location set, try relative path
+                fileName = Path.GetFullPath(exeFileName);
+                return File.Exists(fileName);
+            }
+
+            string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.CurrentValue.MWRLocation);
+
+            if (!Path.Exists(userDefinedLocation))
+            {
+                // neither dir or file exists
+                fileName = userDefinedLocation;
+                return false;
+            }
+
+            if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
+            {
+                // is a directory, get full file name
+                fileName = Path.Combine(userDefinedLocation, exeFileName);
+
+                return File.Exists(fileName);
+            }
+
+            // is a file?
+            fileName = userDefinedLocation;
+            return File.Exists(userDefinedLocation);
+        }
 
         public void LaunchH2MMod()
         {
@@ -85,13 +134,21 @@ namespace H2MLauncher.Core.Services
                 }
 
                 // Proceed to launch the process if it's not running
-                if (File.Exists("./h2m-mod.exe"))
-                    Process.Start("./h2m-mod.exe");
+                if (TryFindValidGameFile(out string gameFileName) && 
+                    !string.IsNullOrEmpty(gameFileName))
+                {
+                    ProcessStartInfo startInfo = new(gameFileName)
+                    {
+                        WorkingDirectory = Path.GetDirectoryName(gameFileName)
+                    };
+
+                    Process.Start(startInfo);
+                }
                 else
                 {
                     _errorHandlingService.HandleException(
                         new FileNotFoundException("h2m-mod.exe was not found."),
-                        "The h2m-mod.exe could not be found!");
+                        $"The h2m-mod.exe could not be found at {gameFileName}!");
                 }
             }
             catch (Exception ex)
@@ -100,10 +157,15 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool JoinServer(string ip, string port)
-        {
+        public bool JoinServer(string ip, string port,string? password=null)
+        {                       
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
+
+            if (password is not null)
+            {
+                connectCommand += $";password {password}";
+            }
 
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)
@@ -154,7 +216,11 @@ namespace H2MLauncher.Core.Services
 
             // Set H2M to foreground window
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
-            SetForegroundWindow(h2mModProcess.MainWindowHandle);
+            SetForegroundWindow(hGameWindow);
+
+
+            // TODO: confirm the user joined this server
+
 
             return true;
         }
@@ -205,20 +271,15 @@ namespace H2MLauncher.Core.Services
                 p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals("h1_mp64_ship.exe"));
         }
 
-        [DllImport("user32.dll", SetLastError = true)]
-        static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
-
-        private const string GAME_WINDOW_TITLE = "H2M-Mod";
-
         private static IntPtr FindH2MModGameWindow(Process process)
         {
             // find game window (title is exactly "H2M-Mod")
             foreach (IntPtr hChild in EnumerateProcessWindowHandles(process.Id))
             {
                 string? title = GetWindowTitle(hChild);
-                if (title != null && title.Equals("H2M-Mod"))
+                if (title != null && title.Equals(GAME_WINDOW_TITLE))
                 {
-                    //return hChild;
+                    return hChild;
                 }
             }
 

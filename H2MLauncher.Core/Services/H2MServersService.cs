@@ -9,9 +9,9 @@ namespace H2MLauncher.Core.Services
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
         private readonly List<IW4MServer> _servers = [];
 
-        public async Task<IEnumerable<IW4MServer>> GetServersAsync(CancellationToken cancellationToken)
+        public async Task<IReadOnlyList<IW4MServer>> GetServersAsync(CancellationToken cancellationToken)
         {
-            IEnumerable<IW4MServerInstance>? servers = null;
+            IReadOnlyList<IW4MServerInstance>? servers = null;
             _servers.Clear();
 
             try

@@ -22,7 +22,7 @@ namespace H2MLauncher.Core.Services
         {
             get
             {
-                Version version = Assembly.GetExecutingAssembly().GetName().Version!;
+                Version version = Assembly.GetEntryAssembly()!.GetName().Version!;
                 return $"H2M-v{version.Major}.{version.Minor}.{version.Build}";
             }
         }

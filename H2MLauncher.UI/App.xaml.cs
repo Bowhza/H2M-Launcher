@@ -1,34 +1,58 @@
-﻿using System.Reflection;
+﻿using System.IO;
+using System.Reflection;
 using System.Windows;
 
-using H2MLauncher.Core.Interfaces;
-using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
-using H2MLauncher.Core.ViewModels;
-using H2MLauncher.UI.Dialog;
+using Nogic.WritableOptions;
 
+using H2MLauncher.Core;
+using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Settings;
+using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.ViewModels;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 
 using Serilog;
-using Serilog.Core;
+using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.UI
 {
     public partial class App : Application
     {
-        public IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
+        private H2MLauncherSettings _defaultSettings = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             SetupExceptionHandling();
             InitializeLogging();
+            IConfigurationRoot config = BuildConfiguration();
 
             ServiceCollection serviceCollection = new();
-            ConfigureServices(serviceCollection);
+            ConfigureServices(serviceCollection, config);
+
             ServiceProvider = serviceCollection.BuildServiceProvider();
+
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
+
+            // save options on startup to update user file with new settings            
+            ServiceProvider.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
+            {
+                // make sure a valid master server url is set
+                if (string.IsNullOrEmpty(settings.IW4MMasterServerUrl))
+                {
+                    return settings with
+                    {
+                        IW4MMasterServerUrl = _defaultSettings.IW4MMasterServerUrl
+                    };
+                }
+
+                return settings;
+            });
+
             base.OnStartup(e);
         }
 
@@ -42,19 +66,23 @@ namespace H2MLauncher.UI
                 .WriteTo.Debug()
                 .CreateLogger();
 
-            Log.Information("{applicationName} started on version {version}.", 
+            Log.Information("{applicationName} started on version {version}.",
                 Assembly.GetExecutingAssembly().GetName(),
                 H2MLauncherService.CurrentVersion);
         }
 
-        private void ConfigureServices(IServiceCollection services)
+        private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
-            services.AddLogging(builder => builder.AddSerilog());
+            services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
+                section: config.GetSection(Constants.LauncherSettingsSection),
+                directoryPath: Path.GetDirectoryName(Constants.LauncherSettingsFilePath) ?? Constants.LocalDir,
+                file: Constants.LauncherSettingsFileName);
 
-            services.AddSingleton<DialogViewModel>((s) =>
-            {
-                return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
-            });
+            services.Configure<ResourceSettings>(config.GetSection(Constants.ResourceSection));
+
+            services.AddKeyedSingleton(Constants.DefaultSettingsKey, _defaultSettings);
+
+            services.AddLogging(builder => builder.AddSerilog());
 
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
@@ -80,6 +108,42 @@ namespace H2MLauncher.UI
             services.AddTransient<MatchmakingService>();
 
             services.AddTransient<MainWindow>();
+        }
+
+        private IConfigurationRoot BuildConfiguration()
+        {
+            const string defaultAppsettings = "appsettings.json";
+
+            Assembly host = Assembly.GetEntryAssembly()!;
+            string fullFileName = $"{host.GetName().Name}.{defaultAppsettings}";
+            using Stream input = host.GetManifestResourceStream(fullFileName)!;
+
+            IConfigurationBuilder builder = new ConfigurationBuilder()
+                .AddJsonStream(input);
+
+            // NOTE: using two builders because we use the embedded resource as a stream
+            IConfigurationRoot defaultConfiguration = builder.Build();
+
+            IConfigurationBuilder coolerBuilder = new ConfigurationBuilder()
+                .AddConfiguration(defaultConfiguration);
+
+            H2MLauncherSettings? defaultH2MLauncherSettings = defaultConfiguration.GetRequiredSection(Constants.LauncherSettingsSection)
+                                                                                  .Get<H2MLauncherSettings>();
+            if (defaultH2MLauncherSettings is null)
+            {
+                // should never happen, except the appsettings.json are not included properly.
+                Log.Fatal("No default appsettings.");
+                Shutdown(-1);
+                return defaultConfiguration;
+            }
+
+            _defaultSettings = defaultH2MLauncherSettings;
+
+            coolerBuilder
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true)
+                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+
+            return coolerBuilder.Build();
         }
 
         private void SetupExceptionHandling()

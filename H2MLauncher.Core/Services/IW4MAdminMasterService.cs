@@ -21,7 +21,7 @@ namespace H2MLauncher.Core.Services
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         }
 
-        public async Task<IEnumerable<IW4MServerInstance>> GetAllServerInstancesAsync(CancellationToken cancellationToken)
+        public async Task<IReadOnlyList<IW4MServerInstance>> GetAllServerInstancesAsync(CancellationToken cancellationToken)
         {
             // Fetch server list from iw4m admin master server instance
             string address = $"{_masterServiceUrl}/instance";
@@ -37,13 +37,12 @@ namespace H2MLauncher.Core.Services
 
             // Parse it to Json
             _logger.LogDebug("Parsing response body to json..");
-            IEnumerable<IW4MServerInstance>? instances = await result.Content.TryReadFromJsonAsync<IEnumerable<IW4MServerInstance>>(cancellationToken);
+            List<IW4MServerInstance>? instances = await result.Content.TryReadFromJsonAsync<List<IW4MServerInstance>>(cancellationToken);
 
             // Ensure the parsing success, otherwise provide an exception?
             if (instances is null)
             {
-                _logger.LogWarning("Failed to parse master server list from response body: {response}", result.Content.ToString());
-
+                _logger.LogWarning("Failed to parse master server list from response body: {response}", await result.Content.ReadAsStringAsync());
                 return [];
             }
             _logger.LogInformation("Successfully parsed master server list from json.");
@@ -53,7 +52,7 @@ namespace H2MLauncher.Core.Services
                 instance.Servers.ForEach(s => s.Instance = instance);
             }
 
-            return instances;
+            return instances.AsReadOnly();
         }
 
         public async Task<IW4MServerInstance?> GetServerInstanceAsync(string id, CancellationToken cancellationToken)

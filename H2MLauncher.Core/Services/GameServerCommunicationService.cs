@@ -3,6 +3,8 @@ using System.Net;
 
 using H2MLauncher.Core.Models;
 
+using Haukcode.HighResolutionTimer;
+
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -305,6 +307,10 @@ namespace H2MLauncher.Core.Services
                     }
                 });
 
+            using HighResolutionTimer timer = new();
+            timer.SetPeriod(MIN_REQUEST_DELAY);
+            timer.Start();
+
             foreach (var (endpoint, server) in endpointServerMap)
             {
                 InfoRequest request = new(server);
@@ -312,7 +318,8 @@ namespace H2MLauncher.Core.Services
                 _ = await SendInfoRequestInternalAsync(endpoint, request, cancellationToken);
 
                 // wait for some bit. This is somehow necessary to receive all server responses.
-                await Task.Delay(MIN_REQUEST_DELAY + 3, cancellationToken);
+                // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
+                timer.WaitForTrigger();
             }
         }
 
@@ -357,6 +364,7 @@ namespace H2MLauncher.Core.Services
                 return false;
             }
         }
+
         public ValueTask DisposeAsync()
         {
             _registrations.ForEach(reg => reg.Dispose());

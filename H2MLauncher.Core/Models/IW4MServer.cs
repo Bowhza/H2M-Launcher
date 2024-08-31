@@ -31,6 +31,6 @@ namespace H2MLauncher.Core.Models
         public required int MaxClientNum { get; set; }
 
         [JsonIgnore]
-        public IW4MServerInstance Instance { get; set; }
+        public IW4MServerInstance Instance { get; set; } = null!;
     }
 }

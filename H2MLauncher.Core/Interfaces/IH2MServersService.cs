@@ -9,6 +9,6 @@ namespace H2MLauncher.Core.Interfaces
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Returns the servers list.</returns>
-        Task<IEnumerable<IW4MServer>> GetServersAsync(CancellationToken cancellationToken);
+        Task<IReadOnlyList<IW4MServer>> GetServersAsync(CancellationToken cancellationToken);
     }
 }

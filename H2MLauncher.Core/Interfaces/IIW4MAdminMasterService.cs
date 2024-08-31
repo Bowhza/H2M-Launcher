@@ -9,7 +9,7 @@ namespace H2MLauncher.Core.Interfaces
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns>Returns all server instances <see cref="IW4MServerInstance"/> asynchronously.</returns>
-        Task<IEnumerable<IW4MServerInstance>> GetAllServerInstancesAsync(CancellationToken cancellationToken);
+        Task<IReadOnlyList<IW4MServerInstance>> GetAllServerInstancesAsync(CancellationToken cancellationToken);
 
         /// <summary>
         /// Gets the specified server instance asynchronously.

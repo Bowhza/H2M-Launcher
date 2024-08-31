@@ -4,24 +4,29 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Input;
 
-using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
     public partial class MainWindow : Window
     {
-        private readonly ICollectionView _collectionView;
-
         private readonly ServerBrowserViewModel _viewModel;
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
+
             DataContext = _viewModel = serverBrowserViewModel;
+
+
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
+
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
-            _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
-            _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
+        }
+
+        private void ServerBrowserViewModel_ServerFilterChanged()
+        {
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -40,9 +45,9 @@ namespace H2MLauncher.UI
             }
         }
 
-        private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _collectionView.Refresh();
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)

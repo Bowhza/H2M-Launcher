@@ -52,7 +52,7 @@ namespace H2MLauncher.Core.Services
                 bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
                 return joinedSuccesfully;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
