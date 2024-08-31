@@ -6,12 +6,16 @@ using H2MLauncher.Core.Utilities;
 using MatchmakingServer;
 using MatchmakingServer.SignalR;
 
+using Microsoft.Extensions.Options;
+
 var builder = WebApplication.CreateBuilder();
 
 
 // Add services to the container.
 
 builder.Services.AddLogging();
+
+builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
 
 builder.Services.AddScoped<IIW4MAdminService, IW4MAdminService>();
 builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>()
@@ -22,7 +26,17 @@ builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>()
         }));
 
 builder.Services.AddScoped<IIW4MAdminMasterService, IW4MAdminMasterService>();
-builder.Services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>();
+builder.Services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        var settings = sp.GetRequiredService<IOptions<Settings>>();
+        if (!Uri.TryCreate(settings.Value.IW4MAdminMasterApiUrl, UriKind.RelativeOrAbsolute, out var baseUri))
+        {
+            throw new Exception("Invalid master api url in settings.");
+        }
+
+        client.BaseAddress = baseUri;
+    });
 
 builder.Services.AddSingleton<GameServerCommunicationService<IServerConnectionDetails>>();
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
