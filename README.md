@@ -100,6 +100,12 @@ Go to your Windows Settings and search for Clear Clipboard.
 
 <img src="./Images/ClearClipBoardWindows.png">
 
+### 6. Could not load configuration file
+
+<img src="./Images/Config-Fail.png">
+
+**Answer**: Delete the `launchersettings.json` file located at `C:\Users\<YourUserName>\AppData\Local\BetterH2MLauncher`. After deleting the json file, next time you launch the exe it should be created again.
+
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
 
 For other information and questions can be found at this **[Discord Thread](https://discord.com/channels/1272500523010097202/1275315609911169056)**.
