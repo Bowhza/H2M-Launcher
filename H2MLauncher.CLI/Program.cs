@@ -273,71 +273,37 @@ partial class Program
         IntPtr baseAddress = new IntPtr(
             targetProcess.Modules.Cast<ProcessModule>().First(m => m.ModuleName.Contains("h1_mp64")).BaseAddress);
 
-        //while (true)
-        //{
-        //    uint readValue = 0;
-        //    if (ReadProcessMemory(hProcess, baseAddress + LEVEL_ENTITY_ID_H1, ref readValue, sizeof(uint), out _))
-        //    {
-
-        //    }
-        //}
-
-
-
-
-
-        Task.Run(async () =>
+        // Create a buffer to store the read data
+        byte[] buffer = new byte[64]; // Size of an int (4 bytes)
+        int bytesRead;
+        while (true)
         {
-            // Create a buffer to store the read data
-            byte[] buffer = new byte[64]; // Size of an int (4 bytes)
-            int bytesRead;
-            int value = 0;
-            while (true)
+            ReadProcessMemory(hProcess, baseAddress + PLAYER_NAME_OFFSET_H1, buffer, 64, out bytesRead);
+
+            // Read memory
+            bool success = ReadProcessMemoryUInt(hProcess, baseAddress + LEVEL_ENTITY_ID_H1, out uint levelId);
+            bool success2 = ReadProcessMemoryInt(hProcess, baseAddress + CONNECTION_STATE_H1, out int connectionState);
+            if (success && success)
             {
-                //  IchWillKei\0x4D60A94B\0711\0xEF268943\dfa775f38c1c9e42\0xED9B7D6
-                ReadProcessMemory(hProcess, baseAddress + PLAYER_NAME_OFFSET_H1, buffer, 64, out bytesRead);
-
-                //ReadClientState(hProcess, baseAddress + 0x2EC84F0);
-
-
-                // Read memory
-                bool success = ReadProcessMemoryUInt(hProcess, baseAddress + LEVEL_ENTITY_ID_H1, out uint levelId);
-                bool success2 = ReadProcessMemoryInt(hProcess, baseAddress + CONNECTION_STATE_H1, out int connectionState);
-                if (success && success)
+                if (levelId == 0 && connectionState >= (int)connstate_t.CA_CONNECTED)
                 {
-                    if (levelId == 0 && connectionState >= (int)connstate_t.CA_CONNECTED)
-                    {
-                        Console.WriteLine("Connected");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Disconnected");
-                    }
-
-
-                    //// Convert the byte array to an integer
-                    //int newValue = BitConverter.ToInt32(buffer, 0);
-
-                    //if (value == newValue)
-                    //{
-                    //    continue;
-                    //}
-                    //value = newValue;
-
-
-
-                    //Console.WriteLine(((connstate_t)value).ToString());
-                    Console.WriteLine("Read string: " + Encoding.ASCII.GetString(buffer));
+                    Console.WriteLine("Connected");
                 }
                 else
                 {
-                    Console.WriteLine("Failed to read memory.");
+                    Console.WriteLine("Disconnected");
                 }
 
-                await Task.Delay(1000);
+                //Console.WriteLine(((connstate_t)value).ToString());
+                Console.WriteLine("Read string: " + Encoding.ASCII.GetString(buffer));
+            }
+            else
+            {
+                Console.WriteLine("Failed to read memory.");
             }
 
-        });
+            await Task.Delay(1000);
+        }
 
         Console.ReadLine();
 
