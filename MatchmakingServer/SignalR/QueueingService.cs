@@ -44,6 +44,8 @@ namespace MatchmakingServer.SignalR
 
         private static readonly bool ConfirmJoinsWithWebfrontApi = false;
 
+        private static readonly bool CleanupServerWhenStopped = false;
+
         public QueueingService(
             GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService,
             IHubContext<QueueingHub, IClient> ctx,
@@ -127,6 +129,7 @@ namespace MatchmakingServer.SignalR
                 player.Server.LastServerInfo.FreeSlots == 0)
             {
                 // server was probably full
+                // TODO: for this we need to keep polling info
 
                 // allow retry and keep player in queue
                 player.State = PlayerState.Queued;
@@ -400,6 +403,8 @@ namespace MatchmakingServer.SignalR
                     var hasQueuedPlayers = server.PlayerQueue.Count > 0;
                     if (hasQueuedPlayers)
                     {
+                        server.ProcessingState = QueueProcessingState.Running;
+
                         // start the delay
                         Task delayTask = Task.Delay(1000, cancellationToken);
 
@@ -422,6 +427,11 @@ namespace MatchmakingServer.SignalR
                         if (idleTimeoutTask.IsCompleted)
                         {
                             server.ProcessingState = QueueProcessingState.Stopped;
+
+                            if (CleanupServerWhenStopped)
+                            {
+                                TryCleanupServer(server);
+                            }
                             break;
                         }
                     }
@@ -435,6 +445,11 @@ namespace MatchmakingServer.SignalR
             {
                 _logger.LogError(ex, "Error during server queue processing loop. {server}", server);
                 server.ProcessingState = QueueProcessingState.Stopped;
+
+                if (CleanupServerWhenStopped)
+                {
+                    TryCleanupServer(server);
+                }
             }
             finally
             {
