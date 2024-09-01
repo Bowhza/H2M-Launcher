@@ -3,9 +3,9 @@ using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 using System.Text;
 
-using Awesome.Net.WritableOptions;
-
 using H2MLauncher.Core.Settings;
+
+using Nogic.WritableOptions;
 
 namespace H2MLauncher.Core.Services
 {
@@ -82,12 +82,16 @@ namespace H2MLauncher.Core.Services
         private void OnGameDetected(DetectedGame detectedGame)
         {
             DetectedGame = detectedGame;
+            if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
+            {
+
+            }
             _h2mLauncherSettings.Update(settings =>
             {
-                if (string.IsNullOrEmpty(settings.MWRLocation))
+                return settings with
                 {
-                    settings.MWRLocation = detectedGame.FileName;
-                }
+                    MWRLocation = detectedGame.FileName
+                };
             });
             GameDetected?.Invoke(detectedGame);
         }
@@ -192,47 +196,37 @@ namespace H2MLauncher.Core.Services
             return null;
         }
 
-        private (string fileName, bool found) TryFindValidGameFile()
+        private bool TryFindValidGameFile(out string fileName)
         {
-            const string exeFileName = "h2m-mod.exe";            
+            const string exeFileName = "h2m-mod.exe";
 
-            if (string.IsNullOrEmpty(_h2mLauncherSettings.Value.MWRLocation))
+            if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
             {
                 // no location set, try relative path
-                string fullPath = Path.GetFullPath(exeFileName);
-                return File.Exists(fullPath) 
-                    ? (fullPath, true) 
-                    : (fullPath, false);
+                fileName = Path.GetFullPath(exeFileName);
+                return File.Exists(fileName);
             }
 
-            string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.Value.MWRLocation);
+            string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.CurrentValue.MWRLocation);
 
             if (!Path.Exists(userDefinedLocation))
             {
                 // neither dir or file exists
-                return (userDefinedLocation, false);
+                fileName = userDefinedLocation;
+                return false;
             }
 
             if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
             {
                 // is a directory, get full file name
-                string? fileName = Path.Combine(userDefinedLocation, exeFileName);
+                fileName = Path.Combine(userDefinedLocation, exeFileName);
 
-                if (File.Exists(fileName))
-                {
-                    return (fileName, true);
-                }
-
-                return (fileName, false);
+                return File.Exists(fileName);
             }
 
-            // is a file
-            if (File.Exists(userDefinedLocation))
-            {
-                return (userDefinedLocation, true);
-            }
-
-            return (userDefinedLocation, false);
+            // is a file?
+            fileName = userDefinedLocation;
+            return File.Exists(userDefinedLocation);
         }
 
         public void LaunchH2MMod()
@@ -250,10 +244,9 @@ namespace H2MLauncher.Core.Services
                     return;
                 }
 
-                (string gameFileName, bool found) = TryFindValidGameFile();
-
                 // Proceed to launch the process if it's not running
-                if (found && !string.IsNullOrEmpty(gameFileName))
+                if (TryFindValidGameFile(out string gameFileName) &&
+                    !string.IsNullOrEmpty(gameFileName))
                 {
                     ProcessStartInfo startInfo = new(gameFileName)
                     {
@@ -275,10 +268,15 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool JoinServer(string ip, string port)
+        public bool JoinServer(string ip, string port, string? password = null)
         {
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
+
+            if (password is not null)
+            {
+                connectCommand += $";password {password}";
+            }
 
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)
@@ -329,7 +327,11 @@ namespace H2MLauncher.Core.Services
 
             // Set H2M to foreground window
             var hGameWindow = FindH2MModGameWindow(h2mModProcess);
-            SetForegroundWindow(h2mModProcess.MainWindowHandle);
+            SetForegroundWindow(hGameWindow);
+
+
+            // TODO: confirm the user joined this server
+
 
             return true;
         }
@@ -386,9 +388,9 @@ namespace H2MLauncher.Core.Services
             foreach (IntPtr hChild in EnumerateProcessWindowHandles(process.Id))
             {
                 string? title = GetWindowTitle(hChild);
-                if (title != null && title.Equals("H2M-Mod"))
+                if (title != null && title.Equals(GAME_WINDOW_TITLE))
                 {
-                    //return hChild;
+                    return hChild;
                 }
             }
 

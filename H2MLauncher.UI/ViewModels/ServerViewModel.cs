@@ -23,19 +23,19 @@ namespace H2MLauncher.UI.ViewModels
         private int _port = 0;
 
         [ObservableProperty]
-        private string _map = "";
-
-        [ObservableProperty]
         private bool _isFavorite = false;
 
         [ObservableProperty]
         private string _gameType = "";
 
         [ObservableProperty]
-        private string _mapDisplayName = "";
+        private string _gameTypeDisplayName = "";
 
         [ObservableProperty]
-        private string _gameTypeDisplayName = "";
+        private string _map = "";
+
+        [ObservableProperty]
+        private string _mapDisplayName = "";
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(Occupation))]
@@ -55,11 +55,36 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private bool _isPrivate;
 
-        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(LastPlayed))]
+        private DateTime? _joined;
+        public string? SortPath => Joined?.ToString("s");
 
-        public override string ToString()
+        public string LastPlayed
         {
-            return $"{HostName} ({Ip}:{Port})";
+            get
+            {
+                if (!Joined.HasValue)
+                {
+                    return "Never";
+                }
+
+                string ago = " ago";
+                DateTime now = DateTime.Now;
+                TimeSpan timespan = now - Joined.Value;
+                if (timespan.TotalSeconds < 60)
+                    return $"{(int)timespan.TotalSeconds}s{ago}";
+                if (timespan.TotalMinutes < 60)
+                    return $"{(int)timespan.TotalMinutes}m{ago}";
+                if (timespan.TotalHours < 24)
+                    return $"{(int)timespan.TotalHours}h{ago}";
+                if (timespan.TotalDays < 7)
+                    return $"{(int)timespan.TotalDays}d{ago}";
+                int weeks = (int)(timespan.TotalDays / 7);
+                return $"{weeks}w{ago}";
+            }
         }
+
+        public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
     }
 }
