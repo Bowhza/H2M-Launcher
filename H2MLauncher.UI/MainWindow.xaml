@@ -307,31 +307,63 @@
                     </TabControl.ContentTemplate>
                 </TabControl>
 
-                <StatusBar Grid.Row="3" Background="Transparent" Foreground="White">
-                    <StatusBarItem Content="{Binding StatusText}"></StatusBarItem>
-                    <StatusBarItem HorizontalAlignment="Right">
-                        <StackPanel Orientation="Horizontal">
-                            <StatusBarItem Content="{Binding GameState}" HorizontalAlignment="Right">
-                                <StatusBarItem.ContentTemplate>
-                                    <DataTemplate DataType="{x:Type vm:GameStateViewModel}">
-                                        <TextBlock x:Name="ConnectionString" Text="{Binding DisplayText}"/>
-                                        <!--<DataTemplate.Triggers>
-                                <DataTrigger Binding="{Binding IsGameRunning}" Value="True">
-                                    <Setter TargetName="ConnectionString" Property="Text" Value="{Binding ProcessId, StringFormat='{}Game detected ({0})'}" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding IsGameRunning}" Value="False">
-                                    <Setter TargetName="ConnectionString" Property="Text" Value="Game not detected" />
-                                </DataTrigger>
-                            </DataTemplate.Triggers>-->
-                                    </DataTemplate>
-                                </StatusBarItem.ContentTemplate>
-                            </StatusBarItem>
-                            <StatusBarItem HorizontalAlignment="Right">
-                                <Button Padding="20" Style="{StaticResource LinkButtonStyle}" Command="{Binding ShowSettingsCommand}">
-                                    <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
-                                </Button>
-                            </StatusBarItem>
-                        </StackPanel>
+                <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">
+                    <StatusBar.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                            </Grid>
+                        </ItemsPanelTemplate>
+                    </StatusBar.ItemsPanel>
+                    <StatusBarItem Content="{Binding StatusText}" Grid.Column="0" VerticalContentAlignment="Center" />
+                    <StatusBarItem Content="{Binding GameState.ConnectionText}" Grid.Column="1" VerticalContentAlignment="Center">
+                        <!--<StatusBarItem.Style>
+                            <Style TargetType="StatusBarItem">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding GameState.IsConnected}" Value="True">
+                                        <Setter Property="Foreground" Value="LimeGreen"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StatusBarItem.Style>-->
+                    </StatusBarItem>
+                    <Separator Width="1" Height="16" Grid.Column="2">
+                        <Separator.Style>
+                            <Style TargetType="Separator">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding GameState.ConnectionText}" Value="">
+                                        <Setter Property="Visibility" Value="Hidden"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Separator.Style>
+                    </Separator>
+                    <StatusBarItem Content="{Binding GameState}" HorizontalAlignment="Right" Grid.Column="3" VerticalContentAlignment="Center">
+                        <StatusBarItem.ContentTemplate>
+                            <DataTemplate DataType="{x:Type vm:GameStateViewModel}">
+                                <TextBlock x:Name="ConnectionString" Height="Auto" 
+                                           Text="{Binding DisplayText}" VerticalAlignment="Center" />
+                                <DataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding IsGameRunning}" Value="true">
+                                        <Setter TargetName="ConnectionString" Property="Foreground" Value="LimeGreen"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsGameRunning}" Value="false">
+                                        <Setter TargetName="ConnectionString" Property="Foreground" Value="DarkRed"/>
+                                    </DataTrigger>
+                                </DataTemplate.Triggers>
+                            </DataTemplate>
+                        </StatusBarItem.ContentTemplate>
+                    </StatusBarItem>
+                    <StatusBarItem HorizontalAlignment="Right" Grid.Column="4" VerticalContentAlignment="Center">
+                        <Button Padding="20" Style="{StaticResource LinkButtonStyle}"  Command="{Binding ShowSettingsCommand}">
+                            <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
+                        </Button>
                     </StatusBarItem>
                 </StatusBar>
             </Grid>

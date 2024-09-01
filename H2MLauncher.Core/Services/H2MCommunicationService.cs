@@ -1,9 +1,13 @@
-﻿using System.Diagnostics;
+﻿using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
 using H2MLauncher.Core.Settings;
+
+using Microsoft.Extensions.Logging;
 
 using Nogic.WritableOptions;
 
@@ -11,7 +15,18 @@ namespace H2MLauncher.Core.Services
 {
     public record DetectedGame(Process Process, string FileName, string GameDir, FileVersionInfo Version);
 
-    public class H2MCommunicationService
+    public record GameState(bool VirtualLobbyLoaded, ConnectionState ConnectionState, IPEndPoint? Endpoint, DateTimeOffset? StartTime)
+    {
+        public bool IsConnected => ConnectionState >= ConnectionState.CA_CONNECTED && !IsInMainMenu;
+
+        public bool IsConnecting => ConnectionState >= ConnectionState.CA_CONNECTING && !IsConnected;
+
+        public bool IsInMainMenu => VirtualLobbyLoaded || ConnectionState < ConnectionState.CA_CONNECTING;
+
+        public TimeSpan TimeConnected => StartTime is not null ? DateTimeOffset.Now - StartTime.Value : TimeSpan.Zero;
+    };
+
+    public sealed class H2MCommunicationService : IDisposable
     {
         private const string GAME_WINDOW_TITLE = "H2M-Mod";
         private const string GAME_EXECUTABLE_NAME = "h1_mp64_ship.exe";
@@ -23,30 +38,214 @@ namespace H2MLauncher.Core.Services
 
         private readonly IWritableOptions<H2MLauncherSettings> _h2mLauncherSettings;
         private readonly IErrorHandlingService _errorHandlingService;
+        private readonly ILogger<H2MCommunicationService> _logger;
 
-        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IWritableOptions<H2MLauncherSettings> options)
+        public H2MCommunicationService(IErrorHandlingService errorHandlingService, IWritableOptions<H2MLauncherSettings> options,
+            ILogger<H2MCommunicationService> logger)
         {
-            _errorHandlingService = errorHandlingService ?? throw new ArgumentNullException(nameof(errorHandlingService));
-            ArgumentNullException.ThrowIfNull(options, nameof(options));
+            _errorHandlingService = errorHandlingService;
             _h2mLauncherSettings = options;
+            _logger = logger;
 
             if (options.Value.AutomaticGameDetection)
             {
                 StartGameDetection();
             }
+
+            options.OnChange((settings, _) =>
+            {
+                if (!settings.AutomaticGameDetection && IsGameDetectionRunning)
+                {
+                    StopGameDetection();
+                }
+                else if (settings.AutomaticGameDetection && !IsGameDetectionRunning)
+                {
+                    StartGameDetection();
+                }
+
+                if (!settings.GameMemoryCommunication && IsGameCommunicationRunning)
+                {
+                    StopGameCommunication();
+                }
+                else if (settings.GameMemoryCommunication && !IsGameCommunicationRunning)
+                {
+                    StartGameCommunication();
+                }
+            });
         }
+
+        #region Game Communication 
+
+        private const int GAME_MEMORY_READ_INTERVAL = 1000;
+
+        private readonly SemaphoreSlim _memorySemaphore = new(1, 1);
+        private CancellationTokenSource _gameCommunicationCancellation = new();
+        private Task? _gameCommunicationTask;
+        private GameMemory? _gameMemory;
+
+        [MemberNotNullWhen(true, nameof(_gameCommunicationTask))]
+        public bool IsGameCommunicationRunning => _gameCommunicationTask != null && !_gameCommunicationTask.IsCompleted;
+        public GameState CurrentGameState { get; private set; } = new(false, default, null, null);
+
+        public event Action<GameState>? GameStateChanged;
+
+        public void StartGameCommunication()
+        {
+            if (IsGameCommunicationRunning ||
+                DetectedGame is null || DetectedGame.Process.HasExited)
+            {
+                _logger.LogDebug("Cannot start game memory communication: already running or no game process available");
+                return;
+            }
+
+            _memorySemaphore.Wait();
+            try
+            {
+                if (IsGameCommunicationRunning)
+                {
+                    return;
+                }
+
+                _logger.LogDebug("Starting game memory communication with {processName} ({pid})...",
+                    DetectedGame.Process.ProcessName, DetectedGame.Process.Id);
+
+                _gameMemory = new(DetectedGame.Process);
+                _gameCommunicationCancellation = new();
+                _gameCommunicationTask = Task.Run(
+                    function: () => GameMemoryCommunicationLoop(_gameMemory, _gameCommunicationCancellation.Token)
+                                        .ContinueWith(t =>
+                                        {
+                                            if (t.IsFaulted)
+                                            {
+                                                _errorHandlingService.HandleError("Error during game communication");
+                                                _logger.LogError(t.Exception, "Game memory communication loop terminated with error:");
+                                            }
+                                            else if (t.IsCanceled)
+                                            {
+                                                _logger.LogInformation("Game memory communication loop canceled.");
+                                            }
+                                            else
+                                            {
+                                                _logger.LogInformation("Game memory communication loop terminated.");
+                                            }
+                                        }),
+                    cancellationToken: _gameDetectionCancellation.Token
+                 );
+
+
+                _logger.LogInformation("Game memory communication started with {processName} ({pid})",
+                    DetectedGame.Process.ProcessName, DetectedGame.Process.Id);
+            }
+            finally
+            {
+                _memorySemaphore.Release();
+            }
+        }
+
+        public void StopGameCommunication()
+        {
+            if (!IsGameCommunicationRunning)
+            {
+                return;
+            }
+
+            _logger.LogDebug("Stopping game memory communication...");
+
+            try
+            {
+                _gameCommunicationCancellation.Cancel();
+                _gameCommunicationTask.Wait();
+                _gameCommunicationTask = null;
+                _gameMemory?.Dispose();
+                _gameMemory = null;
+                CurrentGameState = new(false, ConnectionState.CA_DISCONNECTED, null, null);
+
+                _logger.LogInformation("Game memory communication stopped");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while stopping game communication");
+            }
+        }
+
+        private async Task GameMemoryCommunicationLoop(GameMemory gameMemory, CancellationToken cancellationToken)
+        {
+            while (!gameMemory.Process.HasExited && !cancellationToken.IsCancellationRequested)
+            {
+                ConnectState? connectState;
+                IPEndPoint? endPoint;
+
+                await _memorySemaphore.WaitAsync(cancellationToken);
+                try
+                {
+                    _logger.LogTrace("Reading memory from process {processName} ({pid})...",
+                        gameMemory.Process.ProcessName, gameMemory.Process.Id);
+
+                    ConnectionState connectionState = gameMemory.GetConnectionState() ?? ConnectionState.CA_DISCONNECTED;
+
+                    connectState = gameMemory.GetConnectState();
+                    if (connectState.HasValue)
+                    {
+                        try
+                        {
+                            IPAddress ipAddress = new(connectState.Value.Address.IP);
+                            int port = connectState.Value.Address.Port;
+                            endPoint = new IPEndPoint(ipAddress, port);
+                            _logger.LogTrace("Game connection state: {connectionState} - {endpoint}", connectionState, endPoint);
+                        }
+                        catch
+                        {
+                            endPoint = null;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogTrace("Game connection state: {connectionState}", connectionState);
+                        endPoint = null;
+                    }
+
+                    bool virtualLobbyLoaded = gameMemory.GetVirtualLobbyLoaded() ?? false;
+
+                    GameState lastGameState = CurrentGameState;
+                    if (virtualLobbyLoaded)
+                    {
+                        CurrentGameState = new(virtualLobbyLoaded, connectionState, null, null);
+                    }
+                    else
+                    {
+                        CurrentGameState = lastGameState with
+                        {
+                            ConnectionState = connectionState,
+                            VirtualLobbyLoaded = virtualLobbyLoaded,
+                            Endpoint = endPoint,
+                            StartTime = lastGameState.StartTime ?? DateTimeOffset.Now
+                        };
+                    }
+
+                    GameStateChanged?.Invoke(CurrentGameState);
+                    await Task.Delay(GAME_MEMORY_READ_INTERVAL, cancellationToken).ConfigureAwait(true);
+                }
+                finally
+                {
+                    _memorySemaphore.Release();
+                }
+            };
+        }
+
+        #endregion
 
         #region Game Detection
 
         private const int GAME_DETECTION_POLLING_INTERVAL = 1000;
 
+        private readonly object _gameDetectionLockObj = new();
         private CancellationTokenSource _gameDetectionCancellation = new();
         private Task? _gameDetectionTask;
 
         public DetectedGame? DetectedGame { get; private set; }
 
         [MemberNotNullWhen(true, nameof(_gameDetectionTask))]
-        public bool IsGameDetectionRunning => _gameDetectionTask != null && _gameDetectionTask.IsCompleted;
+        public bool IsGameDetectionRunning => _gameDetectionTask != null && !_gameDetectionTask.IsCompleted;
 
 
         public event Action<DetectedGame>? GameDetected;
@@ -60,11 +259,39 @@ namespace H2MLauncher.Core.Services
                 return;
             }
 
-            _gameDetectionCancellation = new();
-            _gameDetectionTask = Task.Run(
-                function: () => GameDetectionLoop(_gameDetectionCancellation.Token, OnGameDetected, OnGameExited),
-                cancellationToken: _gameDetectionCancellation.Token
-             );
+            lock (_gameDetectionLockObj)
+            {
+                if (IsGameDetectionRunning)
+                {
+                    return;
+                }
+
+                _logger.LogDebug("Starting game detection...");
+
+                _gameDetectionCancellation = new();
+                _gameDetectionTask = Task.Run(
+                    function: () => GameDetectionLoop(OnGameDetected, OnGameExited, cancellationToken: _gameDetectionCancellation.Token)
+                                        .ContinueWith(t =>
+                                        {
+                                            if (t.IsFaulted)
+                                            {
+                                                _errorHandlingService.HandleError("Game detection crashed");
+                                                _logger.LogError(t.Exception, "Game detection loop terminated with error:");
+                                            }
+                                            else if (t.IsCanceled)
+                                            {
+                                                _logger.LogInformation("Game detection loop canceled.");
+                                            }
+                                            else
+                                            {
+                                                _logger.LogInformation("Game detection loop terminated.");
+                                            }
+                                        }),
+                    cancellationToken: _gameDetectionCancellation.Token
+                 );
+
+                _logger.LogDebug("Game detection started");
+            }
         }
 
         public void StopGameDetection()
@@ -74,36 +301,67 @@ namespace H2MLauncher.Core.Services
                 return;
             }
 
-            _gameDetectionCancellation.Cancel();
-            _gameDetectionTask.Wait();
-            _gameDetectionTask = null;
+            _logger.LogDebug("Stopping game detection...");
+
+            lock (_gameDetectionLockObj)
+            {
+                try
+                {
+                    _gameDetectionCancellation.Cancel();
+                    _gameDetectionTask.Wait();
+                    _gameDetectionTask = null;
+
+                    _logger.LogInformation("Game detection stopped");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error while stopping game detection");
+                }
+            }
         }
 
         private void OnGameDetected(DetectedGame detectedGame)
         {
             DetectedGame = detectedGame;
-            if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
-            {
 
-            }
-            _h2mLauncherSettings.Update(settings =>
+            _logger.LogInformation("Detected game {gameProcessName} (v{gameVersion})",
+                detectedGame.Process.ProcessName, detectedGame.Version.ToString());
+
+            if (!string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
             {
-                return settings with
+                _logger.LogDebug("Game location empty, setting to {gameLocation}", detectedGame.FileName);
+
+                _h2mLauncherSettings.Update(settings =>
                 {
-                    MWRLocation = detectedGame.FileName
-                };
-            });
+                    return settings with
+                    {
+                        MWRLocation = detectedGame.FileName
+                    };
+                });
+            }
+
+            if (_h2mLauncherSettings.Value.GameMemoryCommunication)
+            {
+                StartGameCommunication();
+            }
+
             GameDetected?.Invoke(detectedGame);
         }
 
         private void OnGameExited()
         {
+            _logger.LogInformation("Game process exited");
+
             DetectedGame = null;
+            if (IsGameCommunicationRunning)
+            {
+                StopGameCommunication();
+            }
             GameExited?.Invoke();
         }
 
         private static async Task GameDetectionLoop(
-            CancellationToken cancellationToken, Action<DetectedGame> onGameDetected, Action onGameExited, bool detectOnce = false)
+            Action<DetectedGame> onGameDetected, Action onGameExited, bool detectOnce = false, CancellationToken cancellationToken = default)
         {
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -120,7 +378,14 @@ namespace H2MLauncher.Core.Services
                         // game dir found
                         onGameDetected(new DetectedGame(process, fileName, gameDir, version));
 
-                        await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                        try
+                        {
+                            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // sometimes throws when proess is killed
+                        }
 
                         // process terminated
                         onGameExited();
@@ -396,6 +661,22 @@ namespace H2MLauncher.Core.Services
 
             // otherwise return just the main window, whatever it is
             return process.MainWindowHandle;
+        }
+
+        public void Dispose()
+        {
+            if (IsGameCommunicationRunning)
+            {
+                StopGameCommunication();
+            }
+
+            if (IsGameDetectionRunning)
+            {
+                StopGameDetection();
+            }
+
+            _gameMemory?.Dispose();
+            _memorySemaphore?.Dispose();
         }
     }
 }

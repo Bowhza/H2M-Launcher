@@ -2,18 +2,20 @@
 
 namespace H2MLauncher.Core.Settings
 {
-  public record H2MLauncherSettings
-  {
-    public string MWRLocation { get; init; } = string.Empty;
+    public record H2MLauncherSettings
+    {
+        public string MWRLocation { get; init; } = string.Empty;
 
-    public string IW4MMasterServerUrl { get; init; } = string.Empty;
+        public string IW4MMasterServerUrl { get; init; } = string.Empty;
 
-    public List<SimpleServerInfo> FavouriteServers { get; set; } = [];
+        public List<SimpleServerInfo> FavouriteServers { get; init; } = [];
 
-    public List<RecentServerInfo> RecentServers { get; set; } = [];
+        public List<RecentServerInfo> RecentServers { get; init; } = [];
 
-    public ServerFilterSettings ServerFilter { get; init; } = new();
+        public ServerFilterSettings ServerFilter { get; init; } = new();
 
-    public bool AutomaticGameDetection { get; set; } = true;
-  }
+        public bool AutomaticGameDetection { get; init; } = true;
+
+        public bool GameMemoryCommunication { get; init; } = false;
+    }
 }

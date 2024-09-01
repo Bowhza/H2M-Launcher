@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Net;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -191,6 +192,12 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
         _h2MCommunicationService.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameExited += H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameStateChanged += H2MCommunicationService_GameStateChanged;
+    }
+
+    private void H2MCommunicationService_GameStateChanged(GameState newState)
+    {
+        GameState.State = newState;
     }
 
     private void H2MCommunicationService_GameDetected(DetectedGame detectedGame)
