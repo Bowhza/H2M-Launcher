@@ -4,6 +4,7 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 
@@ -27,12 +28,12 @@ public partial class SettingsViewModel : DialogViewModelBase
 
     public SettingsViewModel(IWritableOptions<H2MLauncherSettings> options)
     {
-        MwrLocation = options.Value.MWRLocation;
-        Iw4mMasterServerUrl = options.Value.IW4MMasterServerUrl;
+        MwrLocation = options.CurrentValue.MWRLocation;
+        Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
 
         ApplyCommand = new RelayCommand(() =>
         {
-            options.Update(options.CurrentValue with
+            options.Update((settings) => settings with
             {
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,

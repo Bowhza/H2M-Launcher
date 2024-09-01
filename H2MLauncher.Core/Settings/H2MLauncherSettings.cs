@@ -17,5 +17,7 @@ namespace H2MLauncher.Core.Settings
         public bool AutomaticGameDetection { get; init; } = true;
 
         public bool GameMemoryCommunication { get; init; } = false;
+
+        public bool WatchGameDirectory { get; init; }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -26,7 +27,7 @@ namespace H2MLauncher.Core.Services
         public TimeSpan TimeConnected => StartTime is not null ? DateTimeOffset.Now - StartTime.Value : TimeSpan.Zero;
     };
 
-    public sealed class H2MCommunicationService : IDisposable
+    public sealed partial class H2MCommunicationService : IDisposable
     {
         private const string GAME_WINDOW_TITLE = "H2M-Mod";
         private const string GAME_EXECUTABLE_NAME = "h1_mp64_ship.exe";
@@ -39,6 +40,7 @@ namespace H2MLauncher.Core.Services
         private readonly IWritableOptions<H2MLauncherSettings> _h2mLauncherSettings;
         private readonly IErrorHandlingService _errorHandlingService;
         private readonly ILogger<H2MCommunicationService> _logger;
+        private readonly IDisposable? _optionsChangeRegistration;
 
         public H2MCommunicationService(IErrorHandlingService errorHandlingService, IWritableOptions<H2MLauncherSettings> options,
             ILogger<H2MCommunicationService> logger)
@@ -52,7 +54,7 @@ namespace H2MLauncher.Core.Services
                 StartGameDetection();
             }
 
-            options.OnChange((settings, _) =>
+            _optionsChangeRegistration = options.OnChange((settings, _) =>
             {
                 if (!settings.AutomaticGameDetection && IsGameDetectionRunning)
                 {
@@ -327,7 +329,7 @@ namespace H2MLauncher.Core.Services
             _logger.LogInformation("Detected game {gameProcessName} (v{gameVersion})",
                 detectedGame.Process.ProcessName, detectedGame.Version.ToString());
 
-            if (!string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
+            if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
             {
                 _logger.LogDebug("Game location empty, setting to {gameLocation}", detectedGame.FileName);
 
@@ -677,6 +679,7 @@ namespace H2MLauncher.Core.Services
 
             _gameMemory?.Dispose();
             _memorySemaphore?.Dispose();
+            _optionsChangeRegistration?.Dispose();
         }
     }
 }
