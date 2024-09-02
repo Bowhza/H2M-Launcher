@@ -197,7 +197,7 @@ public Process Process { get; }
 
     public IEnumerable<(int id, string name)> GetInGameMaps()
     {
-        IntPtr mapsPointer = MAPS_H1 + 0x926C80;
+        IntPtr mapsPointer = _h1BaseAddress + MAPS_H1;
 
         int structSize = Marshal.SizeOf<Map_t>();
 
@@ -224,8 +224,9 @@ public Process Process { get; }
                 continue;
             }
 
-            // Convert the name pointer to a string
-            string mapName = name.TrimEnd('\0');
+            // trim everything after and including first null char
+            int firstNullCharIndex = name.IndexOf('\0');            
+            string mapName = firstNullCharIndex == -1 ? name : name[..firstNullCharIndex];
 
             yield return (currentMap.Id, mapName);
         }
