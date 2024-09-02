@@ -200,19 +200,19 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
         _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
-        _h2MCommunicationService.GameCommunication.Started += H2MGameCommunication_Started;
         _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
         _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
+        _gameDirectoryService.FastFileChanged += GameDirectoryService_FastFileChanged;
     }
 
-    private async void GameDirectoryService_UsermapsChanged(string? triggeredByPath, IReadOnlyList<string> usermaps)
+    private void GameDirectoryService_FastFileChanged(string fileName, string mapName)
     {
-        await UpdateInstalledMaps(updateViewModels: true);
+        UpdateInstalledMaps(updateViewModels: true);
     }
 
-    private async void H2MGameCommunication_Started(Process obj)
+    private void GameDirectoryService_UsermapsChanged(string? triggeredByPath, IReadOnlyList<string> usermaps)
     {
-        await UpdateInstalledMaps(updateViewModels: true);
+        UpdateInstalledMaps(updateViewModels: true);
     }
 
     private void H2MGameCommunication_Stopped(Exception? obj)
@@ -533,18 +533,18 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
     }
 
-    private async Task UpdateInstalledMaps(bool updateViewModels = false)
+    private void UpdateInstalledMaps(bool updateViewModels = false)
     {
         _installedMaps.Clear();
 
         // in-game maps
-        _installedMaps.AddRange(
-            _h2MCommunicationService.GameCommunication.IsGameCommunicationRunning
-                // get maps from game
-                ? (await _h2MCommunicationService.GameCommunication.GetInGameMapsAsync()).Select(m => m.Value)
-                // fall back to all known maps
-                : _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name))
-         );
+        foreach (var mapName in _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name)))
+        {
+            if (_gameDirectoryService.HasOgMap(mapName) != false)
+            {
+                _installedMaps.Add(mapName);
+            }
+        }
 
         // usermaps
         _installedMaps.AddRange(_gameDirectoryService.Usermaps);
@@ -699,7 +699,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.GameDetected -= H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited -= H2MCommunicationService_GameExited;
         _h2MCommunicationService.GameCommunication.GameStateChanged -= H2MCommunicationService_GameStateChanged;
-        _h2MCommunicationService.GameCommunication.Started -= H2MGameCommunication_Started;
         _h2MCommunicationService.GameCommunication.Stopped -= H2MGameCommunication_Stopped;
         _gameDirectoryService.UsermapsChanged -= GameDirectoryService_UsermapsChanged;
     }

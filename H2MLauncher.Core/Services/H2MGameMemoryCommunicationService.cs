@@ -228,24 +228,6 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public async Task<bool> HasInGameMapAsync(string mapName)
-        {
-            if (_gameMemory is null || _gameMemory.Process.HasExited)
-            {
-                throw new InvalidOperationException("Game communication not running");
-            }
-
-            await _memorySemaphore.WaitAsync();
-            try
-            {
-                return _gameMemory.GetInGameMaps().Any(m => m.name.Equals(mapName, StringComparison.OrdinalIgnoreCase));
-            }
-            finally
-            {
-                _memorySemaphore.Release();
-            }
-        }
-
         public void Dispose()
         {
             StopGameCommunication();

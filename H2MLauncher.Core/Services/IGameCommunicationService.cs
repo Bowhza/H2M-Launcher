@@ -15,7 +15,6 @@ public interface IGameCommunicationService
     void StartGameCommunication(Process process);
     void StopGameCommunication();
 
-    Task<bool> HasInGameMapAsync(string mapName);
     Task<IReadOnlyDictionary<int, string>> GetInGameMapsAsync();
 
     void Dispose();

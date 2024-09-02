@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 using System.Text.RegularExpressions;
 
 using H2MLauncher.Core.Settings;
@@ -34,6 +35,8 @@ namespace H2MLauncher.Core.Services
         public event Action<string, ConfigMpContent?>? ConfigMpChanged;
 
         public event Action<string?, IReadOnlyList<string>>? UsermapsChanged;
+
+        public event Action<string, string>? FastFileChanged;
 
 
         public GameDirectoryService(IOptionsMonitor<H2MLauncherSettings> optionsMonitor, ILogger<GameDirectoryService> logger)
@@ -104,11 +107,13 @@ namespace H2MLauncher.Core.Services
 
             _fileSystemWatcher = new FileSystemWatcher(path)
             {
-                Filter = CONFIG_MP_FILENAME,
-                NotifyFilter = NotifyFilters.CreationTime | NotifyFilters.LastWrite | NotifyFilters.FileName | NotifyFilters.Size,
+                NotifyFilter = NotifyFilters.CreationTime | NotifyFilters.LastWrite | NotifyFilters.FileName,
                 EnableRaisingEvents = true,
                 IncludeSubdirectories = true
             };
+            _fileSystemWatcher.Filters.Add("*.ff");
+            _fileSystemWatcher.Filters.Add(CONFIG_MP_FILENAME);
+
             _fileSystemWatcher.Changed += FileSystemWatcherEvent;
             _fileSystemWatcher.Created += FileSystemWatcherEvent;
             _fileSystemWatcher.Deleted += FileSystemWatcherEvent;
@@ -148,6 +153,14 @@ namespace H2MLauncher.Core.Services
                 {
                     OnUsermapsChanged(Path.Combine(currentDirAbsolutePath, USERMAPS_DIR), e.FullPath);
                 }
+                else
+                {
+                    string relativePath = e.FullPath[currentDirAbsolutePath.Length..];
+                    if (relativePath.EndsWith(".ff"))
+                    {
+                        OnFastFileChanged(Path.GetFileName(relativePath), e.FullPath);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -166,7 +179,13 @@ namespace H2MLauncher.Core.Services
 
             _logger.LogTrace("Config file change detected, parsing...");
 
-            string content = File.ReadAllText(path);
+            string content;
+
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (var sr = new StreamReader(fs, Encoding.Default))
+            {
+                content = sr.ReadToEnd();
+            }
 
             MatchCollection matches = ConfigEntriesRegex().Matches(content);
 
@@ -227,6 +246,22 @@ namespace H2MLauncher.Core.Services
             }
 
             UsermapsChanged?.Invoke(triggeredByPath, Usermaps);
+        }
+
+        private void OnFastFileChanged(string fileName, string fullPath)
+        {
+            FastFileChanged?.Invoke(fileName, fullPath);
+        }
+
+        public bool? HasOgMap(string mapName)
+        {
+            string? gameDir = GetGameDir(_optionsMonitor.CurrentValue);
+            if (string.IsNullOrEmpty(gameDir))
+            {
+                return null;
+            }
+            string mapFile = Path.Combine(gameDir, $"{mapName}.ff");
+            return File.Exists(mapFile);
         }
 
         public void Dispose()
