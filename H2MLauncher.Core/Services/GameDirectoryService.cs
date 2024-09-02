@@ -181,12 +181,21 @@ namespace H2MLauncher.Core.Services
 
             string content;
 
+            // open file with read write share
             using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (var sr = new StreamReader(fs, Encoding.Default))
             {
                 content = sr.ReadToEnd();
             }
 
+            if (content == "")
+            {
+                // probably empty content because file cleared by game for a moment
+                return;
+            }
+
+            // parse hashed config entries
+            // TODO: this could be done with a dict in the future parsing all dvars
             MatchCollection matches = ConfigEntriesRegex().Matches(content);
 
             string? playerName = null;
@@ -223,14 +232,21 @@ namespace H2MLauncher.Core.Services
                 }
             }
 
-            _logger.LogInformation("Parsed '{configFile}': {config}", CONFIG_MP_FILENAME, CurrentConfigMp);
+            _logger.LogTrace("Parsed '{configFile}': {config}", CONFIG_MP_FILENAME, CurrentConfigMp);
 
-            CurrentConfigMp = new(playerName, sv_hostName, com_maxFps);
-            ConfigMpChanged?.Invoke(path, CurrentConfigMp);
+            ConfigMpContent newContent = new(playerName, sv_hostName, com_maxFps);
+            if (!newContent.Equals(CurrentConfigMp))
+            {
+                _logger.LogInformation("New '{configFile}' loaded: {config}", CONFIG_MP_FILENAME, newContent);
+                CurrentConfigMp = newContent;
+                ConfigMpChanged?.Invoke(path, CurrentConfigMp);
+            }
         }
 
         private void OnUsermapsChanged(string usermapsDir, string? triggeredByPath = null)
         {
+            _logger.LogTrace("Usermaps changed, updating...");
+
             _usermaps.Clear();
             foreach (var dir in Directory.EnumerateDirectories(usermapsDir))
             {
@@ -245,11 +261,15 @@ namespace H2MLauncher.Core.Services
                 }
             }
 
+            _logger.LogInformation("Usermaps changed, detected {numUsermaps} maps", _usermaps.Count);
+
             UsermapsChanged?.Invoke(triggeredByPath, Usermaps);
         }
 
         private void OnFastFileChanged(string fileName, string fullPath)
         {
+            _logger.LogInformation("Detected fast file change: {fastfileName}", fileName);
+
             FastFileChanged?.Invoke(fileName, fullPath);
         }
 
