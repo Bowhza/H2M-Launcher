@@ -22,22 +22,29 @@ public partial class SettingsViewModel : DialogViewModelBase
     [ObservableProperty]
     private string _iw4mMasterServerUrl = "";
 
+    [ObservableProperty]
+    private bool _gameCommunicationEnabled = false;
+
     public ICommand ApplyCommand { get; set; }
 
     public ICommand CancelCommand { get; set; }
 
     public SettingsViewModel(IWritableOptions<H2MLauncherSettings> options)
     {
+        // init properties from settings
         MwrLocation = options.CurrentValue.MWRLocation;
         Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
+        GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
 
         ApplyCommand = new RelayCommand(() =>
         {
+            // write back to settings
             options.Update((settings) => settings with
             {
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,
-            }, true);
+                GameMemoryCommunication = GameCommunicationEnabled,
+            }, reload: true);
 
             CloseCommand.Execute(true);
         }, 

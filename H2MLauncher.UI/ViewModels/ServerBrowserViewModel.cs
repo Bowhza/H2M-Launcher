@@ -277,13 +277,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     // Method to get the user's favorites from the settings.
     public List<SimpleServerInfo> GetFavoritesFromSettings()
     {
-        return _h2MLauncherOptions.Value.FavouriteServers;
+        return _h2MLauncherOptions.CurrentValue.FavouriteServers;
     }
 
     // Method to get user's recent servers from settings.
     public List<RecentServerInfo> GetRecentsFromSettings()
     {
-        return _h2MLauncherOptions.Value.RecentServers;
+        return _h2MLauncherOptions.CurrentValue.RecentServers;
     }
 
     // Method to add a favorite to the settings.
@@ -470,9 +470,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
             string directoryPath = "players2";
 
-            if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
+            if (!string.IsNullOrEmpty(_h2MLauncherOptions.CurrentValue.MWRLocation))
             {
-                string? gameDirectory = Path.GetDirectoryName(_h2MLauncherOptions.Value.MWRLocation);
+                string? gameDirectory = Path.GetDirectoryName(_h2MLauncherOptions.CurrentValue.MWRLocation);
 
                 directoryPath = Path.Combine(gameDirectory ?? "", directoryPath);
             }

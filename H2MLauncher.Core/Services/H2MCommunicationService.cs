@@ -35,7 +35,7 @@ namespace H2MLauncher.Core.Services
             _h2mLauncherSettings = options;
             _logger = logger;
 
-            if (options.Value.AutomaticGameDetection)
+            if (options.CurrentValue.AutomaticGameDetection)
             {
                 StartGameDetection();
             }
@@ -328,7 +328,7 @@ namespace H2MLauncher.Core.Services
                 });
             }
 
-            if (_h2mLauncherSettings.Value.GameMemoryCommunication)
+            if (_h2mLauncherSettings.CurrentValue.GameMemoryCommunication)
             {
                 StartGameCommunication();
             }
