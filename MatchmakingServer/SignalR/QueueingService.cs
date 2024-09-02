@@ -141,7 +141,7 @@ namespace MatchmakingServer.SignalR
 
             // otherwise dequeue the player
             // TODO: maybe allow player to stay in queue until max join attempts / time limit reached
-            DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: false);
+            DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: true);
         }
 
         public void OnPlayerJoinConfirmed(string connectionId)
@@ -393,7 +393,7 @@ namespace MatchmakingServer.SignalR
 
             _logger.LogInformation("Started processing loop for server {server}", server);
 
-            server.ProcessingState = QueueProcessingState.Running;
+            server.ProcessingState = QueueProcessingState.Idle;
 
             try
             {
@@ -721,10 +721,7 @@ namespace MatchmakingServer.SignalR
                 return false;
             }
 
-            if (!_servers.TryGetValue((serverIp, serverPort), out GameServer? server))
-            {
-                server = await SpawnServerQueue(instanceId, serverIp, serverPort);
-            }
+            GameServer server = await SpawnServerQueue(instanceId, serverIp, serverPort);
 
             if (server.PlayerQueue.Contains(player))
             {
@@ -768,6 +765,7 @@ namespace MatchmakingServer.SignalR
         {
             if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
             {
+                _logger.LogDebug("Cannot dequeue {player}: not in queue", player);
                 return;
             }
 
