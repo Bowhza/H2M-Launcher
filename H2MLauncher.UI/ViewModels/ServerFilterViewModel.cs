@@ -82,21 +82,18 @@ namespace H2MLauncher.UI.ViewModels
                 Name = "Unknown",
                 IsSelected = true,
             };
-            UnknownMaps.PropertyChanged += MapPackItem_PropertyChanged;
 
             NotInstalledMaps = new(new IW4MMapPack() { Name = "Not installed", Id = "not_installed", Maps = [] })
             {
                 Name = "Not installed",
                 IsSelected = true,
             };
-            NotInstalledMaps.PropertyChanged += MapPackItem_PropertyChanged;
 
             UnknownGameModes = new(new IW4MObjectMap("Unknown", "Unknown"))
             {
                 Name = "Unknown",
                 IsSelected = true
             };
-            UnknownGameModes.PropertyChanged += MapPackItem_PropertyChanged;
         }
 
         public void ResetViewModel(ServerFilterSettings settings)
@@ -130,7 +127,14 @@ namespace H2MLauncher.UI.ViewModels
                     return item;
                 }), UnknownMaps, NotInstalledMaps];
 
-            
+            UnknownMaps.PropertyChanged += MapPackItem_PropertyChanged;
+            UnknownMaps.IsSelected = settings.SelectedMapPacks?.Any(name => 
+                name.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true;
+
+            NotInstalledMaps.PropertyChanged += MapPackItem_PropertyChanged;
+            NotInstalledMaps.IsSelected = settings.SelectedMapPacks?.Any(name => 
+                name.Equals("not_installed", StringComparison.OrdinalIgnoreCase)) ?? true;
+
             // game modes
 
             GameModes.AsParallel().ForAll(item => item.PropertyChanged -= GameModeItem_PropertyChanged);
@@ -150,6 +154,10 @@ namespace H2MLauncher.UI.ViewModels
                 })];
 
             GameModes.Add(UnknownGameModes);
+
+            UnknownGameModes.PropertyChanged += GameModeItem_PropertyChanged;
+            UnknownGameModes.IsSelected = settings.SelectedGameModes?.Any(name => 
+                name.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true;
 
 
             // exclude keywords
