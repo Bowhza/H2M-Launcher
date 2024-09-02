@@ -68,6 +68,14 @@ public struct ClientState
     public int ServerTime;
 }
 
+[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+internal struct Map_t
+{
+    public IntPtr NameAddress;
+    public int Id;
+    public int Unk;
+}
+
 public enum ConnectionState
 {
     CA_DISCONNECTED = 0x0,
@@ -112,8 +120,9 @@ public sealed partial class GameMemory : IDisposable
     const nint CONNECT_STATE_PTR_H1 = 0x2EC8510;
     const nint SV_SERVERID_H1 = 0xB7F9630;
     const nint VIRTUAL_LOBBY_LOADED_H1 = 0x2E6EC9D;
+    const nint MAPS_H1 = 0x926C80;
 
-    public Process Process { get; }
+public Process Process { get; }
 
     private readonly IntPtr _processHandle;
     private readonly IntPtr _h1BaseAddress;
@@ -184,6 +193,42 @@ public sealed partial class GameMemory : IDisposable
         }
 
         return null;
+    }
+
+    public IEnumerable<(int id, string name)> GetInGameMaps()
+    {
+        IntPtr mapsPointer = MAPS_H1 + 0x926C80;
+
+        int structSize = Marshal.SizeOf<Map_t>();
+
+        // Iterate through the array
+        for (int i = 0; ; i++)
+        {
+            // Calculate the pointer to the current map_t struct in the array
+            IntPtr currentMapPointer = IntPtr.Add(mapsPointer, i * structSize);
+
+            if (!ReadStructFromMemory(_processHandle, currentMapPointer, out Map_t currentMap))
+            {
+                yield break;
+            }
+
+            // Check if the 'unk' field is zero (end of the array)
+            if (currentMap.Unk == 0)
+            {
+                break;
+            }
+
+            // Read 64 chars of the name
+            if (!ReadProcessMemoryString(_processHandle, currentMap.NameAddress, 64, out string? name))
+            {
+                continue;
+            }
+
+            // Convert the name pointer to a string
+            string mapName = name.TrimEnd('\0');
+
+            yield return (currentMap.Id, mapName);
+        }
     }
 
     private static bool ReadPointerFromMemory(IntPtr processHandle, IntPtr address, out nint ptrValue)
@@ -345,7 +390,7 @@ public sealed partial class GameMemory : IDisposable
         }
     }
 
-    static bool ReadProcessMemoryString(nint hProcess, nint lpBaseAddress, int length, [MaybeNullWhen(false)] out string? value)
+    static bool ReadProcessMemoryString(nint hProcess, nint lpBaseAddress, int length, [MaybeNullWhen(false)] out string value)
     {
         var buffer = ArrayPool<byte>.Shared.Rent(length);
         try

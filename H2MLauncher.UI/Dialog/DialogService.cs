@@ -27,10 +27,10 @@ namespace H2MLauncher.UI.Dialog
             _dialogWindow?.Close();
         }
 
-        public void OpenTextDialog(string title, string text)
+        public bool? OpenTextDialog(string title, string text, MessageBoxButton buttons = MessageBoxButton.OK)
         {
-            OpenDialog<TextDialogView>(
-                new TextDialogViewModel()
+            return OpenDialog<TextDialogView>(
+                new TextDialogViewModel(buttons)
                 {
                     Title = title,
                     Text = text

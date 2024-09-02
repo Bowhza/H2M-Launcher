@@ -12,7 +12,11 @@ public interface IGameCommunicationService
     event Action<Process> Started;
     event Action<Exception?> Stopped;
 
-    void Dispose();
     void StartGameCommunication(Process process);
     void StopGameCommunication();
+
+    bool HasInGameMap(string mapName);
+    IReadOnlyDictionary<int, string> GetInGameMaps();
+
+    void Dispose();
 }

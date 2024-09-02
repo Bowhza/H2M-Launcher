@@ -200,6 +200,42 @@ namespace H2MLauncher.Core.Services
             };
         }
 
+        public IReadOnlyDictionary<int, string> GetInGameMaps()
+        {
+            if (_gameMemory is null || _gameMemory.Process.HasExited)
+            {
+                throw new InvalidOperationException("Game communication not running");
+            }
+
+            _memorySemaphore.Wait();
+            try
+            {
+                return _gameMemory.GetInGameMaps().ToDictionary(_ => _.id, _ => _.name).AsReadOnly();
+            }
+            finally
+            {
+                _memorySemaphore.Release();
+            }
+        }
+
+        public bool HasInGameMap(string mapName)
+        {
+            if (_gameMemory is null || _gameMemory.Process.HasExited)
+            {
+                throw new InvalidOperationException("Game communication not running");
+            }
+
+            _memorySemaphore.Wait();
+            try
+            {
+                return _gameMemory.GetInGameMaps().Any(m => m.name.Equals(mapName, StringComparison.OrdinalIgnoreCase));
+            }
+            finally
+            {
+                _memorySemaphore.Release();
+            }
+        }
+
         public void Dispose()
         {
             StopGameCommunication();

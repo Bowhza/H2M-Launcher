@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -42,6 +43,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly Dictionary<string, string> _gameTypeMap = [];
     private readonly IOptions<ResourceSettings> _resourceSettings;
     private readonly H2MLauncherSettings _defaultSettings;
+    private readonly GameDirectoryService _gameDirectoryService;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -121,6 +123,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MLauncherOptions = h2mLauncherOptions;
         _defaultSettings = defaultSettings;
         _resourceSettings = resourceSettings;
+        _gameDirectoryService = gameDirectoryService;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -539,6 +542,17 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
 
+            List<string>? installedMaps = _h2MCommunicationService.GameCommunication.IsGameCommunicationRunning
+                // get maps from game
+                ? _h2MCommunicationService.GameCommunication.GetInGameMaps().Select(m => m.Value).ToList()
+                // fall back to all known maps
+                : _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name)).ToList();
+
+            if (_gameDirectoryService.IsWatching)
+            {
+                installedMaps.AddRange(_gameDirectoryService.Usermaps);
+            }
+
             // Start by sending info requests to the game servers
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
@@ -561,6 +575,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                     GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
                     Map = gameServer.MapName,
                     MapDisplayName = mapDisplayName ?? gameServer.MapName,
+                    HasMap = installedMaps.Contains(gameServer.MapName),
                     Version = server.Version,
                     IsPrivate = gameServer.IsPrivate,
                     Ping = gameServer.Ping,
@@ -599,6 +614,22 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
         if (serverViewModel is null)
             return;
+
+        if (!serverViewModel.HasMap)
+        {
+            bool? dialogResult = _dialogService.OpenTextDialog(
+                title: "Missing map",
+                text: """
+                    You are trying to join a server with a map that's not installed. This might crash your game. 
+                    Do you want to continue?
+                    """,
+                buttons: MessageBoxButton.YesNo);
+
+            if (dialogResult == false)
+            {
+                return;
+            }
+        }
 
         if (serverViewModel.IsPrivate)
         {

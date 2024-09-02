@@ -16,21 +16,27 @@ namespace H2MLauncher.Core.Services
 
         private const string CONFIG_MP_FILENAME = "config_mp.cfg";
         private const string PLAYERS2_DIR = "players2";
+        private const string USERMAPS_DIR = "h2m-usermaps";
 
         private FileSystemWatcher? _fileSystemWatcher;
         private readonly IOptionsMonitor<H2MLauncherSettings> _optionsMonitor;
         private readonly ILogger<GameDirectoryService> _logger;
         private readonly IDisposable? _optionsMonitorChangeRegistration;
+        private readonly List<string> _usermaps = [];
 
         public string? CurrentDir { get; private set; }
         public bool IsWatching => _fileSystemWatcher != null;
+
+        public IReadOnlyList<string> Usermaps { get; }
 
         public ConfigMpContent? CurrentConfigMp { get; private set; }
 
         public event Action<string, ConfigMpContent?>? ConfigMpChanged;
 
+
         public GameDirectoryService(IOptionsMonitor<H2MLauncherSettings> optionsMonitor, ILogger<GameDirectoryService> logger)
         {
+            Usermaps = _usermaps.AsReadOnly();
             _logger = logger;
             _optionsMonitor = optionsMonitor;
             _optionsMonitorChangeRegistration = optionsMonitor.OnChange((settings, _) =>
@@ -70,6 +76,7 @@ namespace H2MLauncher.Core.Services
             }
 
             OnConfigFileChanged(Path.Combine(CurrentDir, PLAYERS2_DIR, CONFIG_MP_FILENAME));
+            OnUsermapsChanged(Path.Combine(CurrentDir, USERMAPS_DIR));
         }
 
         private static string? GetGameDir(H2MLauncherSettings settings)
@@ -129,13 +136,16 @@ namespace H2MLauncher.Core.Services
             {
                 _logger.LogTrace("Game directory file changed: {path}, {changeType}", e.FullPath, e.ChangeType);
 
-                string configMpPath = Path.GetFullPath(Path.Combine(CurrentDir ?? "", PLAYERS2_DIR, CONFIG_MP_FILENAME));
-                if (!e.FullPath.Equals(configMpPath))
-                {
-                    return;
-                }
+                string currentDirAbsolutePath = Path.GetFullPath(CurrentDir ?? "");
 
-                OnConfigFileChanged(e.FullPath);
+                if (e.FullPath.Equals(Path.Combine(currentDirAbsolutePath, PLAYERS2_DIR, CONFIG_MP_FILENAME)))
+                {
+                    OnConfigFileChanged(e.FullPath);
+                }
+                else if (e.FullPath.StartsWith(Path.Combine(currentDirAbsolutePath, USERMAPS_DIR)))
+                {
+                    OnUsermapsChanged(Path.Combine(currentDirAbsolutePath, USERMAPS_DIR));
+                }
             }
             catch (Exception ex)
             {
@@ -196,6 +206,23 @@ namespace H2MLauncher.Core.Services
 
             CurrentConfigMp = new(playerName, sv_hostName, com_maxFps);
             ConfigMpChanged?.Invoke(path, CurrentConfigMp);
+        }
+
+        private void OnUsermapsChanged(string usermapsDir)
+        {
+            _usermaps.Clear();
+            foreach (var dir in Directory.EnumerateDirectories(usermapsDir))
+            {
+                string folderName = Path.GetFileName(dir);
+                string usermapFile = Path.Combine(dir, $"{folderName}.ff");
+                string usermapLoadFile = Path.Combine(dir, $"{folderName}_load.ff");
+                string usermapPakFile = Path.Combine(dir, $"{folderName}.pak");
+
+                if (File.Exists(usermapFile))
+                {
+                    _usermaps.Add(folderName);
+                }
+            }
         }
 
         public void Dispose()

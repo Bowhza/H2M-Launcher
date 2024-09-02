@@ -253,7 +253,17 @@
                                         <DataGridTextColumn Header="Map" 
                                                         Binding="{Binding MapDisplayName}" 
                                                         MinWidth="100"
-                                                        CanUserResize="False"/>
+                                                        CanUserResize="False">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasMap}" Value="False">
+                                                            <Setter Property="Foreground" Value="DarkRed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DataGridTextColumn.ElementStyle>
+                                        </DataGridTextColumn>
                                         <DataGridTextColumn Header="Mode" 
                                                         Binding="{Binding GameTypeDisplayName}" 
                                                         MinWidth="110"
