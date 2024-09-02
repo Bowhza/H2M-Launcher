@@ -652,7 +652,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         if (!serverViewModel.HasMap)
         {
             bool? dialogResult = _dialogService.OpenTextDialog(
-                title: "Missing map",
+                title: "Missing Map",
                 text: """
                     You are trying to join a server with a map that's not installed. This might crash your game. 
                     Do you want to continue?
