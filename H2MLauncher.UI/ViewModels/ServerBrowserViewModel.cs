@@ -191,9 +191,15 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         // initialize server filter view model with stored values
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
 
-        _h2MCommunicationService.GameDetected += H2MCommunicationService_GameDetected;
-        _h2MCommunicationService.GameExited += H2MCommunicationService_GameExited;
-        _h2MCommunicationService.GameStateChanged += H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
+        _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
+    }
+
+    private void H2MGameCommunication_Stopped(Exception? obj)
+    {
+        GameState.State = null;
     }
 
     private void H2MCommunicationService_GameStateChanged(GameState newState)
@@ -625,7 +631,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public void Dispose()
     {
-        _h2MCommunicationService.GameDetected -= H2MCommunicationService_GameDetected;
-        _h2MCommunicationService.GameExited -= H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameDetection.GameDetected -= H2MCommunicationService_GameDetected;
+        _h2MCommunicationService.GameDetection.GameExited -= H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameCommunication.GameStateChanged -= H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameCommunication.Stopped -= H2MGameCommunication_Stopped;
     }
 }

@@ -92,6 +92,8 @@ namespace H2MLauncher.UI
             services.AddHttpClient<RaidMaxService>();
 
             services.AddSingleton<H2MCommunicationService>();
+            services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
+            services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
 
@@ -132,8 +134,8 @@ namespace H2MLauncher.UI
             _defaultSettings = defaultH2MLauncherSettings;
 
             coolerBuilder
-                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true)
-                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+                .AddJsonFile("appsettings.local.json", optional: true)
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true);
 
             return coolerBuilder.Build();
         }
