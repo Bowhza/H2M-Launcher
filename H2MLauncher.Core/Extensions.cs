@@ -1,14 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Linq.Expressions;
-using System.Security;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Security;
+
+using Nogic.WritableOptions;
 
 namespace H2MLauncher.Core;
 
-internal static class Extensions
+public static class Extensions
 {
     public static bool IsNullOrEmpty(this SecureString secureString)
     {
@@ -90,42 +86,9 @@ internal static class Extensions
             comparer);
     }
 
-    /// <summary>
-    /// Dynamically update a list with new values by inserting them at the right place using a <paramref name="insertComparer"/>,
-    /// or replacing a existing value matched with the given <paramref name="equalityPredicate"/>.
-    /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="list"></param>
-    /// <param name="newValues">The values to merge with the list.</param>
-    /// <param name="equalityPredicate">A predicate that evaluates whether two values are equal.</param>
-    /// <param name="insertComparer">A comparer for inserting the new values at the correct position.</param>
-    /// <param name="removeOldValues">Remove old values that are not replaced by a new value.</param>
-    public static void DynamicUpdate<T>(this IList<T> list,
-        IEnumerable<T> newValues,
-        Func<T, T, bool>? equalityPredicate = null,
-        IComparer<T>? insertComparer = null,
-        bool removeOldValues = true)
+    public static void Update<T>(this IWritableOptions<T> options, Func<T, T> updateFunc, bool reload = true)
+        where T : class, new()
     {
-        if (removeOldValues)
-        {
-            var valuesToRemove = list
-                        .Where(oldValue => !newValues.Any(newValue =>
-                            equalityPredicate?.Invoke(oldValue, newValue) ??
-                                EqualityComparer<T>.Default.Equals(oldValue, newValue)))
-                        .ToList();
-
-            foreach (var value in valuesToRemove)
-            {
-                list.Remove(value);
-            }
-        }
-        foreach (var value in newValues)
-        {
-            list.AddOrUpdate(
-                value,
-                oldValue => equalityPredicate?.Invoke(value, oldValue) ??
-                    EqualityComparer<T>.Default.Equals(oldValue, value),
-                insertComparer);
-        }
+        options.Update(updateFunc(options.CurrentValue), reload);
     }
 }

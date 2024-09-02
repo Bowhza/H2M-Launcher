@@ -4,6 +4,7 @@ using System.Windows;
 
 using Flurl;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
@@ -112,8 +113,10 @@ namespace H2MLauncher.UI
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService<IW4MServer>>();
-
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
+            services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
+            services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
+            services.AddSingleton<GameDirectoryService>();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
@@ -154,8 +157,8 @@ namespace H2MLauncher.UI
             _defaultSettings = defaultH2MLauncherSettings;
 
             coolerBuilder
-                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true)
-                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+                .AddJsonFile("appsettings.local.json", optional: true)
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true);
 
             return coolerBuilder.Build();
         }
