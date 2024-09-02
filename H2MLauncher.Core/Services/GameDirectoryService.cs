@@ -28,10 +28,12 @@ namespace H2MLauncher.Core.Services
         public bool IsWatching => _fileSystemWatcher != null;
 
         public IReadOnlyList<string> Usermaps { get; }
-
         public ConfigMpContent? CurrentConfigMp { get; private set; }
 
+
         public event Action<string, ConfigMpContent?>? ConfigMpChanged;
+
+        public event Action<string?, IReadOnlyList<string>>? UsermapsChanged;
 
 
         public GameDirectoryService(IOptionsMonitor<H2MLauncherSettings> optionsMonitor, ILogger<GameDirectoryService> logger)
@@ -144,7 +146,7 @@ namespace H2MLauncher.Core.Services
                 }
                 else if (e.FullPath.StartsWith(Path.Combine(currentDirAbsolutePath, USERMAPS_DIR)))
                 {
-                    OnUsermapsChanged(Path.Combine(currentDirAbsolutePath, USERMAPS_DIR));
+                    OnUsermapsChanged(Path.Combine(currentDirAbsolutePath, USERMAPS_DIR), e.FullPath);
                 }
             }
             catch (Exception ex)
@@ -208,7 +210,7 @@ namespace H2MLauncher.Core.Services
             ConfigMpChanged?.Invoke(path, CurrentConfigMp);
         }
 
-        private void OnUsermapsChanged(string usermapsDir)
+        private void OnUsermapsChanged(string usermapsDir, string? triggeredByPath = null)
         {
             _usermaps.Clear();
             foreach (var dir in Directory.EnumerateDirectories(usermapsDir))
@@ -223,6 +225,8 @@ namespace H2MLauncher.Core.Services
                     _usermaps.Add(folderName);
                 }
             }
+
+            UsermapsChanged?.Invoke(triggeredByPath, Usermaps);
         }
 
         public void Dispose()

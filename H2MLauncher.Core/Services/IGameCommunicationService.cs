@@ -15,8 +15,8 @@ public interface IGameCommunicationService
     void StartGameCommunication(Process process);
     void StopGameCommunication();
 
-    bool HasInGameMap(string mapName);
-    IReadOnlyDictionary<int, string> GetInGameMaps();
+    Task<bool> HasInGameMapAsync(string mapName);
+    Task<IReadOnlyDictionary<int, string>> GetInGameMapsAsync();
 
     void Dispose();
 }

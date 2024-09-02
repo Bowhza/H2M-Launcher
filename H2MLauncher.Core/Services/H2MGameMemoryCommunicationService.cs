@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+﻿using System.Data;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
@@ -77,16 +78,21 @@ namespace H2MLauncher.Core.Services
                                         .ContinueWith(OnGameCommunicationTerminated),
                     cancellationToken: _gameCommunicationCancellation.Token
                  );
-
-                Started?.Invoke(process);
-
-                _logger.LogInformation("Game memory communication started with {processName} ({pid})",
-                    process.ProcessName, process.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while starting game memory communication");
             }
             finally
             {
                 _memorySemaphore.Release();
             }
+
+            // raise event outside of semaphore to avoid deadlocks
+            Started?.Invoke(process);
+
+            _logger.LogInformation("Game memory communication started with {processName} ({pid})",
+                process.ProcessName, process.Id);
         }
 
         private void OnGameCommunicationTerminated(Task loopTask)
@@ -143,14 +149,17 @@ namespace H2MLauncher.Core.Services
             {
                 ConnectState? connectState;
                 IPEndPoint? endPoint;
+                bool virtualLobbyLoaded;
+                ConnectionState connectionState;
 
+                // read values
                 await _memorySemaphore.WaitAsync(cancellationToken);
                 try
                 {
                     _logger.LogTrace("Reading memory from process {processName} ({pid})...",
                         gameMemory.Process.ProcessName, gameMemory.Process.Id);
 
-                    ConnectionState connectionState = gameMemory.GetConnectionState() ?? ConnectionState.CA_DISCONNECTED;
+                    connectionState = gameMemory.GetConnectionState() ?? ConnectionState.CA_DISCONNECTED;
 
                     connectState = gameMemory.GetConnectState();
                     if (connectState.HasValue)
@@ -173,41 +182,42 @@ namespace H2MLauncher.Core.Services
                         endPoint = null;
                     }
 
-                    bool virtualLobbyLoaded = gameMemory.GetVirtualLobbyLoaded() ?? false;
-
-                    GameState lastGameState = CurrentGameState;
-                    if (virtualLobbyLoaded)
-                    {
-                        CurrentGameState = new(virtualLobbyLoaded, connectionState, null, null);
-                    }
-                    else
-                    {
-                        CurrentGameState = lastGameState with
-                        {
-                            ConnectionState = connectionState,
-                            VirtualLobbyLoaded = virtualLobbyLoaded,
-                            Endpoint = endPoint,
-                            StartTime = lastGameState.StartTime ?? DateTimeOffset.Now
-                        };
-                    }
-
-                    await Task.Delay(GAME_MEMORY_READ_INTERVAL, cancellationToken).ConfigureAwait(true);
+                    virtualLobbyLoaded = gameMemory.GetVirtualLobbyLoaded() ?? false;
                 }
                 finally
                 {
                     _memorySemaphore.Release();
                 }
+
+                // process values and update state
+                GameState lastGameState = CurrentGameState;
+                if (virtualLobbyLoaded)
+                {
+                    CurrentGameState = new(virtualLobbyLoaded, connectionState, null, null);
+                }
+                else
+                {
+                    CurrentGameState = lastGameState with
+                    {
+                        ConnectionState = connectionState,
+                        VirtualLobbyLoaded = virtualLobbyLoaded,
+                        Endpoint = endPoint,
+                        StartTime = lastGameState.StartTime ?? DateTimeOffset.Now
+                    };
+                }
+
+                await Task.Delay(GAME_MEMORY_READ_INTERVAL, cancellationToken).ConfigureAwait(true);
             };
         }
 
-        public IReadOnlyDictionary<int, string> GetInGameMaps()
+        public async Task<IReadOnlyDictionary<int, string>> GetInGameMapsAsync()
         {
             if (_gameMemory is null || _gameMemory.Process.HasExited)
             {
                 throw new InvalidOperationException("Game communication not running");
             }
 
-            _memorySemaphore.Wait();
+            await _memorySemaphore.WaitAsync();
             try
             {
                 return _gameMemory.GetInGameMaps().ToDictionary(_ => _.id, _ => _.name).AsReadOnly();
@@ -218,14 +228,14 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool HasInGameMap(string mapName)
+        public async Task<bool> HasInGameMapAsync(string mapName)
         {
             if (_gameMemory is null || _gameMemory.Process.HasExited)
             {
                 throw new InvalidOperationException("Game communication not running");
             }
 
-            _memorySemaphore.Wait();
+            await _memorySemaphore.WaitAsync();
             try
             {
                 return _gameMemory.GetInGameMaps().Any(m => m.name.Equals(mapName, StringComparison.OrdinalIgnoreCase));

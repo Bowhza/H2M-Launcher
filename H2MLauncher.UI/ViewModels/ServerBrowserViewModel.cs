@@ -44,6 +44,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly IOptions<ResourceSettings> _resourceSettings;
     private readonly H2MLauncherSettings _defaultSettings;
     private readonly GameDirectoryService _gameDirectoryService;
+    private readonly List<string> _installedMaps = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -82,7 +83,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
+
     public event Action? ServerFilterChanged;
+
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -197,7 +200,19 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
         _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameCommunication.Started += H2MGameCommunication_Started;
         _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
+        _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
+    }
+
+    private async void GameDirectoryService_UsermapsChanged(string? triggeredByPath, IReadOnlyList<string> usermaps)
+    {
+        await UpdateInstalledMaps(updateViewModels: true);
+    }
+
+    private async void H2MGameCommunication_Started(Process obj)
+    {
+        await UpdateInstalledMaps(updateViewModels: true);
     }
 
     private void H2MGameCommunication_Stopped(Exception? obj)
@@ -518,6 +533,34 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
     }
 
+    private async Task UpdateInstalledMaps(bool updateViewModels = false)
+    {
+        _installedMaps.Clear();
+
+        // in-game maps
+        _installedMaps.AddRange(
+            _h2MCommunicationService.GameCommunication.IsGameCommunicationRunning
+                // get maps from game
+                ? (await _h2MCommunicationService.GameCommunication.GetInGameMapsAsync()).Select(m => m.Value)
+                // fall back to all known maps
+                : _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name))
+         );
+
+        // usermaps
+        _installedMaps.AddRange(_gameDirectoryService.Usermaps);
+
+        if (updateViewModels)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                foreach (var serverViewModel in AllServersTab.Servers)
+                {
+                    serverViewModel.HasMap = _installedMaps.Contains(serverViewModel.Map);
+                }
+            });
+        }
+    }
+
     private async Task LoadServersAsync()
     {
         await _loadCancellation.CancelAsync();
@@ -542,16 +585,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
 
-            List<string>? installedMaps = _h2MCommunicationService.GameCommunication.IsGameCommunicationRunning
-                // get maps from game
-                ? _h2MCommunicationService.GameCommunication.GetInGameMaps().Select(m => m.Value).ToList()
-                // fall back to all known maps
-                : _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name)).ToList();
-
-            if (_gameDirectoryService.IsWatching)
-            {
-                installedMaps.AddRange(_gameDirectoryService.Usermaps);
-            }
+            //await UpdateInstalledMaps();
 
             // Start by sending info requests to the game servers
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
@@ -575,7 +609,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                     GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
                     Map = gameServer.MapName,
                     MapDisplayName = mapDisplayName ?? gameServer.MapName,
-                    HasMap = installedMaps.Contains(gameServer.MapName),
+                    HasMap = _installedMaps.Contains(gameServer.MapName),
                     Version = server.Version,
                     IsPrivate = gameServer.IsPrivate,
                     Ping = gameServer.Ping,
@@ -665,6 +699,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.GameDetected -= H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited -= H2MCommunicationService_GameExited;
         _h2MCommunicationService.GameCommunication.GameStateChanged -= H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameCommunication.Started -= H2MGameCommunication_Started;
         _h2MCommunicationService.GameCommunication.Stopped -= H2MGameCommunication_Stopped;
+        _gameDirectoryService.UsermapsChanged -= GameDirectoryService_UsermapsChanged;
     }
 }
