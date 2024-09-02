@@ -56,18 +56,17 @@ public partial class GameStateViewModel : ObservableObject
 
             if (State.IsConnected)
             {
-                if (State.Endpoint is null)
-                {
-                    return "Connected";
-                }
-                else if (State.Endpoint.Address.Equals(IPAddress.Any))
+                if (State.IsPrivateMatch)
                 {
                     return "Private Match";
                 }
-                else
+
+                if (State.Endpoint is not null)
                 {
                     return $"Connected to {ConnectedIp}";
                 }
+
+                return "Connected";
             }
 
             if (State.IsConnecting)
@@ -76,10 +75,8 @@ public partial class GameStateViewModel : ObservableObject
                 {
                     return $"Connecting to {ConnectedIp}";
                 }
-                else
-                {
-                    return "Connecting";
-                }
+
+                return "Connecting";
             }
 
             return "Main Menu";

@@ -83,12 +83,27 @@ public enum ConnectionState
     CA_ACTIVE = 0xA,
 }
 
-public sealed class GameMemory : IDisposable
+public sealed partial class GameMemory : IDisposable
 {
-    [DllImport("kernel32.dll", SetLastError = true)]
-    public static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, int dwSize, out int lpNumberOfBytesRead);    
+    [LibraryImport("kernel32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] byte[] lpBuffer, int dwSize, out int lpNumberOfBytesRead);
 
+    [LibraryImport("kernel32.dll")]
+    private static partial IntPtr OpenProcess(int dwDesiredAccess, [MarshalAs(UnmanagedType.Bool)] bool bInheritHandle, int dwProcessId);
 
+    [LibraryImport("kernel32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool CloseHandle(IntPtr hObject);
+
+    // Constants for process access rights
+    const int PROCESS_CREATE_THREAD = 0x0002;
+    const int PROCESS_QUERY_INFORMATION = 0x0400;
+    const int PROCESS_VM_OPERATION = 0x0008;
+    const int PROCESS_VM_WRITE = 0x0020;
+    const int PROCESS_VM_READ = 0x0010;
+
+    // Memory offsets for game variables
     const nint PLAYER_NAME_OFFSET_H1 = 0x3516F83;
     const nint DISCORD_ACTIVITY_OFFSET_H2MMOD = 0x56FF29;
     const nint CONNECTION_STATE_H1 = 0x2EC82C8;
@@ -98,37 +113,20 @@ public sealed class GameMemory : IDisposable
     const nint SV_SERVERID_H1 = 0xB7F9630;
     const nint VIRTUAL_LOBBY_LOADED_H1 = 0x2E6EC9D;
 
-
-    [DllImport("kernel32.dll")]
-    public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
-
-    [DllImport("kernel32.dll")]
-    public static extern bool CloseHandle(IntPtr hObject);
-
-    // Constants for process access rights
-    const int PROCESS_CREATE_THREAD = 0x0002;
-    const int PROCESS_QUERY_INFORMATION = 0x0400;
-    const int PROCESS_VM_OPERATION = 0x0008;
-    const int PROCESS_VM_WRITE = 0x0020;
-    const int PROCESS_VM_READ = 0x0010;
-
     public Process Process { get; }
 
     private readonly IntPtr _processHandle;
     private readonly IntPtr _h1BaseAddress;
 
-    private static readonly SemaphoreSlim _semaphore = new(1, 1);
-
-    public GameMemory(Process process)
+    public GameMemory(Process process, string h1ModuleName)
     {
-        var h1Module = process.Modules.Cast<ProcessModule>().FirstOrDefault(m => m.ModuleName.Equals("h1_mp64_ship.exe"));
+        var h1Module = process.Modules.Cast<ProcessModule>().FirstOrDefault(m => m.ModuleName.Equals(h1ModuleName));
         if (h1Module is null)
         {
             throw new Exception("Game module not found in process");
         }
 
         _h1BaseAddress = h1Module.BaseAddress;
-
         _processHandle = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, process.Id);
         Process = process;
     }
@@ -188,82 +186,7 @@ public sealed class GameMemory : IDisposable
         return null;
     }
 
-
-    public static void Start(Process targetProcess)
-    {
-        // Define the address you want to read from
-        IntPtr baseAddress = new IntPtr(
-            targetProcess.Modules.Cast<ProcessModule>().First(m => m.ModuleName.Contains("h1_mp64")).BaseAddress);
-
-
-        // Open the process with read access
-        IntPtr hProcess = OpenProcess(PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, false, targetProcess.Id);
-
-        //var mem = new Memory(targetProcess.ProcessName, "h1_mp64_ship.exe", ACCESS_LEVEL.PROCESS_VM_READ | ACCESS_LEVEL.PROCESS_QUERY_INFORMATION);
-
-        Task.Run(async () =>
-        {
-            //var playerNameMemorySource = new MemoryReadSourceString(8, hProcess, baseAddress + PLAYER_NAME_OFFSET_H1, Encoding.ASCII);
-
-            while (!targetProcess.HasExited)
-            {
-                Debug.WriteLine(Thread.CurrentThread.ManagedThreadId);
-                await _semaphore.WaitAsync();
-                try
-                {
-                    if (ReadProcessMemoryInt(hProcess, baseAddress + SV_SERVERID_H1, out int sv_serverid))
-                    {
-                        Debug.WriteLine("sv_serverId: " + sv_serverid);
-                    }
-
-                    if (ReadProcessMemoryInt(hProcess, baseAddress + CONNECTION_STATE_H1, out int connectionState))
-                    {
-                        Debug.WriteLine("Connection State: " + ((ConnectionState)connectionState).ToString());
-                    }
-
-                    if (ReadProcessMemoryUInt(hProcess, baseAddress + LEVEL_ENTITY_ID_H1, out uint levelEntityId))
-                    {
-                        Debug.WriteLine("Entity Id: " + levelEntityId);
-                    }
-
-                    if (ReadStructFromMemoryPtr(hProcess, baseAddress + CLIENT_STATE_PTR_H1, out ClientState? clientState))
-                    {
-                        if (clientState is not null)
-                        {
-                            Debug.WriteLine("Ping: " + clientState.Value.Ping);
-                            Debug.WriteLine("NumPlayers: " + clientState.Value.NumPlayers);
-                            Debug.WriteLine("ServerTime: " + clientState.Value.ServerTime);
-                        }
-                    }
-
-                    if (ReadStructFromMemoryPtr(hProcess, baseAddress + CONNECT_STATE_PTR_H1, out ConnectState? connectState))
-                    {
-                        if (connectState is not null)
-                        {
-                            Debug.WriteLine("Type: " + connectState.Value.Address.Type.ToString());
-                            Debug.WriteLine("IP: " + string.Join(".", connectState.Value.Address.IP));
-                            Debug.WriteLine("Port: " + connectState.Value.Address.Port);
-                            Debug.WriteLine("LocalNetID: " + connectState.Value.Address.localNetID.ToString());
-                            Debug.WriteLine("AddrHandleIndex: " + connectState.Value.Address.AddrHandleIndex);
-                        }
-                    }
-
-
-                    await Task.Delay(1000).ConfigureAwait(true);
-                    //Thread.Sleep(1000);
-                }
-                finally
-                {
-                    _semaphore.Release();
-                }
-            }
-        }).ContinueWith(t =>
-        {
-            CloseHandle(hProcess);
-        });
-    }
-
-    static bool ReadPointerFromMemory(IntPtr processHandle, IntPtr address, out nint ptrValue)
+    private static bool ReadPointerFromMemory(IntPtr processHandle, IntPtr address, out nint ptrValue)
     {
         // Assume the pointer is an IntPtr (which is 4 bytes on x86 or 8 bytes on x64)
         int pointerSize = Marshal.SizeOf(typeof(IntPtr));
@@ -608,13 +531,4 @@ public sealed class GameMemory : IDisposable
             return false;
         }
     }
-
-    //public bool ReadLevelEntityId(out uint levelEntityId)
-    //{
-    //    bool success = ReadProcessMemory(_processHandle, _h1BaseAddress + LEVEL_ENTITY_ID_H1, _levelEntityIdBuffer, sizeof(uint), out _);
-    //    if (success)
-    //    {
-    //        levelEntityId = BitConverter.ToUInt32(_levelEntityIdBuffer);
-    //    }
-    //}
 }

@@ -1,7 +1,6 @@
 ﻿using System.Data;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -14,20 +13,7 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.Core.Services
 {
-    public record DetectedGame(Process Process, string FileName, string GameDir, FileVersionInfo Version);
-
-    public record GameState(bool VirtualLobbyLoaded, ConnectionState ConnectionState, IPEndPoint? Endpoint, DateTimeOffset? StartTime)
-    {
-        public bool IsConnected => ConnectionState >= ConnectionState.CA_CONNECTED && !IsInMainMenu;
-
-        public bool IsConnecting => ConnectionState >= ConnectionState.CA_CONNECTING && !IsConnected;
-
-        public bool IsInMainMenu => VirtualLobbyLoaded || ConnectionState < ConnectionState.CA_CONNECTING;
-
-        public TimeSpan TimeConnected => StartTime is not null ? DateTimeOffset.Now - StartTime.Value : TimeSpan.Zero;
-    };
-
-    public sealed partial class H2MCommunicationService : IDisposable
+    public sealed class H2MCommunicationService : IDisposable
     {
         private const string GAME_WINDOW_TITLE = "H2M-Mod";
         private const string GAME_EXECUTABLE_NAME = "h1_mp64_ship.exe";
@@ -111,8 +97,8 @@ namespace H2MLauncher.Core.Services
                 _logger.LogDebug("Starting game memory communication with {processName} ({pid})...",
                     DetectedGame.Process.ProcessName, DetectedGame.Process.Id);
 
-                _gameMemory = new(DetectedGame.Process);
-                _gameCommunicationCancellation = new();
+                _gameMemory = new GameMemory(DetectedGame.Process, GAME_EXECUTABLE_NAME);
+                _gameCommunicationCancellation = new CancellationTokenSource();
                 _gameCommunicationTask = Task.Run(
                     function: () => GameMemoryCommunicationLoop(_gameMemory, _gameCommunicationCancellation.Token)
                                         .ContinueWith(t =>
@@ -638,7 +624,7 @@ namespace H2MLauncher.Core.Services
 
             // find process that loaded H1 MP binary
             var gameProc = processesWithTitle.FirstOrDefault(p =>
-                p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals("h1_mp64_ship.exe")));
+                p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals(GAME_EXECUTABLE_NAME)));
 
             return gameProc;
         }
@@ -646,7 +632,7 @@ namespace H2MLauncher.Core.Services
         private static bool IsH2MModProcess(Process p)
         {
             return p.MainWindowTitle.Contains("h2m-mod", StringComparison.OrdinalIgnoreCase) &&
-                p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals("h1_mp64_ship.exe"));
+                p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals(GAME_EXECUTABLE_NAME));
         }
 
         private static IntPtr FindH2MModGameWindow(Process process)
