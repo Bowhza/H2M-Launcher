@@ -42,9 +42,12 @@ namespace H2MLauncher.Core.Services
             _client.Client.ReceiveTimeout = 5000;
             _client.Client.SendBufferSize = 1000;
 
-            // Set control flag to avoid connection reset when port is unreachable
-            // (https://stackoverflow.com/a/7478498/4711541
-            _client.Client.IOControl(SIO_UDP_CONNRESET, [0x00], null);
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Set control flag to avoid connection reset when port is unreachable
+                // (https://stackoverflow.com/a/7478498/4711541
+                _client.Client.IOControl(SIO_UDP_CONNRESET, [0x00], null);
+            }
 
             _listeningCancellation = new();
             _listeningTask = Task.Run(ReceiveLoop);
