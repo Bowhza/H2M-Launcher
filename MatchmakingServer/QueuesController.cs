@@ -26,7 +26,7 @@ namespace MatchmakingServer
                     s.InstanceId,
                     s.ServerIp,
                     s.ServerPort,
-                    Players = s.JoiningPlayers.Select(p =>
+                    Players = s.PlayerQueue.Select(p =>
                     {
                         return new
                         {
