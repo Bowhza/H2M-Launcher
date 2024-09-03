@@ -1,4 +1,6 @@
-﻿namespace MatchmakingServer.SignalR
+﻿using H2MLauncher.Core.Services;
+
+namespace MatchmakingServer.SignalR
 {
     public interface IClient
     {

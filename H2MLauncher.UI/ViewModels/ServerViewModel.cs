@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Text.RegularExpressions;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 
 using H2MLauncher.Core.Models;
 
@@ -93,5 +95,10 @@ namespace H2MLauncher.UI.ViewModels
         }
 
         public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
+
+        public string SanitizedHostName => ColorCodeSequenceRegex().Replace(HostName, "");
+
+        [GeneratedRegex(@"(\^\d)")]
+        private static partial Regex ColorCodeSequenceRegex();
     }
 }

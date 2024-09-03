@@ -619,27 +619,27 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _mapMap.TryGetValue(gameServer.MapName, out string? mapDisplayName);
         _gameTypeMap.TryGetValue(gameServer.GameType, out string? gameTypeDisplayName);
 
-                ServerViewModel serverViewModel = new()
-                {
-                    Server = server,
-                    Id = server.Id,
-                    Ip = server.Ip,
-                    Port = server.Port,
-                    HostName = server.HostName,
-                    ClientNum = gameServer.Clients - gameServer.Bots,
-                    MaxClientNum = gameServer.MaxClients,
-                    Game = server.Game,
-                    GameType = gameServer.GameType,
-                    GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
-                    Map = gameServer.MapName,
-                    MapDisplayName = mapDisplayName ?? gameServer.MapName,
-                    HasMap = _installedMaps.Contains(gameServer.MapName),
-                    Version = server.Version,
-                    IsPrivate = gameServer.IsPrivate,
-                    Ping = gameServer.Ping,
-                    BotsNum = gameServer.Bots,
-                    IsFavorite = isFavorite
-                };
+        ServerViewModel serverViewModel = new()
+        {
+            Server = server,
+            Id = server.Id,
+            Ip = server.Ip,
+            Port = server.Port,
+            HostName = server.HostName,
+            ClientNum = gameServer.Clients - gameServer.Bots,
+            MaxClientNum = gameServer.MaxClients,
+            Game = server.Game,
+            GameType = gameServer.GameType,
+            GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
+            Map = gameServer.MapName,
+            MapDisplayName = mapDisplayName ?? gameServer.MapName,
+            HasMap = _installedMaps.Contains(gameServer.MapName),
+            Version = server.Version,
+            IsPrivate = gameServer.IsPrivate,
+            Ping = gameServer.Ping,
+            BotsNum = gameServer.Bots,
+            IsFavorite = isFavorite
+        };
 
         // Game server responded -> online
         AllServersTab.Servers.Add(serverViewModel);
@@ -693,24 +693,37 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 return;
         }
 
-        //if (serverViewModel.ClientNum >= serverViewModel.MaxClientNum)
-        //{
+        if (serverViewModel.ClientNum >= serverViewModel.MaxClientNum)
+        {
+            // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)
 
-        //QueueServer(SelectedServer.Server);
-        await _matchmakingService.JoinQueueAsync(serverViewModel.Server, "TestPlayer");
-            return;
+            // Join the matchmaking server queue
+            bool joinedQueue = await _matchmakingService.JoinQueueAsync(
+                serverViewModel.Server, _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier");
+            if (joinedQueue)
+            {
+                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService);
+                if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
+                {
+                    // queueing process terminated (left queue, joined, ...)
+                    return;
+                }
+            }
+            else if (_dialogService.OpenTextDialog("Queue unavailable", "Could not join the queue, force join instead?", MessageBoxButton.YesNo) == false)
+            {
+                return;
+            }
+        }
 
-        //}
+        bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
+        if (hasJoined)
+        {
+            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+        }
 
-        //bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
-        //if (hasJoined)
-        //{
-        //    UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-        //}
-
-        //StatusText = hasJoined
-        //    ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
-        //    : "Ready";
+        StatusText = hasJoined
+            ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
+            : "Ready";
     }
 
     private void LaunchH2M()

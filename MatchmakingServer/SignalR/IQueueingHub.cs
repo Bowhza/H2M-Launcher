@@ -5,7 +5,7 @@ namespace MatchmakingServer.SignalR
     {
         Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId, string playerName);
 
-        Task JoinAck(string serverIp, int serverPort, bool successful);
+        Task JoinAck(bool successful);
 
         Task LeaveQueue();
     }

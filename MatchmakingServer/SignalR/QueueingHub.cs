@@ -1,4 +1,6 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using H2MLauncher.Core.Services;
+
+using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
 {
@@ -13,7 +15,7 @@ namespace MatchmakingServer.SignalR
             _queueingService = queueingService;
         }
 
-        public Task JoinAck(string serverIp, int serverPort, bool successful)
+        public Task JoinAck(bool successful)
         {
             if (successful)
             {

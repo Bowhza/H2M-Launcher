@@ -65,7 +65,6 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
-        <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
         <converters:PingColorConverter x:Key="PingColorConverter"/>
         <converters:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
         <converters:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>

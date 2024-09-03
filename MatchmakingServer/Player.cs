@@ -1,4 +1,6 @@
-﻿namespace MatchmakingServer
+﻿using H2MLauncher.Core.Services;
+
+namespace MatchmakingServer
 {
     public record Player
     {
