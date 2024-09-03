@@ -3,7 +3,6 @@
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
@@ -28,12 +27,14 @@ namespace MatchmakingServer.SignalR
         /// <summary>
         /// The maximum amount of time a player can block the queue since the first time a slot becomes available for him.
         /// </summary>
-        private static readonly TimeSpan TotalJoinTimeLimit = TimeSpan.FromSeconds(30);
+        private static readonly TimeSpan TotalJoinTimeLimit = TimeSpan.FromSeconds(50);
 
         /// <summary>
         /// The timeout for a join request after which the player will be removed from the queue;
         /// </summary>
-        private static readonly TimeSpan JoinTimeout = TotalJoinTimeLimit / MAX_JOIN_ATTEMPTS;
+        private static readonly TimeSpan JoinTimeout = TimeSpan.FromSeconds(30);
+
+        private static readonly bool ResetJoinAttemptsWhenServerFull = true;
 
         /// <summary>
         /// The maximum number of join attempts for a player per queue.
@@ -45,6 +46,7 @@ namespace MatchmakingServer.SignalR
         private static readonly bool ConfirmJoinsWithWebfrontApi = false;
 
         private static readonly bool CleanupServerWhenStopped = false;
+
 
         public QueueingService(
             GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService,
@@ -135,13 +137,20 @@ namespace MatchmakingServer.SignalR
                 player.State = PlayerState.Queued;
                 player.Server.JoiningPlayerCount--;
 
-                // TODO: reset join attempts?
-                // player.JoinAttempts.Clear();
+                if (ResetJoinAttemptsWhenServerFull)
+                {
+                    // TODO: reset join attempts / timer to make it more fair?
+                    player.JoinAttempts.Clear();
+                }
             }
+
+            // allow retry too until timeout or max attempts
+            player.State = PlayerState.Queued;
+            player.Server.JoiningPlayerCount--;
 
             // otherwise dequeue the player
             // TODO: maybe allow player to stay in queue until max join attempts / time limit reached
-            DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: true);
+            //DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: true);
         }
 
         public void OnPlayerJoinConfirmed(string connectionId)
@@ -363,8 +372,13 @@ namespace MatchmakingServer.SignalR
                 // dequeue players that have been joining too long
                 CheckJoinTimeout(server);
 
+                if (server.PlayerQueue.Count == 0)
+                {
+                    return;
+                }
+
                 // check whether to continue
-                if (server.JoiningPlayerCount == server.PlayerQueue.Count)
+                if (!ResetJoinAttemptsWhenServerFull && server.JoiningPlayerCount == server.PlayerQueue.Count)
                 {
                     // all players in queue already joining -> nothing to do anymore
                     _logger.LogTrace("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
@@ -456,7 +470,6 @@ namespace MatchmakingServer.SignalR
                 _logger.LogInformation("Processing loop stopped for server {server}", server);
             }
         }
-
 
         private async Task HandlePlayerJoinsAsync(GameServer server, CancellationToken cancellationToken)
         {
