@@ -1,9 +1,11 @@
 ﻿using System.Reactive.Linq;
 
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Settings;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.Core.Services
 {
@@ -66,13 +68,14 @@ namespace H2MLauncher.Core.Services
         public event Action<int, int>? QueuePositionChanged;
 
         public MatchmakingService(ILogger<MatchmakingService> logger, H2MCommunicationService h2MCommunicationService,
-            IGameCommunicationService gameCommunicationService)
+            IGameCommunicationService gameCommunicationService, IOptions<MatchmakingSettings> matchmakingSettings)
         {
             _logger = logger;
             _gameCommunicationService = gameCommunicationService;
 
             _connection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:7208/Queue")
+                .WithUrl(matchmakingSettings.Value.MatchmakingServerUrl)
+                .WithAutomaticReconnect()
                 .Build();
 
             _connection.On("NotifyJoin", (string ip, int port) =>

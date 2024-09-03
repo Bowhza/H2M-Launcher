@@ -61,7 +61,7 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Row="0" Text="Game Queue" TextWrapping="WrapWithOverflow" 
+        <TextBlock Grid.Row="0" Text="Joining Server" TextWrapping="WrapWithOverflow" 
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
                    Margin="0,0,0,15"/>
 

@@ -84,6 +84,7 @@ namespace H2MLauncher.UI
                 file: Constants.LauncherSettingsFileName);
 
             services.Configure<ResourceSettings>(config.GetSection(Constants.ResourceSection));
+            services.Configure<MatchmakingSettings>(config.GetSection(Constants.MatchmakingSection));
 
             services.AddKeyedSingleton(Constants.DefaultSettingsKey, _defaultSettings);
 
