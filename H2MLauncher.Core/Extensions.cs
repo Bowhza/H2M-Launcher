@@ -1,4 +1,5 @@
-﻿using System.Security;
+﻿using System.Net;
+using System.Security;
 
 using Nogic.WritableOptions;
 
@@ -90,5 +91,12 @@ public static class Extensions
         where T : class, new()
     {
         options.Update(updateFunc(options.CurrentValue), reload);
+    }
+
+    public static IPAddress GetRealAddress(this IPAddress ipAddress)
+    {
+        return ipAddress.IsIPv4MappedToIPv6
+                    ? ipAddress.MapToIPv4()
+                    : ipAddress;
     }
 }

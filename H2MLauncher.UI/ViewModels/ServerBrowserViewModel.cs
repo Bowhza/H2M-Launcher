@@ -211,6 +211,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
         _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
         _gameDirectoryService.FastFileChanged += GameDirectoryService_FastFileChanged;
+
+        _matchmakingService.Joined += MatchmakingService_Joined;
     }
 
     private void GameDirectoryService_FastFileChanged(string fileName, string mapName)
@@ -731,10 +733,16 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
             // Join the matchmaking server queue
             bool joinedQueue = await _matchmakingService.JoinQueueAsync(
-                serverViewModel.Server, _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier", password);
+                server: serverViewModel.Server, 
+                serverEndpoint: serverViewModel.GameServerInfo.Address, 
+                playerName: _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier", 
+                password);
+
             if (joinedQueue)
             {
-                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService);
+                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService, 
+                    onForceJoin: () => JoinServerInternal(serverViewModel, password));
+
                 if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
                 {
                     // queueing process terminated (left queue, joined, ...)
@@ -747,6 +755,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             }
         }
 
+        JoinServerInternal(serverViewModel, password);
+    }
+
+    private bool JoinServerInternal(ServerViewModel serverViewModel, string? password)
+    {
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {
@@ -756,6 +769,21 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         StatusText = hasJoined
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
+
+        return hasJoined;
+    }
+
+    private void MatchmakingService_Joined((string ip, int port) joinedServer)
+    {
+        Application.Current.Dispatcher.BeginInvoke(() =>
+        {
+            ServerViewModel? serverViewModel = AllServersTab.Servers.FirstOrDefault(server =>
+            server.Ip == joinedServer.ip && server.Port == joinedServer.port);
+            if (serverViewModel is not null)
+            {
+                UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+            }
+        });
     }
 
     private void LaunchH2M()

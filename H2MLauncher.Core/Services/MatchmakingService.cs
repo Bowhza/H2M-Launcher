@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Models;
+﻿using System.Net;
+
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Settings;
 
 using Microsoft.AspNetCore.SignalR.Client;
@@ -35,7 +37,12 @@ namespace H2MLauncher.Core.Services
         private readonly ILogger<MatchmakingService> _logger;
         private readonly IGameCommunicationService _gameCommunicationService;
 
-        private string _joiningServerIp = "";
+        private record QueuedServer(string Ip, int Port)
+        {
+            public bool HasSeenConnecting { get; set; }
+        }
+
+        private readonly List<QueuedServer> _queuedServers = [];
         private bool _hasSeenConnecting = false;
         private readonly Dictionary<(string ip, int port), string> _privatePasswords = [];
 
@@ -65,8 +72,10 @@ namespace H2MLauncher.Core.Services
         public bool IsConnected => _connection.State is HubConnectionState.Connected;
 
         public event Action<PlayerState>? QueueingStateChanged;
-        public event Action<(string ip, int port)>? Joining;
         public event Action<int, int>? QueuePositionChanged;
+        public event Action<(string ip, int port)>? Joining;
+        public event Action<(string ip, int port)>? Joined;
+        public event Action<(string ip, int port)>? JoinFailed;
 
         public MatchmakingService(ILogger<MatchmakingService> logger, H2MCommunicationService h2MCommunicationService,
             IGameCommunicationService gameCommunicationService, IOptions<MatchmakingSettings> matchmakingSettings)
@@ -91,10 +100,10 @@ namespace H2MLauncher.Core.Services
 
         private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
         {
-            if (newState is PlayerState.Disconnected or PlayerState.Joined or PlayerState.Connected or PlayerState.Queued)
+            if (newState is PlayerState.Disconnected or PlayerState.Joined or PlayerState.Connected)
             {
-                _joiningServerIp = "";
                 _hasSeenConnecting = false;
+                _queuedServers.Clear();
                 _privatePasswords.Clear();
             }
 
@@ -107,7 +116,7 @@ namespace H2MLauncher.Core.Services
         {
             _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
 
-            _joiningServerIp = ip;
+            _queuedServers.Add(new QueuedServer(ip, port));
             _hasSeenConnecting = false;
 
             Joining?.Invoke((ip, port));
@@ -150,31 +159,48 @@ namespace H2MLauncher.Core.Services
                 return;
             }
 
-            if (gameState.IsConnected &&
-                gameState.Endpoint is not null &&
-                gameState.Endpoint.Address.MapToIPv4().ToString().Equals(_joiningServerIp))
+            if (gameState.IsConnected && gameState.Endpoint is not null)
             {
-                // we are connected to something
+                // we are connected to something, check whether it has to do with us
+                QueuedServer? queuedServer = GetQueuedServer(gameState);
+                if (queuedServer is null)
+                {
+                    // nope
+                    return;
+                }
 
-                _logger.LogDebug("Game connected to {ip}, sending join ack...", gameState.Endpoint.Address.ToString());
+                _logger.LogDebug("Game connected to {ip}, sending join ack...", queuedServer.Ip);
 
                 // send join confirmation to server
                 await AcknowledgeJoin(true);
 
                 // we are now joined :)
                 QueueingState = PlayerState.Joined;
+
+                Joined?.Invoke((queuedServer.Ip, queuedServer.Port));
             }
 
             if (gameState.IsInMainMenu && _hasSeenConnecting)
             {
                 // something went wrong with joining, we have been connection and now are in the main menu again :(
+                
+                if (QueueingState is PlayerState.Joining)
+                {
+                    // we were joining, so that's probably the queued server
+                    // tell server we could not join, maybe the server got full in the meantime
+                    // (only if we were actually joining from the queue, not force joining)
+                    _logger.LogInformation("Could not join server, sending failed join ack...");
+                    await AcknowledgeJoin(false);
+                    
+                    QueueingState = PlayerState.Queued;
+                }
 
-                _logger.LogInformation("Could not join server, sending failed join ack...");
-
-                // tell server we could not join, maybe the server got full in the meantime
-                await AcknowledgeJoin(false);
-
-                QueueingState = PlayerState.Queued;
+                // check whether one of the queued servers has been seen connecting before
+                QueuedServer? connectingQueuedServer = _queuedServers.FirstOrDefault(s => s.HasSeenConnecting);
+                if (connectingQueuedServer is not null)
+                {
+                    JoinFailed?.Invoke((connectingQueuedServer.Ip, connectingQueuedServer.Port));
+                }
             }
 
             if (gameState.IsConnecting && !gameState.IsPrivateMatch)
@@ -182,7 +208,28 @@ namespace H2MLauncher.Core.Services
                 // set this flag so we dont recognize a previous server connected to as the current server
                 // TODO: maybe compare IPs? could not match somehow and the unnecessarily block the queue
                 _hasSeenConnecting = true;
+
+                QueuedServer? queuedServer = GetQueuedServer(gameState);
+                if (queuedServer is null)
+                {
+                    return;
+                }
+
+                queuedServer.HasSeenConnecting = true;
             }
+        }
+
+        private QueuedServer? GetQueuedServer(GameState gameState)
+        {
+            if (gameState.Endpoint is not null)
+            {
+                // (unfortunately we cannot use port because the game gives us the local UDP port)
+                string gameStateIp = gameState.Endpoint.Address.GetRealAddress().ToString();
+
+                return _queuedServers.Find(s => s.Ip == gameStateIp);
+            }
+
+            return null;
         }
 
         private Task Connection_Closed(Exception? arg)
@@ -209,7 +256,7 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public async Task<bool> JoinQueueAsync(IW4MServer server, string playerName, string? privatePassword)
+        public async Task<bool> JoinQueueAsync(IW4MServer server, IPEndPoint serverEndpoint, string playerName, string? privatePassword)
         {
             try
             {
@@ -219,21 +266,24 @@ namespace H2MLauncher.Core.Services
                     await StartConnection();
                 }
 
+                bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
+                if (!joinedSuccesfully)
+                {
+                    return false;
+                }
+
+                _logger.LogInformation("Joined server queue as '{playerName}' for {serverIp}:{serverPort}",
+                    playerName, server.Ip, server.Port);
+
                 if (privatePassword is not null)
                 {
                     _privatePasswords.Add((server.Ip, server.Port), privatePassword);
                 };
 
-                bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
-                if (joinedSuccesfully)
-                {
-                    _logger.LogInformation("Joined server queue as '{playerName}' for {serverIp}:{serverPort}",
-                        playerName, server.Ip, server.Port);
+                QueueingState = PlayerState.Queued;
+                _queuedServers.Add(new(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port));
 
-                    QueueingState = PlayerState.Queued;
-                }
-
-                return joinedSuccesfully;
+                return true;
             }
             catch (Exception ex)
             {

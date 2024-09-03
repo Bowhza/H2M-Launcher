@@ -1,5 +1,6 @@
 ﻿using System.Net;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
@@ -58,11 +59,7 @@ namespace MatchmakingServer
         {
             if (LastServerInfo is not null)
             {
-                IPEndPoint endpoint = LastServerInfo.Address;
-
-                return endpoint.Address.IsIPv4MappedToIPv6
-                    ? endpoint.Address.MapToIPv4().ToString()
-                    : endpoint.Address.ToString();
+                return LastServerInfo.Address.Address.GetRealAddress().ToString();
             }
 
             return ServerIp;
