@@ -726,7 +726,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ServerData? serverData = _serverData.FirstOrDefault(d => 
             d.Ip == serverViewModel.Ip && d.Port == serverViewModel.Port);
 
-        int assumedMaxClients = serverViewModel.MaxClientNum - serverData?.PrivilegedSlots ?? 0;
+        int assumedMaxClients = serverViewModel.MaxClientNum - (serverData?.PrivilegedSlots ?? 0);
         if (serverViewModel.ClientNum >= assumedMaxClients) //TODO: check if queueing enabled
         {
             // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)
