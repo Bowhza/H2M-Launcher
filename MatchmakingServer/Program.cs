@@ -1,5 +1,4 @@
 using H2MLauncher.Core.Interfaces;
-using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Utilities;
 
@@ -16,6 +15,7 @@ var builder = WebApplication.CreateBuilder();
 builder.Services.AddLogging();
 
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
+builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("ServerSettings"));
 
 builder.Services.AddScoped<IIW4MAdminService, IW4MAdminService>();
 builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>()
@@ -44,6 +44,7 @@ builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 builder.Services.AddSingleton<ServerInstanceCache>();
 
 builder.Services.AddSingleton<QueueingService>();
+builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();

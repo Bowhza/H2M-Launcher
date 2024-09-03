@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Models;
+﻿using System.Net;
+
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 namespace MatchmakingServer
@@ -39,9 +41,31 @@ namespace MatchmakingServer
 
         public AutoResetEvent PlayersAvailable { get; } = new(false);
 
+        public int PrivilegedSlots { get; init; }
+
+        public int UnavailableSlots => JoiningPlayerCount + PrivilegedSlots;
+
         public GameServer(string instanceId)
         {
             InstanceId = instanceId;
+        }
+
+        /// <summary>
+        /// Gets the actual ip address from the game server info if present.
+        /// </summary>
+        /// <returns></returns>
+        public string GetActualIpAddress()
+        {
+            if (LastServerInfo is not null)
+            {
+                IPEndPoint endpoint = LastServerInfo.Address;
+
+                return endpoint.Address.IsIPv4MappedToIPv6
+                    ? endpoint.Address.MapToIPv4().ToString()
+                    : endpoint.Address.ToString();
+            }
+
+            return ServerIp;
         }
 
         public override string ToString()

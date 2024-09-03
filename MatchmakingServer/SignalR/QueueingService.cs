@@ -1,9 +1,11 @@
 ﻿using System.Collections.Concurrent;
+using System.Net;
 
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Options;
 
 namespace MatchmakingServer.SignalR
 {
@@ -16,6 +18,7 @@ namespace MatchmakingServer.SignalR
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
+        private readonly IOptionsMonitor<ServerSettings> _serverSettings;
 
         public IEnumerable<GameServer> QueuedServers => _servers.Values;
 
@@ -53,13 +56,15 @@ namespace MatchmakingServer.SignalR
             IHubContext<QueueingHub, IClient> ctx,
             IHttpClientFactory httpClientFactory,
             ILogger<QueueingService> logger,
-            ServerInstanceCache instanceCache)
+            ServerInstanceCache instanceCache,
+            IOptionsMonitor<ServerSettings> serverSettings)
         {
             _gameServerCommunicationService = gameServerCommunicationService;
             _ctx = ctx;
             _httpClientFactory = httpClientFactory;
             _logger = logger;
             _instanceCache = instanceCache;
+            _serverSettings = serverSettings;
         }
 
         /// <summary>
@@ -161,7 +166,7 @@ namespace MatchmakingServer.SignalR
                 return;
             }
 
-            if (player.State is not PlayerState.Joining || player.Server is null)
+            if (player.State is not (PlayerState.Joining or PlayerState.Queued) || player.Server is null)
             {
                 // not joining
                 _logger.LogWarning("Could not confirm player join: invalid player state ({player})", player);
@@ -184,7 +189,7 @@ namespace MatchmakingServer.SignalR
 
                 // notify client to join
                 var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.ConnectionId)
-                    .NotifyJoin(server.ServerIp, server.ServerPort, cancellation.Token);
+                    .NotifyJoin(server.GetActualIpAddress(), server.ServerPort, cancellation.Token);
 
                 if (joinTriggeredSuccessfully)
                 {
@@ -478,15 +483,19 @@ namespace MatchmakingServer.SignalR
                 return;
             }
 
-            _logger.LogDebug("Server {server} has {freeSlots} free, {reservedSlots} reserved slots",
-                           server, server.LastServerInfo.FreeSlots, server.JoiningPlayerCount);
+            _logger.LogDebug("Server {server} has {freeSlots} free, {privilegedSlots} privileged, {reservedSlots} reserved slots",
+                           server, server.LastServerInfo.FreeSlots, server.PrivilegedSlots, server.JoiningPlayerCount);
 
-            // get the number of available slots (not reserved by joining players)
-            int nonReservedFreeSlots = server.LastServerInfo.FreeSlots - server.JoiningPlayerCount;
+            // get the number of available slots (not reserved by joining players or privileged slots)
+            int nonReservedFreeSlots = Math.Max(server.LastServerInfo.FreeSlots - server.UnavailableSlots, 0);
+            if (nonReservedFreeSlots == 0)
+            {
+                _logger.LogDebug("No slot available on server {server}", server);
+                return;
+            }
 
             _logger.LogDebug("Can join up to {numberOfPeople} people to {server}",
                 nonReservedFreeSlots, server);
-
 
             // try to join as many players as slots available
             int joinedPlayers = 0;
@@ -694,11 +703,16 @@ namespace MatchmakingServer.SignalR
                     return server;
                 }
 
-                // server does not have a queue yet
+                // get data for this server from the settings
+                ServerData? data = _serverSettings.CurrentValue.ServerDataList.Find(s =>
+                    s.Ip == serverIp && s.Port == serverPort);
+
+                // server does not have a queue yet, create new
                 server = new(instanceId)
                 {
                     ServerIp = serverIp,
-                    ServerPort = serverPort
+                    ServerPort = serverPort,
+                    PrivilegedSlots = data?.PrivilegedSlots ?? 0,
                 };
 
                 if (!_servers.TryAdd((serverIp, serverPort), server))

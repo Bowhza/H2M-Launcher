@@ -5,10 +5,10 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace H2MLauncher.Core.Services
 {
-    public sealed class CachedIpv6EndpointResolver(ILogger<CachedIpv6EndpointResolver> logger) : IEndpointResolver
+    public sealed class CachedIpv6EndpointResolver(ILogger<CachedIpv6EndpointResolver> logger, IMemoryCache memoryCache) : IEndpointResolver
     {
         private readonly ILogger<CachedIpv6EndpointResolver> _logger = logger;
-        private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions());
+        private readonly IMemoryCache _memoryCache = memoryCache;
 
         private record struct IpEndpointCacheKey(string IpOrHostName, int Port) { }
 
@@ -55,8 +55,6 @@ namespace H2MLauncher.Core.Services
                 {
                     if (IPAddress.TryParse(server.Ip, out var ipAddress))
                     {
-                        cacheEntry.SlidingExpiration = TimeSpan.FromHours(10);
-
                         // ip contains an actual ip address -> use that to create endpoint
                         return new IPEndPoint(ipAddress.MapToIPv6(), server.Port);
                     }
@@ -64,7 +62,7 @@ namespace H2MLauncher.Core.Services
                     var endpoint = await ResolveEndpointAsync(server, cancellationToken);
                     if (endpoint is null)
                     {
-                        cacheEntry.SlidingExpiration = TimeSpan.FromSeconds(120);
+                        cacheEntry.SlidingExpiration = TimeSpan.FromMinutes(2);
                         return null;
                     }
 

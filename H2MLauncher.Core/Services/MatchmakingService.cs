@@ -1,6 +1,4 @@
-﻿using System.Reactive.Linq;
-
-using H2MLauncher.Core.Models;
+﻿using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Settings;
 
 using Microsoft.AspNetCore.SignalR.Client;
@@ -29,7 +27,7 @@ namespace H2MLauncher.Core.Services
         Joined
     }
 
-    public class MatchmakingService
+    public sealed class MatchmakingService : IAsyncDisposable
     {
         private readonly H2MCommunicationService _h2MCommunicationService;
 
@@ -39,6 +37,7 @@ namespace H2MLauncher.Core.Services
 
         private string _joiningServerIp = "";
         private bool _hasSeenConnecting = false;
+        private readonly Dictionary<(string ip, int port), string> _privatePasswords = [];
 
         public int QueuePosition { get; private set; }
         public int TotalPlayersInQueue { get; private set; }
@@ -56,8 +55,10 @@ namespace H2MLauncher.Core.Services
 
                 _logger.LogTrace("Set queueing state to {queueingState}", value);
 
+                PlayerState oldState = _queueingState;
                 _queueingState = value;
-                QueueingStateChanged?.Invoke(value);
+
+                OnQueueingStateChanged(oldState, value);
             }
         }
 
@@ -74,71 +75,94 @@ namespace H2MLauncher.Core.Services
             _gameCommunicationService = gameCommunicationService;
 
             _connection = new HubConnectionBuilder()
-                .WithUrl(matchmakingSettings.Value.MatchmakingServerUrl)
+                .WithUrl(matchmakingSettings.Value.QueueingHubUrl)
                 .WithAutomaticReconnect()
                 .Build();
 
-            _connection.On("NotifyJoin", (string ip, int port) =>
-            {
-                logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
-
-                _joiningServerIp = ip;
-                Joining?.Invoke((ip, port));
-
-                if (h2MCommunicationService.JoinServer(ip, port.ToString()))
-                {
-                    QueueingState = PlayerState.Joining;
-                    return true;
-                }
-
-                QueueingState = PlayerState.Connected;
-
-                return false;
-            });
-
-            _connection.On("QueuePositionChanged", (int position, int totalPlayersInQueue) =>
-            {
-                logger.LogInformation("Received update queue position {queuePosition}/{queueLength}", position, totalPlayersInQueue);
-                QueuePosition = position;
-                TotalPlayersInQueue = totalPlayersInQueue;
-                QueuePositionChanged?.Invoke(position, totalPlayersInQueue);
-            });
-
-            _connection.On("RemoveFromQueue", (DequeueReason reason) =>
-            {
-                QueueingState = PlayerState.Connected;
-                logger.LogInformation("Removed from queue. Reason: {reason}", reason);
-            });
+            _connection.On<string, int, bool>("NotifyJoin", OnNotifyJoin);
+            _connection.On<int, int>("QueuePositionChanged", OnQueuePositionChanged);
+            _connection.On<DequeueReason>("RemovedFromQueue", OnRemovedFromQueue);
 
             _connection.Closed += Connection_Closed;
 
             _h2MCommunicationService = h2MCommunicationService;
-            gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
+            _gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
         }
+
+        private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
+        {
+            if (newState is PlayerState.Disconnected or PlayerState.Joined or PlayerState.Connected or PlayerState.Queued)
+            {
+                _joiningServerIp = "";
+                _hasSeenConnecting = false;
+                _privatePasswords.Clear();
+            }
+
+            QueueingStateChanged?.Invoke(newState);
+        }
+
+
+        #region RPC Handlers
+        private bool OnNotifyJoin(string ip, int port)
+        {
+            _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
+
+            _joiningServerIp = ip;
+            _hasSeenConnecting = false;
+
+            Joining?.Invoke((ip, port));
+
+            if (_h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault((ip, port))))
+            {
+                QueueingState = PlayerState.Joining;
+                return true;
+            }
+
+            _logger.LogDebug("Could not join server, setting queueing state back to 'Connected'");
+            QueueingState = PlayerState.Connected;
+            return false;
+        }
+
+        private void OnQueuePositionChanged(int position, int totalPlayersInQueue)
+        {
+            _logger.LogInformation("Received update queue position {queuePosition}/{queueLength}", position, totalPlayersInQueue);
+
+            QueuePosition = position;
+            TotalPlayersInQueue = totalPlayersInQueue;
+
+            QueuePositionChanged?.Invoke(position, totalPlayersInQueue);
+        }
+
+        private void OnRemovedFromQueue(DequeueReason reason)
+        {
+            QueueingState = PlayerState.Connected;
+
+            _logger.LogInformation("Removed from queue. Reason: {reason}", reason);
+        }
+
+        #endregion
 
         private async void GameCommunicationService_GameStateChanged(GameState gameState)
         {
-            if (QueueingState is not PlayerState.Joining)
+            if (QueueingState is not (PlayerState.Joining or PlayerState.Queued))
             {
                 // ignore events when not joining
                 return;
             }
 
-            if (gameState.IsConnected && gameState.Endpoint is not null)
+            if (gameState.IsConnected &&
+                gameState.Endpoint is not null &&
+                gameState.Endpoint.Address.MapToIPv4().ToString().Equals(_joiningServerIp))
             {
                 // we are connected to something
-                try
-                {
-                    _logger.LogDebug("Game connected to {ip}, sending join ack...", gameState.Endpoint.Address.ToString());
 
-                    // send join confirmation to server
-                    await _connection.SendAsync("JoinAck", true);
-                    QueueingState = PlayerState.Joined;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error while sending join ack");
-                }
+                _logger.LogDebug("Game connected to {ip}, sending join ack...", gameState.Endpoint.Address.ToString());
+
+                // send join confirmation to server
+                await AcknowledgeJoin(true);
+
+                // we are now joined :)
+                QueueingState = PlayerState.Joined;
             }
 
             if (gameState.IsInMainMenu && _hasSeenConnecting)
@@ -146,10 +170,11 @@ namespace H2MLauncher.Core.Services
                 // something went wrong with joining, we have been connection and now are in the main menu again :(
 
                 _logger.LogInformation("Could not join server, sending failed join ack...");
-                _hasSeenConnecting = false;
 
                 // tell server we could not join, maybe the server got full in the meantime
-                await _connection.SendAsync("JoinAck", false);
+                await AcknowledgeJoin(false);
+
+                QueueingState = PlayerState.Queued;
             }
 
             if (gameState.IsConnecting && !gameState.IsPrivateMatch)
@@ -160,11 +185,11 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        private async Task Connection_Closed(Exception? arg)
+        private Task Connection_Closed(Exception? arg)
         {
             QueueingState = PlayerState.Disconnected;
 
-            await Task.CompletedTask;
+            return Task.CompletedTask;
         }
 
         public async Task StartConnection()
@@ -172,7 +197,19 @@ namespace H2MLauncher.Core.Services
             await _connection.StartAsync();
         }
 
-        public async Task<bool> JoinQueueAsync(IW4MServer server, string playerName)
+        public async Task AcknowledgeJoin(bool joinSuccessful)
+        {
+            try
+            {
+                await _connection.SendAsync("JoinAck", joinSuccessful).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while sending join ack");
+            }
+        }
+
+        public async Task<bool> JoinQueueAsync(IW4MServer server, string playerName, string? privatePassword)
         {
             try
             {
@@ -181,6 +218,11 @@ namespace H2MLauncher.Core.Services
                 {
                     await StartConnection();
                 }
+
+                if (privatePassword is not null)
+                {
+                    _privatePasswords.Add((server.Ip, server.Port), privatePassword);
+                };
 
                 bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
                 if (joinedSuccesfully)
@@ -215,6 +257,13 @@ namespace H2MLauncher.Core.Services
             {
                 _logger.LogError(ex, "Error while leaving server queue");
             }
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            _gameCommunicationService.GameStateChanged -= GameCommunicationService_GameStateChanged;
+            _connection.Closed -= Connection_Closed;
+            return _connection.DisposeAsync();
         }
     }
 }

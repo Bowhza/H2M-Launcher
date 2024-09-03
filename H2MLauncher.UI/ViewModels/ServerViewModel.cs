@@ -9,6 +9,7 @@ namespace H2MLauncher.UI.ViewModels
     public partial class ServerViewModel : ObservableObject
     {
         public required IW4MServer Server { get; init; }
+        public required GameServerInfo GameServerInfo { get; init; }
 
         [ObservableProperty]
         private double _id;

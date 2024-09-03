@@ -12,6 +12,7 @@ using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.ViewModels;
 
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -118,12 +119,22 @@ namespace H2MLauncher.UI
             services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
+            services.AddMemoryCache();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddTransient<ServerBrowserViewModel>();
 
             services.AddTransient<MatchmakingService>();
+            services.AddTransient<CachedServerDataService>();
+            services.AddHttpClient<CachedServerDataService>()
+                .ConfigureHttpClient((sp, client) =>
+                {
+                    MatchmakingSettings matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>().Value;
+
+                    // make sure base address is set correctly without trailing slash
+                    client.BaseAddress = Url.Parse(matchmakingSettings.MatchmakingServerUrl).RemovePathSegment().ToUri();
+                });
 
             services.AddTransient<MainWindow>();
         }

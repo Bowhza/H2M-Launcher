@@ -48,6 +48,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly GameDirectoryService _gameDirectoryService;
     private readonly List<string> _installedMaps = [];
     private readonly MatchmakingService _matchmakingService;
+    private readonly CachedServerDataService _serverDataService;
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -116,7 +117,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IOptions<ResourceSettings> resourceSettings,
         [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
         GameDirectoryService gameDirectoryService,
-        MatchmakingService matchmakingService)
+        MatchmakingService matchmakingService,
+        CachedServerDataService serverDataService)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -132,6 +134,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _resourceSettings = resourceSettings;
         _gameDirectoryService = gameDirectoryService;
         _matchmakingService = matchmakingService;
+        _serverDataService = serverDataService;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -566,11 +569,34 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
+    private IReadOnlyList<ServerData> _serverData = [];
+    private void UpdateServerDataList(CancellationToken cancellationToken)
+    {
+        Task.Run(async () =>
+        {
+            try
+            {
+                IReadOnlyList<ServerData>? serverData = await _serverDataService.GetServerDataList(cancellationToken);
+                if (serverData is not null)
+                {
+                    _serverData = serverData;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching server data from matchmaking server.");
+            }
+        }, cancellationToken);
+    }
+
     private async Task LoadServersAsync()
     {
         await _loadCancellation.CancelAsync();
 
         _loadCancellation = new();
+        CancellationTokenSource timeoutCancellation = new(10000);
+        CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+            _loadCancellation.Token, timeoutCancellation.Token);
 
         try
         {
@@ -581,20 +607,21 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList<IW4MServer> servers = await _raidMaxService.FetchServersAsync(_loadCancellation.Token);
+            IReadOnlyList <IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
 
             // Let's prioritize populated servers first for getting game server info.
             IEnumerable<IW4MServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
-
-            //await UpdateInstalledMaps();
 
             // Start by sending info requests to the game servers
 
             // NOTE: we are using Task.Run to run this in a background thread,
             // because the non async timer blocks the UI
             await Task.Run(() => _gameServerCommunicationService.RequestServerInfoAsync(
-                serversOrderedByOccupation, OnGameServerInfoReceived, _loadCancellation.Token));
+                serversOrderedByOccupation, OnGameServerInfoReceived, linkedCancellation.Token));
+
+            // Start fetching server data in the background
+            UpdateServerDataList(linkedCancellation.Token);
 
             StatusText = "Ready";
         }
@@ -622,6 +649,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ServerViewModel serverViewModel = new()
         {
             Server = server,
+            GameServerInfo = gameServer,
             Id = server.Id,
             Ip = server.Ip,
             Port = server.Port,
@@ -693,13 +721,17 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 return;
         }
 
-        if (serverViewModel.ClientNum >= serverViewModel.MaxClientNum)
+        ServerData? serverData = _serverData.FirstOrDefault(d => 
+            d.Ip == serverViewModel.Ip && d.Port == serverViewModel.Port);
+
+        int assumedMaxClients = serverViewModel.MaxClientNum - serverData?.PrivilegedSlots ?? 0;
+        if (serverViewModel.ClientNum >= assumedMaxClients) //TODO: check if queueing enabled
         {
             // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)
 
             // Join the matchmaking server queue
             bool joinedQueue = await _matchmakingService.JoinQueueAsync(
-                serverViewModel.Server, _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier");
+                serverViewModel.Server, _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier", password);
             if (joinedQueue)
             {
                 QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService);
