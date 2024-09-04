@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 
+using MatchmakingServer.Authentication;
 using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.Authorization;
@@ -54,6 +55,7 @@ namespace MatchmakingServer
             }));
         }
 
+        [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
         [HttpPost("cleanup")]
         public IActionResult CleanupQueues()
         {
@@ -62,6 +64,7 @@ namespace MatchmakingServer
             return Ok(numQueuesCleanedUp);
         }
 
+        [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
         [HttpPost("{instanceId}/clear")]
         public async Task<IActionResult> ClearQueue(string instanceId)
         {
@@ -70,6 +73,7 @@ namespace MatchmakingServer
             return server is null ? NotFound() : Ok(await _queueingService.ClearQueue(server));
         }
 
+        [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
         [HttpPost("{instanceId}/halt")]
         public async Task<IActionResult> HaltQueue(string instanceId)
         {
@@ -85,6 +89,7 @@ namespace MatchmakingServer
             return Ok();
         }
 
+        [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
         [HttpDelete("{instanceId}")]
         public async Task<IActionResult> DestroyQueue(string instanceId)
         {
