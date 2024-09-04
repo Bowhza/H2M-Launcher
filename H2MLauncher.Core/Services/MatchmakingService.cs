@@ -260,6 +260,11 @@ namespace H2MLauncher.Core.Services
         {
             try
             {
+                if (!_gameCommunicationService.IsGameCommunicationRunning)
+                {
+                    return false;
+                }
+
                 _logger.LogDebug("Joining server queue...");
                 if (_connection.State is not HubConnectionState.Connected)
                 {

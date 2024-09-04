@@ -8,6 +8,7 @@ using H2MLauncher.Core;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 
+using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 
 using Nogic.WritableOptions;
@@ -23,7 +24,13 @@ public partial class SettingsViewModel : DialogViewModelBase
     private string _iw4mMasterServerUrl = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEnableServerQueueing))]
     private bool _gameCommunicationEnabled = false;
+
+    [ObservableProperty]
+    private bool _serverQueueingEnabled = false;
+
+    public bool CanEnableServerQueueing => GameCommunicationEnabled;
 
     public ICommand ApplyCommand { get; set; }
 
@@ -35,6 +42,7 @@ public partial class SettingsViewModel : DialogViewModelBase
         MwrLocation = options.CurrentValue.MWRLocation;
         Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
         GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
+        ServerQueueingEnabled = options.CurrentValue.ServerQueueing;
 
         ApplyCommand = new RelayCommand(() =>
         {
@@ -44,10 +52,11 @@ public partial class SettingsViewModel : DialogViewModelBase
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,
                 GameMemoryCommunication = GameCommunicationEnabled,
+                ServerQueueing = ServerQueueingEnabled
             }, reload: true);
 
             CloseCommand.Execute(true);
-        }, 
+        },
         () => CloseCommand.CanExecute(true));
 
         CancelCommand = CloseCommand;
@@ -71,5 +80,12 @@ public partial class SettingsViewModel : DialogViewModelBase
             MwrLocation = dialog.FileName;
         }
     }
+
+    partial void OnGameCommunicationEnabledChanged(bool value)
+    {
+        if (!value)
+        {
+            ServerQueueingEnabled = false;
+        }
+    }
 }
- 

@@ -13,7 +13,7 @@ namespace H2MLauncher.UI.ViewModels
     {
         private readonly MatchmakingService _matchmakingService;
         private readonly DispatcherTimer _queueTimer;
-        private readonly Func<bool> _onForceJoin;
+        private readonly Func<Task<bool>> _onForceJoin;
 
         [ObservableProperty]
         private ServerViewModel _server;
@@ -42,7 +42,7 @@ namespace H2MLauncher.UI.ViewModels
 
         public IAsyncRelayCommand ForceJoinCommand { get; }
 
-        public QueueViewModel(ServerViewModel server, MatchmakingService matchmakingService, Func<bool> onForceJoin)
+        public QueueViewModel(ServerViewModel server, MatchmakingService matchmakingService, Func<Task<bool>> onForceJoin)
         {
             _matchmakingService = matchmakingService;
             Server = server;
@@ -90,7 +90,7 @@ namespace H2MLauncher.UI.ViewModels
 
             await Task.Yield();
 
-            if (!_onForceJoin.Invoke())
+            if (!await _onForceJoin.Invoke())
             {
                 // not successful
                 IsJoining = false;

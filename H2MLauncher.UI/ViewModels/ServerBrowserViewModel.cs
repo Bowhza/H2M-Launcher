@@ -723,6 +723,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 return;
         }
 
+        if (!_h2MLauncherOptions.CurrentValue.ServerQueueing)
+        {
+            // queueing disabled
+            await JoinServerInternal(serverViewModel, password);
+            return;
+        }
+
         ServerData? serverData = _serverData.FirstOrDefault(d => 
             d.Ip == serverViewModel.Ip && d.Port == serverViewModel.Port);
 
@@ -755,11 +762,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             }
         }
 
-        JoinServerInternal(serverViewModel, password);
+        await JoinServerInternal(serverViewModel, password);
     }
 
-    private bool JoinServerInternal(ServerViewModel serverViewModel, string? password)
+    private async Task<bool> JoinServerInternal(ServerViewModel serverViewModel, string? password)
     {
+        await Task.Yield();
+
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {
