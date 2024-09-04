@@ -17,6 +17,7 @@ var builder = WebApplication.CreateBuilder();
 // Add services to the container.
 
 builder.Services.AddLogging();
+builder.Services.AddHealthChecks();
 
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
 builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("ServerSettings"));
@@ -101,6 +102,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseAuthentication();
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 //app.UseHttpsRedirection();
 
