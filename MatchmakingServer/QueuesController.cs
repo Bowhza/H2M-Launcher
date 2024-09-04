@@ -1,4 +1,6 @@
-﻿using MatchmakingServer.SignalR;
+﻿using System.Collections;
+
+using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -38,8 +40,8 @@ namespace MatchmakingServer
                             p.ConnectionId,
                             p.Name,
                             p.State,
+                            p.TimeInQueue,
                             JoinAttempts = p.JoinAttempts.Count,
-                            QueueTime = DateTimeOffset.Now - p.QueuedAt,
                         };
                     }),
                     s.LastServerInfo?.HostName,
@@ -50,6 +52,52 @@ namespace MatchmakingServer
                     ProcessingState = s.ProcessingState.ToString(),
                 };
             }));
+        }
+
+        [HttpPost("cleanup")]
+        public IActionResult CleanupQueues()
+        {
+            int numQueuesCleanedUp = _queueingService.CleanupZombieQueues();
+
+            return Ok(numQueuesCleanedUp);
+        }
+
+        [HttpPost("{instanceId}/clear")]
+        public async Task<IActionResult> ClearQueue(string instanceId)
+        {
+            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.InstanceId == instanceId);
+
+            return server is null ? NotFound() : Ok(await _queueingService.ClearQueue(server));
+        }
+
+        [HttpPost("{instanceId}/halt")]
+        public async Task<IActionResult> HaltQueue(string instanceId)
+        {
+            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.InstanceId == instanceId);
+
+            if (server is null)
+            {
+                return NotFound();
+            }
+
+            await _queueingService.HaltQueue(server);
+
+            return Ok();
+        }
+
+        [HttpDelete("{instanceId}")]
+        public async Task<IActionResult> DestroyQueue(string instanceId)
+        {
+            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.InstanceId == instanceId);
+
+            if (server is null)
+            {
+                return NotFound();
+            }
+
+            await _queueingService.DestroyQueue(server, remove: true);
+
+            return NoContent();
         }
     }
 }

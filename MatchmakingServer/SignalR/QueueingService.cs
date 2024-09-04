@@ -235,6 +235,7 @@ namespace MatchmakingServer.SignalR
                     {
                         server.JoiningPlayerCount--;
                         player.State = PlayerState.Joined;
+                        player.QueuedAt = null;
 
                         _logger.LogInformation("Confirmed player {player} on server {server}!", player, server);
                         // yippeeeee
@@ -517,14 +518,19 @@ namespace MatchmakingServer.SignalR
 
         #region CRUD stuff for servers
 
-        public async Task HaltQueue(string serverIp, int serverPort)
+        public Task HaltQueue(string serverIp, int serverPort)
         {
             if (!_servers.TryGetValue((serverIp, serverPort), out GameServer? server))
             {
                 // no queue for this server
-                return;
+                return Task.CompletedTask;
             }
 
+            return HaltQueue(server);
+        }
+
+        public async Task HaltQueue(GameServer server)
+        {
             if (server.ProcessingState is QueueProcessingState.Paused)
             {
                 // already halted
@@ -559,14 +565,8 @@ namespace MatchmakingServer.SignalR
             }
         }
 
-        public async Task<int> ClearQueue(string serverIp, int serverPort)
+        public async Task<int> ClearQueue(GameServer server)
         {
-            if (!_servers.TryGetValue((serverIp, serverPort), out GameServer? server))
-            {
-                // no queue for this server
-                return 0;
-            }
-
             if (server.PlayerQueue.Count == 0)
             {
                 // already empty
@@ -585,6 +585,7 @@ namespace MatchmakingServer.SignalR
                     if (player.State is PlayerState.Queued or PlayerState.Joining)
                     {
                         player.State = PlayerState.Connected;
+                        player.QueuedAt = null;
                     }
 
                     await NotifyPlayerDequeued(player, DequeueReason.Unknown);
@@ -601,43 +602,59 @@ namespace MatchmakingServer.SignalR
             }
         }
 
-        public void CleanupZombieQueues()
+        public Task<int> ClearQueue(string serverIp, int serverPort)
         {
+            if (!_servers.TryGetValue((serverIp, serverPort), out GameServer? server))
+            {
+                // no queue for this server
+                return Task.FromResult(0);
+            }
+
+            return ClearQueue(server);
+        }
+
+        public int CleanupZombieQueues()
+        {
+            int numQueuesRemoved = 0;
+
             foreach (GameServer server in _servers.Values)
             {
                 if (server.ProcessingState is QueueProcessingState.Stopped &&
                     (server.ProcessingTask is null || server.ProcessingTask.IsCompleted))
                 {
-                    TryCleanupServer(server);
+                    if (TryCleanupServer(server))
+                    {
+                        numQueuesRemoved++;
+                    }
                 }
             }
+
+            return numQueuesRemoved;
         }
 
-        private void TryCleanupServer(GameServer gameServer)
+        private bool TryCleanupServer(GameServer gameServer)
         {
             if (gameServer.ProcessingState is QueueProcessingState.Running or QueueProcessingState.Paused ||
                 gameServer.PlayerQueue.Count != 0)
             {
                 _logger.LogWarning("Tried to cleanup active server {server}", gameServer);
-                return;
+                return false;
             }
 
             if (_servers.TryRemove((gameServer.ServerIp, gameServer.ServerPort), out GameServer? server))
             {
                 _logger.LogInformation("Removed queued server {server} after {timeSinceSpawned}",
                     server, DateTimeOffset.Now - server.SpawnDate);
+
+                return true;
             }
+
+            return false;
         }
 
-        public async Task DestroyQueue(string serverIp, int serverPort, bool remove)
+        public async Task DestroyQueue(GameServer server, bool remove = true)
         {
-            if (!_servers.TryGetValue((serverIp, serverPort), out GameServer? server))
-            {
-                // no queue for this server
-                return;
-            }
-
-            if (server.ProcessingState is not QueueProcessingState.Running)
+            if (server.ProcessingState is QueueProcessingState.Stopped && !remove)
             {
                 // already halted
                 return;
@@ -646,7 +663,7 @@ namespace MatchmakingServer.SignalR
             await _serverLock.WaitAsync();
             try
             {
-                if (server.ProcessingState is not QueueProcessingState.Running)
+                if (server.ProcessingState is QueueProcessingState.Stopped && !remove)
                 {
                     return;
                 }
@@ -812,6 +829,7 @@ namespace MatchmakingServer.SignalR
             }
 
             player.State = newState;
+            player.QueuedAt = null;
 
             // TODO
             _ = NotifyPlayerQueuePositions(player.Server);

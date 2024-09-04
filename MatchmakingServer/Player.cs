@@ -10,8 +10,9 @@ namespace MatchmakingServer
 
         public PlayerState State { get; set; }
 
-
         public DateTimeOffset? QueuedAt { get; set; }
+
+        public TimeSpan? TimeInQueue => DateTimeOffset.Now - QueuedAt;
 
         public List<DateTimeOffset> JoinAttempts { get; set; } = [];
 
