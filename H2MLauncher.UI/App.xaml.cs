@@ -15,6 +15,7 @@ using H2MLauncher.UI.ViewModels;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 using Nogic.WritableOptions;
@@ -31,8 +32,9 @@ namespace H2MLauncher.UI
         protected override void OnStartup(StartupEventArgs e)
         {
             SetupExceptionHandling();
-            InitializeLogging();
+
             IConfigurationRoot config = BuildConfiguration();
+            InitializeLogging(config);
 
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection, config);
@@ -60,14 +62,10 @@ namespace H2MLauncher.UI
             base.OnStartup(e);
         }
 
-        private static void InitializeLogging()
+        private static void InitializeLogging(IConfiguration configuration)
         {
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .WriteTo.File(Constants.LogFilePath,
-                    rollingInterval: RollingInterval.Day,
-                    rollOnFileSizeLimit: true)
-                .WriteTo.Debug()
+                .ReadFrom.Configuration(configuration)
                 .CreateLogger();
 
             Log.Information("{applicationName} started on version {version}.",
@@ -99,7 +97,7 @@ namespace H2MLauncher.UI
 
             services.AddTransient<IIW4MAdminService, IW4MAdminService>();
             services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
-    
+
             services.AddTransient<IIW4MAdminMasterService, IW4MAdminMasterService>();
             services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>()
               .ConfigureHttpClient((sp, client) =>
@@ -161,7 +159,7 @@ namespace H2MLauncher.UI
             if (defaultH2MLauncherSettings is null)
             {
                 // should never happen, except the appsettings.json are not included properly.
-                Log.Fatal("No default appsettings.");
+                Console.WriteLine("No default appsettings.");
                 Shutdown(-1);
                 return defaultConfiguration;
             }

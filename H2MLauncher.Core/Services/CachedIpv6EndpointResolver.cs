@@ -17,7 +17,7 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         private async Task<IPEndPoint?> ResolveEndpointAsync(IServerConnectionDetails server, CancellationToken cancellationToken)
         {
-            _logger.LogDebug("Resolving endpoint for server {Server}...", server);
+            _logger.LogTrace("Resolving endpoint for server {Server}...", server);
 
             // ip likely contains a hostname
             try
@@ -32,7 +32,7 @@ namespace H2MLauncher.Core.Services
                     return null;
                 }
 
-                _logger.LogDebug("Found IP address for {HostName}: {IP} ", server.Ip, compatibleIp);
+                _logger.LogTrace("Found IP address for {HostName}: {IP} ", server.Ip, compatibleIp);
                 return new IPEndPoint(compatibleIp.MapToIPv6(), server.Port);
             }
             catch (Exception ex)

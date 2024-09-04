@@ -36,6 +36,7 @@ namespace H2MLauncher.Core.Services
         private readonly HubConnection _connection;
         private readonly ILogger<MatchmakingService> _logger;
         private readonly IGameCommunicationService _gameCommunicationService;
+        private readonly IOptionsMonitor<H2MLauncherSettings> _options;
 
         private record QueuedServer(string Ip, int Port)
         {
@@ -78,9 +79,10 @@ namespace H2MLauncher.Core.Services
         public event Action<(string ip, int port)>? JoinFailed;
 
         public MatchmakingService(ILogger<MatchmakingService> logger, H2MCommunicationService h2MCommunicationService,
-            IGameCommunicationService gameCommunicationService, IOptions<MatchmakingSettings> matchmakingSettings)
+            IGameCommunicationService gameCommunicationService, IOptions<MatchmakingSettings> matchmakingSettings, IOptionsMonitor<H2MLauncherSettings> options)
         {
             _logger = logger;
+            _options = options;
             _gameCommunicationService = gameCommunicationService;
 
             _connection = new HubConnectionBuilder()
@@ -260,7 +262,7 @@ namespace H2MLauncher.Core.Services
         {
             try
             {
-                if (!_gameCommunicationService.IsGameCommunicationRunning)
+                if (!_options.CurrentValue.ServerQueueing || !_options.CurrentValue.GameMemoryCommunication)
                 {
                     return false;
                 }
