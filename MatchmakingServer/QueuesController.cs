@@ -1,5 +1,6 @@
 ﻿using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MatchmakingServer
@@ -15,7 +16,7 @@ namespace MatchmakingServer
             _queueingService = queueingService;
         }
 
-
+        
         [HttpGet]
         public IActionResult GetAllQueues()
         {

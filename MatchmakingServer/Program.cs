@@ -3,9 +3,11 @@ using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
+using MatchmakingServer.Authentication;
 using MatchmakingServer.SignalR;
 
 using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder();
 
@@ -47,7 +49,35 @@ builder.Services.AddSingleton<QueueingService>();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MatchmakingServer", Version = "v1" });
+
+    OpenApiSecurityScheme apiKeyScheme = new()
+    {
+        Reference = new OpenApiReference
+        {
+            Type = ReferenceType.SecurityScheme,
+            Id = ApiKeyDefaults.AuthenticationScheme,
+        },
+        In = ParameterLocation.Header,
+        Name = ApiKeyDefaults.RequestHeaderKey,
+        Type = SecuritySchemeType.ApiKey,
+    };
+
+    c.AddSecurityDefinition(ApiKeyDefaults.AuthenticationScheme, apiKeyScheme);
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement() {
+      {
+          apiKeyScheme, []
+      }
+    });
+});
+
+builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
+                .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, (options) =>
+                {
+                    options.ApiKey = builder.Configuration.GetValue<string>("ApiKey");
+                });
 
 builder.Services.AddControllers();
 
@@ -62,6 +92,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseAuthentication();
 app.MapControllers();
 
 //app.UseHttpsRedirection();
