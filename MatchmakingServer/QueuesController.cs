@@ -16,11 +16,15 @@ namespace MatchmakingServer
             _queueingService = queueingService;
         }
 
-        
+
         [HttpGet]
-        public IActionResult GetAllQueues()
+        public IActionResult GetAllQueues([FromQuery] QueueProcessingState? state = null)
         {
-            return Ok(_queueingService.QueuedServers.Select(s =>
+            IEnumerable<GameServer> filteredQueues = state is null
+                ? _queueingService.QueuedServers
+                : _queueingService.QueuedServers.Where(s => s.ProcessingState == state);
+
+            return Ok(filteredQueues.Select(s =>
             {
                 return new
                 {

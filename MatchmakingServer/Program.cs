@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Utilities;
@@ -79,7 +81,12 @@ builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
                     options.ApiKey = builder.Configuration.GetValue<string>("ApiKey");
                 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(o =>
+    { 
+        // serialize enums as strings in api responses
+        o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 
 builder.Services.AddSignalR();
 
