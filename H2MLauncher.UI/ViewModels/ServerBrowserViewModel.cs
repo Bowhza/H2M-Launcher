@@ -81,6 +81,9 @@ public partial class ServerBrowserViewModel : ObservableObject
     private ServerFilterViewModel _advancedServerFilter;
 
     [ObservableProperty]
+    private ShortcutsViewModel _shortcuts;
+
+    [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
     public event Action? ServerFilterChanged;
     public IAsyncRelayCommand RefreshServersCommand { get; }
@@ -138,6 +141,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         ReconnectCommand = new RelayCommand(ReconnectServer);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
+        Shortcuts = new();
 
         if (!TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
         {
@@ -188,21 +192,39 @@ public partial class ServerBrowserViewModel : ObservableObject
                 // reset filter to stored values
                 AdvancedServerFilter.ResetViewModel(newSettings.ServerFilter);
 
+                // reset shortcuts to stored values
+                Shortcuts.ResetViewModel(newSettings.KeyBindings);
+
                 oldSettings = newSettings;
             });
         });
 
         // initialize server filter view model with stored values
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
+
+        // initialize shortcut key bindings with stored values
+        Shortcuts.ResetViewModel(_h2MLauncherOptions.CurrentValue.KeyBindings);
     }
 
     private void ShowSettings()
     {
         SettingsViewModel settingsViewModel = new(_h2MLauncherOptions);
 
+        // make sure all active hotkeys are disabled when settings are open
+        foreach (var shortcut in Shortcuts.Shortcuts)
+        {
+            shortcut.IsHotkeyEnabled = false;
+        }
+
         if (_dialogService.OpenDialog<SettingsDialogView>(settingsViewModel) == true)
         {
             // settings saved;
+        }
+
+        // re-enable hotkeys
+        foreach (var shortcut in Shortcuts.Shortcuts)
+        {
+            shortcut.IsHotkeyEnabled = true;
         }
     }
 

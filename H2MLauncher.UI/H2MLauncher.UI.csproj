@@ -33,6 +33,7 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.122" />
     <PackageReference Include="MvvmDialogs" Version="9.1.2" />
+    <PackageReference Include="NHotkey.Wpf" Version="3.0.0" />
     <PackageReference Include="Nogic.WritableOptions" Version="3.1.0" />
     <PackageReference Include="Serilog" Version="4.0.1" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />

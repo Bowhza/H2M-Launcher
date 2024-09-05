@@ -21,14 +21,19 @@ public partial class SettingsViewModel : DialogViewModelBase
     [ObservableProperty]
     private string _iw4mMasterServerUrl = "";
 
+    public ShortcutsViewModel Shortcuts { get; }
+
     public ICommand ApplyCommand { get; set; }
 
     public ICommand CancelCommand { get; set; }
 
     public SettingsViewModel(IWritableOptions<H2MLauncherSettings> options)
     {
-        MwrLocation = options.Value.MWRLocation;
-        Iw4mMasterServerUrl = options.Value.IW4MMasterServerUrl;
+        MwrLocation = options.CurrentValue.MWRLocation;
+        Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
+
+        Shortcuts = new();
+        Shortcuts.ResetViewModel(options.CurrentValue.KeyBindings);
 
         ApplyCommand = new RelayCommand(() =>
         {
@@ -36,10 +41,11 @@ public partial class SettingsViewModel : DialogViewModelBase
             {
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,
+                KeyBindings = Shortcuts.ToDictionary(),
             }, true);
 
             CloseCommand.Execute(true);
-        }, 
+        },
         () => CloseCommand.CanExecute(true));
 
         CancelCommand = CloseCommand;
@@ -64,4 +70,3 @@ public partial class SettingsViewModel : DialogViewModelBase
         }
     }
 }
- 

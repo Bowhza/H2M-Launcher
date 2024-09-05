@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.Versioning;
 using System.Windows;
 
 [assembly: ThemeInfo(
@@ -14,3 +15,4 @@ using System.Windows;
 [assembly: AssemblyVersion("2.1.0.0")]
 [assembly: AssemblyFileVersion("2.1.0.0")]
 [assembly: AssemblyTitle("Better H2M-Launcher")]
+[assembly: SupportedOSPlatform("windows")]
