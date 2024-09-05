@@ -1,17 +1,7 @@
-﻿using System.Net;
-using System.Security;
+﻿namespace H2MLauncher.Core;
 
-using Nogic.WritableOptions;
-
-namespace H2MLauncher.Core;
-
-public static class Extensions
+public static class ListExtensions
 {
-    public static bool IsNullOrEmpty(this SecureString secureString)
-    {
-        return secureString == null || secureString.Length == 0;
-    }
-
     public static int IndexOfFirst<T>(this IList<T> list, Func<T, bool> predicate)
     {
         if (predicate == null)
@@ -85,11 +75,5 @@ public static class Extensions
         return AddOrUpdate(list, newValue,
             (item) => equalityComparer?.Equals(item, newValue) ?? EqualityComparer<T>.Default.Equals(item, newValue),
             comparer);
-    }
-    public static IPAddress GetRealAddress(this IPAddress ipAddress)
-    {
-        return ipAddress.IsIPv4MappedToIPv6
-                    ? ipAddress.MapToIPv4()
-                    : ipAddress;
     }
 }
