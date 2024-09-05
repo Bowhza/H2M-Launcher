@@ -163,7 +163,13 @@ namespace H2MLauncher.UI
                 finally
                 {
                     LogUnhandledException(e.Exception, "Application.Current.DispatcherUnhandledException");
-                    e.Handled = true;
+#if DEBUG   // In debug mode do not custom-handle the exception, let Visual Studio handle it
+
+                    e.Handled = false;
+#else
+
+                    e.Handled = MainWindow?.IsLoaded ?? false;
+#endif
                 }
             };
 
