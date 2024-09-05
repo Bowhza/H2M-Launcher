@@ -21,6 +21,7 @@ builder.Services.AddHealthChecks();
 
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
 builder.Services.Configure<ServerSettings>(builder.Configuration.GetSection("ServerSettings"));
+builder.Services.Configure<QueueingSettings>(builder.Configuration.GetSection("QueueingSettings"));
 
 builder.Services.AddScoped<IIW4MAdminService, IW4MAdminService>();
 builder.Services.AddHttpClient<IIW4MAdminService, IW4MAdminService>()

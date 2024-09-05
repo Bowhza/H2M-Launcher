@@ -13,58 +13,49 @@ namespace MatchmakingServer.SignalR
     {
         private readonly ConcurrentDictionary<(string ip, int port), GameServer> _servers = [];
         private readonly ConcurrentDictionary<string, Player> _connectedPlayers = [];
+        
         private readonly GameServerCommunicationService<IServerConnectionDetails> _gameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
         private readonly IOptionsMonitor<ServerSettings> _serverSettings;
+        private readonly IOptionsMonitor<QueueingSettings> _queueingSettings;
+        private readonly SemaphoreSlim _serverLock = new(1, 1);
 
         public IEnumerable<GameServer> QueuedServers => _servers.Values;
+
+        private QueueingSettings QueueingSettings => _queueingSettings.CurrentValue;
 
         /// <summary>
         /// Inactivity timeout until the server processing stops.
         /// </summary>
-        private readonly static TimeSpan QueueInactivityIdleTimeout = TimeSpan.FromMinutes(3);
+        private TimeSpan QueueInactivityIdleTimeout => TimeSpan.FromSeconds(QueueingSettings.QueueInactivityIdleTimeoutInS);
 
         /// <summary>
         /// The maximum amount of time a player can block the queue since the first time a slot becomes available for him.
         /// </summary>
-        private static readonly TimeSpan TotalJoinTimeLimit = TimeSpan.FromSeconds(50);
+        private TimeSpan TotalJoinTimeLimit => TimeSpan.FromSeconds(QueueingSettings.TotalJoinTimeLimitInS);
 
         /// <summary>
         /// The timeout for a join request after which the player will be removed from the queue;
         /// </summary>
-        private static readonly TimeSpan JoinTimeout = TimeSpan.FromSeconds(30);
-
-        private static readonly bool ResetJoinAttemptsWhenServerFull = true;
-
-        /// <summary>
-        /// The maximum number of join attempts for a player per queue.
-        /// </summary>
-        private const int MAX_JOIN_ATTEMPTS = 3;
-
-        private const int QUEUE_PLAYER_LIMIT = 50;
-
-        private static readonly bool ConfirmJoinsWithWebfrontApi = false;
-
-        private static readonly bool CleanupServerWhenStopped = false;
+        private TimeSpan JoinTimeout => TimeSpan.FromSeconds(QueueingSettings.JoinTimeoutInS);
 
 
         public QueueingService(
             GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService,
             IHubContext<QueueingHub, IClient> ctx,
-            IHttpClientFactory httpClientFactory,
             ILogger<QueueingService> logger,
             ServerInstanceCache instanceCache,
-            IOptionsMonitor<ServerSettings> serverSettings)
+            IOptionsMonitor<ServerSettings> serverSettings,
+            IOptionsMonitor<QueueingSettings> queueingSettings)
         {
             _gameServerCommunicationService = gameServerCommunicationService;
             _ctx = ctx;
-            _httpClientFactory = httpClientFactory;
             _logger = logger;
             _instanceCache = instanceCache;
             _serverSettings = serverSettings;
+            _queueingSettings = queueingSettings;
         }
 
         /// <summary>
@@ -125,7 +116,7 @@ namespace MatchmakingServer.SignalR
                 return;
             }
 
-            if (player.JoinAttempts.Count >= MAX_JOIN_ATTEMPTS)
+            if (player.JoinAttempts.Count >= QueueingSettings.MaxJoinAttempts)
             {
                 // max join attempts reached -> remove player from queue 
                 DequeuePlayer(player, PlayerState.Connected, DequeueReason.MaxJoinAttemptsReached);
@@ -142,7 +133,7 @@ namespace MatchmakingServer.SignalR
                 player.State = PlayerState.Queued;
                 player.Server.JoiningPlayerCount--;
 
-                if (ResetJoinAttemptsWhenServerFull)
+                if (QueueingSettings.ResetJoinAttemptsWhenServerFull)
                 {
                     // TODO: reset join attempts / timer to make it more fair?
                     player.JoinAttempts.Clear();
@@ -366,7 +357,7 @@ namespace MatchmakingServer.SignalR
 
                 // only need to recheck if players are joining
                 // no reserved slots means all players are still queued
-                if (ConfirmJoinsWithWebfrontApi && server.JoiningPlayerCount > 0)
+                if (QueueingSettings.ConfirmJoinsWithWebfrontApi && server.JoiningPlayerCount > 0)
                 {
                     _logger.LogDebug("{joiningPlayersCount}/{numberOfQueuedPlayers} joining players found, updating actual player list for server {server}",
                         server.JoiningPlayerCount, server.PlayerQueue.Count, server);
@@ -384,7 +375,7 @@ namespace MatchmakingServer.SignalR
                 }
 
                 // check whether to continue
-                if (!ResetJoinAttemptsWhenServerFull && server.JoiningPlayerCount == server.PlayerQueue.Count)
+                if (!QueueingSettings.ResetJoinAttemptsWhenServerFull && server.JoiningPlayerCount == server.PlayerQueue.Count)
                 {
                     // all players in queue already joining -> nothing to do anymore
                     _logger.LogTrace("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
@@ -448,7 +439,7 @@ namespace MatchmakingServer.SignalR
                         {
                             server.ProcessingState = QueueProcessingState.Stopped;
 
-                            if (CleanupServerWhenStopped)
+                            if (QueueingSettings.CleanupServerWhenStopped)
                             {
                                 TryCleanupServer(server);
                             }
@@ -466,7 +457,7 @@ namespace MatchmakingServer.SignalR
                 _logger.LogError(ex, "Error during server queue processing loop. {server}", server);
                 server.ProcessingState = QueueProcessingState.Stopped;
 
-                if (CleanupServerWhenStopped)
+                if (QueueingSettings.CleanupServerWhenStopped)
                 {
                     TryCleanupServer(server);
                 }
@@ -514,8 +505,6 @@ namespace MatchmakingServer.SignalR
             }
         }
 
-        private readonly SemaphoreSlim _serverLock = new(1, 1);
-
         #region CRUD stuff for servers
 
         public Task HaltQueue(string serverIp, int serverPort)
@@ -536,6 +525,8 @@ namespace MatchmakingServer.SignalR
                 // already halted
                 return;
             }
+
+            _logger.LogDebug("Halting queue for server {server}", server);
 
             await _serverLock.WaitAsync();
             try
@@ -572,6 +563,8 @@ namespace MatchmakingServer.SignalR
                 // already empty
                 return 0;
             }
+
+            _logger.LogDebug("Clearing queue for server {server}", server);
 
             await _serverLock.WaitAsync();
             try
@@ -615,20 +608,24 @@ namespace MatchmakingServer.SignalR
 
         public int CleanupZombieQueues()
         {
+            _logger.LogDebug("Cleaning up zombie queues...");
             int numQueuesRemoved = 0;
 
             foreach (GameServer server in _servers.Values)
             {
-                if (server.ProcessingState is QueueProcessingState.Stopped &&
-                    (server.ProcessingTask is null || server.ProcessingTask.IsCompleted))
+                if (server.ProcessingState is not QueueProcessingState.Stopped ||
+                    (server.ProcessingTask is not null && !server.ProcessingTask.IsCompleted))
                 {
-                    if (TryCleanupServer(server))
-                    {
-                        numQueuesRemoved++;
-                    }
+                    continue;
+                }
+
+                if (TryCleanupServer(server))
+                {
+                    numQueuesRemoved++;
                 }
             }
 
+            _logger.LogInformation("Removed {numQueuesRemoved} queues.", numQueuesRemoved);
             return numQueuesRemoved;
         }
 
@@ -773,7 +770,7 @@ namespace MatchmakingServer.SignalR
                 return false;
             }
 
-            if (server.PlayerQueue.Count > QUEUE_PLAYER_LIMIT)
+            if (server.PlayerQueue.Count > QueueingSettings.QueuePlayerLimit)
             {
                 // queue limit
                 return false;

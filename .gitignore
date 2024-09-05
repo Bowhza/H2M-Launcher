@@ -9,3 +9,5 @@ x64/
 *.user
 
 **/appsettings.local.json
+.env
+.history/**
