@@ -128,17 +128,10 @@ namespace H2MLauncher.UI.ViewModels
             unknownGameMode.PropertyChanged += MapPackItem_PropertyChanged;
             GameModes.Add(unknownGameMode);
 
+            ExcludeFilters.Clear();
             foreach (var (keyword, isEnabled) in settings.ExcludeKeywords)
             {
-                SelectableItem<string>? existingItem = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword));
-                if (existingItem is null)
-                {
-                    AddNewExcludeKeyword(keyword);
-                }
-                else
-                {
-                    existingItem.IsSelected = isEnabled;
-                }
+                AddNewExcludeKeyword(keyword, isEnabled);
             }
         }
 
@@ -161,9 +154,14 @@ namespace H2MLauncher.UI.ViewModels
         [RelayCommand(CanExecute = nameof(CanAddNexExcludeKeyword))]
         public void AddNewExcludeKeyword(string keyword)
         {
-            ExcludeFilters.Add(new(keyword, onRemove: () => RemoveExcludeKeyword(keyword))
+            AddNewExcludeKeyword(keyword, true);
+        }
+
+        private void AddNewExcludeKeyword(string keyword, bool isSelected)
+        {
+            ExcludeFilters.Add(new(keyword.ToLower(), onRemove: () => RemoveExcludeKeyword(keyword))
             {
-                IsSelected = true,
+                IsSelected = isSelected,
                 Name = keyword,
             });
         }
@@ -175,13 +173,13 @@ namespace H2MLauncher.UI.ViewModels
                 return false;
             }
 
-            return !ExcludeFilters.Any(i => i.Model.Equals(keyword));
+            return !ExcludeFilters.Any(i => i.Model.Equals(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
         [RelayCommand]
         public void RemoveExcludeKeyword(string keyword)
         {
-            SelectableItem<string>? item = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword));
+            SelectableItem<string>? item = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword, StringComparison.OrdinalIgnoreCase));
             if (item is not null)
             {
                 ExcludeFilters.Remove(item);
