@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Security;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -13,6 +14,7 @@ using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 
@@ -63,6 +65,10 @@ public partial class ServerBrowserViewModel : ObservableObject
     [NotifyPropertyChangedFor(nameof(IsRecentsSelected))]
     private IServerTabViewModel _selectedTab;
 
+    [ObservableProperty]
+    private ServerViewModel? _lastServer = null;
+    private SecureString? _lastServerPassword = null;
+
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
     private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
@@ -87,6 +93,8 @@ public partial class ServerBrowserViewModel : ObservableObject
     public IRelayCommand RestartCommand { get; }
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
+
+    public IRelayCommand ReconnectCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -127,6 +135,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         RestartCommand = new RelayCommand(DoRestartCommand);
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
+        ReconnectCommand = new RelayCommand(ReconnectServer);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
 
@@ -583,15 +592,33 @@ public partial class ServerBrowserViewModel : ObservableObject
                 return;
         }
 
+        JoinServerInternal(serverViewModel, password);
+    }
+
+    private bool JoinServerInternal(ServerViewModel serverViewModel, string? password)
+    {
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+
+            LastServer = serverViewModel;
+            _lastServerPassword = password?.ToSecuredString();
         }
 
         StatusText = hasJoined
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
+
+        return hasJoined;
+    }
+
+    private void ReconnectServer()
+    {
+        if (LastServer is not null)
+        {
+            JoinServerInternal(LastServer, _lastServerPassword?.ToUnsecuredString());
+        }
     }
 
     private void LaunchH2M()

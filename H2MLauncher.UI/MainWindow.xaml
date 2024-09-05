@@ -76,6 +76,7 @@
         <!-- Disable Shortcut Commands -->
         <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
+        <KeyBinding Key="R" Modifiers="Ctrl+Alt" Command="{Binding ReconnectCommand}" HotkeyManager.RegisterGlobalHotkey="True"/>
     </Window.InputBindings>
     <Grid>
         <Border CornerRadius="10" Padding="10,10" Background="Black"/>
