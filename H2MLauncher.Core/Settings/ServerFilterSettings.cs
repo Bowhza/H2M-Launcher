@@ -16,9 +16,9 @@
 
         public int MaxSlots { get; init; } = 32;
 
-        public List<string>? SelectedMapPacks { get; init; }
+        public Dictionary<string, bool>? MapPacks { get; init; }
 
-        public List<string>? SelectedGameModes { get; init; }
+        public Dictionary<string, bool>? GameModes { get; init; }
 
         public Dictionary<string, bool> ExcludeKeywords { get; init; } = [];
     }
