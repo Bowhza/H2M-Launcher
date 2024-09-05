@@ -1,6 +1,6 @@
 ﻿using System.Collections;
 
-using H2MLauncher.Core.ViewModels;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
@@ -13,7 +13,7 @@ namespace H2MLauncher.UI
                 return 0;
             }
 
-            var clientResult = Comparer<int>.Default.Compare(x.ClientNum, y.ClientNum);
+            int clientResult = Comparer<int>.Default.Compare(x.ClientNum, y.ClientNum);
             if (clientResult != 0)
             {
                 return clientResult;

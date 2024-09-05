@@ -1,0 +1,211 @@
+﻿<UserControl x:Class="H2MLauncher.UI.Dialog.Views.FilterDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
+             mc:Ignorable="d" 
+             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
+             xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
+             MinHeight="150" MinWidth="300"
+             Height="Auto"
+             Width="330"
+             d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}">
+    <UserControl.Resources>
+        <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
+            <Style.Triggers>
+                <Trigger Property="IsChecked" Value="True">
+                    <Setter Property="Content" Value="Yes"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="False">
+                    <Setter Property="Content" Value="No"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style TargetType="{x:Type TextBox}">
+            <Style.Setters>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="#333"/>
+                <Setter Property="CaretBrush" Value="White"/>
+            </Style.Setters>
+        </Style>
+    </UserControl.Resources>
+    <Grid Margin="25,15,25,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Row="0" Text="Filter Servers" TextWrapping="WrapWithOverflow" 
+                   TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
+                   Margin="0,0,0,15"/>
+
+        <!-- Show Empty -->
+        <TextBlock Text="View Empty:" Grid.Row="1" Margin="15,5" HorizontalAlignment="Right"/>
+        <ToggleButton Style="{StaticResource YesNoToggleButtonStyle}" IsChecked="{Binding ShowEmpty}" Grid.Row="1" Grid.Column="1" Height="20"/>
+
+        <!-- Show Full -->
+        <TextBlock Text="View Full:" Grid.Row="2" Margin="15,5" HorizontalAlignment="Right"/>
+        <ToggleButton Style="{StaticResource YesNoToggleButtonStyle}" IsChecked="{Binding ShowFull}" Grid.Row="2" Grid.Column="1" Height="20"/>
+
+        <!-- Show Private -->
+        <TextBlock Text="Show Private:" Grid.Row="3" Margin="15,5" HorizontalAlignment="Right"/>
+        <ToggleButton Style="{StaticResource YesNoToggleButtonStyle}" IsChecked="{Binding ShowPrivate}" Grid.Row="3" Grid.Column="1" Height="20"/>
+
+        <!-- Players -->
+        <TextBlock Text="Players:" Grid.Row="4" Margin="15,5" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="4" Grid.Column="1">
+            <TextBlock Text="{Binding MinPlayers}" Width="13" Margin="0,0,10,0" DockPanel.Dock="Left" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding MaxPlayers}" Width="13" Margin="10,0,0,0" DockPanel.Dock="Right" VerticalAlignment="Center"/>
+            <controls:RangeSliderControl LowerValue="{Binding MinPlayers, Mode=TwoWay}" 
+                                         UpperValue="{Binding MaxPlayers, Mode=TwoWay}" 
+                                         Minimum="0" 
+                                         Maximum="32"/>
+        </DockPanel>
+
+        <!-- Max Slots -->
+        <TextBlock Text="Max Slots:" Grid.Row="5" Margin="15,10" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="5" Grid.Column="1" Margin="0,0,0,0">
+            <ComboBox ItemsSource="{Binding MaxSlotsItems}"
+                      SelectedItem="{Binding MaxSlots}" IsReadOnly="True" Height="22" VerticalAlignment="Center">
+            </ComboBox>
+        </DockPanel>
+
+        <!-- Map Packs -->
+        <TextBlock Text="Map Packs:" Grid.Row="6" Margin="15,10" HorizontalAlignment="Right"/>
+        <ComboBox Style="{StaticResource NoSelectComboBoxStyle}"
+                  ItemsSource="{Binding MapPacks}" IsReadOnly="True"
+                  Height="22" Grid.Row="6" Grid.Column="1" Margin="0,0,0,0">
+            <controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent>
+                <ContentControl IsHitTestVisible="False">
+                    <TextBlock Text="{Binding SelectedMapPacks}" Foreground="White" />
+                </ContentControl>
+            </controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent>
+            <ComboBox.ItemTemplate>
+                <ItemContainerTemplate>
+                    <CheckBox 
+                        Foreground="White"
+                        Content="{Binding Path=Name}"
+                        IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
+                </ItemContainerTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <!-- Game modes -->
+        <TextBlock Text="Game Modes:" Grid.Row="7" Margin="15,10" HorizontalAlignment="Right"/>
+        <ComboBox Style="{StaticResource NoSelectComboBoxStyle}"
+            ItemsSource="{Binding GameModes}" Text="{Binding SelectedGameModes, Mode=OneWay}" 
+            Height="22" Grid.Row="7" Grid.Column="1" Margin="0,0,0,0">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox 
+                    Foreground="White"
+                    Content="{Binding Path=Name}"
+                    IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <!-- Max Ping -->
+        <TextBlock Text="Max Ping:" Grid.Row="8" Margin="15,10" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="8" Grid.Column="1">
+            <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" PreviewTextInput="PingTextBox_PreviewTextInput" Margin="0,0,10,0" VerticalAlignment="Center" 
+                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+            <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <!-- Exclude Servers -->
+        <TextBlock Text="Exclude Servers:" Grid.Row="9" Margin="15,10" HorizontalAlignment="Right"/>
+        <ComboBox x:Name="ExcludeFilterComboBox"
+                  Style="{StaticResource NoSelectComboBoxStyle}"
+                  ItemsSource="{Binding ExcludeFilters}"
+                  Height="28" Grid.Row="9" Grid.Column="1" Margin="0,0,0,0"
+                  controls:ComboBoxSelectionBoxAltTemplateBehaviour.IsHitTestVisible="True">
+            <ComboBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <!-- Make it totally non selectable -->
+                    <Setter Property="Focusable" Value="False"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Border BorderThickness="{TemplateBinding Border.BorderThickness}"
+                                        Padding="{TemplateBinding Control.Padding}"
+                                        BorderBrush="{TemplateBinding Border.BorderBrush}"
+                                        Background="{TemplateBinding Panel.Background}"
+                                        Name="Bd"
+                                        SnapsToDevicePixels="True">
+                                    <ContentPresenter Content="{TemplateBinding ContentControl.Content}"
+                                                      ContentTemplate="{TemplateBinding ContentControl.ContentTemplate}"
+                                                      ContentStringFormat="{TemplateBinding ContentControl.ContentStringFormat}"
+                                                      HorizontalAlignment="{TemplateBinding Control.HorizontalContentAlignment}"
+                                                      VerticalAlignment="{TemplateBinding Control.VerticalContentAlignment}"
+                                                      SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" />
+                                </Border>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ComboBox.ItemContainerStyle>
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <DockPanel>
+                        <!-- Remove Button -->
+                        <Button Style="{StaticResource LinkButtonStyle}" 
+                                Command="{Binding RemoveCommand}" 
+                                Click="Button_Click"
+                                Content="✖" Foreground="DarkRed" DockPanel.Dock="Right"/>
+
+                        <CheckBox 
+                            Foreground="White"
+                            Content="{Binding Path=Name}"
+                            IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
+                    </DockPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+            <controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent>
+                <Grid>
+                    <TextBox x:Name="NewExcludeFilterTextBox" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                         GotFocus="TextBox_GotFocus" KeyDown="NewExcludeFilterTextBox_KeyDown" Padding="0,0,0,0" VerticalContentAlignment="Center">
+                    </TextBox>
+                    
+                    <!-- Hint -->
+                    <TextBlock IsHitTestVisible="False" Text="Enter new keyword" 
+                               VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" Margin="0,0,0,0" Foreground="DarkGray">
+                        <TextBlock.Style>
+                            <Style TargetType="{x:Type TextBlock}">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=NewExcludeFilterTextBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent>
+        </ComboBox>
+
+        <Grid Grid.Row="10" Grid.ColumnSpan="2" Margin="0,10,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Reset" Height="25" Command="{Binding ResetCommand}" Grid.Column="0" Margin="0,0,5,0"/>
+            <Button Content="OK" Height="25" Command="{Binding ApplyCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
+        </Grid>
+    </Grid>
+</UserControl>

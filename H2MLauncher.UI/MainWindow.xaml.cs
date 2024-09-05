@@ -1,32 +1,25 @@
-﻿using System.ComponentModel;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
-using System.Windows.Threading;
 
-using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
-using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Model;
+using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
     public partial class MainWindow : Window
     {
-        private readonly ICollectionView _collectionView;
-        private readonly ICollectionView _collectionViewFavorites;
         private readonly ServerBrowserViewModel _viewModel;
         private IntPtr _targetWindowHandle;
         private bool _isOverlayVisible = true;
         private bool _overlayHiddenByUser = false;
-        private GlobalKeyboardHook _globalKeyboardHook;
+        private readonly GlobalKeyboardHook _globalKeyboardHook;
 
         // Import Windows API methods for interacting with windows
 
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
 
         [DllImport("user32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -52,26 +45,16 @@ namespace H2MLauncher.UI
             public int Y;
         }
 
-        private TabsEnum _selectedTab;
-
-        private IPasswordDialogService _passwordDialogService;
-
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
 
-            _selectedTab = TabsEnum.AllServers;
-
             DataContext = _viewModel = serverBrowserViewModel;
+
+
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
+
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
-
-            _collectionView = CollectionViewSource.GetDefaultView(serverBrowserViewModel.Servers);
-            _collectionView.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            _collectionView.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
-
-            _collectionViewFavorites = CollectionViewSource.GetDefaultView(serverBrowserViewModel.FavoriteServers);
-            _collectionViewFavorites.Filter = o => _viewModel.ServerFilter((ServerViewModel)o);
-            _collectionViewFavorites.SortDescriptions.Add(new SortDescription("ClientNum", ListSortDirection.Descending));
 
             // Initialize Global Keyboard Hook
             _globalKeyboardHook = new GlobalKeyboardHook();
@@ -83,7 +66,11 @@ namespace H2MLauncher.UI
             this.Background = System.Windows.Media.Brushes.Transparent;
             this.Topmost = true;
             this.ResizeMode = ResizeMode.NoResize;
+        }
 
+        private void ServerBrowserViewModel_ServerFilterChanged()
+        {
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -102,32 +89,9 @@ namespace H2MLauncher.UI
             }
         }
 
-        private void TextBox_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _collectionView.Refresh();
-            _collectionViewFavorites.Refresh();
-        }
-
-        private void TabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-            if (e.Source is not TabControl tabControl) return;
-
-            if (tabControl.SelectedItem is not TabItem selectedTab) return;
-
-            string header = selectedTab.Header.ToString();
-
-            if (header == "All Servers")
-            {
-                this._selectedTab= TabsEnum.AllServers;
-                _viewModel.TotalPlayers = _viewModel.TotalPlayersOverAll;
-                _viewModel.TotalServers = _viewModel.TotalServersOverAll;
-            }
-            else if (header == "Favourites")
-            {
-                _selectedTab = TabsEnum.Favorites;
-                _viewModel.TotalPlayers = _viewModel.TotalPlayersFavorites;
-                _viewModel.TotalServers = _viewModel.FavoriteServers.Count;
-            }
+            _viewModel.SelectedTab.ServerCollectionView.Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -166,17 +130,18 @@ namespace H2MLauncher.UI
             _overlayHiddenByUser = false; // Mark overlay as shown by user
             _isOverlayVisible = true; // Ensure overlay is visible
             this.Visibility = Visibility.Visible;
-
+            this.Topmost = true;
             // Optionally, you can update its position
-            UpdateOverlayPosition(null, null);
+            UpdateOverlayPosition();
         }
         private void HideOverlay()
         {
+            this.Topmost = false;
             _overlayHiddenByUser = true; // Mark overlay as hidden by user
             this.Visibility = Visibility.Hidden; // Simply hide the overlay
         }
 
-        private void UpdateOverlayPosition(object sender, EventArgs e)
+        private void UpdateOverlayPosition()
         {
             if (_targetWindowHandle == IntPtr.Zero) return;
 
@@ -224,16 +189,15 @@ namespace H2MLauncher.UI
                 MessageBox.Show("H2M-Mod window not found.");
                 return;
             }
-
         }
 
         private void GlobalKeyboardHook_KeyPressed(Key key, ModifierKeys modifiers)
         {
             if (key == Key.S && modifiers.HasFlag(ModifierKeys.Control) && modifiers.HasFlag(ModifierKeys.Alt))
             {
-                if(_overlayHiddenByUser)
+                if (_overlayHiddenByUser)
                 {
-                    ShowOverlay(); 
+                    ShowOverlay();
                 }
                 else
                 {

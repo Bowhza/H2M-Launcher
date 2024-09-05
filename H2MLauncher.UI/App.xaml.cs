@@ -2,13 +2,13 @@
 using System.Reflection;
 using System.Windows;
 
-using Awesome.Net.WritableOptions.Extensions;
+using Nogic.WritableOptions;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
-using H2MLauncher.Core.ViewModels;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.ViewModels;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,15 +19,15 @@ namespace H2MLauncher.UI
 {
     public partial class App : Application
     {
-        public IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static IServiceProvider ServiceProvider { get; private set; } = null!;
+        private H2MLauncherSettings _defaultSettings = null!;
 
         protected override void OnStartup(StartupEventArgs e)
         {
             SetupExceptionHandling();
             InitializeLogging();
-            CreateNeededConfiguration();
             IConfigurationRoot config = BuildConfiguration();
-            
+
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection, config);
 
@@ -36,24 +36,23 @@ namespace H2MLauncher.UI
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
 
+            // save options on startup to update user file with new settings            
+            ServiceProvider.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
+            {
+                // make sure a valid master server url is set
+                if (string.IsNullOrEmpty(settings.IW4MMasterServerUrl))
+                {
+                    return settings with
+                    {
+                        IW4MMasterServerUrl = _defaultSettings.IW4MMasterServerUrl
+                    };
+                }
+
+                return settings;
+            });
+
             base.OnStartup(e);
         }
-
-        private void CreateNeededConfiguration()
-        {
-            string storageDirectory = Path.Combine(Constants.LocalDir, "Storage");
-
-            if (!Directory.Exists(storageDirectory))
-                Directory.CreateDirectory(storageDirectory);
-
-            string userFavoritesFilePath = Path.Combine(storageDirectory, "UserFavorites.json");
-
-            if (File.Exists(userFavoritesFilePath))
-                return;
-
-            File.WriteAllText(userFavoritesFilePath, "[]");
-        }
-
 
         private static void InitializeLogging()
         {
@@ -70,18 +69,18 @@ namespace H2MLauncher.UI
                 H2MLauncherService.CurrentVersion);
         }
 
-        private static void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
+        private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
-            services.ConfigureWritableOptions<H2MLauncherSettings>(config, "H2MLauncher", GetLauncherSettings());
+            services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
+                section: config.GetSection(Constants.LauncherSettingsSection),
+                directoryPath: Path.GetDirectoryName(Constants.LauncherSettingsFilePath) ?? Constants.LocalDir,
+                file: Constants.LauncherSettingsFileName);
 
-            services.Configure<ResourceSettings>(config.GetSection("Resource"));
+            services.Configure<ResourceSettings>(config.GetSection(Constants.ResourceSection));
+
+            services.AddKeyedSingleton(Constants.DefaultSettingsKey, _defaultSettings);
 
             services.AddLogging(builder => builder.AddSerilog());
-
-            services.AddSingleton<DialogViewModel>((s) =>
-            {
-                return (DialogViewModel)Application.Current.FindResource("DialogViewModel");
-            });
 
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
@@ -97,18 +96,12 @@ namespace H2MLauncher.UI
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
-            services.AddTransient<IPasswordDialogService, PasswordDialogService>();
             services.AddTransient<ServerBrowserViewModel>();
 
             services.AddTransient<MainWindow>();
         }
 
-        private static string GetLauncherSettings()
-        {
-            return Path.Combine(Constants.LocalDir, "launchersettings.json");
-        }
-
-        private static IConfigurationRoot BuildConfiguration()
+        private IConfigurationRoot BuildConfiguration()
         {
             const string defaultAppsettings = "appsettings.json";
 
@@ -120,21 +113,26 @@ namespace H2MLauncher.UI
                 .AddJsonStream(input);
 
             // NOTE: using two builders because we use the embedded resource as a stream
-            IConfigurationRoot root = builder.Build();
+            IConfigurationRoot defaultConfiguration = builder.Build();
 
             IConfigurationBuilder coolerBuilder = new ConfigurationBuilder()
-                .AddConfiguration(root);
+                .AddConfiguration(defaultConfiguration);
 
-            string customSettigns = GetLauncherSettings();
-            if (!File.Exists(customSettigns))
+            H2MLauncherSettings? defaultH2MLauncherSettings = defaultConfiguration.GetRequiredSection(Constants.LauncherSettingsSection)
+                                                                                  .Get<H2MLauncherSettings>();
+            if (defaultH2MLauncherSettings is null)
             {
-                H2MLauncherSettings defaultH2MLauncherSettings = root.GetRequiredSection("H2MLauncher").Get<H2MLauncherSettings>()!;
-                JsonFileHelper.AddOrUpdateSection(customSettigns, "H2MLauncher", defaultH2MLauncherSettings);
+                // should never happen, except the appsettings.json are not included properly.
+                Log.Fatal("No default appsettings.");
+                Shutdown(-1);
+                return defaultConfiguration;
             }
 
+            _defaultSettings = defaultH2MLauncherSettings;
+
             coolerBuilder
-                .AddJsonFile(customSettigns)
-                .AddJsonFile("appsettings.local.json", optional: true);
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true)
+                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
 
             return coolerBuilder.Build();
         }

@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace H2MLauncher.UI.Model
@@ -14,10 +9,10 @@ namespace H2MLauncher.UI.Model
         private const int WH_KEYBOARD_LL = 13;
         private const int WM_KEYDOWN = 0x0100;
 
-        private LowLevelKeyboardProc _proc;
-        private IntPtr _hookID = IntPtr.Zero;
+        private readonly LowLevelKeyboardProc _proc;
+        private readonly IntPtr _hookID = IntPtr.Zero;
 
-        public event Action<Key, ModifierKeys> KeyPressed;
+        public event Action<Key, ModifierKeys>? KeyPressed;
 
         public GlobalKeyboardHook()
         {
@@ -25,13 +20,17 @@ namespace H2MLauncher.UI.Model
             _hookID = SetHook(_proc);
         }
 
-        private IntPtr SetHook(LowLevelKeyboardProc proc)
+        private static IntPtr SetHook(LowLevelKeyboardProc proc)
         {
-            using (Process curProcess = Process.GetCurrentProcess())
-            using (ProcessModule curModule = curProcess.MainModule)
+            using Process curProcess = Process.GetCurrentProcess();
+            using ProcessModule? curModule = curProcess.MainModule;
+
+            if (curModule is not null)
             {
                 return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule.ModuleName), 0);
             }
+
+            return IntPtr.Zero;
         }
 
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
