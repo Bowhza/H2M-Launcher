@@ -12,13 +12,11 @@ namespace H2MLauncher.Core.Services
     public class GameServerCommunicationService<TServer> : IAsyncDisposable
         where TServer : IServerConnectionDetails
     {
-        private readonly ConcurrentDictionary<IPEndPoint, InfoRequest> _queuedServers = [];
-
+        private readonly ConcurrentDictionary<IPEndPoint, InfoRequest> _queuedRequests = [];
         private GameServerCommunication? _gameServerCommunication;
         private readonly List<IDisposable> _registrations = [];
 
         private readonly IEndpointResolver _endpointResolver;
-
         private readonly ILogger<GameServerCommunicationService<TServer>> _logger;
 
         private const int MIN_REQUEST_DELAY = 1;
@@ -31,9 +29,9 @@ namespace H2MLauncher.Core.Services
         public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger, IEndpointResolver endpointResolver)
         {
             _logger = logger;
+            _endpointResolver = endpointResolver;
 
             StartCommunication();
-            _endpointResolver = endpointResolver;
         }
 
         private record struct InfoRequest(TServer Server)
@@ -63,14 +61,14 @@ namespace H2MLauncher.Core.Services
         {
             try
             {
-                if (!_queuedServers.TryRemove(e.RemoteEndPoint, out var queuedRequest))
+                if (!_queuedRequests.TryRemove(e.RemoteEndPoint, out InfoRequest queuedRequest))
                 {
                     // unknown remote endpoint
                     return;
                 }
 
                 // Parse info string
-                var info = new InfoString(e.Data);
+                InfoString info = new(e.Data);
 
                 string? dedicated = info.Get("dedicated");
                 if (dedicated != "1")
@@ -190,18 +188,6 @@ namespace H2MLauncher.Core.Services
             return await tcs.Task.ConfigureAwait(false);
         }
 
-        private void AddToQueueCancelPreviousRequest(IPEndPoint endpoint, InfoRequest request, CancellationToken cancellationToken)
-        {
-            if (!_queuedServers.TryAdd(endpoint, request))
-            {
-                // cancel previous operation
-                _queuedServers.GetValueOrDefault(endpoint).InfoResponseCompletionSource?.TrySetCanceled(cancellationToken);
-                _queuedServers[endpoint] = request;
-            }
-
-            cancellationToken.Register(() => _queuedServers.TryRemove(endpoint, out _));
-        }
-
         /// <summary>
         /// Send info requests to all given game servers.
         /// </summary>
@@ -213,17 +199,9 @@ namespace H2MLauncher.Core.Services
             if (endpointServerMap.Count == 0)
             {
                 // early return to avoid allocations
+                return;
             }
-
-            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer> args)
-            {
-                // only invoke the callback for responses from the given servers
-                if (endpointServerMap.ContainsKey(args.ServerInfo.Address))
-                {
-                    onInfoResponse(args);
-                }
-            }
-
+            
             // subscribe to server info handlers
             ServerInfoReceived += onServerInfoReceived;
             cancellationToken.Register(() => ServerInfoReceived -= onServerInfoReceived);
@@ -243,6 +221,15 @@ namespace H2MLauncher.Core.Services
                 // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
                 timer.WaitForTrigger();
             }
+
+            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer> args)
+            {
+                // only invoke the callback for responses from the given servers
+                if (endpointServerMap.ContainsKey(args.ServerInfo.Address))
+                {
+                    onInfoResponse(args);
+                }
+            }
         }
 
         /// <summary>
@@ -255,6 +242,7 @@ namespace H2MLauncher.Core.Services
             if (endpointServerMap.Count == 0)
             {
                 // early return to avoid timer allocation
+                return;
             }
 
             using HighResolutionTimer timer = new();
@@ -280,7 +268,7 @@ namespace H2MLauncher.Core.Services
         public async Task<bool> SendInfoRequestAsync(TServer server, CancellationToken cancellationToken)
         {
             // create an endpoint to send to and receive from
-            var serverEndpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
+            IPEndPoint? serverEndpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
             if (serverEndpoint is null)
             {
                 return false;
@@ -309,10 +297,22 @@ namespace H2MLauncher.Core.Services
             catch
             {
                 // failed to send info response (maybe server is not online)
-                _queuedServers.TryRemove(serverEndpoint, out _);
+                _queuedRequests.TryRemove(serverEndpoint, out _);
 
                 return false;
             }
+        }
+
+        private void AddToQueueCancelPreviousRequest(IPEndPoint endpoint, InfoRequest request, CancellationToken cancellationToken)
+        {
+            if (!_queuedRequests.TryAdd(endpoint, request))
+            {
+                // cancel previous operation
+                _queuedRequests.GetValueOrDefault(endpoint).InfoResponseCompletionSource?.TrySetCanceled(cancellationToken);
+                _queuedRequests[endpoint] = request;
+            }
+
+            cancellationToken.Register(() => _queuedRequests.TryRemove(endpoint, out _));
         }
 
         /// <summary>

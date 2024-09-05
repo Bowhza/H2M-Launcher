@@ -24,7 +24,8 @@ namespace H2MLauncher.Core.Services
             {
                 // resolve ip addresses from hostname
                 var ipAddressList = await Dns.GetHostAddressesAsync(server.Ip, cancellationToken);
-                var compatibleIp = ipAddressList.FirstOrDefault();
+                var compatibleIp = ipAddressList.OrderByDescending(ip => ip.AddressFamily is System.Net.Sockets.AddressFamily.InterNetwork)
+                                                .FirstOrDefault();
                 if (compatibleIp == null)
                 {
                     // could not resolve ip address

@@ -11,7 +11,7 @@ using MatchmakingServer.SignalR;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
-var builder = WebApplication.CreateBuilder();
+WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
 
 // Add services to the container.

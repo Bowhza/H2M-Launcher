@@ -7,24 +7,27 @@ using Microsoft.Extensions.Caching.Memory;
 
 namespace MatchmakingServer.SignalR
 {
-
     public class ServerInstanceCache
     {
         private readonly IIW4MAdminService _iw4mAdminService;
         private readonly IIW4MAdminMasterService _iw4mAdminMasterService;
         private readonly ILogger<ServerInstanceCache> _logger;
+        private readonly IMemoryCache _memoryCache;
+        private readonly ConcurrentDictionary<ConnectionDetails, string> _serverInstanceMap = [];
 
-        public ServerInstanceCache(IIW4MAdminService iw4mAdminService, IIW4MAdminMasterService iw4mAdminMasterService, ILogger<ServerInstanceCache> logger)
+        private const string WebfrontAvailableCacheKey = "WebfrontAvailable";
+        private static readonly TimeSpan WebfrontAvailablilityCacheExpiration = TimeSpan.FromHours(1);
+
+        private record struct ConnectionDetails(string IpOrHostName, int Port) { }
+
+        public ServerInstanceCache(IIW4MAdminService iw4mAdminService, IIW4MAdminMasterService iw4mAdminMasterService, 
+            IMemoryCache memoryCache, ILogger<ServerInstanceCache> logger)
         {
             _iw4mAdminService = iw4mAdminService;
             _iw4mAdminMasterService = iw4mAdminMasterService;
+            _memoryCache = memoryCache;
             _logger = logger;
         }
-
-        private readonly MemoryCache _memoryCache = new(new MemoryCacheOptions());
-        private readonly ConcurrentDictionary<ConnectionDetails, string> _serverInstanceMap = [];
-
-        private record struct ConnectionDetails(string IpOrHostName, int Port) { }
 
         public async Task<IW4MServerInstance?> GetInstanceByIdAsync(string instanceId, CancellationToken cancellationToken)
         {
@@ -77,9 +80,6 @@ namespace MatchmakingServer.SignalR
 
             return GetInstanceByIdAsync(instanceId, cancellationToken);
         }
-
-        private const string WebfrontAvailableCacheKey = "WebfrontAvailable";
-        private static readonly TimeSpan WebfrontAvailablilityCacheExpiration = TimeSpan.FromHours(1);
 
         public async Task<IReadOnlyList<IW4MServerStatus>> TryGetWebfrontStatusList(string instanceId, CancellationToken cancellationToken)
         {
