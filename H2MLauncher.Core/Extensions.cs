@@ -86,13 +86,6 @@ public static class Extensions
             (item) => equalityComparer?.Equals(item, newValue) ?? EqualityComparer<T>.Default.Equals(item, newValue),
             comparer);
     }
-
-    public static void Update<T>(this IWritableOptions<T> options, Func<T, T> updateFunc, bool reload = true)
-        where T : class, new()
-    {
-        options.Update(updateFunc(options.CurrentValue), reload);
-    }
-
     public static IPAddress GetRealAddress(this IPAddress ipAddress)
     {
         return ipAddress.IsIPv4MappedToIPv6

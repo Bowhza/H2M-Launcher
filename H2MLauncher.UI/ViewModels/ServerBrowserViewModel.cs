@@ -6,7 +6,6 @@ using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;

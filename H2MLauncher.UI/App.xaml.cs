@@ -21,6 +21,7 @@ using Microsoft.Extensions.Options;
 using Nogic.WritableOptions;
 
 using Serilog;
+using H2MLauncher.Core.Utilities;
 
 namespace H2MLauncher.UI
 {

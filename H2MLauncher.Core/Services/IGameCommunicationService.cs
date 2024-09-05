@@ -2,7 +2,7 @@
 
 namespace H2MLauncher.Core.Services;
 
-public interface IGameCommunicationService
+public interface IGameCommunicationService : IDisposable
 {
     GameState CurrentGameState { get; }
     Process? GameProcess { get; }
@@ -16,6 +16,4 @@ public interface IGameCommunicationService
     void StopGameCommunication();
 
     Task<IReadOnlyDictionary<int, string>> GetInGameMapsAsync();
-
-    void Dispose();
 }

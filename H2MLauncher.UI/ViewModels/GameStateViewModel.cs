@@ -44,42 +44,17 @@ public partial class GameStateViewModel : ObservableObject
     {
         get
         {
-            if (State is null)
+            return State switch
             {
-                return "";
-            }
-
-            if (State.IsInMainMenu)
-            {
-                return "Main Menu";
-            }
-
-            if (State.IsConnected)
-            {
-                if (State.IsPrivateMatch)
-                {
-                    return "Private Match";
-                }
-
-                if (State.Endpoint is not null)
-                {
-                    return $"Connected to {ConnectedIp}";
-                }
-
-                return "Connected";
-            }
-
-            if (State.IsConnecting)
-            {
-                if (State.Endpoint is not null)
-                {
-                    return $"Connecting to {ConnectedIp}";
-                }
-
-                return "Connecting";
-            }
-
-            return "Main Menu";
+                null => "",
+                { IsInMainMenu: true } => "Main Menu",
+                { IsConnected: true, IsPrivateMatch: true } => "Private Match",
+                { IsConnected: true, Endpoint: not null } => $"Connected to {ConnectedIp}",
+                { IsConnected: true } => "Connected",
+                { IsConnecting: true, Endpoint: not null } => $"Connecting to {ConnectedIp}",
+                { IsConnecting: true } => "Connecting",
+                _ => "Main Menu"
+            };
         }
     }
 

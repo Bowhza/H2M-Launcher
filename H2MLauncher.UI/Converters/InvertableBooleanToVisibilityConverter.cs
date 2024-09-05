@@ -12,11 +12,15 @@ namespace H2MLauncher.UI.Converters
             Normal, Inverted
         }
 
-        public object Convert(object value, Type targetType,
+        public object? Convert(object value, Type targetType,
                               object parameter, CultureInfo culture)
         {
-            var boolValue = (bool)value;
-            var direction = (Parameters)Enum.Parse(typeof(Parameters), (string)parameter);
+            if (value is not bool boolValue)
+            {
+                return null;
+            }
+
+            Parameters direction = parameter is not string parameterString ? Parameters.Normal : Enum.Parse<Parameters>(parameterString);
 
             if (direction == Parameters.Inverted)
                 return !boolValue ? Visibility.Visible : Visibility.Collapsed;
