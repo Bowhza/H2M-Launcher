@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using Serilog;
+using H2MLauncher.Core.Utilities;
 
 namespace H2MLauncher.UI
 {

@@ -4,8 +4,8 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using H2MLauncher.Core;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Win32;

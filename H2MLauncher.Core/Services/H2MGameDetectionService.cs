@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
@@ -156,38 +157,43 @@ namespace H2MLauncher.Core.Services
             while (!cancellationToken.IsCancellationRequested)
             {
                 Process? process = H2MCommunicationService.FindH2MModProcess();
-                if (process is not null && process.MainModule is not null)
+                if (process is null || process.MainModule is null)
                 {
-                    string fileName = process.MainModule.FileName;
-                    string? gameDir = Path.GetDirectoryName(fileName);
-
-                    if (!string.IsNullOrEmpty(gameDir) && File.Exists(Path.Combine(gameDir, Constants.GAME_EXECUTABLE_NAME)))
-                    {
-                        FileVersionInfo version = FileVersionInfo.GetVersionInfo(fileName);
-
-                        // game dir found
-                        onGameDetected(new DetectedGame(process, fileName, gameDir, version));
-
-                        try
-                        {
-                            await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
-                        }
-                        catch (InvalidOperationException)
-                        {
-                            // sometimes throws when proess is killed
-                        }
-
-                        // process terminated
-                        onGameExited();
-
-                        if (detectOnce)
-                        {
-                            return;
-                        }
-                    }
+                    goto delay;
                 }
 
-                await Task.Delay(GAME_DETECTION_POLLING_INTERVAL, cancellationToken).ConfigureAwait(false);
+                string fileName = process.MainModule.FileName;
+                string? gameDir = Path.GetDirectoryName(fileName);
+
+                if (string.IsNullOrEmpty(gameDir) || !File.Exists(Path.Combine(gameDir, Constants.GAME_EXECUTABLE_NAME)))
+                {
+                    goto delay;
+                }
+
+                // game dir found
+
+                FileVersionInfo version = FileVersionInfo.GetVersionInfo(fileName);
+
+                onGameDetected(new DetectedGame(process, fileName, gameDir, version));
+
+                try
+                {
+                    await process.WaitForExitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                catch (InvalidOperationException)
+                {
+                    // sometimes throws when process is killed
+                }
+
+                // process terminated
+                onGameExited();
+
+                if (detectOnce)
+                {
+                    return;
+                }
+
+            delay: await Task.Delay(GAME_DETECTION_POLLING_INTERVAL, cancellationToken).ConfigureAwait(false);
             }
         }
     }

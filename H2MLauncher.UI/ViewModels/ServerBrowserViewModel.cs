@@ -2,11 +2,8 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Net;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -15,6 +12,7 @@ using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 

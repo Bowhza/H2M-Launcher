@@ -26,8 +26,8 @@ namespace H2MLauncher.Core.Services
         private readonly ILogger<H2MCommunicationService> _logger;
         private readonly IDisposable? _optionsChangeRegistration;
 
-        private readonly IGameCommunicationService _gameCommunicationService;
-        private readonly IGameDetectionService _gameDetectionService;
+        public IGameCommunicationService GameCommunication { get; }
+        public IGameDetectionService GameDetection { get; }
 
         public H2MCommunicationService(IErrorHandlingService errorHandlingService, IWritableOptions<H2MLauncherSettings> options,
             ILogger<H2MCommunicationService> logger, IGameCommunicationService gameCommunicationService, IGameDetectionService gameDetectionService)
@@ -35,39 +35,36 @@ namespace H2MLauncher.Core.Services
             _errorHandlingService = errorHandlingService;
             _h2mLauncherSettings = options;
             _logger = logger;
-            _gameCommunicationService = gameCommunicationService;
-            _gameDetectionService = gameDetectionService;
+            GameCommunication = gameCommunicationService;
+            GameDetection = gameDetectionService;
 
             if (options.CurrentValue.AutomaticGameDetection)
             {
-                _gameDetectionService.StartGameDetection();
+                GameDetection.StartGameDetection();
             }
 
             _optionsChangeRegistration = options.OnChange((settings, _) =>
             {
-                if (!settings.AutomaticGameDetection && _gameDetectionService.IsGameDetectionRunning)
+                if (!settings.AutomaticGameDetection && GameDetection.IsGameDetectionRunning)
                 {
-                    _gameDetectionService.StopGameDetection();
+                    GameDetection.StopGameDetection();
                 }
-                else if (settings.AutomaticGameDetection && !_gameDetectionService.IsGameDetectionRunning)
+                else if (settings.AutomaticGameDetection && !GameDetection.IsGameDetectionRunning)
                 {
-                    _gameDetectionService.StartGameDetection();
+                    GameDetection.StartGameDetection();
                 }
 
-                if (!settings.GameMemoryCommunication && _gameCommunicationService.IsGameCommunicationRunning)
+                if (!settings.GameMemoryCommunication && GameCommunication.IsGameCommunicationRunning)
                 {
-                    _gameCommunicationService.StopGameCommunication();
+                    GameCommunication.StopGameCommunication();
                 }
-                else if (settings.GameMemoryCommunication && !_gameCommunicationService.IsGameCommunicationRunning
-                    && _gameDetectionService.DetectedGame is not null)
+                else if (settings.GameMemoryCommunication && !GameCommunication.IsGameCommunicationRunning
+                    && GameDetection.DetectedGame is not null)
                 {
-                    _gameCommunicationService.StartGameCommunication(_gameDetectionService.DetectedGame.Process);
+                    GameCommunication.StartGameCommunication(GameDetection.DetectedGame.Process);
                 }
             });
         }
-
-        public IGameCommunicationService GameCommunication => _gameCommunicationService;
-        public IGameDetectionService GameDetection => _gameDetectionService;
 
         //Windows API functions to send input to a window
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
