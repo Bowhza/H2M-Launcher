@@ -14,6 +14,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 using Serilog;
+using H2MLauncher.Core.Utilities;
 
 namespace H2MLauncher.UI
 {
@@ -92,7 +93,10 @@ namespace H2MLauncher.UI
             services.AddHttpClient<RaidMaxService>();
 
             services.AddSingleton<H2MCommunicationService>();
+            services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
+            services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddTransient<GameServerCommunicationService>();
+            services.AddSingleton<GameDirectoryService>();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
@@ -131,8 +135,8 @@ namespace H2MLauncher.UI
             _defaultSettings = defaultH2MLauncherSettings;
 
             coolerBuilder
-                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true)
-                .AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: true);
+                .AddJsonFile("appsettings.local.json", optional: true)
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true);
 
             return coolerBuilder.Build();
         }

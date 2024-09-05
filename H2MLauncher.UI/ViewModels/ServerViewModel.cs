@@ -38,6 +38,9 @@ namespace H2MLauncher.UI.ViewModels
         private string _mapDisplayName = "";
 
         [ObservableProperty]
+        private bool _hasMap = false;
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(Occupation))]
         private int _clientNum;
 

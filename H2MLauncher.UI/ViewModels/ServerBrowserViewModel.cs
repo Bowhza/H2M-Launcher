@@ -4,7 +4,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -13,6 +12,7 @@ using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 
@@ -24,7 +24,7 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.UI.ViewModels;
 
-public partial class ServerBrowserViewModel : ObservableObject
+public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
     private readonly RaidMaxService _raidMaxService;
     private readonly GameServerCommunicationService _gameServerCommunicationService;
@@ -41,6 +41,8 @@ public partial class ServerBrowserViewModel : ObservableObject
     private readonly Dictionary<string, string> _gameTypeMap = [];
     private readonly IOptions<ResourceSettings> _resourceSettings;
     private readonly H2MLauncherSettings _defaultSettings;
+    private readonly GameDirectoryService _gameDirectoryService;
+    private readonly List<string> _installedMaps = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -72,11 +74,16 @@ public partial class ServerBrowserViewModel : ObservableObject
 
 
     [ObservableProperty]
+    private GameStateViewModel _gameState = new();
+
+    [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter;
 
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
+
     public event Action? ServerFilterChanged;
+
     public IAsyncRelayCommand RefreshServersCommand { get; }
     public IAsyncRelayCommand CheckUpdateStatusCommand { get; }
     public IRelayCommand LaunchH2MCommand { get; }
@@ -102,7 +109,8 @@ public partial class ServerBrowserViewModel : ObservableObject
         DialogService dialogService,
         IWritableOptions<H2MLauncherSettings> h2mLauncherOptions,
         IOptions<ResourceSettings> resourceSettings,
-        [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings)
+        [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
+        GameDirectoryService gameDirectoryService)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -116,6 +124,7 @@ public partial class ServerBrowserViewModel : ObservableObject
         _h2MLauncherOptions = h2mLauncherOptions;
         _defaultSettings = defaultSettings;
         _resourceSettings = resourceSettings;
+        _gameDirectoryService = gameDirectoryService;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -185,6 +194,43 @@ public partial class ServerBrowserViewModel : ObservableObject
 
         // initialize server filter view model with stored values
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
+
+        _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
+        _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
+        _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
+        _gameDirectoryService.FastFileChanged += GameDirectoryService_FastFileChanged;
+    }
+
+    private void GameDirectoryService_FastFileChanged(string fileName, string mapName)
+    {
+        UpdateInstalledMaps(updateViewModels: true);
+    }
+
+    private void GameDirectoryService_UsermapsChanged(string? triggeredByPath, IReadOnlyList<string> usermaps)
+    {
+        UpdateInstalledMaps(updateViewModels: true);
+    }
+
+    private void H2MGameCommunication_Stopped(Exception? obj)
+    {
+        GameState.State = null;
+    }
+
+    private void H2MCommunicationService_GameStateChanged(GameState newState)
+    {
+        GameState.State = newState;
+    }
+
+    private void H2MCommunicationService_GameDetected(DetectedGame detectedGame)
+    {
+        GameState.DetectedGame = detectedGame;
+    }
+
+    private void H2MCommunicationService_GameExited()
+    {
+        GameState.DetectedGame = null;
     }
 
     private void ShowSettings()
@@ -253,13 +299,13 @@ public partial class ServerBrowserViewModel : ObservableObject
     // Method to get the user's favorites from the settings.
     public List<SimpleServerInfo> GetFavoritesFromSettings()
     {
-        return _h2MLauncherOptions.Value.FavouriteServers;
+        return _h2MLauncherOptions.CurrentValue.FavouriteServers;
     }
 
     // Method to get user's recent servers from settings.
     public List<RecentServerInfo> GetRecentsFromSettings()
     {
-        return _h2MLauncherOptions.Value.RecentServers;
+        return _h2MLauncherOptions.CurrentValue.RecentServers;
     }
 
     // Method to add a favorite to the settings.
@@ -446,9 +492,9 @@ public partial class ServerBrowserViewModel : ObservableObject
 
             string directoryPath = "players2";
 
-            if (!string.IsNullOrEmpty(_h2MLauncherOptions.Value.MWRLocation))
+            if (!string.IsNullOrEmpty(_h2MLauncherOptions.CurrentValue.MWRLocation))
             {
-                string? gameDirectory = Path.GetDirectoryName(_h2MLauncherOptions.Value.MWRLocation);
+                string? gameDirectory = Path.GetDirectoryName(_h2MLauncherOptions.CurrentValue.MWRLocation);
 
                 directoryPath = Path.Combine(gameDirectory ?? "", directoryPath);
             }
@@ -485,6 +531,34 @@ public partial class ServerBrowserViewModel : ObservableObject
         UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
     }
 
+    private void UpdateInstalledMaps(bool updateViewModels = false)
+    {
+        _installedMaps.Clear();
+
+        // in-game maps
+        foreach (var mapName in _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name)))
+        {
+            if (_gameDirectoryService.HasOgMap(mapName) != false)
+            {
+                _installedMaps.Add(mapName);
+            }
+        }
+
+        // usermaps
+        _installedMaps.AddRange(_gameDirectoryService.Usermaps);
+
+        if (updateViewModels)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                foreach (var serverViewModel in AllServersTab.Servers)
+                {
+                    serverViewModel.HasMap = _installedMaps.Contains(serverViewModel.Map);
+                }
+            });
+        }
+    }
+
     private async Task LoadServersAsync()
     {
         await _loadCancellation.CancelAsync();
@@ -509,6 +583,8 @@ public partial class ServerBrowserViewModel : ObservableObject
             IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
 
+            //await UpdateInstalledMaps();
+
             // Start by sending info requests to the game servers
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
@@ -531,6 +607,7 @@ public partial class ServerBrowserViewModel : ObservableObject
                     GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
                     Map = gameServer.MapName,
                     MapDisplayName = mapDisplayName ?? gameServer.MapName,
+                    HasMap = _installedMaps.Contains(gameServer.MapName),
                     Version = server.Version,
                     IsPrivate = gameServer.IsPrivate,
                     Ping = gameServer.Ping,
@@ -570,6 +647,22 @@ public partial class ServerBrowserViewModel : ObservableObject
         if (serverViewModel is null)
             return;
 
+        if (!serverViewModel.HasMap)
+        {
+            bool? dialogResult = _dialogService.OpenTextDialog(
+                title: "Missing Map",
+                text: """
+                    You are trying to join a server with a map that's not installed. This might crash your game. 
+                    Do you want to continue?
+                    """,
+                buttons: MessageBoxButton.YesNo);
+
+            if (dialogResult == false)
+            {
+                return;
+            }
+        }
+
         if (serverViewModel.IsPrivate)
         {
             PasswordViewModel = new();
@@ -597,5 +690,14 @@ public partial class ServerBrowserViewModel : ObservableObject
     private void LaunchH2M()
     {
         _h2MCommunicationService.LaunchH2MMod();
+    }
+
+    public void Dispose()
+    {
+        _h2MCommunicationService.GameDetection.GameDetected -= H2MCommunicationService_GameDetected;
+        _h2MCommunicationService.GameDetection.GameExited -= H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameCommunication.GameStateChanged -= H2MCommunicationService_GameStateChanged;
+        _h2MCommunicationService.GameCommunication.Stopped -= H2MGameCommunication_Stopped;
+        _gameDirectoryService.UsermapsChanged -= GameDirectoryService_UsermapsChanged;
     }
 }

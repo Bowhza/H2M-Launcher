@@ -467,5 +467,6 @@
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
+    <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
     <converters:EmptyItemConverter x:Key="emptyItemConverter" />
 </ResourceDictionary>

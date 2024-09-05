@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.Input;
+﻿using System.Windows;
+
+using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.Dialog
 {
@@ -6,5 +8,25 @@ namespace H2MLauncher.UI.Dialog
     {
         public required string Title { get; set; }
         public required string Text { get; set; }
+
+        public IRelayCommand AcceptCommand { get; }
+
+        public IRelayCommand CancelCommand { get; }
+
+        public bool HasCancelButton { get; }
+
+        public string AcceptButtonText { get; } = "OK";
+
+        public string CancelButtonText { get; } = "Cancel";
+
+        public TextDialogViewModel(MessageBoxButton buttons = MessageBoxButton.OK)
+        {
+            AcceptCommand = new RelayCommand(() => CloseCommand.Execute(true), () => CloseCommand.CanExecute(true));
+            CancelCommand = new RelayCommand(() => CloseCommand.Execute(false), () => CloseCommand.CanExecute(false));
+
+            HasCancelButton = buttons is MessageBoxButton.OKCancel or MessageBoxButton.YesNoCancel or MessageBoxButton.YesNo;
+            AcceptButtonText = buttons is MessageBoxButton.OK or MessageBoxButton.OKCancel ? "OK" : "Yes";
+            CancelButtonText = buttons is MessageBoxButton.YesNo ? "No" : "Cancel";
+        }
     }
 }

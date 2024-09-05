@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Win32;
@@ -21,22 +22,29 @@ public partial class SettingsViewModel : DialogViewModelBase
     [ObservableProperty]
     private string _iw4mMasterServerUrl = "";
 
+    [ObservableProperty]
+    private bool _gameCommunicationEnabled = false;
+
     public ICommand ApplyCommand { get; set; }
 
     public ICommand CancelCommand { get; set; }
 
     public SettingsViewModel(IWritableOptions<H2MLauncherSettings> options)
     {
-        MwrLocation = options.Value.MWRLocation;
-        Iw4mMasterServerUrl = options.Value.IW4MMasterServerUrl;
+        // init properties from settings
+        MwrLocation = options.CurrentValue.MWRLocation;
+        Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
+        GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
 
         ApplyCommand = new RelayCommand(() =>
         {
-            options.Update(options.CurrentValue with
+            // write back to settings
+            options.Update((settings) => settings with
             {
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,
-            }, true);
+                GameMemoryCommunication = GameCommunicationEnabled,
+            }, reload: true);
 
             CloseCommand.Execute(true);
         }, 

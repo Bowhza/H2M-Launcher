@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
              mc:Ignorable="d" 
              xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
-             MaxHeight="150" MaxWidth="300"
+             MaxWidth="300"
              MinHeight="150" MinWidth="300"
              Height="Auto"
              Width="300"
@@ -17,8 +17,18 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="{Binding Title}" TextWrapping="WrapWithOverflow" FontWeight="Bold" FontSize="15" Height="25"/>
-        <TextBlock Grid.Row="1" Text="{Binding Text}" TextWrapping="WrapWithOverflow"/>
-        <Button Grid.Row="2" Content="OK" Height="25" Command="{Binding CloseCommand}" IsDefault="True" Margin="0,0,0,15"/>
+        <TextBlock Grid.Row="0" Text="{Binding Title}" TextWrapping="WrapWithOverflow" FontWeight="Bold" FontSize="15"/>
+        <TextBlock Grid.Row="1" Text="{Binding Text}" TextWrapping="WrapWithOverflow" Margin="0,15,0,0"/>
+        <Grid Grid.Row="2" Grid.ColumnSpan="2" Margin="0,0,0,15" 
+              Visibility="{Binding HasCancelButton, Converter={StaticResource booleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="{Binding CancelButtonText}" Height="25" Command="{Binding CancelCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+            <Button Content="{Binding AcceptButtonText}" Height="25" Command="{Binding AcceptCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
+        </Grid>
+        <Button Grid.Row="2" Content="{Binding AcceptButtonText}" Height="25" Command="{Binding AcceptCommand}" IsDefault="True" Margin="0,15,0,15"
+                Visibility="{Binding HasCancelButton, Converter={StaticResource invertableBooleanToVisibilityConverter}, ConverterParameter=Inverted}"/>
     </Grid>
 </UserControl>
