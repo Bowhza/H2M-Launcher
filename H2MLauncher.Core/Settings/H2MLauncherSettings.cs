@@ -20,6 +20,6 @@ namespace H2MLauncher.Core.Settings
 
         public bool ServerQueueing { get; init; } = false;
 
-        public bool WatchGameDirectory { get; init; }
+        public bool WatchGameDirectory { get; init; } = true;
     }
 }

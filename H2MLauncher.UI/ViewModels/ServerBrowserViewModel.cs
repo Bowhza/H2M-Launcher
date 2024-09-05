@@ -212,6 +212,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _gameDirectoryService.FastFileChanged += GameDirectoryService_FastFileChanged;
 
         _matchmakingService.Joined += MatchmakingService_Joined;
+
+        UpdateInstalledMaps(false);
     }
 
     private void GameDirectoryService_FastFileChanged(string fileName, string mapName)
@@ -662,7 +664,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
             Map = gameServer.MapName,
             MapDisplayName = mapDisplayName ?? gameServer.MapName,
-            HasMap = _installedMaps.Contains(gameServer.MapName),
+            HasMap = _installedMaps.Contains(gameServer.MapName) || !_h2MLauncherOptions.Value.WatchGameDirectory,
             Version = server.Version,
             IsPrivate = gameServer.IsPrivate,
             Ping = gameServer.Ping,
