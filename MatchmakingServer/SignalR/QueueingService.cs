@@ -138,6 +138,8 @@ namespace MatchmakingServer.SignalR
                     // TODO: reset join attempts / timer to make it more fair?
                     player.JoinAttempts.Clear();
                 }
+
+                return;
             }
 
             // allow retry too until timeout or max attempts
