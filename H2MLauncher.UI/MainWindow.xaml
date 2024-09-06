@@ -94,28 +94,65 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="85" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
-                    <TextBlock Grid.Column="1" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right"  FontWeight="Bold" Padding="5">
+                    <TextBlock Grid.Column="1" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding UpdateLauncherCommand.IsRunning}" Value="True">
+                                        <Setter Property="Visibility"  Value="Hidden"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding UpdateFinished}" Value="True">
+                                        <Setter Property="Visibility"  Value="Hidden"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
                     <i:Interaction.Triggers>
                         <i:EventTrigger EventName="PreviewMouseDown">
                             <i:InvokeCommandAction Command="{Binding UpdateLauncherCommand}"/>
                         </i:EventTrigger>
                     </i:Interaction.Triggers>
                     </TextBlock>
-                    <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateLauncherCommand.IsRunning, Converter={StaticResource booleanToVisibilityConverter}}">
-                        <ProgressBar Name="PbStatus"  Width="400" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}"/>
+                    <Grid Grid.Column="1" HorizontalAlignment="Right" Width="250" Height="30" Visibility="{Binding UpdateLauncherCommand.IsRunning, Converter={StaticResource booleanToVisibilityConverter}}">
+                        <ProgressBar Name="PbStatus" Width="250" Height="30" Value="{Binding UpdateDownloadProgress, Mode=OneWay}" />
                         <TextBlock Text="{Binding ElementName=PbStatus, Path=Value, StringFormat={}{0:0}%}" HorizontalAlignment="Center" VerticalAlignment="Center" />
                     </Grid>
-                    <Grid Grid.Column="1" Width="400" Height="30" Visibility="{Binding UpdateFinished, Converter={StaticResource booleanToVisibilityConverter}}">
+                    <Grid Grid.Column="1" Width="Auto" HorizontalAlignment="Right" Height="30" Visibility="{Binding UpdateFinished, Converter={StaticResource booleanToVisibilityConverter}}">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="200" />
-                            <ColumnDefinition Width="5" />
-                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="122" />
+                            <ColumnDefinition Width="6" />
+                            <ColumnDefinition Width="122" />
                         </Grid.ColumnDefinitions>
                         <Button Grid.Column="0" Content="Open release notes" Command="{Binding OpenReleaseNotesCommand}" />
                         <Button Grid.Column="2" Content="Restart" Command="{Binding RestartCommand}" />
                     </Grid>
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" 
+                                Grid.Column="2" Margin="1,0,0,0">
+                        <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,2,0" 
+                                FontSize="18" Height="27" Width="26" Click="MinimizeButton_Click"
+                                Opacity="0.85" Padding="0,0,0,4" TextBlock.TextAlignment="Center" >
+                            <Button.Content>
+                                <TextBlock Text="🗕" Margin="0,-1,0,0" Width="20" />
+                            </Button.Content>
+                        </Button>
+                        <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,2,0" 
+                                FontSize="18" Height="27" Width="26" Click="MaximizeButton_Click"
+                                Opacity="0.85" Padding="0,0,0,4" TextBlock.TextAlignment="Center" >
+                            <Button.Content>
+                                <TextBlock Text="🗖" Margin="0,0,0,0" x:Name="MaximizeButtonText" Width="20"/>
+                            </Button.Content>
+                        </Button>
+                        <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,0,0" 
+                                FontSize="18" Height="27" Width="26" Click="CloseButton_Click"
+                                Opacity="0.85" Padding="0,0,0,4">
+                            <Button.Content>
+                                <TextBlock Text="&#128473;" Margin="0,0,0,0" TextAlignment="Center" Width="20"/>
+                            </Button.Content>
+                        </Button>
+                    </StackPanel>
                 </Grid>
                 <Grid Grid.Row="1" >
                     <Grid.ColumnDefinitions>
@@ -371,7 +408,7 @@
                         </StatusBarItem.ContentTemplate>
                     </StatusBarItem>
                     <StatusBarItem HorizontalAlignment="Right" Grid.Column="4" VerticalContentAlignment="Center">
-                        <Button Padding="20" Style="{StaticResource LinkButtonStyle}"  Command="{Binding ShowSettingsCommand}">
+                        <Button Style="{StaticResource LinkButtonStyle}"  Command="{Binding ShowSettingsCommand}">
                             <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
                         </Button>
                     </StatusBarItem>
