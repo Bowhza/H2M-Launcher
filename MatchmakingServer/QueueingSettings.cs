@@ -13,7 +13,7 @@ public record QueueingSettings
     public int TotalJoinTimeLimitInS { get; init; } = 50;
 
     /// <summary>
-    /// The timeout for a join request after which the player will be removed from the queue;
+    /// The timeout for a join request after which the player will be removed from the queue.
     /// </summary>
     public int JoinTimeoutInS { get; init; } = 30;
 

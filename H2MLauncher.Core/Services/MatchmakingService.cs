@@ -29,6 +29,8 @@ namespace H2MLauncher.Core.Services
         Joined
     }
 
+
+
     public sealed class MatchmakingService : IAsyncDisposable
     {
         private readonly H2MCommunicationService _h2MCommunicationService;
@@ -38,15 +40,19 @@ namespace H2MLauncher.Core.Services
         private readonly IGameCommunicationService _gameCommunicationService;
         private readonly IOptionsMonitor<H2MLauncherSettings> _options;
 
+        private record struct ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails;
+
         private record QueuedServer(string Ip, int Port)
         {
             public bool HasSeenConnecting { get; set; }
+
+            public string? PrivatePassword { get; set; }
         }
 
         private readonly List<QueuedServer> _queuedServers = [];
+        private readonly Dictionary<ServerConnectionDetails, string> _privatePasswords = [];
         private bool _hasSeenConnecting = false;
-        private readonly Dictionary<(string ip, int port), string> _privatePasswords = [];
-
+        
         public int QueuePosition { get; private set; }
         public int TotalPlayersInQueue { get; private set; }
 
@@ -78,8 +84,12 @@ namespace H2MLauncher.Core.Services
         public event Action<(string ip, int port)>? Joined;
         public event Action<(string ip, int port)>? JoinFailed;
 
-        public MatchmakingService(ILogger<MatchmakingService> logger, H2MCommunicationService h2MCommunicationService,
-            IGameCommunicationService gameCommunicationService, IOptions<MatchmakingSettings> matchmakingSettings, IOptionsMonitor<H2MLauncherSettings> options)
+        public MatchmakingService(
+            ILogger<MatchmakingService> logger, 
+            H2MCommunicationService h2MCommunicationService,
+            IGameCommunicationService gameCommunicationService, 
+            IOptions<MatchmakingSettings> matchmakingSettings, 
+            IOptionsMonitor<H2MLauncherSettings> options)
         {
             _logger = logger;
             _options = options;
@@ -123,7 +133,7 @@ namespace H2MLauncher.Core.Services
 
             Joining?.Invoke((ip, port));
 
-            if (_h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault((ip, port))))
+            if (_h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
             {
                 QueueingState = PlayerState.Joining;
                 return true;
@@ -284,7 +294,7 @@ namespace H2MLauncher.Core.Services
 
                 if (privatePassword is not null)
                 {
-                    _privatePasswords.Add((server.Ip, server.Port), privatePassword);
+                    _privatePasswords[new ServerConnectionDetails(server.Ip, server.Port)] = privatePassword;
                 };
 
                 QueueingState = PlayerState.Queued;
