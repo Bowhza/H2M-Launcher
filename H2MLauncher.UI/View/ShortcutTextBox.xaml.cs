@@ -5,9 +5,6 @@ using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI.View.Controls
 {
-    /// <summary>
-    /// Interaktionslogik für ShortcutTextBox.xaml
-    /// </summary>
     public partial class ShortcutTextBox : UserControl
     {
         public ShortcutTextBox()

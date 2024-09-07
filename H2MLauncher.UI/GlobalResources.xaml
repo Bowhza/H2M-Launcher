@@ -77,13 +77,6 @@
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
-                        <!--<Trigger Property="IsFocused" Value="True">
-                            <Setter Property="Foreground" Value="LightBlue" />
-                        </Trigger>
-                        <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
-                        </Trigger>-->
-
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter TargetName="border" Property="Background" Value="#444" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
@@ -138,11 +131,6 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-        <!--<Style.Triggers>
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="Red"/>
-            </Trigger>
-        </Style.Triggers>-->
     </Style>
 
     <Style TargetType="{x:Type ToggleButton}">
@@ -227,11 +215,6 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
-        <!--<Style.Triggers>
-        <Trigger Property="IsMouseOver" Value="True">
-            <Setter Property="Background" Value="Red"/>
-        </Trigger>
-    </Style.Triggers>-->
     </Style>
 
 
