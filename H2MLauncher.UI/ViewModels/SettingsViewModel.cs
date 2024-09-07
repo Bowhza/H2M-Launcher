@@ -33,6 +33,8 @@ public partial class SettingsViewModel : DialogViewModelBase
 
     public bool CanEnableServerQueueing => GameCommunicationEnabled;
 
+    public ShortcutsViewModel Shortcuts { get; }
+
     public ICommand ApplyCommand { get; set; }
 
     public ICommand CancelCommand { get; set; }
@@ -45,6 +47,9 @@ public partial class SettingsViewModel : DialogViewModelBase
         GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
         ServerQueueingEnabled = options.CurrentValue.ServerQueueing;
 
+        Shortcuts = new();
+        Shortcuts.ResetViewModel(options.CurrentValue.KeyBindings);
+
         ApplyCommand = new RelayCommand(() =>
         {
             // write back to settings
@@ -53,7 +58,8 @@ public partial class SettingsViewModel : DialogViewModelBase
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,
                 GameMemoryCommunication = GameCommunicationEnabled,
-                ServerQueueing = ServerQueueingEnabled
+                ServerQueueing = ServerQueueingEnabled,
+                KeyBindings = Shortcuts.ToDictionary(),
             }, reload: true);
 
             CloseCommand.Execute(true);
