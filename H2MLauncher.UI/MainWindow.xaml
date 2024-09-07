@@ -136,21 +136,21 @@
                                 FontSize="18" Height="27" Width="26" Click="MinimizeButton_Click"
                                 Opacity="0.85" Padding="0,0,0,4" TextBlock.TextAlignment="Center" >
                             <Button.Content>
-                                <TextBlock Text="🗕" Margin="0,-1,0,0" Width="20" />
+                                <TextBlock Text="&#128469;&#xFE0E;" Margin="0,-1,0,0" Width="20" TextWrapping="Wrap" />
                             </Button.Content>
                         </Button>
                         <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,2,0" 
                                 FontSize="18" Height="27" Width="26" Click="MaximizeButton_Click"
-                                Opacity="0.85" Padding="0,0,0,4" TextBlock.TextAlignment="Center" >
+                                Opacity="0.85" Padding="0,0,0,4" >
                             <Button.Content>
-                                <TextBlock Text="🗖" Margin="0,0,0,0" x:Name="MaximizeButtonText" Width="20"/>
+                                <TextBlock Text="&#128470;&#xFE0E;" Margin="0,0,0,0" x:Name="MaximizeButtonText" Width="20" TextAlignment="Center" TextWrapping="Wrap"/>
                             </Button.Content>
                         </Button>
                         <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,0,0" 
                                 FontSize="18" Height="27" Width="26" Click="CloseButton_Click"
                                 Opacity="0.85" Padding="0,0,0,4">
                             <Button.Content>
-                                <TextBlock Text="&#128473;" Margin="0,0,0,0" TextAlignment="Center" Width="20"/>
+                                <TextBlock Text="&#128473;&#xFE0E;" Margin="0,0,0,0" TextAlignment="Center" Width="20" TextWrapping="Wrap"/>
                             </Button.Content>
                         </Button>
                     </StackPanel>
