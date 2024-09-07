@@ -8,11 +8,17 @@ namespace H2MLauncher.Core.Settings
 
         public string IW4MMasterServerUrl { get; init; } = string.Empty;
 
-        public List<SimpleServerInfo> FavouriteServers { get; set; } = [];
+        public List<SimpleServerInfo> FavouriteServers { get; init; } = [];
 
-        public List<RecentServerInfo> RecentServers { get; set; } = [];
+        public List<RecentServerInfo> RecentServers { get; init; } = [];
 
         public ServerFilterSettings ServerFilter { get; init; } = new();
+
+        public bool AutomaticGameDetection { get; init; } = true;
+
+        public bool GameMemoryCommunication { get; init; } = false;
+
+        public bool WatchGameDirectory { get; init; }
 
         public Dictionary<string, string> KeyBindings { get; init; } = [];
     }

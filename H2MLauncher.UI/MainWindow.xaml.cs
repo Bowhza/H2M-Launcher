@@ -80,5 +80,21 @@ namespace H2MLauncher.UI
         {
             ((DataGridRow)sender).IsSelected = true;
         }
+
+        private void CloseButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
+
+        private void MinimizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState.Minimized;
+        }
+
+        private void MaximizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            WindowState = WindowState is WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
+            MaximizeButtonText.Text = WindowState is WindowState.Normal ? "🗖︎" : "🗗︎";
+        }
     }
 }

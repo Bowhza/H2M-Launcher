@@ -32,6 +32,18 @@
             </Style.Setters>
         </Style>
 
+        <Style TargetType="ToolTip">
+            <Style.Resources>
+                <Style TargetType="ContentPresenter">
+                    <Style.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </Style.Resources>
+                </Style>
+            </Style.Resources>
+            <Setter Property="MaxWidth" Value="400" />
+        </Style>
 
     </UserControl.Resources>
     <Grid Margin="25,15,25,0">
@@ -57,10 +69,10 @@
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
                    Margin="0,0,0,15"/>
 
-        <TextBlock Text="Master Server URL:" Grid.Row="1" Margin="15,5" HorizontalAlignment="Right"/>
+        <TextBlock Text="Master Server URL:" Grid.Row="1" Margin="15,5" HorizontalAlignment="Left"/>
         <TextBox Text="{Binding Iw4mMasterServerUrl}" Grid.Row="1" Grid.Column="1" Height="20"/>
 
-        <TextBlock Text="Game Location:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
+        <TextBlock Text="Game Location:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Left"/>
         <Border Grid.Row="2" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">
             <DockPanel>
                 <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectGameDirectoryCommand}"
@@ -93,6 +105,12 @@
                 </TextBox>
             </DockPanel>
         </Border>
+
+        <CheckBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" 
+              Foreground="White" Margin="0,7" 
+              VerticalAlignment="Center"
+              Content="Enable game communication" IsChecked="{Binding GameCommunicationEnabled}"
+              ToolTip="Enables communication with the game by reading certain values (such as connection state) from the game's memory. This is required for certain features."/>
 
         <Grid Grid.Row="5" Grid.ColumnSpan="2" Margin="0,25,0,15">
             <Separator Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center"/>
