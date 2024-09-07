@@ -8,6 +8,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows;
 using System.Collections;
+using Microsoft.Xaml.Behaviors;
 
 namespace H2MLauncher.UI
 {

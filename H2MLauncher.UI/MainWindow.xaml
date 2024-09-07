@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:H2MLauncher.UI"
+        xmlns:view="clr-namespace:H2MLauncher.UI.View" 
         xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
         xmlns:models="clr-namespace:H2MLauncher.Core.Models;assembly=H2MLauncher.Core" 
         xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog" 
@@ -74,8 +75,9 @@
     </Window.Resources>
     <Window.InputBindings>
         <!-- Disable Shortcut Commands -->
-        <KeyBinding Key="F5" Command="{Binding RefreshServersCommand}" />
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
+        <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.RefreshServers}" Command="{Binding RefreshServersCommand}" />
+        <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.Reconnect}" Command="{Binding ReconnectCommand}"/>
     </Window.InputBindings>
     <Grid>
         <Border CornerRadius="10" Padding="10,10" Background="Black"/>

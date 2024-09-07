@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Security;
 using System.Text.Json;
 using System.Windows;
 
@@ -65,6 +66,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(IsRecentsSelected))]
     private IServerTabViewModel _selectedTab;
 
+    [ObservableProperty]
+    private ServerViewModel? _lastServer = null;
+    private SecureString? _lastServerPassword = null;
+
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
     private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
@@ -78,6 +83,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter;
+
+    [ObservableProperty]
+    private ShortcutsViewModel _shortcuts;
 
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
@@ -94,6 +102,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IRelayCommand RestartCommand { get; }
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
+
+    public IRelayCommand ReconnectCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -136,8 +146,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         RestartCommand = new RelayCommand(DoRestartCommand);
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
+        ReconnectCommand = new RelayCommand(ReconnectServer);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
+        Shortcuts = new();
 
         if (!TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
         {
@@ -188,12 +200,18 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 // reset filter to stored values
                 AdvancedServerFilter.ResetViewModel(newSettings.ServerFilter);
 
+                // reset shortcuts to stored values
+                Shortcuts.ResetViewModel(newSettings.KeyBindings);
+
                 oldSettings = newSettings;
             });
         });
 
         // initialize server filter view model with stored values
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
+
+        // initialize shortcut key bindings with stored values
+        Shortcuts.ResetViewModel(_h2MLauncherOptions.CurrentValue.KeyBindings);
 
         _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
@@ -237,9 +255,21 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         SettingsViewModel settingsViewModel = new(_h2MLauncherOptions);
 
+        // make sure all active hotkeys are disabled when settings are open
+        foreach (var shortcut in Shortcuts.Shortcuts)
+        {
+            shortcut.IsHotkeyEnabled = false;
+        }
+
         if (_dialogService.OpenDialog<SettingsDialogView>(settingsViewModel) == true)
         {
             // settings saved;
+        }
+
+        // re-enable hotkeys
+        foreach (var shortcut in Shortcuts.Shortcuts)
+        {
+            shortcut.IsHotkeyEnabled = true;
         }
     }
 
@@ -583,8 +613,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             IEnumerable<RaidMaxServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
 
-            //await UpdateInstalledMaps();
-
             // Start by sending info requests to the game servers
             await Task.Run(() => _gameServerCommunicationService.StartRetrievingGameServerInfo(serversOrderedByOccupation, (server, gameServer) =>
             {
@@ -676,15 +704,33 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 return;
         }
 
+        JoinServerInternal(serverViewModel, password);
+    }
+
+    private bool JoinServerInternal(ServerViewModel serverViewModel, string? password)
+    {
         bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+
+            LastServer = serverViewModel;
+            _lastServerPassword = password?.ToSecuredString();
         }
 
         StatusText = hasJoined
             ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
+
+        return hasJoined;
+    }
+
+    private void ReconnectServer()
+    {
+        if (LastServer is not null)
+        {
+            JoinServerInternal(LastServer, _lastServerPassword?.ToUnsecuredString());
+        }
     }
 
     private void LaunchH2M()
