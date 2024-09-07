@@ -80,7 +80,8 @@ namespace H2MLauncher.UI.View
                     oldKeyBindings.Remove(keyBinding);
                 }
 
-                BindingOperations.ClearBinding(d, GestureProperty);
+                //BindingOperations.ClearBinding(d, GestureProperty);
+                keyBinding.Gesture = null;
                 BindingOperations.ClearBinding(d, HotkeyManager.RegisterGlobalHotkeyProperty);
             }
 
@@ -100,40 +101,33 @@ namespace H2MLauncher.UI.View
             }
 
             shortcutViewModel.PropertyChanged += ShortcutViewModel_PropertyChanged;
-            shortcutViewModel.PropertyChanging += ShortcutViewModel_PropertyChanging;
-            BindingOperations.SetBinding(d, GestureProperty, new Binding("KeyGesture") { Source = shortcutViewModel });
-            BindingOperations.SetBinding(d, HotkeyManager.RegisterGlobalHotkeyProperty, new Binding("IsHotkeyRegistered") { Source = shortcutViewModel });
-        }
+            keyBinding.Gesture = shortcutViewModel.KeyGesture;
 
-        private static void ShortcutViewModel_PropertyChanging(object? sender, System.ComponentModel.PropertyChangingEventArgs e)
-        {
-            ShortcutViewModel viewModel = (ShortcutViewModel)sender!;
-
-            if (!viewModel.IsHotkey || e.PropertyName != nameof(ShortcutViewModel.KeyGesture))
+            BindingOperations.SetBinding(keyBinding, HotkeyManager.RegisterGlobalHotkeyProperty, new Binding(nameof(ShortcutViewModel.IsHotkeyRegistered))
             {
-                return;
-            }
-
-            if (ShortcutKeyBindings.TryGetValue(viewModel, out var keyBindings))
-            {
-                foreach (var keyBinding in keyBindings)
-                {
-                    // clear the hotkeys when the binding is changing
-                    BindingOperations.ClearBinding(keyBinding, HotkeyManager.RegisterGlobalHotkeyProperty);
-                }
-            }
+                Source = shortcutViewModel
+            });
         }
 
         private static void ShortcutViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
+            if (e.PropertyName != nameof(ShortcutViewModel.KeyGesture) && e.PropertyName != nameof(ShortcutViewModel.IsHotkey))
+            {
+                return;
+            }
+
             ShortcutViewModel viewModel = (ShortcutViewModel)sender!;
             if (viewModel.IsHotkey && ShortcutKeyBindings.TryGetValue(viewModel, out var keyBindings))
             {
                 // register the hotkeys again when the binding is changed
                 foreach (var keyBinding in keyBindings)
                 {
+                    BindingOperations.ClearBinding(keyBinding, HotkeyManager.RegisterGlobalHotkeyProperty);
+
+                    keyBinding.Gesture = viewModel.KeyGesture;
+
                     BindingOperations.SetBinding(keyBinding, HotkeyManager.RegisterGlobalHotkeyProperty,
-                        new Binding("IsHotkeyRegistered")
+                        new Binding(nameof(ShortcutViewModel.IsHotkeyRegistered))
                         {
                             Source = viewModel
                         });

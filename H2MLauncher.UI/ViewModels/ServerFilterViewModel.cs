@@ -89,7 +89,7 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelected = true,
             };
 
-            UnknownGameModes = new(new IW4MObjectMap("Unknown", "Unknown"))
+            UnknownGameModes = new(new IW4MObjectMap("unknown", "Unknown"))
             {
                 Name = "Unknown",
                 IsSelected = true
@@ -162,6 +162,9 @@ namespace H2MLauncher.UI.ViewModels
             {
                 AddNewExcludeKeyword(keyword, isEnabled);
             }
+
+            OnPropertyChanged(nameof(SelectedMapPacks));
+            OnPropertyChanged(nameof(SelectedGameModes));
         }
 
         private void GameModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)

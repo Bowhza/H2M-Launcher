@@ -2,8 +2,6 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
-using NHotkey.Wpf;
-
 namespace H2MLauncher.UI.ViewModels;
 
 public partial class ShortcutViewModel : ObservableObject
@@ -53,7 +51,7 @@ public partial class ShortcutViewModel : ObservableObject
             }
 
             List<string> keys = [];
-
+            
             if ((Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
                 keys.Add("Ctrl");
             if ((Modifiers & ModifierKeys.Alt) == ModifierKeys.Alt)
