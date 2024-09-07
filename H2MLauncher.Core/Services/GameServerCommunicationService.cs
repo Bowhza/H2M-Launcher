@@ -49,7 +49,7 @@ namespace H2MLauncher.Core.Services
             _gameServerCommunication = new();
 
             // Register info response command handler
-            var handlerRegistration = _gameServerCommunication.On(INFO_RESPONSE, OnInfoResponse);
+            IDisposable handlerRegistration = _gameServerCommunication.On(INFO_RESPONSE, OnInfoResponse);
 
             _registrations.Add(handlerRegistration);
         }

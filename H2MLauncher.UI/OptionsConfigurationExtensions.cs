@@ -1,4 +1,6 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using System.Reflection;
+
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -17,12 +19,11 @@ namespace H2MLauncher.UI
             {
                 var globalSettings = new TGlobal();
                 configuration.GetSection(configSectionKey).Bind(globalSettings);
-                //TGlobal globalOptions = globalOptionsFactory.Create(Options.DefaultName);
                 TOptions specificOptions = mappingFunc(globalSettings);
 
-                foreach (var prop in typeof(TOptions).GetProperties())
+                foreach (PropertyInfo prop in typeof(TOptions).GetProperties())
                 {
-                    var value = prop.GetValue(specificOptions);
+                    object? value = prop.GetValue(specificOptions);
                     prop.SetValue(options, value);
                 }
             });
@@ -40,9 +41,9 @@ namespace H2MLauncher.UI
             {
                 TOptions specificOptions = mappingFunc(baseOptions.CurrentValue);
 
-                foreach (var prop in typeof(TOptions).GetProperties())
+                foreach (PropertyInfo prop in typeof(TOptions).GetProperties())
                 {
-                    var value = prop.GetValue(specificOptions);
+                    object? value = prop.GetValue(specificOptions);
                     prop.SetValue(options, value);
                 }
             });

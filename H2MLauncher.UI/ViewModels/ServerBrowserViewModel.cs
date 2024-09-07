@@ -4,6 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Net;
 using System.Runtime.CompilerServices;
+using System.Security;
 using System.Text.Json;
 using System.Windows;
 
@@ -70,6 +71,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [NotifyPropertyChangedFor(nameof(IsRecentsSelected))]
     private IServerTabViewModel _selectedTab;
 
+    [ObservableProperty]
+    private ServerViewModel? _lastServer = null;
+    private SecureString? _lastServerPassword = null;
+
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
     private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
@@ -83,6 +88,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private ServerFilterViewModel _advancedServerFilter;
+
+    [ObservableProperty]
+    private ShortcutsViewModel _shortcuts;
 
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
@@ -99,6 +107,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IRelayCommand RestartCommand { get; }
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
+    public IAsyncRelayCommand ReconnectCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -145,8 +154,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         RestartCommand = new RelayCommand(DoRestartCommand);
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
+        ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
+        Shortcuts = new();
 
         if (!TryAddNewTab("All Servers", out ServerTabViewModel? allServersTab))
         {
@@ -197,12 +208,18 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 // reset filter to stored values
                 AdvancedServerFilter.ResetViewModel(newSettings.ServerFilter);
 
+                // reset shortcuts to stored values
+                Shortcuts.ResetViewModel(newSettings.KeyBindings);
+
                 oldSettings = newSettings;
             });
         });
 
         // initialize server filter view model with stored values
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
+
+        // initialize shortcut key bindings with stored values
+        Shortcuts.ResetViewModel(_h2MLauncherOptions.CurrentValue.KeyBindings);
 
         _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
@@ -250,9 +267,21 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         SettingsViewModel settingsViewModel = new(_h2MLauncherOptions);
 
+        // make sure all active hotkeys are disabled when settings are open
+        foreach (var shortcut in Shortcuts.Shortcuts)
+        {
+            shortcut.IsHotkeyEnabled = false;
+        }
+
         if (_dialogService.OpenDialog<SettingsDialogView>(settingsViewModel) == true)
         {
             // settings saved;
+        }
+
+        // re-enable hotkeys
+        foreach (var shortcut in Shortcuts.Shortcuts)
+        {
+            shortcut.IsHotkeyEnabled = true;
         }
     }
 
@@ -610,7 +639,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList <IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
+            IReadOnlyList<IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
 
             // Let's prioritize populated servers first for getting game server info.
             IEnumerable<IW4MServer> serversOrderedByOccupation = servers
@@ -731,7 +760,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             return;
         }
 
-        ServerData? serverData = _serverData.FirstOrDefault(d => 
+        ServerData? serverData = _serverData.FirstOrDefault(d =>
             d.Ip == serverViewModel.Ip && d.Port == serverViewModel.Port);
 
         int assumedMaxClients = serverViewModel.MaxClientNum - (serverData?.PrivilegedSlots ?? 0);
@@ -741,14 +770,14 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
             // Join the matchmaking server queue
             bool joinedQueue = await _matchmakingService.JoinQueueAsync(
-                server: serverViewModel.Server, 
-                serverEndpoint: serverViewModel.GameServerInfo.Address, 
-                playerName: _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier", 
+                server: serverViewModel.Server,
+                serverEndpoint: serverViewModel.GameServerInfo.Address,
+                playerName: _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier",
                 password);
 
             if (joinedQueue)
             {
-                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService, 
+                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService,
                     onForceJoin: () => JoinServerInternal(serverViewModel, password));
 
                 if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
@@ -774,6 +803,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         if (hasJoined)
         {
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+
+            LastServer = serverViewModel;
+            _lastServerPassword = password?.ToSecuredString();
         }
 
         StatusText = hasJoined
@@ -783,12 +815,22 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return hasJoined;
     }
 
+    private Task ReconnectServer()
+    {
+        if (LastServer is not null)
+        {
+            return JoinServerInternal(LastServer, _lastServerPassword?.ToUnsecuredString());
+        }
+
+        return Task.CompletedTask;
+    }
+
     private void MatchmakingService_Joined((string ip, int port) joinedServer)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
             ServerViewModel? serverViewModel = AllServersTab.Servers.FirstOrDefault(server =>
-            server.Ip == joinedServer.ip && server.Port == joinedServer.port);
+        server.Ip == joinedServer.ip && server.Port == joinedServer.port);
             if (serverViewModel is not null)
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);

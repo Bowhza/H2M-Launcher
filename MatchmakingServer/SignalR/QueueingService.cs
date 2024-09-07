@@ -84,7 +84,7 @@ namespace MatchmakingServer.SignalR
         /// Unregister a player.
         /// </summary>
         /// <param name="connectionId">Client connection id.</param>
-        /// <returns></returns>
+        /// <returns>The previously connected player.</returns>
         public Player? RemovePlayer(string connectionId)
         {
             if (!_connectedPlayers.TryRemove(connectionId, out var player))
@@ -138,15 +138,15 @@ namespace MatchmakingServer.SignalR
                     // TODO: reset join attempts / timer to make it more fair?
                     player.JoinAttempts.Clear();
                 }
+
+                return;
             }
 
             // allow retry too until timeout or max attempts
             player.State = PlayerState.Queued;
             player.Server.JoiningPlayerCount--;
 
-            // otherwise dequeue the player
             // TODO: maybe allow player to stay in queue until max join attempts / time limit reached
-            //DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: true);
         }
 
         public void OnPlayerJoinConfirmed(string connectionId)
@@ -241,18 +241,16 @@ namespace MatchmakingServer.SignalR
 
         private async Task UpdateActualPlayersFromWebfront(GameServer server, CancellationToken cancellationToken)
         {
-            // TODO: fetch actual players
             _logger.LogDebug("Fetching actual players of server {server}...", server);
 
-            var serverStatusList = await _instanceCache.TryGetWebfrontStatusList(server.InstanceId, cancellationToken);
-            if (serverStatusList.Count == 0)
-            {
-                // either no webfront or no servers
-            }
+            IReadOnlyList<IW4MServerStatus> serverStatusList = await _instanceCache.TryGetWebfrontStatusList(server.InstanceId, cancellationToken);
+            
+            IW4MServerStatus? serverStatus = serverStatusList.FirstOrDefault(s => 
+                s.ListenAddress == server.ServerIp && 
+                s.ListenPort == server.ServerPort);
 
-            var serverStatus = serverStatusList.FirstOrDefault(s => s.ListenAddress == server.ServerIp && s.ListenPort == server.ServerPort);
             if (serverStatus is null)
-            {
+            {                
                 _logger.LogDebug("No server status found for server instance {instanceId}", server.InstanceId);
 
                 server.ActualPlayers.Clear();

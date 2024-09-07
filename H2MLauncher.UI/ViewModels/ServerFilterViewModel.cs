@@ -89,7 +89,7 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelected = true,
             };
 
-            UnknownGameModes = new(new IW4MObjectMap("Unknown", "Unknown"))
+            UnknownGameModes = new(new IW4MObjectMap("unknown", "Unknown"))
             {
                 Name = "Unknown",
                 IsSelected = true
@@ -157,18 +157,14 @@ namespace H2MLauncher.UI.ViewModels
 
             // exclude keywords
 
+            ExcludeFilters.Clear();
             foreach (var (keyword, isEnabled) in settings.ExcludeKeywords)
             {
-                SelectableItem<string>? existingItem = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword));
-                if (existingItem is null)
-                {
-                    AddNewExcludeKeyword(keyword);
-                }
-                else
-                {
-                    existingItem.IsSelected = isEnabled;
-                }
+                AddNewExcludeKeyword(keyword, isEnabled);
             }
+
+            OnPropertyChanged(nameof(SelectedMapPacks));
+            OnPropertyChanged(nameof(SelectedGameModes));
         }
 
         private void GameModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -190,9 +186,14 @@ namespace H2MLauncher.UI.ViewModels
         [RelayCommand(CanExecute = nameof(CanAddNexExcludeKeyword))]
         public void AddNewExcludeKeyword(string keyword)
         {
-            ExcludeFilters.Add(new(keyword, onRemove: () => RemoveExcludeKeyword(keyword))
+            AddNewExcludeKeyword(keyword, true);
+        }
+
+        private void AddNewExcludeKeyword(string keyword, bool isSelected)
+        {
+            ExcludeFilters.Add(new(keyword.ToLower(), onRemove: () => RemoveExcludeKeyword(keyword))
             {
-                IsSelected = true,
+                IsSelected = isSelected,
                 Name = keyword,
             });
         }
@@ -204,13 +205,13 @@ namespace H2MLauncher.UI.ViewModels
                 return false;
             }
 
-            return !ExcludeFilters.Any(i => i.Model.Equals(keyword));
+            return !ExcludeFilters.Any(i => i.Model.Equals(keyword, StringComparison.OrdinalIgnoreCase));
         }
 
         [RelayCommand]
         public void RemoveExcludeKeyword(string keyword)
         {
-            SelectableItem<string>? item = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword));
+            SelectableItem<string>? item = ExcludeFilters.FirstOrDefault(i => i.Model.Equals(keyword, StringComparison.OrdinalIgnoreCase));
             if (item is not null)
             {
                 ExcludeFilters.Remove(item);
