@@ -13,6 +13,332 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.Core.Services
 {
+    public class GameCommunicationService : IDisposable
+    {
+        private const string GAME_WINDOW_TITLE = "H2M-Mod";
+        private const string MAIN_WINDOW_SEARCH_STRING = "h2m-mod";
+        private const string GAME_EXECUTABLE_NAME = "";
+
+        //Windows API constants
+        private const int WM_CHAR = 0x0102; // Message code for sending a character
+        private const int WM_KEYDOWN = 0x0100; // Message code for key down
+        private const int WM_KEYUP = 0x0101;   // Message code for key up
+
+        private readonly IWritableOptions<H2MLauncherSettings> _h2mLauncherSettings;
+        private readonly IErrorHandlingService _errorHandlingService;
+        private readonly ILogger<GameCommunicationService> _logger;
+        private readonly IDisposable? _optionsChangeRegistration;
+
+        public IGameCommunicationService GameCommunication { get; }
+        public IGameDetectionService GameDetection { get; }
+        public virtual bool SupportsLaunching => true;
+
+        public GameCommunicationService(IErrorHandlingService errorHandlingService, IWritableOptions<H2MLauncherSettings> options,
+            ILogger<GameCommunicationService> logger, IGameCommunicationService gameCommunicationService, IGameDetectionService gameDetectionService)
+        {
+            _errorHandlingService = errorHandlingService;
+            _h2mLauncherSettings = options;
+            _logger = logger;
+            GameCommunication = gameCommunicationService;
+            GameDetection = gameDetectionService;
+
+            if (options.CurrentValue.AutomaticGameDetection)
+            {
+                GameDetection.StartGameDetection();
+            }
+
+            _optionsChangeRegistration = options.OnChange((settings, _) =>
+            {
+                if (!settings.AutomaticGameDetection && GameDetection.IsGameDetectionRunning)
+                {
+                    GameDetection.StopGameDetection();
+                }
+                else if (settings.AutomaticGameDetection && !GameDetection.IsGameDetectionRunning)
+                {
+                    GameDetection.StartGameDetection();
+                }
+
+                if (!settings.GameMemoryCommunication && GameCommunication.IsGameCommunicationRunning)
+                {
+                    GameCommunication.StopGameCommunication();
+                }
+                else if (settings.GameMemoryCommunication && !GameCommunication.IsGameCommunicationRunning
+                    && GameDetection.DetectedGame is not null)
+                {
+                    GameCommunication.StartGameCommunication(GameDetection.DetectedGame.Process);
+                }
+            });
+        }
+
+        //Windows API functions to send input to a window
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern IntPtr SendMessage(IntPtr hWnd, uint msg, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        public static extern bool ReleaseCapture();
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool EnumWindows(EnumWindowsProc enumProc, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern bool EnumThreadWindows(int dwThreadId, EnumWindowsProc lpfn, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+
+
+        private delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+        private static IEnumerable<IntPtr> EnumerateProcessWindowHandles(int processId)
+        {
+            var handles = new List<IntPtr>();
+
+            foreach (ProcessThread thread in Process.GetProcessById(processId).Threads)
+                EnumThreadWindows(thread.Id,
+                    (hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
+
+            return handles;
+        }
+
+        private static IEnumerable<IntPtr> EnumerateWindowHandles()
+        {
+            var handles = new List<IntPtr>();
+
+            EnumWindows((hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
+
+            return handles;
+        }
+
+        private static string? GetWindowTitle(IntPtr hWnd)
+        {
+            const int length = 256;
+            StringBuilder sb = new(length);
+
+            if (GetWindowText(hWnd, sb, length) > 0)
+            {
+                return sb.ToString();
+            }
+
+            return null;
+        }
+
+        private bool TryFindValidGameFile(out string fileName)
+        {
+            const string exeFileName = "h2m-mod.exe";
+
+            if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
+            {
+                // no location set, try relative path
+                fileName = Path.GetFullPath(exeFileName);
+                return File.Exists(fileName);
+            }
+
+            string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.CurrentValue.MWRLocation);
+
+            if (!Path.Exists(userDefinedLocation))
+            {
+                // neither dir or file exists
+                fileName = userDefinedLocation;
+                return false;
+            }
+
+            if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
+            {
+                // is a directory, get full file name
+                fileName = Path.Combine(userDefinedLocation, exeFileName);
+
+                return File.Exists(fileName);
+            }
+
+            // is a file?
+            fileName = userDefinedLocation;
+            return File.Exists(userDefinedLocation);
+        }
+
+        public void LaunchGame()
+        {
+            ReleaseCapture();
+
+            try
+            {
+                // Check if the process is already running
+                Process? runningProcess = FindMainProcess();
+                if (runningProcess is not null)
+                {
+                    _errorHandlingService.HandleError("h2m-mod.exe is already running.");
+                    return;
+                }
+
+                // Proceed to launch the process if it's not running
+                if (TryFindValidGameFile(out string gameFileName) &&
+                    !string.IsNullOrEmpty(gameFileName))
+                {
+                    ProcessStartInfo startInfo = new(gameFileName)
+                    {
+                        WorkingDirectory = Path.GetDirectoryName(gameFileName)
+                    };
+
+                    Process.Start(startInfo);
+                }
+                else
+                {
+                    _errorHandlingService.HandleException(
+                        new FileNotFoundException("Mod executable was not found."),
+                        $"The game mod executable could not be found at {gameFileName}!");
+                }
+            }
+            catch (Exception ex)
+            {
+                _errorHandlingService.HandleException(ex, "Error launching game.");
+            }
+        }
+
+        public Task<bool> JoinServerAsync(string ip, string port, string? password = null)
+        {
+            return Task.Factory.StartNew(() =>
+            {
+                const string disconnectCommand = "disconnect";
+                string connectCommand = $"connect {ip}:{port}";
+
+                if (password is not null)
+                {
+                    connectCommand += $";password {password}";
+                }
+
+                Process? h2mModProcess = FindMainProcess();
+                if (h2mModProcess == null)
+                {
+                    _errorHandlingService.HandleError("Could not find the game mod terminal window.");
+                    return false;
+                }
+
+                IntPtr conHostHandle = FindModConsoleWindow();
+
+                // Grab the handle of conhost or main window
+                nint hWindow = conHostHandle == IntPtr.Zero ? h2mModProcess.MainWindowHandle : conHostHandle;
+
+                ReleaseCapture();
+
+                // Open In Game Terminal Window
+                SendMessage(hWindow, WM_KEYDOWN, 192, IntPtr.Zero);
+
+                // Send the "disconnect" command to the terminal window
+                foreach (char c in disconnectCommand)
+                {
+                    SendMessage(hWindow, WM_CHAR, c, IntPtr.Zero);
+                    Thread.Sleep(1);
+                }
+
+                // Sleep for 1ms to allow the command to be processed
+                Thread.Sleep(1);
+
+                // Simulate pressing the Enter key
+                SendMessage(hWindow, WM_KEYDOWN, 13, IntPtr.Zero);
+                SendMessage(hWindow, WM_KEYUP, 13, IntPtr.Zero);
+
+                // Send the "connect" command to the terminal window
+                foreach (char c in connectCommand)
+                {
+                    SendMessage(hWindow, WM_CHAR, c, IntPtr.Zero);
+                    Thread.Sleep(1);
+                }
+
+                // Sleep for 1ms to allow the command to be processed
+                Thread.Sleep(1);
+
+                // Simulate pressing the Enter key
+                SendMessage(hWindow, WM_KEYDOWN, 13, IntPtr.Zero);
+                SendMessage(hWindow, WM_KEYUP, 13, IntPtr.Zero);
+
+                SendMessage(hWindow, WM_KEYDOWN, 192, IntPtr.Zero);
+
+                // Set H2M to foreground window
+                var hGameWindow = FindGameWindowHandle(h2mModProcess);
+                if (hGameWindow != IntPtr.Zero)
+                {
+                    SetForegroundWindow(hGameWindow);
+                }
+
+                return true;
+            });
+        }
+
+        protected virtual IntPtr FindGameWindowHandle(Process mainProcess)
+        {
+            return FindWindowByTitle(mainProcess, (title, handle) => title.Equals(GAME_WINDOW_TITLE));
+        }
+
+        private IntPtr FindModConsoleWindow()
+        {
+            foreach (var handle in EnumerateWindowHandles())
+            {
+                string? title = GetWindowTitle(handle);
+                if (title != null && title.Contains(MAIN_WINDOW_SEARCH_STRING, StringComparison.OrdinalIgnoreCase))
+                {
+                    if (title == GAME_WINDOW_TITLE)
+                    {
+                        continue;
+                    }
+
+                    uint threadId = GetWindowThreadProcessId(handle, out var processId);
+                    if (threadId == 0)
+                    {
+                        continue;
+                    }
+
+                    var associatedProcess = Process.GetProcessById((int)processId);
+                    if (associatedProcess is not null && IsMainProcess(associatedProcess))
+                    {
+                        // This window has the correct process but is not the game window,
+                        // so we assume it's the conhost because Widows terminal has the 'WindowsTerminal.exe' process
+                        return handle;
+                    }
+                }
+            }
+
+            return IntPtr.Zero;
+        }
+
+        protected virtual bool IsMainProcess(Process process)
+        {
+            // matching title and loaded game executable module
+            return process.MainWindowTitle.Contains(MAIN_WINDOW_SEARCH_STRING, StringComparison.OrdinalIgnoreCase)
+                && process.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals(Constants.GAME_EXECUTABLE_NAME));
+        }
+
+        public virtual Process? FindMainProcess()
+        {
+            return Process.GetProcesses().FirstOrDefault(IsMainProcess);
+        }
+
+        private static IntPtr FindWindowByTitle(Process process, Func<string, IntPtr, bool> predicate)
+        {
+            // find game window (title is exactly "H2M-Mod")
+            foreach (IntPtr hChild in EnumerateProcessWindowHandles(process.Id))
+            {
+                string? title = GetWindowTitle(hChild);
+                if (title is not null && predicate(title, hChild))
+                {
+                    return hChild;
+                }
+            }
+
+            // otherwise return just the main window, whatever it is
+            return process.MainWindowHandle;
+        }
+
+        public void Dispose()
+        {
+            _optionsChangeRegistration?.Dispose();
+        }
+    }
+
     public sealed class H2MCommunicationService : IDisposable
     {
         private const string GAME_WINDOW_TITLE = "H2M-Mod";
