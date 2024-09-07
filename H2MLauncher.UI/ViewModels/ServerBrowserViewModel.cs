@@ -610,7 +610,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList <IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
+            IReadOnlyList<IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
 
             // Let's prioritize populated servers first for getting game server info.
             IEnumerable<IW4MServer> serversOrderedByOccupation = servers
@@ -620,7 +620,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
             // NOTE: we are using Task.Run to run this in a background thread,
             // because the non async timer blocks the UI
-            await Task.Run(() => _gameServerCommunicationService.RequestServerInfoAsync(
+            await Task.Run(() => _gameServerCommunicationService.GetInfoAsync(
                 serversOrderedByOccupation, OnGameServerInfoReceived, linkedCancellation.Token));
 
             // Start fetching server data in the background
@@ -648,7 +648,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
         _mapMap.TryGetValue(gameServer.MapName, out string? mapDisplayName);
         _gameTypeMap.TryGetValue(gameServer.GameType, out string? gameTypeDisplayName);
-
+        
         ServerViewModel serverViewModel = new()
         {
             Server = server,
