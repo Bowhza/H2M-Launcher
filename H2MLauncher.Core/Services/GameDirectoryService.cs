@@ -280,7 +280,19 @@ namespace H2MLauncher.Core.Services
             {
                 return null;
             }
-            string mapFile = Path.Combine(gameDir, $"{mapName}.ff");
+
+            // look for fastfile
+            string ff = $"{mapName}.ff";
+
+            // check in game directory
+            string mapFile = Path.Combine(gameDir, ff);
+            if (File.Exists(mapFile))
+            {
+                return true;
+            }
+
+            // check in 'zone' subfolder
+            mapFile = Path.Combine(gameDir, "zone", ff);
             return File.Exists(mapFile);
         }
 
