@@ -2,16 +2,23 @@
 using System.Reflection;
 using System.Windows;
 
-using Nogic.WritableOptions;
+using Flurl;
 
 using H2MLauncher.Core;
+using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.ViewModels;
 
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
+using Nogic.WritableOptions;
 
 using Serilog;
 using H2MLauncher.Core.Utilities;
@@ -26,8 +33,9 @@ namespace H2MLauncher.UI
         protected override void OnStartup(StartupEventArgs e)
         {
             SetupExceptionHandling();
-            InitializeLogging();
+
             IConfigurationRoot config = BuildConfiguration();
+            InitializeLogging(config);
 
             ServiceCollection serviceCollection = new();
             ConfigureServices(serviceCollection, config);
@@ -55,14 +63,10 @@ namespace H2MLauncher.UI
             base.OnStartup(e);
         }
 
-        private static void InitializeLogging()
+        private static void InitializeLogging(IConfiguration configuration)
         {
             Log.Logger = new LoggerConfiguration()
-                .WriteTo.Console()
-                .WriteTo.File(Constants.LogFilePath,
-                    rollingInterval: RollingInterval.Day,
-                    rollOnFileSizeLimit: true)
-                .WriteTo.Debug()
+                .ReadFrom.Configuration(configuration)
                 .CreateLogger();
 
             Log.Information("{applicationName} started on version {version}.",
@@ -72,12 +76,15 @@ namespace H2MLauncher.UI
 
         private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
+            services.AddSingleton<IConfiguration>(config);
+
             services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
                 section: config.GetSection(Constants.LauncherSettingsSection),
                 directoryPath: Path.GetDirectoryName(Constants.LauncherSettingsFilePath) ?? Constants.LocalDir,
                 file: Constants.LauncherSettingsFileName);
 
             services.Configure<ResourceSettings>(config.GetSection(Constants.ResourceSection));
+            services.Configure<MatchmakingSettings>(config.GetSection(Constants.MatchmakingSection));
 
             services.AddKeyedSingleton(Constants.DefaultSettingsKey, _defaultSettings);
 
@@ -89,18 +96,44 @@ namespace H2MLauncher.UI
             services.AddTransient<H2MLauncherService>();
             services.AddHttpClient<H2MLauncherService>();
 
-            services.AddTransient<RaidMaxService>();
-            services.AddHttpClient<RaidMaxService>();
+            services.AddTransient<IIW4MAdminService, IW4MAdminService>();
+            services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
+
+            services.AddTransient<IIW4MAdminMasterService, IW4MAdminMasterService>();
+            services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>()
+              .ConfigureHttpClient((sp, client) =>
+              {
+                  // get the current value from the options monitor cache
+                  H2MLauncherSettings launcherSettings = sp.GetRequiredService<IOptionsMonitor<H2MLauncherSettings>>().CurrentValue;
+
+                  // make sure base address is set correctly without trailing slash
+                  client.BaseAddress = Url.Parse(launcherSettings.IW4MMasterServerUrl).RemovePathSegment().ToUri();
+              });
+
+            services.AddSingleton<IH2MServersService, H2MServersService>();
 
             services.AddSingleton<H2MCommunicationService>();
+            services.AddTransient<GameServerCommunicationService<IW4MServer>>();
+            services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
             services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
-            services.AddTransient<GameServerCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
+            services.AddMemoryCache();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddTransient<ServerBrowserViewModel>();
+
+            services.AddTransient<MatchmakingService>();
+            services.AddTransient<CachedServerDataService>();
+            services.AddHttpClient<CachedServerDataService>()
+                .ConfigureHttpClient((sp, client) =>
+                {
+                    MatchmakingSettings matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>().Value;
+
+                    // make sure base address is set correctly without trailing slash
+                    client.BaseAddress = Url.Parse(matchmakingSettings.MatchmakingServerUrl).RemovePathSegment().ToUri();
+                });
 
             services.AddTransient<MainWindow>();
         }
@@ -127,7 +160,7 @@ namespace H2MLauncher.UI
             if (defaultH2MLauncherSettings is null)
             {
                 // should never happen, except the appsettings.json are not included properly.
-                Log.Fatal("No default appsettings.");
+                Console.WriteLine("No default appsettings.");
                 Shutdown(-1);
                 return defaultConfiguration;
             }

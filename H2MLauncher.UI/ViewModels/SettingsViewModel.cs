@@ -4,10 +4,12 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 
+using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 
 using Nogic.WritableOptions;
@@ -23,7 +25,13 @@ public partial class SettingsViewModel : DialogViewModelBase
     private string _iw4mMasterServerUrl = "";
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEnableServerQueueing))]
     private bool _gameCommunicationEnabled = false;
+
+    [ObservableProperty]
+    private bool _serverQueueingEnabled = false;
+
+    public bool CanEnableServerQueueing => GameCommunicationEnabled;
 
     public ShortcutsViewModel Shortcuts { get; }
 
@@ -37,6 +45,7 @@ public partial class SettingsViewModel : DialogViewModelBase
         MwrLocation = options.CurrentValue.MWRLocation;
         Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
         GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
+        ServerQueueingEnabled = options.CurrentValue.ServerQueueing;
 
         Shortcuts = new();
         Shortcuts.ResetViewModel(options.CurrentValue.KeyBindings);
@@ -49,6 +58,7 @@ public partial class SettingsViewModel : DialogViewModelBase
                 IW4MMasterServerUrl = Iw4mMasterServerUrl,
                 MWRLocation = MwrLocation,
                 GameMemoryCommunication = GameCommunicationEnabled,
+                ServerQueueing = ServerQueueingEnabled,
                 KeyBindings = Shortcuts.ToDictionary(),
             }, reload: true);
 
@@ -75,6 +85,14 @@ public partial class SettingsViewModel : DialogViewModelBase
         if (dialog.ShowDialog() == true)
         {
             MwrLocation = dialog.FileName;
+        }
+    }
+
+    partial void OnGameCommunicationEnabledChanged(bool value)
+    {
+        if (!value)
+        {
+            ServerQueueingEnabled = false;
         }
     }
 }

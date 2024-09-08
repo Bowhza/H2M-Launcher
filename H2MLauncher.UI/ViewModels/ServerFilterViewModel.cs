@@ -89,7 +89,7 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelected = true,
             };
 
-            UnknownGameModes = new(new IW4MObjectMap("Unknown", "Unknown"))
+            UnknownGameModes = new(new IW4MObjectMap("unknown", "Unknown"))
             {
                 Name = "Unknown",
                 IsSelected = true
@@ -118,8 +118,7 @@ namespace H2MLauncher.UI.ViewModels
                     SelectableItem<IW4MMapPack> item = new(mapPack)
                     {
                         Name = mapPack.Name,
-                        IsSelected = settings.SelectedMapPacks?.Any(id =>
-                            mapPack.Id.Equals(id, StringComparison.OrdinalIgnoreCase)) ?? true
+                        IsSelected = settings.MapPacks?.GetValueOrDefault(mapPack.Id, true) ?? true
                     };
 
                     item.PropertyChanged += MapPackItem_PropertyChanged;
@@ -128,12 +127,10 @@ namespace H2MLauncher.UI.ViewModels
                 }), UnknownMaps, NotInstalledMaps];
 
             UnknownMaps.PropertyChanged += MapPackItem_PropertyChanged;
-            UnknownMaps.IsSelected = settings.SelectedMapPacks?.Any(name => 
-                name.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true;
+            UnknownMaps.IsSelected = settings.MapPacks?.GetValueOrDefault("unknown", true) ?? true;
 
             NotInstalledMaps.PropertyChanged += MapPackItem_PropertyChanged;
-            NotInstalledMaps.IsSelected = settings.SelectedMapPacks?.Any(name => 
-                name.Equals("not_installed", StringComparison.OrdinalIgnoreCase)) ?? true;
+            NotInstalledMaps.IsSelected = settings.MapPacks?.GetValueOrDefault("not_installed", true) ?? true;
 
             // game modes
 
@@ -144,8 +141,7 @@ namespace H2MLauncher.UI.ViewModels
                     SelectableItem<IW4MObjectMap> item = new(gameMode)
                     {
                         Name = gameMode.Alias,
-                        IsSelected = settings.SelectedGameModes?.Any(name =>
-                            gameMode.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) ?? true
+                        IsSelected = settings.GameModes?.GetValueOrDefault(gameMode.Name, true) ?? true
                     };
 
                     item.PropertyChanged += GameModeItem_PropertyChanged;
@@ -156,8 +152,7 @@ namespace H2MLauncher.UI.ViewModels
             GameModes.Add(UnknownGameModes);
 
             UnknownGameModes.PropertyChanged += GameModeItem_PropertyChanged;
-            UnknownGameModes.IsSelected = settings.SelectedGameModes?.Any(name => 
-                name.Equals("unknown", StringComparison.OrdinalIgnoreCase)) ?? true;
+            UnknownGameModes.IsSelected = settings.GameModes?.GetValueOrDefault("unknown", true) ?? true;
 
 
             // exclude keywords
@@ -167,6 +162,9 @@ namespace H2MLauncher.UI.ViewModels
             {
                 AddNewExcludeKeyword(keyword, isEnabled);
             }
+
+            OnPropertyChanged(nameof(SelectedMapPacks));
+            OnPropertyChanged(nameof(SelectedGameModes));
         }
 
         private void GameModeItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -330,8 +328,8 @@ namespace H2MLauncher.UI.ViewModels
                 MinPlayers = MinPlayers,
                 MaxPlayers = MaxPlayers,
                 MaxSlots = MaxSlots,
-                SelectedGameModes = GameModes.Where(item => item.IsSelected).Select(item => item.Model.Name).ToList(),
-                SelectedMapPacks = MapPacks.Where(item => item.IsSelected).Select(item => item.Model.Id).ToList(),
+                GameModes = GameModes.ToDictionary(item => item.Model.Name, item => item.IsSelected),
+                MapPacks = MapPacks.ToDictionary(item => item.Model.Id, item => item.IsSelected),
                 ExcludeKeywords = ExcludeFilters.ToDictionary(item => item.Model, item => item.IsSelected)
             };
         }

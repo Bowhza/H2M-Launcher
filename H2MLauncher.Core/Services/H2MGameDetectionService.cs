@@ -2,6 +2,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 

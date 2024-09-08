@@ -82,23 +82,31 @@ namespace H2MLauncher.UI.Dialog
 
         public bool? OpenDialog<TDialog>(IDialogViewModel viewModel) where TDialog : Control, new()
         {
-            var dialogWindow = CreateDialog(new TDialog()
+            return Application.Current.Dispatcher.Invoke(() =>
             {
-                DataContext = viewModel
-            });
+                var dialogWindow = CreateDialog(new TDialog()
+                {
+                    DataContext = viewModel
+                });
 
-            return ShowDialog(viewModel, dialogWindow);
+                return ShowDialog(viewModel, dialogWindow);
+            });
         }
 
         public Task<bool?> ShowDialogAsync<TDialog>(IDialogViewModel viewModel)
             where TDialog : Control, new()
         {
-            var dialogWindow = CreateDialog(new TDialog()
+            var dialogWindow = Application.Current.Dispatcher.Invoke(() =>
             {
-                DataContext = viewModel
-            });
+                var dialogWindow = CreateDialog(new TDialog()
+                {
+                    DataContext = viewModel
+                });
 
-            PrepareDialogWindow(viewModel, dialogWindow);
+                PrepareDialogWindow(viewModel, dialogWindow);
+
+                return dialogWindow;
+            });
 
             return dialogWindow.ShowDialogAsync();
         }

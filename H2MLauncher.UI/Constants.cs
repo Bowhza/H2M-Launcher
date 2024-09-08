@@ -24,6 +24,11 @@ namespace H2MLauncher.UI
         public const string ResourceSection = "Resource";
 
         /// <summary>
+        /// The key of the <see cref="Core.Settings.MatchmakingSettings"/> section in the configuration.
+        /// </summary>
+        public const string MatchmakingSection = "Matchmaking";
+
+        /// <summary>
         /// The injection key for the default <see cref="Core.Settings.H2MLauncherSettings"/>.
         /// </summary>
         public const string DefaultSettingsKey = "DefaultSettings";

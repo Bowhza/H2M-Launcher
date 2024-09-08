@@ -278,11 +278,15 @@ partial class Program
         int bytesRead;
         while (true)
         {
-            ReadProcessMemory(hProcess, baseAddress + PLAYER_NAME_OFFSET_H1, buffer, 64, out bytesRead);
-
             // Read memory
             bool success = ReadProcessMemoryUInt(hProcess, baseAddress + LEVEL_ENTITY_ID_H1, out uint levelId);
             bool success2 = ReadProcessMemoryInt(hProcess, baseAddress + CONNECTION_STATE_H1, out int connectionState);
+
+            if (ReadProcessMemory(hProcess, baseAddress + 0x35624A0, buffer, 64, out _))
+            {
+                Console.WriteLine(Encoding.ASCII.GetString(buffer));
+            }
+
             if (success && success)
             {
                 if (levelId == 0 && connectionState >= (int)connstate_t.CA_CONNECTED)

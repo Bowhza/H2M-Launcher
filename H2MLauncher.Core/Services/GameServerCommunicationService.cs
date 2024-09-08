@@ -5,86 +5,323 @@ using H2MLauncher.Core.Models;
 
 using Haukcode.HighResolutionTimer;
 
+using Microsoft.Extensions.Logging;
+
 namespace H2MLauncher.Core.Services
 {
-    public class GameServerCommunicationService : IAsyncDisposable
+    public class GameServerCommunicationService<TServer> : IAsyncDisposable
+        where TServer : IServerConnectionDetails
     {
-        private readonly GameServerCommunication _gameServerCommunication = new();
+        private readonly ConcurrentDictionary<IPEndPoint, InfoRequest> _queuedRequests = [];
+        private GameServerCommunication? _gameServerCommunication;
+        private readonly List<IDisposable> _registrations = [];
 
-        public async Task StartRetrievingGameServerInfo(
-          IEnumerable<RaidMaxServer> servers,
-          Action<RaidMaxServer, GameServerInfo> onServerInfoReceived,
-          CancellationToken cancellationToken = default)
+        private readonly IEndpointResolver _endpointResolver;
+        private readonly ILogger<GameServerCommunicationService<TServer>> _logger;
+
+        private const int MIN_REQUEST_DELAY = 1;
+        private const int MAX_PARALLEL_RESOLVE = 40;
+        private const string INFO_REQUEST = "getinfo";
+        private const string INFO_RESPONSE = "inforesponse";
+
+        public event EventHandler<ServerInfoEventArgs<TServer>>? ServerInfoReceived;
+
+        public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger, IEndpointResolver endpointResolver)
         {
-            ConcurrentDictionary<IPEndPoint, DateTimeOffset> queuedServers = [];
-            ConcurrentDictionary<IPEndPoint, RaidMaxServer> serverInfoMap = [];
-            List<(GameServerInfo, RaidMaxServer)> result = [];
+            _logger = logger;
+            _endpointResolver = endpointResolver;
 
-            //await using var gameServerCommunication = new GameServerCommunication();
+            StartCommunication();
+        }
 
-            // handle info response
-            var handlerReg = _gameServerCommunication.On("infoResponse", (e) =>
+        private record struct InfoRequest(TServer Server)
+        {
+            public DateTimeOffset TimeStamp { get; init; } = DateTimeOffset.Now;
+            public TaskCompletionSource<GameServerInfo>? InfoResponseCompletionSource { get; init; }
+        }
+
+
+        /// <summary>
+        /// Start game server communication.
+        /// </summary>
+        public void StartCommunication()
+        {
+            _gameServerCommunication = new();
+
+            // Register info response command handler
+            IDisposable handlerRegistration = _gameServerCommunication.On(INFO_RESPONSE, OnInfoResponse);
+
+            _registrations.Add(handlerRegistration);
+        }
+
+        /// <summary>
+        /// Handles 'infoResponse' messages.
+        /// </summary>
+        protected virtual void OnInfoResponse(GameServerCommunication.CommandEventArgs e)
+        {
+            try
             {
-                // get start timestamp
-                if (!queuedServers.TryRemove(e.RemoteEndPoint, out var startTime))
+                if (!_queuedRequests.TryRemove(e.RemoteEndPoint, out InfoRequest queuedRequest))
+                {
+                    // unknown remote endpoint
+                    return;
+                }
+
+                // Parse info string
+                InfoString info = new(e.Data);
+
+                string? dedicated = info.Get("dedicated");
+                if (dedicated != "1")
                 {
                     return;
                 }
 
-                // get server info
-                if (!serverInfoMap.TryRemove(e.RemoteEndPoint, out var serverInfo))
+                string? svRunning = info.Get("sv_running");
+                if (svRunning != "1")
                 {
                     return;
                 }
 
-                try
+                string? gameName = info.Get("gamename");
+                if (gameName != "H2M")
                 {
-                    // Parse info string
-                    var info = new InfoString(e.Data);
-
-                    string? dedicated = info.Get("dedicated");
-                    if (dedicated != "1")
-                    {
-                        return;
-                    }
-
-                    string? svRunning = info.Get("sv_running");
-                    if (svRunning != "1")
-                    {
-                        return;
-                    }
-
-                    string? gameName = info.Get("gamename");
-                    if (gameName != "H2M")
-                    {
-                        return;
-                    }
-
-                    GameServerInfo server = new()
-                    {
-                        Address = e.RemoteEndPoint,
-                        HostName = info.Get("hostname") ?? "",
-                        MapName = info.Get("mapname") ?? "",
-                        GameType = info.Get("gametype") ?? "",
-                        ModName = info.Get("fs_game") ?? "",
-                        PlayMode = info.Get("playmode") ?? "Unknown",
-                        Clients = int.Parse(info.Get("clients") ?? "0"),
-                        MaxClients = int.Parse(info.Get("sv_maxclients") ?? "0"),
-                        Bots = int.Parse(info.Get("bots") ?? "0"),
-                        Ping = Math.Min((int)(e.Timestamp - startTime).TotalMilliseconds, 999),
-                        IsPrivate = info.Get("isPrivate") == "1"
-                    };
-
-                    onServerInfoReceived?.Invoke(serverInfo, server);
-
-                    result.Add((server, serverInfo));
+                    return;
                 }
 
-                catch
+                GameServerInfo serverInfo = new()
                 {
-                    // parsing error or smth
-                }
+                    Address = e.RemoteEndPoint,
+                    HostName = info.Get("hostname") ?? "",
+                    MapName = info.Get("mapname") ?? "",
+                    GameType = info.Get("gametype") ?? "",
+                    ModName = info.Get("fs_game") ?? "",
+                    PlayMode = info.Get("playmode") ?? "Unknown",
+                    Clients = int.Parse(info.Get("clients") ?? "0"),
+                    MaxClients = int.Parse(info.Get("sv_maxclients") ?? "0"),
+                    Bots = int.Parse(info.Get("bots") ?? "0"),
+                    Ping = Math.Min((int)(e.Timestamp - queuedRequest.TimeStamp).TotalMilliseconds, 999),
+                    IsPrivate = info.Get("isPrivate") == "1"
+                };
+
+                // Try complete the request
+                queuedRequest.InfoResponseCompletionSource?.TrySetResult(serverInfo);
+
+                ServerInfoReceived?.Invoke(this, new()
+                {
+                    ServerInfo = serverInfo,
+                    Server = queuedRequest.Server
+                });
+            }
+            catch (Exception ex)
+            {
+                // parsing error or smth
+                _logger.LogError(ex, "Error while parsing game server info response: {responseData}", e.Data);
+            }
+        }
+
+        public async Task<string?> RequestCommandAsync(TServer server, string command, CancellationToken cancellationToken)
+        {
+            if (_gameServerCommunication is null)
+            {
+                throw new InvalidOperationException("Communication is not started.");
+            }
+
+            // create an endpoint to send to and receive from
+            IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
+            if (endpoint is null)
+            {
+                return null;
+            }
+
+            TaskCompletionSource<string> tcs = new();
+
+            // cancel task when token requests cancellation
+            cancellationToken.UnsafeRegister((o) => ((TaskCompletionSource<GameServerInfo>)o!).TrySetCanceled(), tcs);
+
+            IDisposable commandHandlerRegistration = _gameServerCommunication.On(command, e =>
+            {
+                tcs.TrySetResult(e.Data);
             });
+
+            try
+            {
+                // send 'getinfo' command
+                await _gameServerCommunication.SendAsync(endpoint, command, cancellationToken: cancellationToken);
+
+                return await tcs.Task.ConfigureAwait(false);
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                commandHandlerRegistration.Dispose();
+            }
+        }
+
+        public async Task<GameServerInfo?> RequestServerInfoAsync(TServer server, CancellationToken cancellationToken)
+        {
+            // create an endpoint to send to and receive from
+            IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
+            if (endpoint is null)
+            {
+                return null;
+            }
+
+            TaskCompletionSource<GameServerInfo> tcs = new();
+
+            // cancel task when token requests cancellation
+            cancellationToken.UnsafeRegister((o) => ((TaskCompletionSource<GameServerInfo>)o!).TrySetCanceled(), tcs);
+
+            InfoRequest request = new(server)
+            {
+                InfoResponseCompletionSource = tcs
+            };
+
+            bool success = await SendInfoRequestInternalAsync(endpoint, request, cancellationToken);
+            if (!success)
+            {
+                return null;
+            }
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// Send info requests to all given game servers.
+        /// </summary>
+        public async Task RequestServerInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer>> onInfoResponse, 
+            CancellationToken cancellationToken)
+        {
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+
+            if (endpointServerMap.Count == 0)
+            {
+                // early return to avoid allocations
+                return;
+            }
+            
+            // subscribe to server info handlers
+            ServerInfoReceived += onServerInfoReceived;
+            cancellationToken.Register(() => ServerInfoReceived -= onServerInfoReceived);
+
+            // start sending requests
+            using HighResolutionTimer timer = new();
+            timer.SetPeriod(MIN_REQUEST_DELAY);
+            timer.Start();
+
+            foreach (var (endpoint, server) in endpointServerMap)
+            {
+                InfoRequest request = new(server);
+
+                _ = await SendInfoRequestInternalAsync(endpoint, request, cancellationToken);
+
+                // wait for some bit. This is somehow necessary to receive all server responses.
+                // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
+                timer.WaitForTrigger();
+            }
+
+            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer> args)
+            {
+                // only invoke the callback for responses from the given servers
+                if (endpointServerMap.ContainsKey(args.ServerInfo.Address))
+                {
+                    onInfoResponse(args);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Send info requests to all given game servers.
+        /// </summary>
+        public async Task SendInfoRequestsAsync(IEnumerable<TServer> servers, CancellationToken cancellationToken)
+        {
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+
+            if (endpointServerMap.Count == 0)
+            {
+                // early return to avoid timer allocation
+                return;
+            }
+
+            using HighResolutionTimer timer = new();
+            timer.SetPeriod(MIN_REQUEST_DELAY);
+            timer.Start();
+
+            foreach (var (endpoint, server) in endpointServerMap)
+            {
+                InfoRequest request = new(server);
+
+                _ = await SendInfoRequestInternalAsync(endpoint, request, cancellationToken);
+
+                // wait for some bit. This is somehow necessary to receive all server responses.
+                // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
+                timer.WaitForTrigger();
+            }
+        }
+
+        /// <summary>
+        /// Send a single info request to the game server.
+        /// </summary>
+        /// <returns>True, if the request was sent successfully.</returns>
+        public async Task<bool> SendInfoRequestAsync(TServer server, CancellationToken cancellationToken)
+        {
+            // create an endpoint to send to and receive from
+            IPEndPoint? serverEndpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
+            if (serverEndpoint is null)
+            {
+                return false;
+            }
+
+            return await SendInfoRequestInternalAsync(serverEndpoint, new InfoRequest(server), cancellationToken);
+        }
+
+        private async Task<bool> SendInfoRequestInternalAsync(IPEndPoint serverEndpoint, InfoRequest request, CancellationToken cancellationToken)
+        {
+            if (_gameServerCommunication is null)
+            {
+                throw new InvalidOperationException("Communication is not started.");
+            }
+
+            // save start timestamp to calculate ping
+            AddToQueueCancelPreviousRequest(serverEndpoint, request, cancellationToken);
+
+            try
+            {
+                // send 'getinfo' command
+                await _gameServerCommunication.SendAsync(serverEndpoint, INFO_REQUEST, cancellationToken: cancellationToken);
+
+                return true;
+            }
+            catch
+            {
+                // failed to send info response (maybe server is not online)
+                _queuedRequests.TryRemove(serverEndpoint, out _);
+
+                return false;
+            }
+        }
+
+        private void AddToQueueCancelPreviousRequest(IPEndPoint endpoint, InfoRequest request, CancellationToken cancellationToken)
+        {
+            if (!_queuedRequests.TryAdd(endpoint, request))
+            {
+                // cancel previous operation
+                _queuedRequests.GetValueOrDefault(endpoint).InfoResponseCompletionSource?.TrySetCanceled(cancellationToken);
+                _queuedRequests[endpoint] = request;
+            }
+
+            cancellationToken.Register(() => _queuedRequests.TryRemove(endpoint, out _));
+        }
+
+        /// <summary>
+        /// Creates a dictionary of ip endpoints to servers by resolving the addresses in parallel and filtering out duplicates.
+        /// </summary>
+        private async Task<IReadOnlyDictionary<IPEndPoint, TServer>> CreateEndpointServerMap(
+            IEnumerable<TServer> servers, CancellationToken cancellationToken)
+        {
+            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
 
             // resolve host names in parallel
             await Parallel.ForEachAsync(
@@ -92,73 +329,31 @@ namespace H2MLauncher.Core.Services
                 new ParallelOptions()
                 {
                     CancellationToken = cancellationToken,
-                    MaxDegreeOfParallelism = 40
+                    MaxDegreeOfParallelism = MAX_PARALLEL_RESOLVE
                 },
                 async (server, token) =>
                 {
                     // create an endpoint to send to and receive from
-                    IPEndPoint endpoint;
-                    if (IPAddress.TryParse(server.Ip, out var ipAddress))
+                    IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, token);
+                    if (endpoint != null)
                     {
-                        // ip contains an actual ip address -> use that to create endpoint
-                        endpoint = new(ipAddress.MapToIPv6(), server.Port);
-                    }
-                    else
-                    {
-                        // ip likely contains a hostname
-                        try
+                        // filter out duplicates
+                        if (!endpointServerMap.TryAdd(endpoint, server))
                         {
-                            // resolve ip addresses from hostname
-                            var ipAddressList = await Dns.GetHostAddressesAsync(server.Ip, token);
-                            var compatibleIp = ipAddressList.FirstOrDefault();
-                            if (compatibleIp == null)
-                            {
-                                // could not resolve ip address
-                                return;
-                            }
-
-                            endpoint = new IPEndPoint(compatibleIp.MapToIPv6(), server.Port);
-                        }
-                        catch
-                        {
-                            // invalid ip field
-                            return;
+                            // duplicate
                         }
                     }
-
-                    serverInfoMap[endpoint] = server;
                 });
-            
-            using HighResolutionTimer timer = new();
-            timer.SetPeriod(1);
-            timer.Start();
 
-            foreach (var serverEndpoint in serverInfoMap.Keys)
-            {
-                // save start timestamp
-                queuedServers[serverEndpoint] = DateTimeOffset.Now;
-                try
-                {                    
-                    // send 'getinfo' command
-                    await _gameServerCommunication.SendAsync(serverEndpoint, "getinfo", cancellationToken: cancellationToken).ConfigureAwait(false);
-                    
-                    // wait for some bit. This is somehow necessary to receive all server responses.
-                    // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
-                    timer.WaitForTrigger();
-                }
-                catch
-                {
-                    // failed to send info response (maybe server is not online)
-                    queuedServers.TryRemove(serverEndpoint, out _);
-                }
-            }
-
-            cancellationToken.Register(handlerReg.Dispose);
+            return endpointServerMap.AsReadOnly();
         }
 
         public ValueTask DisposeAsync()
         {
-            return _gameServerCommunication.DisposeAsync();
+            _registrations.ForEach(reg => reg.Dispose());
+            _registrations.Clear();
+
+            return _gameServerCommunication?.DisposeAsync() ?? ValueTask.CompletedTask;
         }
     }
 }

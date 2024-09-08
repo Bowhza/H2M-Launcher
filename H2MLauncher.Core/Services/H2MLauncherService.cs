@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using System.Text.Json;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Utilities;
 
 using Microsoft.Extensions.Logging;
@@ -17,12 +18,30 @@ namespace H2MLauncher.Core.Services
         private readonly IErrorHandlingService _errorHandlingService;
 
         public const string LauncherPath = "H2MLauncher.UI.exe";
+
+
+        // IMPORTANT: Set this to the same pre-release label used in GitHub
+        // (appended like '-beta') or empty when this is a normal release!
+        public static readonly string CurrentPreReleaseLabel = "";
         public static string CurrentVersion
         {
             get
             {
                 Version version = Assembly.GetEntryAssembly()!.GetName().Version!;
-                return $"H2M-v{version.Major}.{version.Minor}.{version.Build}";
+                string versionString = $"H2M-v{version.Major}.{version.Minor}.{version.Build}";
+                if (!string.IsNullOrWhiteSpace(CurrentPreReleaseLabel))
+                {
+                    //H2M-v0.0.0-beta
+                    versionString += "-" + CurrentPreReleaseLabel.ToLower();
+                }
+
+                if (version.Revision > 0)
+                {
+                    //H2M-v0.0.0-beta.1
+                    versionString += "." + version.Revision;
+                }
+
+                return versionString;
             }
         }
 

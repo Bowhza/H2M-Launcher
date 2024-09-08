@@ -1,4 +1,4 @@
-﻿using H2MLauncher.Core.Services;
+﻿using H2MLauncher.Core.Interfaces;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Extensions.Logging;

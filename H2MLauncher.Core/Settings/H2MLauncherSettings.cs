@@ -18,7 +18,9 @@ namespace H2MLauncher.Core.Settings
 
         public bool GameMemoryCommunication { get; init; } = false;
 
-        public bool WatchGameDirectory { get; init; }
+        public bool WatchGameDirectory { get; init; } = true;
+
+        public bool ServerQueueing { get; init; } = false;
 
         public Dictionary<string, string> KeyBindings { get; init; } = [];
     }

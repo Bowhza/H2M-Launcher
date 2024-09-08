@@ -31,12 +31,12 @@ public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel whe
 
     IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; }
 
-    IRelayCommand<TServerViewModel> JoinServerCommand { get; }
+    IAsyncRelayCommand<TServerViewModel> JoinServerCommand { get; }
 }
 
 public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
-    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin, 
+    public ServerTabViewModel(string tabName, Func<ServerViewModel, Task> onServerJoin, 
         Predicate<ServerViewModel>? filterPredicate = null) : base(tabName, onServerJoin, filterPredicate)
     {
     }
@@ -44,7 +44,7 @@ public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
 
 public class RecentServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
-    public RecentServerTabViewModel(Action<ServerViewModel> onServerJoin, 
+    public RecentServerTabViewModel(Func<ServerViewModel, Task> onServerJoin, 
         Predicate<ServerViewModel>? filterPredicate = null) : base("Recents", onServerJoin, filterPredicate)
     {
     }
@@ -59,7 +59,7 @@ public class RecentServerTabViewModel : ServerTabViewModel<ServerViewModel>
 public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableObject, IServerTabViewModel<TServerViewModel>
     where TServerViewModel : ServerViewModel
 {
-    private readonly Action<ServerViewModel> _onServerJoin;
+    private readonly Func<ServerViewModel, Task> _onServerJoin;
 
     [ObservableProperty]
     private string _tabName = "";
@@ -84,7 +84,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
     public required IRelayCommand<TServerViewModel> ToggleFavouriteCommand { get; set; }
 
-    public IRelayCommand<TServerViewModel> JoinServerCommand { get; set; }
+    public IAsyncRelayCommand<TServerViewModel> JoinServerCommand { get; set; }
 
     ServerViewModel? IServerTabViewModel.SelectedServer => SelectedServer;
 
@@ -93,7 +93,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
         new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending)
     ];
 
-    public ServerTabViewModel(string tabName, Action<ServerViewModel> onServerJoin, Predicate<TServerViewModel>? filterPredicate = null)
+    public ServerTabViewModel(string tabName, Func<ServerViewModel, Task> onServerJoin, Predicate<TServerViewModel>? filterPredicate = null)
     {
         TabName = tabName;
 
@@ -127,12 +127,12 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
         _onServerJoin = onServerJoin;
 
-        JoinServerCommand = new RelayCommand<TServerViewModel>((server) =>
+        JoinServerCommand = new AsyncRelayCommand<TServerViewModel>(async (server) =>
         {
             server ??= SelectedServer;
             if (server is not null)
             {
-                _onServerJoin.Invoke(server);
+                await _onServerJoin.Invoke(server);
             }
 
         }, (server) => (server ?? SelectedServer) is not null);

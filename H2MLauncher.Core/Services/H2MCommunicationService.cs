@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 

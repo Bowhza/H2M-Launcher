@@ -40,7 +40,6 @@ namespace H2MLauncher.UI.ViewModels
             var converter = new KeyGestureConverter();
 
             return Shortcuts
-                .Where(_ => _.IsKeySet)
                 .DistinctBy(_ => _.Name.ToLower())
                 .ToDictionary(_ => _.Name, _ => converter.ConvertToString(_.KeyGesture) ?? "");
         }
@@ -62,8 +61,8 @@ namespace H2MLauncher.UI.ViewModels
                 ShortcutViewModel? existing = Shortcuts.FirstOrDefault(s => s.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
                 if (existing is not null)
                 {
-                    existing.Key = gesture.Key;
                     existing.Modifiers = gesture.Modifiers;
+                    existing.Key = gesture.Key;
                 }
                 else
                 {

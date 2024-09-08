@@ -24,12 +24,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E59400" />
+                            <Setter Property="Background" Value="#E59400" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter Property="Background" Value="OrangeRed" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
@@ -549,5 +549,7 @@
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
     <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
     <converters:EmptyItemConverter x:Key="emptyItemConverter" />
+    <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
+    <converters:NegatingConverter x:Key="NegatingConverter" />
     <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
 </ResourceDictionary>

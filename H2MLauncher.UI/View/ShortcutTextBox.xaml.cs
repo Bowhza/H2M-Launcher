@@ -30,13 +30,13 @@ namespace H2MLauncher.UI.View.Controls
 
             e.Handled = true;
 
-            shortcutViewModel.Key = GetRealKey(e);
+            shortcutViewModel.Key = GetRealKey(e.Key, e.SystemKey);
             shortcutViewModel.Modifiers = Keyboard.Modifiers;
         }
 
-        private static Key GetRealKey(KeyEventArgs e)
+        private static Key GetRealKey(Key key, Key systemKey = Key.None)
         {
-            switch (e.Key)
+            switch (key)
             {
                 case Key.LeftShift:
                 case Key.RightShift:
@@ -48,9 +48,9 @@ namespace H2MLauncher.UI.View.Controls
                 case Key.RWin:
                     return Key.None;
                 case Key.System:
-                    return e.SystemKey;
+                    return GetRealKey(systemKey);
                 default:
-                    return e.Key;
+                    return key;
             };
         }
 

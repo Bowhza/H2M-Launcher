@@ -1,8 +1,11 @@
 ﻿using System.Net;
+using System.Text.Json.Serialization;
+
+using H2MLauncher.Core.Services;
 
 namespace H2MLauncher.Core.Models
 {
-    public class RaidMaxServer
+    public class IW4MServer : IServerConnectionDetails
     {
         private string _hostName = "N/A";
 
@@ -26,5 +29,8 @@ namespace H2MLauncher.Core.Models
         public required string GameType { get; set; }
         public required int ClientNum { get; set; }
         public required int MaxClientNum { get; set; }
+
+        [JsonIgnore]
+        public IW4MServerInstance Instance { get; set; } = null!;
     }
 }

@@ -112,7 +112,13 @@
               Content="Enable game communication" IsChecked="{Binding GameCommunicationEnabled}"
               ToolTip="Enables communication with the game by reading certain values (such as connection state) from the game's memory. This is required for certain features."/>
 
-        <Grid Grid.Row="5" Grid.ColumnSpan="2" Margin="0,25,0,15">
+        <CheckBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" 
+              Foreground="White" Margin="0,7" 
+              VerticalAlignment="Center"
+              Content="Enable server queueing" IsChecked="{Binding ServerQueueingEnabled}" IsEnabled="{Binding CanEnableServerQueueing}"
+              ToolTip="Enables automatically joining into a queue when a server is full (or assumed to be based on predefined privileged slots). Requires 'Game Communication' to be enabled."/>
+
+        <Grid Grid.Row="6" Grid.ColumnSpan="2" Margin="0,25,0,15">
             <Separator Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center"/>
             <TextBlock Text="Key Bindings" FontWeight="Bold" FontSize="14" Grid.Row="5" Grid.ColumnSpan="2"
                    HorizontalAlignment="Center" Background="Black" Padding="12,0" Margin="0,-2,0,0"/>

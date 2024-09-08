@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Utilities;
 
 using Microsoft.Extensions.Logging;

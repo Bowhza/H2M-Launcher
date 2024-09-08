@@ -1,9 +1,16 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.Text.RegularExpressions;
+
+using CommunityToolkit.Mvvm.ComponentModel;
+
+using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.UI.ViewModels
 {
     public partial class ServerViewModel : ObservableObject
     {
+        public required IW4MServer Server { get; init; }
+        public required GameServerInfo GameServerInfo { get; init; }
+
         [ObservableProperty]
         private double _id;
 
@@ -89,5 +96,10 @@ namespace H2MLauncher.UI.ViewModels
         }
 
         public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
+
+        public string SanitizedHostName => ColorCodeSequenceRegex().Replace(HostName, "");
+
+        [GeneratedRegex(@"(\^\d)")]
+        private static partial Regex ColorCodeSequenceRegex();
     }
 }

@@ -1,5 +1,4 @@
-﻿
-namespace H2MLauncher.Core;
+﻿namespace H2MLauncher.Core.Interfaces;
 
 public interface ISaveFileService
 {

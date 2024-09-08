@@ -1,0 +1,19 @@
+services:
+  matchmaking-server:
+    build:
+      context: .
+      dockerfile: MatchmakingServer/Dockerfile
+    environment:
+      APIKEY: ${API_KEY}
+    ports:
+      - 9000:9000
+      - 9001:9001
+    volumes:
+      - ./MatchmakingServer/appsettings.json:/app/appsettings.json
+    healthcheck:
+      test: curl --silent --fail http://localhost:9000/health || exit 1
+      interval: 15s
+      timeout: 20s
+      retries: 5
+      start_period: 8s
+    restart: unless-stopped
