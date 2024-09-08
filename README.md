@@ -5,9 +5,11 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Bowhza/H2M-Launcher)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Bowhza/H2M-Launcher/total)
 
-<img src="./Images/H2M-Launcher.png">
+<img src="./Images/H2MLauncher.png">
 
 ## Features
+
+### Server Browser
 
 - Launch H2M-Mod.
 - Displays the server count and the total players.
@@ -24,12 +26,35 @@
   - Filter out any keywords from the hostname, for instance, "trickshot" to filter out trickshot servers.
 - Add servers to favourites and view recently played servers.
 - Support for private servers, you can enter the password from the launcher.
-- Settings menu to set the master server URL or set the directory of the H2M-Mod Executable.
-- Automatically sets H2M as foreground window and copies the connect string to clipboard on server join.
 - Auto-Updater **(Click on the new version available text to download latest release).**
 - Filters out dead/zombie servers that do not respond to UDP packets being sent.
 
 <img src="./Images/Filter-Modal.png">
+
+### Game Detection
+
+- Detect whether the game is running.
+- Detect whether the player is in the menu or connected to a server.
+- Automatically set the game location if unset in settings and the game is detected.
+
+### Server Queueing
+
+- Global player queues for full servers.
+- See your position and how many players are in the queue.
+- Takes privileged slots into account (Currently manually configured, request more servers to be supported!)
+- Ability to force join without leaving the queue if it fails.
+- Join the queue while playing on another server and automatically connect when the slot is free.
+
+<img src="./Images/Queue.png">
+
+### Settings & Other
+
+- Settings menu to set the master server URL or set the directory of the H2M-Mod Executable.
+- Toggle game communication and server queueing.
+- Change keybindings for reconnect and refresh.
+- Automatically sets H2M as foreground window and copies the connect string to clipboard on server join.
+
+<img src="./Images/Settings.png">
 
 ## Instructions
 
@@ -50,14 +75,15 @@
 
 ## Shortcuts
 
-| Keyboard/Mouse | Description                             |
-| :------------- | :-------------------------------------- |
-| `ESC`          | Close the H2M Launcher.                 |
-| `TAB`          | Navigate between launcher controls.     |
-| `F5`           | Refresh the server list.                |
-| `ENTER`        | Join the selected server.               |
-| `Right Click`  | Copies the server to clipboard.         |
-| `CTRL + S`     | Save the server list to favourties.json |
+| Keyboard/Mouse   | Description                             |
+| :--------------- | :-------------------------------------- |
+| `ESC`            | Close the H2M Launcher.                 |
+| `TAB`            | Navigate between launcher controls.     |
+| `F5`             | Refresh the server list.                |
+| `ENTER`          | Join the selected server.               |
+| `Right Click`    | Copies the server to clipboard.         |
+| `CTRL + S`       | Save the server list to favourties.json |
+| `CTRL + ALT + R` | Reconnect to server. (Can be changed)   |
 
 ## FAQ
 
