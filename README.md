@@ -26,8 +26,8 @@
   - Filter out any keywords from the hostname, for instance, "trickshot" to filter out trickshot servers.
 - Add servers to favourites and view recently played servers.
 - Support for private servers, you can enter the password from the launcher.
-- Auto-Updater **(Click on the new version available text to download latest release).**
 - Filters out dead/zombie servers that do not respond to UDP packets being sent.
+- Reconnect to last server shortcut (see [Shortcuts](#shortcuts)).
 
 <img src="./Images/Filter-Modal.png">
 
@@ -49,6 +49,7 @@
 
 ### Settings & Other
 
+- Auto-Updater **(Click on the new version available text to download latest release).**
 - Settings menu to set the master server URL or set the directory of the H2M-Mod Executable.
 - Toggle game communication and server queueing.
 - Change keybindings for reconnect and refresh.
