@@ -16,7 +16,7 @@ namespace H2MLauncher.Core.Services
         private readonly HttpClient _httpClient;
         private readonly IErrorHandlingService _errorHandlingService;
 
-        public static readonly string LauncherPath = Environment.ProcessPath ?? "H2MLauncher.UI.exe";
+        public static readonly string LauncherPath = Environment.ProcessPath ?? AssemblyName + ".exe";
         private static readonly string LauncherBackupPath = $"{LauncherPath}.backup";
         private static readonly string TempFileName = $"{LauncherPath}.bak";
 
@@ -43,6 +43,17 @@ namespace H2MLauncher.Core.Services
                 }
 
                 return versionString;
+            }
+        }
+
+        /// <summary>
+        /// Gets the name of the entry assembly (without extension)
+        /// </summary>
+        private static string AssemblyName
+        {
+            get
+            {
+                return Assembly.GetEntryAssembly()!.GetName().Name ?? "H2MLauncher.UI";
             }
         }
 
@@ -107,11 +118,11 @@ namespace H2MLauncher.Core.Services
 
         public async Task<bool> UpdateLauncherToLatestVersion(Action<double> progress, CancellationToken cancellationToken)
         {
-            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{LauncherPath}";
+            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{AssemblyName}.exe";
 
             try
             {
-                DownloadProgressHandler downloadProgressHandler = (long? totalFileSize, long totalBytesDownloaded, double? progressPercentage) => 
+                DownloadProgressHandler downloadProgressHandler = (long? totalFileSize, long totalBytesDownloaded, double? progressPercentage) =>
                 {
                     if (progressPercentage.HasValue)
                     {
