@@ -52,7 +52,6 @@
 - Settings menu to set the master server URL or set the directory of the H2M-Mod Executable.
 - Toggle game communication and server queueing.
 - Change keybindings for reconnect and refresh.
-- Automatically sets H2M as foreground window and copies the connect string to clipboard on server join.
 
 <img src="./Images/Settings.png">
 
