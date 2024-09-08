@@ -21,7 +21,6 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
 Environment.SetEnvironmentVariable("BASEDIR", AppDomain.CurrentDomain.BaseDirectory);
 
-builder.Services.AddLogging();
 builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
 builder.Services.AddHealthChecks();
 
