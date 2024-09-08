@@ -8,15 +8,21 @@ using MatchmakingServer;
 using MatchmakingServer.Authentication;
 using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
+
+using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder();
 
 
 // Add services to the container.
 
+Environment.SetEnvironmentVariable("BASEDIR", AppDomain.CurrentDomain.BaseDirectory);
+
 builder.Services.AddLogging();
+builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
 builder.Services.AddHealthChecks();
 
 builder.Services.Configure<Settings>(builder.Configuration.GetSection("Settings"));
@@ -79,8 +85,17 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
                 .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, (options) =>
-                {
+                {                    
                     options.ApiKey = builder.Configuration.GetValue<string>("ApiKey");
+                    options.ForwardDefaultSelector = context =>
+                    {
+                        Endpoint? endpoint = context.GetEndpoint();
+
+                        // Only forward the authentication if the endpoint has the [Authorize] attribute
+                        bool requiresAuth = endpoint?.Metadata?.GetMetadata<AuthorizeAttribute>() is not null;
+
+                        return requiresAuth ? ApiKeyDefaults.AuthenticationScheme : null;
+                    };
                 });
 
 builder.Services.AddControllers()
@@ -100,6 +115,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseSerilogRequestLogging();
 
 app.UseAuthentication();
 app.MapControllers();

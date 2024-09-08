@@ -4,12 +4,16 @@ services:
       context: .
       dockerfile: MatchmakingServer/Dockerfile
     environment:
-      APIKEY: ${API_KEY}
+      - APIKEY=${API_KEY}
+      - Serilog__WriteTo__1__Name=File
+      - Serilog__WriteTo__1__Args__path=/app/logs/log-.txt
+      - Serilog__WriteTo__1__Args__rollingInterval=Day
     ports:
       - 9000:9000
       - 9001:9001
     volumes:
       - ./MatchmakingServer/appsettings.json:/app/appsettings.json
+      - ${LOG_DIR:-./logs}:/app/logs
     healthcheck:
       test: curl --silent --fail http://localhost:9000/health || exit 1
       interval: 15s

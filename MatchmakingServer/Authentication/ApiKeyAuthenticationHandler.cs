@@ -16,7 +16,7 @@ namespace MatchmakingServer.Authentication
         {
             if (!Request.Headers.TryGetValue(ApiKeyDefaults.RequestHeaderKey, out var apiKeyValues))
             {
-                return Task.FromResult(AuthenticateResult.Fail("Missing API Key"));
+                return Task.FromResult(AuthenticateResult.NoResult());
             }
 
             string? providedApiKey = apiKeyValues.FirstOrDefault();
