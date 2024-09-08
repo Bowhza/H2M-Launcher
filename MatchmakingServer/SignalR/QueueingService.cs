@@ -386,6 +386,15 @@ namespace MatchmakingServer.SignalR
                     return;
                 }
 
+                // check whether to continue
+                int queuedPlayerCount = server.PlayerQueue.Count;
+                if (server.JoiningPlayerCount == queuedPlayerCount)
+                {
+                    // all players in queue already joining -> nothing to do anymore
+                    _logger.LogDebug("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", queuedPlayerCount, server);
+                    return;
+                }
+
                 // now do the actual check for joining
                 await HandlePlayerJoinsAsync(server, cancellationToken);
             }
@@ -437,6 +446,7 @@ namespace MatchmakingServer.SignalR
                         // if the delay completed (i.e., timeout passed without new players), stop the processing loop
                         if (idleTimeoutTask.IsCompleted)
                         {
+                            _logger.LogDebug("Idle timeout reached, stopping processing loop for {server}", server);
                             server.ProcessingState = QueueProcessingState.Stopped;
 
                             if (QueueingSettings.CleanupServerWhenStopped)
@@ -501,6 +511,7 @@ namespace MatchmakingServer.SignalR
                 else
                 {
                     // unknown player state
+                    _logger.LogWarning("Invalid player state for queued player {player}", player);
                 }
             }
         }
@@ -631,6 +642,8 @@ namespace MatchmakingServer.SignalR
 
         private bool TryCleanupServer(GameServer gameServer)
         {
+            _logger.LogTrace("Cleaning up server {server}", gameServer);
+
             if (gameServer.ProcessingState is QueueProcessingState.Running or QueueProcessingState.Paused ||
                 gameServer.PlayerQueue.Count != 0)
             {
