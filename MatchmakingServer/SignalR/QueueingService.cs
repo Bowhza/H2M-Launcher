@@ -13,7 +13,7 @@ namespace MatchmakingServer.SignalR
     {
         private readonly ConcurrentDictionary<(string ip, int port), GameServer> _servers = [];
         private readonly ConcurrentDictionary<string, Player> _connectedPlayers = [];
-        
+
         private readonly GameServerCommunicationService<IServerConnectionDetails> _gameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
         private readonly ILogger<QueueingService> _logger;
@@ -116,35 +116,35 @@ namespace MatchmakingServer.SignalR
                 return;
             }
 
+            _logger.LogDebug("Player {player} reported join failed", player);
+
             if (player.JoinAttempts.Count >= QueueingSettings.MaxJoinAttempts)
             {
                 // max join attempts reached -> remove player from queue 
+                _logger.LogTrace("Max join attempts reached, dequeueing player {player}...", player);
                 DequeuePlayer(player, PlayerState.Connected, DequeueReason.MaxJoinAttemptsReached);
                 return;
             }
+
+            // allow retry and keep player in queue
+            player.State = PlayerState.Queued;
+            player.Server.JoiningPlayerCount--;
+
+            _logger.LogDebug("Moved player {player} back to queue", player);
 
             if (player.Server.LastServerInfo is not null &&
                 player.Server.LastServerInfo.FreeSlots == 0)
             {
                 // server was probably full
-                // TODO: for this we need to keep polling info
-
-                // allow retry and keep player in queue
-                player.State = PlayerState.Queued;
-                player.Server.JoiningPlayerCount--;
-
                 if (QueueingSettings.ResetJoinAttemptsWhenServerFull)
                 {
-                    // TODO: reset join attempts / timer to make it more fair?
+                    // reset join attempts / timer to make it more fair?
+                    _logger.LogTrace("Last server info reported 0 free slots, resetting joing attempts for {player}", player);
                     player.JoinAttempts.Clear();
                 }
 
                 return;
             }
-
-            // allow retry too until timeout or max attempts
-            player.State = PlayerState.Queued;
-            player.Server.JoiningPlayerCount--;
 
             // TODO: maybe allow player to stay in queue until max join attempts / time limit reached
         }
@@ -244,13 +244,13 @@ namespace MatchmakingServer.SignalR
             _logger.LogDebug("Fetching actual players of server {server}...", server);
 
             IReadOnlyList<IW4MServerStatus> serverStatusList = await _instanceCache.TryGetWebfrontStatusList(server.InstanceId, cancellationToken);
-            
-            IW4MServerStatus? serverStatus = serverStatusList.FirstOrDefault(s => 
-                s.ListenAddress == server.ServerIp && 
+
+            IW4MServerStatus? serverStatus = serverStatusList.FirstOrDefault(s =>
+                s.ListenAddress == server.ServerIp &&
                 s.ListenPort == server.ServerPort);
 
             if (serverStatus is null)
-            {                
+            {
                 _logger.LogDebug("No server status found for server instance {instanceId}", server.InstanceId);
 
                 server.ActualPlayers.Clear();
@@ -313,19 +313,19 @@ namespace MatchmakingServer.SignalR
 
             try
             {
-                _logger.LogDebug("Requesting game server info for {server}...", server);
+                _logger.LogTrace("Requesting game server info for {server}...", server);
 
                 GameServerInfo? gameServerInfo = await _gameServerCommunicationService.RequestServerInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {
                     // could not send request
-                    _logger.LogInformation("Could not send server info request");
+                    _logger.LogDebug("Could not send server info request");
                     server.LastServerInfo = null;
                     return false;
                 }
 
                 // successful
-                _logger.LogInformation("Server info retrieved successfully: {gameServerInfo}", gameServerInfo);
+                _logger.LogTrace("Server info retrieved successfully: {gameServerInfo}", gameServerInfo);
 
                 server.LastServerInfo = gameServerInfo;
                 server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
@@ -350,7 +350,7 @@ namespace MatchmakingServer.SignalR
         {
             try
             {
-                _logger.LogTrace("Processing {numberOfQueuedPlayers} queued ({joiningPlayersCount} joining) players for server {server}",
+                _logger.LogDebug("Processing {numberOfQueuedPlayers} queued ({joiningPlayersCount} joining) players for server {server}",
                     server.PlayerQueue.Count, server.JoiningPlayerCount, server);
 
                 // only need to recheck if players are joining
@@ -376,7 +376,7 @@ namespace MatchmakingServer.SignalR
                 if (!QueueingSettings.ResetJoinAttemptsWhenServerFull && server.JoiningPlayerCount == server.PlayerQueue.Count)
                 {
                     // all players in queue already joining -> nothing to do anymore
-                    _logger.LogTrace("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
+                    _logger.LogDebug("All queued players ({numberOfQueuedPlayers}) are currently joining server {server}", server.PlayerQueue.Count, server);
                     return;
                 }
 
