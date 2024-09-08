@@ -424,6 +424,8 @@ namespace MatchmakingServer.SignalR
                     else
                     {
                         server.ProcessingState = QueueProcessingState.Idle;
+                        server.PlayersAvailable.Reset();
+
                         _logger.LogInformation("No players in queue for server {server}, switched to idle state", server);
 
                         // wait for the timeout period to see if new players join the queue
@@ -780,7 +782,7 @@ namespace MatchmakingServer.SignalR
             player.Server = server;
             player.JoinAttempts = [];
             server.PlayerQueue.Enqueue(player);
-
+            
             // signal available
             server.PlayersAvailable.Set();
 

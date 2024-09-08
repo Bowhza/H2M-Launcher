@@ -42,7 +42,7 @@ namespace MatchmakingServer
 
         public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
 
-        public AsyncAutoResetEvent PlayersAvailable { get; } = new(false);
+        public AsyncManualResetEvent PlayersAvailable { get; } = new(false);
 
         public int PrivilegedSlots { get; init; }
 
