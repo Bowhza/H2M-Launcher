@@ -834,6 +834,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             if (serverViewModel is not null)
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+                LastServer = serverViewModel;
             }
         });
     }
