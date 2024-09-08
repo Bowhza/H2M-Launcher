@@ -754,11 +754,15 @@ namespace MatchmakingServer.SignalR
             if (!_connectedPlayers.TryGetValue(connectionId, out var player))
             {
                 // unknown player
+                _logger.LogWarning("Unknown player tried to join queue: No player found for connectionId {connectionId}", 
+                    connectionId);
                 return false;
             }
 
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
+                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued", 
+                    serverIp, serverPort, player);
                 return false;
             }
 
@@ -767,12 +771,15 @@ namespace MatchmakingServer.SignalR
             if (server.PlayerQueue.Contains(player))
             {
                 // player is already queued in server
+                _logger.LogWarning("Player {player} already queued on this server {server}.", player, server);
                 return false;
             }
 
             if (server.PlayerQueue.Count > QueueingSettings.QueuePlayerLimit)
             {
                 // queue limit
+                _logger.LogDebug("Cannot join queue for {server}, queue limit ({playersInQueue}/{queueLimit}) reached.", 
+                    server, server.PlayerQueue.Count, QueueingSettings.QueuePlayerLimit);
                 return false;
             }
 
@@ -785,6 +792,8 @@ namespace MatchmakingServer.SignalR
             
             // signal available
             server.PlayersAvailable.Set();
+
+            _logger.LogDebug("Player {player} queued on {server}", player, server);
 
             await NotifyPlayerQueuePositions(server);
 

@@ -31,10 +31,14 @@ namespace MatchmakingServer.SignalR
 
         public Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId, string playerName)
         {
+            _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverIp, serverPort, playerName);
+
             var player = _queueingService.AddPlayer(Context.ConnectionId, playerName);
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
                 // player already in queue
+                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued", 
+                    serverIp, serverPort, player);
                 return Task.FromResult(false);
             }
 
