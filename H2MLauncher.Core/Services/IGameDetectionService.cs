@@ -7,6 +7,7 @@ public interface IGameDetectionService
 
     event Action<DetectedGame>? GameDetected;
     event Action? GameExited;
+    event Action<Exception?>? Error;
 
     void StartGameDetection();
     void StopGameDetection();

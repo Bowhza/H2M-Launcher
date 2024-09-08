@@ -1,8 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 
-using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 
@@ -16,7 +14,6 @@ namespace H2MLauncher.Core.Services
     {
         private readonly ILogger<H2MGameDetectionService> _logger;
         private readonly IWritableOptions<H2MLauncherSettings> _h2mLauncherSettings;
-        private readonly IErrorHandlingService _errorHandlingService;
         private readonly IGameCommunicationService _gameCommunicationService;
 
         private const int GAME_DETECTION_POLLING_INTERVAL = 1000;
@@ -24,25 +21,29 @@ namespace H2MLauncher.Core.Services
         private readonly object _gameDetectionLockObj = new();
         private CancellationTokenSource _gameDetectionCancellation = new();
         private Task? _gameDetectionTask;
+        private bool _isRunning;
 
-        public H2MGameDetectionService(ILogger<H2MGameDetectionService> logger, IWritableOptions<H2MLauncherSettings> h2mLauncherSettings,
-            IErrorHandlingService errorHandlingService, IGameCommunicationService gameCommunicationService)
+        public H2MGameDetectionService(
+            ILogger<H2MGameDetectionService> logger,
+            IWritableOptions<H2MLauncherSettings> h2mLauncherSettings,
+            IGameCommunicationService gameCommunicationService)
         {
             _logger = logger;
             _h2mLauncherSettings = h2mLauncherSettings;
-            _errorHandlingService = errorHandlingService;
             _gameCommunicationService = gameCommunicationService;
         }
 
         public DetectedGame? DetectedGame { get; private set; }
 
         [MemberNotNullWhen(true, nameof(_gameDetectionTask))]
-        public bool IsGameDetectionRunning => _gameDetectionTask != null && !_gameDetectionTask.IsCompleted;
+        public bool IsGameDetectionRunning => _gameDetectionTask != null && _isRunning;
 
 
         public event Action<DetectedGame>? GameDetected;
 
         public event Action? GameExited;
+
+        public event Action<Exception?>? Error;
 
         public void StartGameDetection()
         {
@@ -65,10 +66,11 @@ namespace H2MLauncher.Core.Services
                     function: () => GameDetectionLoop(OnGameDetected, OnGameExited, cancellationToken: _gameDetectionCancellation.Token)
                                         .ContinueWith(t =>
                                         {
+                                            _isRunning = false;
                                             if (t.IsFaulted)
                                             {
-                                                _errorHandlingService.HandleError("Game detection crashed");
                                                 _logger.LogError(t.Exception, "Game detection loop terminated with error:");
+                                                Error?.Invoke(t.Exception);
                                             }
                                             else if (t.IsCanceled)
                                             {
@@ -82,6 +84,7 @@ namespace H2MLauncher.Core.Services
                     cancellationToken: _gameDetectionCancellation.Token
                  );
 
+                _isRunning = true;
                 _logger.LogDebug("Game detection started");
             }
         }

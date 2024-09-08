@@ -2,8 +2,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Net;
-using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text.Json;
 using System.Windows;
@@ -11,7 +9,6 @@ using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using H2MLauncher.Core;
 using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
@@ -223,6 +220,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
         _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameDetection.Error += GameDetection_Error;
         _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
         _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
         _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
@@ -243,9 +241,32 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         UpdateInstalledMaps(updateViewModels: true);
     }
 
-    private void H2MGameCommunication_Stopped(Exception? obj)
+    private void H2MGameCommunication_Stopped(Exception? exception)
     {
         GameState.State = null;
+
+        if (exception is null)
+        {
+            return;
+        }
+
+        string dialogText;
+        MessageBoxButton dialogButtons;
+        if (_h2MCommunicationService.GameDetection.DetectedGame is not null)
+        {
+            dialogText = "It seems like the game communication has crashed. Click 'OK' to restart it.";
+            dialogButtons = MessageBoxButton.OKCancel;
+        }
+        else
+        {
+            dialogText = "It seems like the game communication has crashed. It will be restarted when the game is detected.";
+            dialogButtons = MessageBoxButton.OK;
+        }
+
+        if (_dialogService.OpenTextDialog("Error", dialogText, dialogButtons) == true)
+        {
+            _h2MCommunicationService.StartGameCommunication();
+        }
     }
 
     private void H2MCommunicationService_GameStateChanged(GameState newState)
@@ -261,6 +282,16 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private void H2MCommunicationService_GameExited()
     {
         GameState.DetectedGame = null;
+    }
+
+    private void GameDetection_Error(Exception? obj)
+    {
+        if (_dialogService.OpenTextDialog("Error",
+            "It seems like the game detection has crashed. Would you like to restart it?",
+            MessageBoxButton.YesNo) == true)
+        {
+            _h2MCommunicationService.GameDetection.StartGameDetection();
+        }
     }
 
     private void ShowSettings()
@@ -830,7 +861,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
             ServerViewModel? serverViewModel = AllServersTab.Servers.FirstOrDefault(server =>
-        server.Ip == joinedServer.ip && server.Port == joinedServer.port);
+                server.Ip == joinedServer.ip && server.Port == joinedServer.port);
             if (serverViewModel is not null)
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);

@@ -1,9 +1,7 @@
-﻿using System.Data;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
-using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Utilities;
 
 using Microsoft.Extensions.Logging;
@@ -14,12 +12,12 @@ namespace H2MLauncher.Core.Services
     {
         private const int GAME_MEMORY_READ_INTERVAL = 1000;
 
-        private readonly IErrorHandlingService _errorHandlingService;
         private readonly ILogger<H2MGameMemoryCommunicationService> _logger;
 
         private readonly SemaphoreSlim _memorySemaphore = new(1, 1);
         private CancellationTokenSource _gameCommunicationCancellation = new();
         private Task? _gameCommunicationTask;
+        private bool _isCommunicationRunning;
         private GameMemory? _gameMemory;
 
         private GameState _currentGameState = new(false, default, null, null);
@@ -39,7 +37,7 @@ namespace H2MLauncher.Core.Services
         }
 
         [MemberNotNullWhen(true, nameof(_gameCommunicationTask))]
-        public bool IsGameCommunicationRunning => _gameCommunicationTask != null && !_gameCommunicationTask.IsCompleted;
+        public bool IsGameCommunicationRunning => _gameCommunicationTask != null && _isCommunicationRunning;
         public Process? GameProcess => _gameMemory?.Process;
 
 
@@ -47,9 +45,8 @@ namespace H2MLauncher.Core.Services
         public event Action<Process>? Started;
         public event Action<Exception?>? Stopped;
 
-        public H2MGameMemoryCommunicationService(IErrorHandlingService errorHandlingService, ILogger<H2MGameMemoryCommunicationService> logger)
+        public H2MGameMemoryCommunicationService(ILogger<H2MGameMemoryCommunicationService> logger)
         {
-            _errorHandlingService = errorHandlingService;
             _logger = logger;
         }
 
@@ -75,10 +72,11 @@ namespace H2MLauncher.Core.Services
                 _gameMemory = new GameMemory(process, Constants.GAME_EXECUTABLE_NAME);
                 _gameCommunicationCancellation = new CancellationTokenSource();
                 _gameCommunicationTask = Task.Run(
-                    function: () => GameMemoryCommunicationLoop(_gameMemory, _gameCommunicationCancellation.Token)
-                                        .ContinueWith(OnGameCommunicationTerminated),
+                    function: () => GameMemoryCommunicationLoop(_gameMemory, _gameCommunicationCancellation.Token),
                     cancellationToken: _gameCommunicationCancellation.Token
-                 );
+                 ).ContinueWith(OnGameCommunicationTerminated);
+
+                _isCommunicationRunning = true;
             }
             catch (Exception ex)
             {
@@ -98,9 +96,10 @@ namespace H2MLauncher.Core.Services
 
         private void OnGameCommunicationTerminated(Task loopTask)
         {
+            _isCommunicationRunning = false;
+
             if (loopTask.IsFaulted)
             {
-                _errorHandlingService.HandleError("Error during game communication");
                 _logger.LogError(loopTask.Exception, "Game memory communication loop terminated with error:");
             }
             else if (loopTask.IsCanceled)
