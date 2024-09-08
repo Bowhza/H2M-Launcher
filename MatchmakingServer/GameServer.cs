@@ -4,6 +4,8 @@ using H2MLauncher.Core;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
+using Nito.AsyncEx;
+
 namespace MatchmakingServer
 {
     public class GameServer : IServerConnectionDetails
@@ -40,7 +42,7 @@ namespace MatchmakingServer
 
         public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
 
-        public AutoResetEvent PlayersAvailable { get; } = new(false);
+        public AsyncAutoResetEvent PlayersAvailable { get; } = new(false);
 
         public int PrivilegedSlots { get; init; }
 

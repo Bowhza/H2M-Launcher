@@ -430,7 +430,7 @@ namespace MatchmakingServer.SignalR
                         Task idleTimeoutTask = Task.Delay(QueueInactivityIdleTimeout, cancellationToken);
 
                         // if new players arrive during this time, break out of the waiting period
-                        await Task.WhenAny(idleTimeoutTask, server.PlayersAvailable.WaitOneAsync());
+                        await Task.WhenAny(idleTimeoutTask, server.PlayersAvailable.WaitAsync());
 
                         // if the delay completed (i.e., timeout passed without new players), stop the processing loop
                         if (idleTimeoutTask.IsCompleted)
