@@ -104,7 +104,7 @@ namespace MatchmakingServer.SignalR
         /// </summary>
         public void OnPlayerJoinFailed(string connectionId)
         {
-            if (!_connectedPlayers.TryRemove(connectionId, out var player))
+            if (!_connectedPlayers.TryGetValue(connectionId, out var player))
             {
                 // not found
                 return;
@@ -151,9 +151,9 @@ namespace MatchmakingServer.SignalR
 
         public void OnPlayerJoinConfirmed(string connectionId)
         {
-            if (!_connectedPlayers.TryRemove(connectionId, out var player))
+            if (!_connectedPlayers.TryGetValue(connectionId, out var player))
             {
-                // not found                
+                // not found
                 return;
             }
 
@@ -767,14 +767,14 @@ namespace MatchmakingServer.SignalR
             if (!_connectedPlayers.TryGetValue(connectionId, out var player))
             {
                 // unknown player
-                _logger.LogWarning("Unknown player tried to join queue: No player found for connectionId {connectionId}", 
+                _logger.LogWarning("Unknown player tried to join queue: No player found for connectionId {connectionId}",
                     connectionId);
                 return false;
             }
 
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
-                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued", 
+                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued",
                     serverIp, serverPort, player);
                 return false;
             }
@@ -791,7 +791,7 @@ namespace MatchmakingServer.SignalR
             if (server.PlayerQueue.Count > QueueingSettings.QueuePlayerLimit)
             {
                 // queue limit
-                _logger.LogDebug("Cannot join queue for {server}, queue limit ({playersInQueue}/{queueLimit}) reached.", 
+                _logger.LogDebug("Cannot join queue for {server}, queue limit ({playersInQueue}/{queueLimit}) reached.",
                     server, server.PlayerQueue.Count, QueueingSettings.QueuePlayerLimit);
                 return false;
             }
@@ -802,7 +802,7 @@ namespace MatchmakingServer.SignalR
             player.Server = server;
             player.JoinAttempts = [];
             server.PlayerQueue.Enqueue(player);
-            
+
             // signal available
             server.PlayersAvailable.Set();
 
