@@ -332,7 +332,7 @@ namespace H2MLauncher.Core.Services
                 {
                     await StartConnection();
                 }
-                bool joinedSuccesfully = await _connection.InvokeAsync<bool>("SearchMatch", "TestPlayer", 8, testServers.ToList());
+                bool joinedSuccesfully = await _connection.InvokeAsync<bool>("SearchMatch", Guid.NewGuid().ToString(), 8, testServers.ToList());
                 if (!joinedSuccesfully)
                 {
                     _logger.LogDebug("Could not enter matchmaking");

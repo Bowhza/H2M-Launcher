@@ -12,7 +12,7 @@ namespace MatchmakingServer
 {
     public class MatchmakingService
     {
-        private const int QUEUE_TIMEOUT_SECONDS = 12; // Timeout after 30 seconds in queue
+        private const int QUEUE_TIMEOUT_SECONDS = 30; // Timeout after 30 seconds in queue
 
         private readonly ConcurrentDictionary<(string ip, int port), ConcurrentLinkedQueue<MMPlayer>> _serverGroups = [];
         private readonly ConcurrentLinkedQueue<MMPlayer> _playerQueue = new();
