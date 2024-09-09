@@ -49,12 +49,14 @@ builder.Services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>(
         client.BaseAddress = baseUri;
     });
 
-builder.Services.AddSingleton<GameServerCommunicationService<IServerConnectionDetails>>();
+builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
 
+builder.Services.AddSingleton<ServerStore>();
 builder.Services.AddSingleton<QueueingService>();
+builder.Services.AddSingleton<MatchmakingServer.MatchmakingService>();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -84,7 +86,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
                 .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, (options) =>
-                {                    
+                {
                     options.ApiKey = builder.Configuration.GetValue<string>("ApiKey");
                     options.ForwardDefaultSelector = context =>
                     {
@@ -99,7 +101,7 @@ builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
-    { 
+    {
         // serialize enums as strings in api responses
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });

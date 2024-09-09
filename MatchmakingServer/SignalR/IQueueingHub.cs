@@ -1,4 +1,5 @@
 ﻿
+
 namespace MatchmakingServer.SignalR
 {
     public interface IQueueingHub
@@ -8,5 +9,7 @@ namespace MatchmakingServer.SignalR
         Task JoinAck(bool successful);
 
         Task LeaveQueue();
+
+        bool SearchMatch(string playerName, int minPlayers, List<string> preferredServers);
     }
 }

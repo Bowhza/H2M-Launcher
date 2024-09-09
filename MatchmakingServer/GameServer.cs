@@ -46,10 +46,10 @@ namespace MatchmakingServer
 
         public int PrivilegedSlots { get; init; }
 
-        public int UnavailableSlots => JoiningPlayerCount + PrivilegedSlots;
+        public int UnavailableSlots => JoiningPlayerCount + PrivilegedSlots;        
 
         public GameServer(string instanceId)
-        {
+        {            
             InstanceId = instanceId;
         }
 

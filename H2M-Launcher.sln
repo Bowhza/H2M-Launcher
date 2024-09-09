@@ -11,6 +11,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "H2MLauncher.CLI", "H2MLaunc
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatchmakingServer", "MatchmakingServer\MatchmakingServer.csproj", "{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MatchmakingServer.Tests", "MatchmakingServer.Tests\MatchmakingServer.Tests.csproj", "{0A39CB47-BFA0-4F7A-B69D-92687A477402}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A39CB47-BFA0-4F7A-B69D-92687A477402}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A39CB47-BFA0-4F7A-B69D-92687A477402}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A39CB47-BFA0-4F7A-B69D-92687A477402}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A39CB47-BFA0-4F7A-B69D-92687A477402}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

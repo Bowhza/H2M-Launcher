@@ -105,6 +105,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
     public IAsyncRelayCommand ReconnectCommand { get; }
+    public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -152,6 +153,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
         ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
+        EnterMatchmakingCommand = new AsyncRelayCommand(_matchmakingService.EnterMatchmakingAsync);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();

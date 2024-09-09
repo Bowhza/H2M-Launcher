@@ -175,6 +175,8 @@
                     <StackPanel Orientation="Horizontal" Grid.Column="2">
                         <Button TabIndex="3" Content="Filter" Width="80" Command="{Binding ShowServerFilterCommand}" />
                         <Separator Opacity="0" Width="5" />
+                        <Button TabIndex="3" Content="Matchmaking" Width="80" Command="{Binding EnterMatchmakingCommand}" />
+                        <Separator Opacity="0" Width="5" />
                         <Button TabIndex="3" Content="Join" Width="80" Command="{Binding SelectedTab.JoinServerCommand}" />
                         <Separator Opacity="0" Width="5" />
                         <Button TabIndex="4" Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>

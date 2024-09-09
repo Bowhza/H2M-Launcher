@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Reactive;
 
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Settings;
@@ -24,6 +25,7 @@ namespace H2MLauncher.Core.Services
     {
         Disconnected,
         Connected,
+        Matchmaking,
         Queued,
         Joining,
         Joined
@@ -201,7 +203,7 @@ namespace H2MLauncher.Core.Services
 
                     QueueingState = PlayerState.Queued;
                 }
-                
+
                 // notify others that a join failed
                 JoinFailed?.Invoke((_queuedServer.Ip, _queuedServer.Port));
             }
@@ -270,7 +272,7 @@ namespace H2MLauncher.Core.Services
                 }
 
                 _logger.LogDebug("Joining server queue...");
-                if (_connection.State is not HubConnectionState.Connected)
+                if (_connection.State is HubConnectionState.Disconnected)
                 {
                     await StartConnection();
                 }
@@ -317,6 +319,28 @@ namespace H2MLauncher.Core.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while leaving server queue");
+            }
+        }
+
+        public async Task EnterMatchmakingAsync()
+        {
+            try
+            {
+                _logger.LogDebug("Entering matchmaking...");
+                string[] testServers = ["23.26.130.20:27016", "188.64.33.38:5083", "154.12.244.58:27018", "38.45.200.178:27065", "38.45.200.178:27060", "57.128.171.20:27016", "185.249.225.191:27026", "149.202.89.208:27019", "38.45.200.178:27040", "51.81.110.227:27019", "116.202.156.245:27022", "38.60.136.95:27016", "103.51.114.235:27017", "45.61.162.36:27018", "136.243.124.149:27018", "94.130.65.242:27016", "157.90.6.163:27021", "h2m.sinist3r.lol:37020", "195.90.210.175:27016", "195.90.210.175:27017"];
+                if (_connection.State is HubConnectionState.Disconnected)
+                {
+                    await StartConnection();
+                }
+                bool joinedSuccesfully = await _connection.InvokeAsync<bool>("SearchMatch", "TestPlayer", 8, testServers.ToList());
+                if (!joinedSuccesfully)
+                {
+                    _logger.LogDebug("Could not enter matchmaking");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while entering matchmaking");
             }
         }
 
