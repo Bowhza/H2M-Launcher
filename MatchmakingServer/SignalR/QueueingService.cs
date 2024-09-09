@@ -59,14 +59,19 @@ namespace MatchmakingServer.SignalR
         }
 
         /// <summary>
-        /// Register a player.
+        /// Register a player or gets the existing player.
         /// </summary>
         /// <param name="connectionId">Client connection id.</param>
         /// <param name="playerName">Player name</param>
-        /// <returns>Whether sucessfully registered.</returns>
+        /// <returns>The connected player.</returns>
         public Player AddPlayer(string connectionId, string playerName)
         {
-            Player player = new()
+            if (_connectedPlayers.TryGetValue(connectionId, out var player))
+            {
+                return player;
+            }
+
+            player = new()
             {
                 Name = playerName,
                 ConnectionId = connectionId
