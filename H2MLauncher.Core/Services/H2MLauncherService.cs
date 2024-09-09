@@ -11,13 +11,14 @@ namespace H2MLauncher.Core.Services
     public sealed class H2MLauncherService
     {
         private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
-        private const string LauncherBackupPath = $"{LauncherPath}.backup";
 
         private readonly ILogger<H2MLauncherService> _logger;
         private readonly HttpClient _httpClient;
         private readonly IErrorHandlingService _errorHandlingService;
 
-        public const string LauncherPath = "H2MLauncher.UI.exe";
+        public static readonly string LauncherPath = Environment.ProcessPath ?? AssemblyName + ".exe";
+        private static readonly string LauncherBackupPath = $"{LauncherPath}.backup";
+        private static readonly string TempFileName = $"{LauncherPath}.bak";
 
 
         // IMPORTANT: Set this to the same pre-release label used in GitHub
@@ -42,6 +43,17 @@ namespace H2MLauncher.Core.Services
                 }
 
                 return versionString;
+            }
+        }
+
+        /// <summary>
+        /// Gets the name of the entry assembly (without extension)
+        /// </summary>
+        private static string AssemblyName
+        {
+            get
+            {
+                return Assembly.GetEntryAssembly()!.GetName().Name ?? "H2MLauncher.UI";
             }
         }
 
@@ -106,12 +118,11 @@ namespace H2MLauncher.Core.Services
 
         public async Task<bool> UpdateLauncherToLatestVersion(Action<double> progress, CancellationToken cancellationToken)
         {
-            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{LauncherPath}";
-            const string tempFileName = $"{LauncherPath}.bak";
+            string downloadUrl = $"https://github.com/Bowhza/H2M-Launcher/releases/download/{LatestKnownVersion}/{AssemblyName}.exe";
 
             try
             {
-                DownloadProgressHandler downloadProgressHandler = (long? totalFileSize, long totalBytesDownloaded, double? progressPercentage) => 
+                DownloadProgressHandler downloadProgressHandler = (long? totalFileSize, long totalBytesDownloaded, double? progressPercentage) =>
                 {
                     if (progressPercentage.HasValue)
                     {
@@ -124,7 +135,7 @@ namespace H2MLauncher.Core.Services
 
                 // TODO: If user closed application while downloading, cancel the download -> cancellation token.
                 //       Requires a bit more work to be done for global handling of cancellations.
-                await DownloadWithProgress.ExecuteAsync(_httpClient, downloadUrl, tempFileName, downloadProgressHandler, CancellationToken.None);
+                await DownloadWithProgress.ExecuteAsync(_httpClient, downloadUrl, TempFileName, downloadProgressHandler, CancellationToken.None);
             }
             catch (Exception ex)
             {
@@ -140,9 +151,9 @@ namespace H2MLauncher.Core.Services
                 File.Move(LauncherPath, LauncherBackupPath);
                 _logger.LogInformation("Moved old launcher {} to {}.", LauncherPath, LauncherBackupPath);
 
-                _logger.LogDebug("Attempting to move new launcher {} to {}.", tempFileName, LauncherPath);
-                File.Move(tempFileName, LauncherPath);
-                _logger.LogInformation("Moved new launcher {} to {}.", tempFileName, LauncherPath);
+                _logger.LogDebug("Attempting to move new launcher {} to {}.", TempFileName, LauncherPath);
+                File.Move(TempFileName, LauncherPath);
+                _logger.LogInformation("Moved new launcher {} to {}.", TempFileName, LauncherPath);
             }
             catch (Exception ex)
             {

@@ -327,6 +327,18 @@ namespace H2MLauncher.Core.Services
             return process.MainWindowHandle;
         }
 
+        public void StartGameCommunication()
+        {
+            if (GameCommunication.IsGameCommunicationRunning || 
+                GameDetection.DetectedGame is not DetectedGame detectedGame ||
+                detectedGame.Process.HasExited)
+            {
+                return;
+            }
+
+            GameCommunication.StartGameCommunication(detectedGame.Process);
+        }
+
         public void Dispose()
         {
             _optionsChangeRegistration?.Dispose();

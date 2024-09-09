@@ -30,7 +30,6 @@ namespace H2MLauncher.Core.Services
     }
 
 
-
     public sealed class MatchmakingService : IAsyncDisposable
     {
         private readonly H2MCommunicationService _h2MCommunicationService;
@@ -49,10 +48,9 @@ namespace H2MLauncher.Core.Services
             public string? PrivatePassword { get; set; }
         }
 
-        private readonly List<QueuedServer> _queuedServers = [];
+        private QueuedServer? _queuedServer = null;
         private readonly Dictionary<ServerConnectionDetails, string> _privatePasswords = [];
-        private bool _hasSeenConnecting = false;
-        
+
         public int QueuePosition { get; private set; }
         public int TotalPlayersInQueue { get; private set; }
 
@@ -85,10 +83,10 @@ namespace H2MLauncher.Core.Services
         public event Action<(string ip, int port)>? JoinFailed;
 
         public MatchmakingService(
-            ILogger<MatchmakingService> logger, 
+            ILogger<MatchmakingService> logger,
             H2MCommunicationService h2MCommunicationService,
-            IGameCommunicationService gameCommunicationService, 
-            IOptions<MatchmakingSettings> matchmakingSettings, 
+            IGameCommunicationService gameCommunicationService,
+            IOptions<MatchmakingSettings> matchmakingSettings,
             IOptionsMonitor<H2MLauncherSettings> options)
         {
             _logger = logger;
@@ -114,8 +112,7 @@ namespace H2MLauncher.Core.Services
         {
             if (newState is PlayerState.Disconnected or PlayerState.Joined or PlayerState.Connected)
             {
-                _hasSeenConnecting = false;
-                _queuedServers.Clear();
+                _queuedServer = null;
                 _privatePasswords.Clear();
             }
 
@@ -128,8 +125,7 @@ namespace H2MLauncher.Core.Services
         {
             _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
 
-            _queuedServers.Add(new QueuedServer(ip, port));
-            _hasSeenConnecting = false;
+            _queuedServer = new QueuedServer(ip, port);
 
             Joining?.Invoke((ip, port));
 
@@ -167,7 +163,7 @@ namespace H2MLauncher.Core.Services
         {
             if (QueueingState is not (PlayerState.Joining or PlayerState.Queued))
             {
-                // ignore events when not joining
+                // ignore events when not in queue
                 return;
             }
 
@@ -188,57 +184,53 @@ namespace H2MLauncher.Core.Services
 
                 // we are now joined :)
                 QueueingState = PlayerState.Joined;
-
                 Joined?.Invoke((queuedServer.Ip, queuedServer.Port));
             }
-
-            if (gameState.IsInMainMenu && _hasSeenConnecting)
+            else if (gameState.IsInMainMenu && _queuedServer?.HasSeenConnecting == true)
             {
                 // something went wrong with joining, we have been connection and now are in the main menu again :(
-                
+
                 if (QueueingState is PlayerState.Joining)
                 {
-                    // we were joining, so that's probably the queued server
+                    // we were joining, so that's probably the queued server.
                     // tell server we could not join, maybe the server got full in the meantime
-                    // (only if we were actually joining from the queue, not force joining)
+                    // (only if we were actually joining from the queue, not force joining.
+                    // Otherwise, we want to stay in the queue because the failed join attempt doesn't count)
                     _logger.LogInformation("Could not join server, sending failed join ack...");
                     await AcknowledgeJoin(false);
-                    
+
                     QueueingState = PlayerState.Queued;
                 }
-
-                // check whether one of the queued servers has been seen connecting before
-                QueuedServer? connectingQueuedServer = _queuedServers.FirstOrDefault(s => s.HasSeenConnecting);
-                if (connectingQueuedServer is not null)
-                {
-                    JoinFailed?.Invoke((connectingQueuedServer.Ip, connectingQueuedServer.Port));
-                }
+                
+                // notify others that a join failed
+                JoinFailed?.Invoke((_queuedServer.Ip, _queuedServer.Port));
             }
-
-            if (gameState.IsConnecting && !gameState.IsPrivateMatch)
+            else if (gameState.IsConnecting && !gameState.IsPrivateMatch)
             {
-                // set this flag so we dont recognize a previous server connected to as the current server
-                // TODO: maybe compare IPs? could not match somehow and the unnecessarily block the queue
-                _hasSeenConnecting = true;
-
+                // connecting to something public
                 QueuedServer? queuedServer = GetQueuedServer(gameState);
-                if (queuedServer is null)
+                if (queuedServer is not null)
                 {
-                    return;
+                    // set this flag so we dont recognize a previous server connected to as the current server
+                    queuedServer.HasSeenConnecting = true;
                 }
-
-                queuedServer.HasSeenConnecting = true;
             }
         }
 
         private QueuedServer? GetQueuedServer(GameState gameState)
         {
-            if (gameState.Endpoint is not null)
+            if (gameState.Endpoint is null)
             {
-                // (unfortunately we cannot use port because the game gives us the local UDP port)
-                string gameStateIp = gameState.Endpoint.Address.GetRealAddress().ToString();
+                // game state has no connected endpoint
+                return null;
+            }
 
-                return _queuedServers.Find(s => s.Ip == gameStateIp);
+            // (unfortunately we cannot use port because the game gives us the local UDP port)
+            string gameStateIp = gameState.Endpoint.Address.GetRealAddress().ToString();
+            if (_queuedServer?.Ip == gameStateIp)
+            {
+                // ip matches the queued server
+                return _queuedServer;
             }
 
             return null;
@@ -286,6 +278,8 @@ namespace H2MLauncher.Core.Services
                 bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
                 if (!joinedSuccesfully)
                 {
+                    _logger.LogDebug("Could not join queue as '{playerName}' for {serverIp}:{serverPort}",
+                        playerName, server.Ip, server.Port);
                     return false;
                 }
 
@@ -297,8 +291,8 @@ namespace H2MLauncher.Core.Services
                     _privatePasswords[new ServerConnectionDetails(server.Ip, server.Port)] = privatePassword;
                 };
 
+                _queuedServer = new QueuedServer(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port);
                 QueueingState = PlayerState.Queued;
-                _queuedServers.Add(new(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port));
 
                 return true;
             }
