@@ -127,4 +127,6 @@ app.MapHealthChecks("/health");
 
 app.MapHub<QueueingHub>("/Queue");
 
+app.Services.GetRequiredService <MatchmakingServer.MatchmakingService>();
+
 app.Run();

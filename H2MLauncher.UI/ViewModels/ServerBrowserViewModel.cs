@@ -805,7 +805,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             bool joinedQueue = await _matchmakingService.JoinQueueAsync(
                 server: serverViewModel.Server,
                 serverEndpoint: serverViewModel.GameServerInfo.Address,
-                playerName: _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier",
                 password);
 
             if (joinedQueue)

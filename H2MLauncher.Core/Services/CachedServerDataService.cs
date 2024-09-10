@@ -32,5 +32,16 @@ namespace H2MLauncher.Core.Services
                 return serverData is null ? [] : serverData.AsReadOnly();
             });
         }
+
+        public Task<Playlist?> GetDefaultPlaylist(CancellationToken cancellationToken)
+        {
+            return _memoryCache.GetOrCreateAsync("DefaultPlaylist", (entry) =>
+            {
+                entry.AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(10);
+
+                _logger.LogDebug("Fetching default playlist...");
+                return _httpClient.GetFromJsonAsync<Playlist>("playlists/default", cancellationToken);
+            });
+        }
     }
 }

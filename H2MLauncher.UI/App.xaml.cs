@@ -118,6 +118,7 @@ namespace H2MLauncher.UI
             services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
+            services.AddSingleton<IPlayerNameProvider, ConfigPlayerNameProvider>();
             services.AddMemoryCache();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();

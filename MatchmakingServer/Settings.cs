@@ -10,4 +10,6 @@ public record Settings
 public record ServerSettings
 {
     public List<ServerData> ServerDataList { get; init; } = [];
+
+    public List<Playlist> Playlists { get; init; } = [];
 }

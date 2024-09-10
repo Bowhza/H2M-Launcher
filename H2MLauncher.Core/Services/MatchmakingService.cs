@@ -34,12 +34,15 @@ namespace H2MLauncher.Core.Services
 
     public sealed class MatchmakingService : IAsyncDisposable
     {
-        private readonly H2MCommunicationService _h2MCommunicationService;
-
         private readonly HubConnection _connection;
-        private readonly ILogger<MatchmakingService> _logger;
+
+        private readonly H2MCommunicationService _h2MCommunicationService;
         private readonly IGameCommunicationService _gameCommunicationService;
+        private readonly IPlayerNameProvider _playerNameProvider;
+        private readonly CachedServerDataService _serverDataService;
+
         private readonly IOptionsMonitor<H2MLauncherSettings> _options;
+        private readonly ILogger<MatchmakingService> _logger;
 
         private record struct ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails;
 
@@ -89,11 +92,14 @@ namespace H2MLauncher.Core.Services
             H2MCommunicationService h2MCommunicationService,
             IGameCommunicationService gameCommunicationService,
             IOptions<MatchmakingSettings> matchmakingSettings,
-            IOptionsMonitor<H2MLauncherSettings> options)
+            IOptionsMonitor<H2MLauncherSettings> options,
+            IPlayerNameProvider playerNameProvider,
+            CachedServerDataService serverDataService)
         {
             _logger = logger;
             _options = options;
             _gameCommunicationService = gameCommunicationService;
+            _playerNameProvider = playerNameProvider;
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(matchmakingSettings.Value.QueueingHubUrl)
@@ -108,6 +114,7 @@ namespace H2MLauncher.Core.Services
 
             _h2MCommunicationService = h2MCommunicationService;
             _gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
+            _serverDataService = serverDataService;
         }
 
         private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
@@ -262,7 +269,7 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public async Task<bool> JoinQueueAsync(IW4MServer server, IPEndPoint serverEndpoint, string playerName, string? privatePassword)
+        public async Task<bool> JoinQueueAsync(IW4MServer server, IPEndPoint serverEndpoint, string? privatePassword)
         {
             try
             {
@@ -276,6 +283,8 @@ namespace H2MLauncher.Core.Services
                 {
                     await StartConnection();
                 }
+
+                string playerName = _playerNameProvider.PlayerName;
 
                 bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
                 if (!joinedSuccesfully)
@@ -322,25 +331,53 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public async Task EnterMatchmakingAsync()
+        public async Task<bool> EnterMatchmakingAsync()
+        {
+            try
+            {
+                Playlist? playlist = await _serverDataService.GetDefaultPlaylist(CancellationToken.None);
+                if (playlist is null)
+                {
+                    return false;
+                }
+
+                return await EnterMatchmakingAsync(playlist, minPlayers: 8).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while getting default playlist");
+                return false;
+            }
+        }
+
+        public async Task<bool> EnterMatchmakingAsync(Playlist playlist, int minPlayers = 8)
         {
             try
             {
                 _logger.LogDebug("Entering matchmaking...");
-                string[] testServers = ["23.26.130.20:27016", "188.64.33.38:5083", "154.12.244.58:27018", "38.45.200.178:27065", "38.45.200.178:27060", "57.128.171.20:27016", "185.249.225.191:27026", "149.202.89.208:27019", "38.45.200.178:27040", "51.81.110.227:27019", "116.202.156.245:27022", "38.60.136.95:27016", "103.51.114.235:27017", "45.61.162.36:27018", "136.243.124.149:27018", "94.130.65.242:27016", "157.90.6.163:27021", "h2m.sinist3r.lol:37020", "195.90.210.175:27016", "195.90.210.175:27017"];
+
                 if (_connection.State is HubConnectionState.Disconnected)
                 {
                     await StartConnection();
                 }
-                bool joinedSuccesfully = await _connection.InvokeAsync<bool>("SearchMatch", Guid.NewGuid().ToString(), 8, testServers.ToList());
-                if (!joinedSuccesfully)
+
+                string playerName = _playerNameProvider.PlayerName;
+                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, minPlayers, playlist.Servers);
+                if (!success)
                 {
-                    _logger.LogDebug("Could not enter matchmaking");
+                    _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}' as '{playerName}'", playlist.Id, playerName);
+                    return false;
                 }
+
+                QueueingState = PlayerState.Matchmaking;
+                _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}' as '{playerName}' for ", playlist.Id, playerName);
+
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while entering matchmaking");
+                return false;
             }
         }
 
