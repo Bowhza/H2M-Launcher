@@ -661,6 +661,16 @@ namespace MatchmakingServer.SignalR
 
         #endregion
 
+        public void StartQueue(GameServer server)
+        {
+            if (server.ProcessingState is QueueProcessingState.Stopped)
+            {
+                // (re)start processing queued players
+                server.ProcessingCancellation = new();
+                server.ProcessingTask = ServerProcessingLoop(server);
+            }
+        }
+
         public async Task<bool> JoinQueue(GameServer server, Player player)
         {
             if (player.State is PlayerState.Queued or PlayerState.Joining)

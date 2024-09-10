@@ -102,10 +102,9 @@ namespace MatchmakingServer
                 var key = (ip, port);
                 preferredServersParsed.Add(key);
 
-                if (!_serverStore.Servers.ContainsKey(key))
-                {
-                    _serverStore.TryAddServer(ip, port, "");
-                }
+                // Make sure server is created and running queue
+                GameServer server =  _serverStore.GetOrAddServer(ip, port, "");
+                _queueingService.StartQueue(server);
             }
 
             AddPlayerToQueue(new MMPlayer(player, preferredServersParsed, minPlayers));
