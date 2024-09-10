@@ -12,7 +12,7 @@ namespace MatchmakingServer.SignalR
         private readonly QueueingService _queueingService;
         private readonly MatchmakingService _matchmakingService;
 
-        private readonly ConcurrentDictionary<string, Player> _connectedPlayers = [];
+        private readonly static ConcurrentDictionary<string, Player> ConnectedPlayers = new();
 
         public QueueingHub(ILogger<QueueingHub> logger, QueueingService queueingService, MatchmakingService matchmakingService)
         {
@@ -30,7 +30,7 @@ namespace MatchmakingServer.SignalR
         /// <returns>Whether sucessfully registered.</returns>
         private Player GetOrAddPlayer(string connectionId, string playerName)
         {
-            if (_connectedPlayers.TryGetValue(connectionId, out Player? player))
+            if (ConnectedPlayers.TryGetValue(connectionId, out Player? player))
             {
                 return player;
             }
@@ -42,7 +42,7 @@ namespace MatchmakingServer.SignalR
                 State = PlayerState.Connected
             };
 
-            if (_connectedPlayers.TryAdd(connectionId, player))
+            if (ConnectedPlayers.TryAdd(connectionId, player))
             {
                 _logger.LogInformation("Connected player: {player}", player);
             }
@@ -57,7 +57,7 @@ namespace MatchmakingServer.SignalR
         /// <returns>The previously connected player.</returns>
         private Player? RemovePlayer(string connectionId)
         {
-            if (!_connectedPlayers.TryRemove(connectionId, out var player))
+            if (!ConnectedPlayers.TryRemove(connectionId, out var player))
             {
                 return null;
             }
@@ -75,7 +75,7 @@ namespace MatchmakingServer.SignalR
 
         public Task JoinAck(bool successful)
         {
-            if (!_connectedPlayers.TryGetValue(Context.ConnectionId, out var player))
+            if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
             {
                 // not found
                 return Task.CompletedTask;
@@ -101,7 +101,7 @@ namespace MatchmakingServer.SignalR
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
                 // player already in queue
-                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued", 
+                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued",
                     serverIp, serverPort, player);
                 return Task.FromResult(false);
             }
@@ -111,7 +111,7 @@ namespace MatchmakingServer.SignalR
 
         public Task LeaveQueue()
         {
-            if (!_connectedPlayers.TryGetValue(Context.ConnectionId, out var player))
+            if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
             {
                 // unknown player
                 return Task.CompletedTask;
