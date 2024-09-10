@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Net;
+using System.Text.RegularExpressions;
 
 using H2MLauncher.Core.Models;
 
@@ -24,7 +25,8 @@ namespace H2MLauncher.Core.Services
         private const string INFO_REQUEST = "getinfo";
         private const string INFO_RESPONSE = "inforesponse";
 
-        public event EventHandler<ServerInfoEventArgs<TServer>>? ServerInfoReceived;
+        public event EventHandler<ServerInfoEventArgs<TServer, GameServerInfo>>? ServerInfoReceived;
+        public event EventHandler<ServerInfoEventArgs<TServer, GameServerStatus>>? ServerStatusReceived;
 
         public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger, IEndpointResolver endpointResolver)
         {
@@ -38,6 +40,7 @@ namespace H2MLauncher.Core.Services
         {
             public DateTimeOffset TimeStamp { get; init; } = DateTimeOffset.Now;
             public TaskCompletionSource<GameServerInfo>? InfoResponseCompletionSource { get; init; }
+            public TaskCompletionSource<GameServerStatus>? StatusResponseCompletionSource { get; init; }
         }
 
 
@@ -52,6 +55,61 @@ namespace H2MLauncher.Core.Services
             IDisposable handlerRegistration = _gameServerCommunication.On(INFO_RESPONSE, OnInfoResponse);
 
             _registrations.Add(handlerRegistration);
+
+            _registrations.Add(_gameServerCommunication.On("statusResponse", OnStatusResponse));
+        }
+
+        protected virtual void OnStatusResponse(GameServerCommunication.CommandEventArgs e)
+        {
+            try
+            {
+                if (!_queuedRequests.TryRemove(e.RemoteEndPoint, out InfoRequest queuedRequest))
+                {
+                    // unknown remote endpoint
+                    return;
+                }
+
+                GameServerStatus status = new()
+                {
+                    Address = e.RemoteEndPoint
+                };
+
+                Console.WriteLine(e.Message);
+                string[] lines = e.Data.Split(["\r\n", "\r", "\n"], StringSplitOptions.RemoveEmptyEntries);
+                foreach (string line in lines.Skip(1))
+                {
+                    Match match = Regex.Match(line, @"(\d+) (\d+) ""(.*)""");
+                    if (match.Groups.Count != 3 || match.Groups.Values.Any(g => !g.Success))
+                    {
+                        continue;
+                    }
+
+                    string[] splitted = line.Split(' ');
+                    if (splitted.Length != 3)
+                    {
+                        continue;
+                    }
+
+                    int.TryParse(match.Groups[0].Value, out int score);
+                    int.TryParse(match.Groups[1].Value, out int ping);
+                    string playerName = match.Groups[2].Value;
+
+                    status.Players.Add((score, ping, playerName));
+                }
+                // Try complete the request
+                queuedRequest.StatusResponseCompletionSource?.TrySetResult(status);
+
+                ServerStatusReceived?.Invoke(this, new()
+                {
+                    ServerInfo = status,
+                    Server = queuedRequest.Server
+                });
+            }
+            catch (Exception ex)
+            {
+                // parsing error or smth
+                _logger.LogError(ex, "Error while parsing game server status response: {responseData}", e.Data);
+            }
         }
 
         /// <summary>
@@ -191,7 +249,7 @@ namespace H2MLauncher.Core.Services
         /// <summary>
         /// Send info requests to all given game servers.
         /// </summary>
-        public async Task RequestServerInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer>> onInfoResponse, 
+        public async Task RequestServerInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer, GameServerInfo>> onInfoResponse,
             CancellationToken cancellationToken)
         {
             IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
@@ -201,7 +259,7 @@ namespace H2MLauncher.Core.Services
                 // early return to avoid allocations
                 return;
             }
-            
+
             // subscribe to server info handlers
             ServerInfoReceived += onServerInfoReceived;
             cancellationToken.Register(() => ServerInfoReceived -= onServerInfoReceived);
@@ -222,12 +280,56 @@ namespace H2MLauncher.Core.Services
                 timer.WaitForTrigger();
             }
 
-            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer> args)
+            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer, GameServerInfo> args)
             {
                 // only invoke the callback for responses from the given servers
                 if (endpointServerMap.ContainsKey(args.ServerInfo.Address))
                 {
                     onInfoResponse(args);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Send info requests to all given game servers.
+        /// </summary>
+        public async Task RequestStatusAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer, GameServerStatus>> onStatusResponse,
+            CancellationToken cancellationToken)
+        {
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+
+            if (endpointServerMap.Count == 0)
+            {
+                // early return to avoid allocations
+                return;
+            }
+
+            // subscribe to server info handlers
+            ServerStatusReceived += onServerInfoReceived;
+            cancellationToken.Register(() => ServerStatusReceived -= onServerInfoReceived);
+
+            // start sending requests
+            using HighResolutionTimer timer = new();
+            timer.SetPeriod(MIN_REQUEST_DELAY);
+            timer.Start();
+
+            foreach (var (endpoint, server) in endpointServerMap)
+            {
+                InfoRequest request = new(server);
+
+                _ = await SendStatusRequestInternalAsync(endpoint, request, cancellationToken);
+
+                // wait for some bit. This is somehow necessary to receive all server responses.
+                // NOTE: we use a high resolution timer because Task.Delay is too slow in release mode
+                timer.WaitForTrigger();
+            }
+
+            void onServerInfoReceived(object? sender, ServerInfoEventArgs<TServer, GameServerStatus> args)
+            {
+                // only invoke the callback for responses from the given servers
+                if (endpointServerMap.ContainsKey(args.ServerInfo.Address))
+                {
+                    onStatusResponse(args);
                 }
             }
         }
@@ -275,6 +377,32 @@ namespace H2MLauncher.Core.Services
             }
 
             return await SendInfoRequestInternalAsync(serverEndpoint, new InfoRequest(server), cancellationToken);
+        }
+
+        private async Task<bool> SendStatusRequestInternalAsync(IPEndPoint serverEndpoint, InfoRequest request, CancellationToken cancellationToken)
+        {
+            if (_gameServerCommunication is null)
+            {
+                throw new InvalidOperationException("Communication is not started.");
+            }
+
+            // save start timestamp to calculate ping
+            AddToQueueCancelPreviousRequest(serverEndpoint, request, cancellationToken);
+
+            try
+            {
+                // send 'getinfo' command
+                await _gameServerCommunication.SendAsync(serverEndpoint, "getstatus", cancellationToken: cancellationToken);
+
+                return true;
+            }
+            catch
+            {
+                // failed to send info response (maybe server is not online)
+                _queuedRequests.TryRemove(serverEndpoint, out _);
+
+                return false;
+            }
         }
 
         private async Task<bool> SendInfoRequestInternalAsync(IPEndPoint serverEndpoint, InfoRequest request, CancellationToken cancellationToken)

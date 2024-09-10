@@ -697,7 +697,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(ServerInfoEventArgs<IW4MServer> e)
+    private void OnGameServerInfoReceived(ServerInfoEventArgs<IW4MServer, GameServerInfo> e)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
