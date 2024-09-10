@@ -117,7 +117,30 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms ({ClientAppName}/{ClientAppVersion})";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        if (httpContext.Request.Headers.TryGetValue("X-App-Name", out var appNameValues) && appNameValues.Count != 0)
+        {
+            diagnosticContext.Set("ClientAppName", appNameValues.FirstOrDefault());
+        }
+        else
+        {
+            diagnosticContext.Set("ClientAppName", "Unknown");
+        }
+
+        if (httpContext.Request.Headers.TryGetValue("X-App-Version", out var appVersionValues) && appVersionValues.Count != 0)
+        {
+            diagnosticContext.Set("ClientAppVersion", appVersionValues.FirstOrDefault());
+        }
+        else
+        {
+            diagnosticContext.Set("ClientAppVersion", "?");
+        }
+    };
+});
 
 app.UseAuthentication();
 app.MapControllers();
@@ -127,6 +150,6 @@ app.MapHealthChecks("/health");
 
 app.MapHub<QueueingHub>("/Queue");
 
-app.Services.GetRequiredService <MatchmakingServer.MatchmakingService>();
+app.Services.GetRequiredService<MatchmakingServer.MatchmakingService>();
 
 app.Run();
