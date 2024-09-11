@@ -261,7 +261,7 @@ namespace MatchmakingServer.SignalR
             {
                 _logger.LogTrace("Requesting game server info for {server}...", server);
 
-                GameServerInfo? gameServerInfo = await _gameServerCommunicationService.RequestServerInfoAsync(server, linkedCancellation.Token);
+                GameServerInfo? gameServerInfo = await _gameServerCommunicationService.GetInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {
                     // could not send request

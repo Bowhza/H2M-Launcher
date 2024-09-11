@@ -5,6 +5,7 @@ using System.IO;
 using System.Security;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -672,18 +673,40 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList<IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
+            IReadOnlyList<IW4MServer> servers = await Task.Run(() => _raidMaxService.FetchServersAsync(linkedCancellation.Token));
 
             // Let's prioritize populated servers first for getting game server info.
             IEnumerable<IW4MServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
 
-            // Start by sending info requests to the game servers
+            var responses = await _gameServerCommunicationService.GetInfoAsync(
+                serversOrderedByOccupation,
+                sendSynchronously: false,
+                cancellationToken: linkedCancellation.Token);
 
+            // Start by sending info requests to the game servers
             // NOTE: we are using Task.Run to run this in a background thread,
             // because the non async timer blocks the UI
-            await Task.Run(() => _gameServerCommunicationService.RequestServerInfoAsync(
-                serversOrderedByOccupation, OnGameServerInfoReceived, linkedCancellation.Token));
+            _ = Task.Run(async () =>
+            {
+                try
+                {                    
+                    await foreach ((IW4MServer server, GameServerInfo? info) in responses.ConfigureAwait(false))
+                    {
+                        if (info is not null)
+                        {
+                            Application.Current.Dispatcher.Invoke(() => OnGameServerInfoReceived(server, info), DispatcherPriority.Render);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // canceled
+                }
+            });
+
+            // artificial delay
+            await Task.Delay(1000);
 
             // Start fetching server data in the background
             UpdateServerDataList(linkedCancellation.Token);
@@ -697,13 +720,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(ServerInfoEventArgs<IW4MServer, GameServerInfo> e)
+    private void OnGameServerInfoReceived(IW4MServer server, GameServerInfo gameServer)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
-
-        var server = e.Server;
-        var gameServer = e.ServerInfo;
 
         bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
         RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
@@ -747,7 +767,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             serverViewModel.Joined = recentInfo.Joined;
             RecentsTab.Servers.Add(serverViewModel);
         }
-        // Game server responded -> online
     }
 
     private async Task JoinServer(ServerViewModel? serverViewModel)

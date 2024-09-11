@@ -8,7 +8,8 @@ namespace H2MLauncher.Core.Services
     public class GameServerCommunication : IAsyncDisposable
     {
         private readonly UdpClient _client;
-        private readonly Dictionary<string, List<Action<CommandEventArgs>>> _commandHandlers = [];
+        private readonly Dictionary<string, List<Action<ReceivedCommandMessage>>> _commandHandlers = [];
+
         private readonly CancellationTokenSource _listeningCancellation;
         private readonly Task _listeningTask;
         private readonly SynchronizationContext _synchronizationContext;
@@ -20,19 +21,6 @@ namespace H2MLauncher.Core.Services
         /// Controls whether UDP PORT_UNREACHABLE messages are reported. 
         /// </summary>
         const int SIO_UDP_CONNRESET = unchecked((int)(IOC_IN | IOC_VENDOR | 12));
-
-        public class CommandEventArgs : EventArgs
-        {
-            public required string CommandName { get; init; }
-
-            public required IPEndPoint RemoteEndPoint { get; init; }
-
-            public required string Message { get; init; }
-
-            public required string Data { get; init; }
-
-            public required DateTimeOffset Timestamp { get; init; }
-        }
 
         public GameServerCommunication()
         {
@@ -54,7 +42,7 @@ namespace H2MLauncher.Core.Services
 
             _synchronizationContext = SynchronizationContext.Current ?? new();
         }
-        
+
         private void HandleMessage(UdpReceiveResult result, DateTimeOffset timestamp)
         {
             string receivedMessage = Encoding.UTF8.GetString(result.Buffer);
@@ -67,18 +55,21 @@ namespace H2MLauncher.Core.Services
                 return;
             }
 
-            int indexOfSeperator = receivedMessage.IndexOfAny([' ', '\n']);
-            if (indexOfSeperator < 0)
+            int indexOfSeparator = receivedMessage.IndexOfAny([' ', '\n']);
+            if (indexOfSeparator < 0)
             {
                 // No seperator found in message
                 return;
             }
 
             // Extract the command name
-            string commandName = receivedMessage[4..indexOfSeperator];
+            string commandName = receivedMessage[4..indexOfSeparator];
+
+            // Extract the seperator char
+            char separator = receivedMessage[indexOfSeparator];
 
             // Extract the data after the separator char
-            string data = receivedMessage[(indexOfSeperator + 1)..];
+            string data = receivedMessage[(indexOfSeparator + 1)..];
 
             if (!_commandHandlers.TryGetValue(commandName.ToLower(), out var commandHandlers))
             {
@@ -87,12 +78,16 @@ namespace H2MLauncher.Core.Services
             }
 
             commandHandlers.ForEach(commandHandler =>
-                commandHandler.Invoke(new()
+                commandHandler.Invoke(new ReceivedCommandMessage()
                 {
-                    CommandName = commandName,
+                    Message = new()
+                    {
+                        CommandName = commandName,
+                        Data = data,
+                        Separator = separator,
+                    },
+                    RawMessage = receivedMessage,
                     RemoteEndPoint = result.RemoteEndPoint,
-                    Message = receivedMessage,
-                    Data = data,
                     Timestamp = timestamp,
                 }));
         }
@@ -146,9 +141,9 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         /// <param name="command">The command name to match.</param>
         /// <param name="onCommandReceived">The handler callback.</param>
-        public IDisposable On(string command, Action<CommandEventArgs> onCommandReceived)
+        public IDisposable On(string command, Action<ReceivedCommandMessage> onCommandReceived)
         {
-            ref List<Action<CommandEventArgs>>? commandHandlers = 
+            ref List<Action<ReceivedCommandMessage>>? commandHandlers =
                 ref CollectionsMarshal.GetValueRefOrAddDefault(_commandHandlers, command.ToLower(), out _);
             commandHandlers ??= [];
 
@@ -156,6 +151,16 @@ namespace H2MLauncher.Core.Services
 
             return new Disposable(() =>
                 _commandHandlers.GetValueOrDefault(command.ToLower())?.Remove(onCommandReceived));
+        }
+
+        /// <summary>
+        /// Sends a command message to a game server.
+        /// </summary>
+        /// <param name="endPoint">Endpoint of the server.</param>
+        /// <returns>Number of sent bytes.</returns>
+        public ValueTask<int> SendAsync(IPEndPoint endPoint, CommandMessage commandMessage, CancellationToken cancellationToken = default)
+        {
+            return SendAsync(endPoint, commandMessage.CommandName, commandMessage.Data, commandMessage.Separator, cancellationToken);
         }
 
         /// <summary>

@@ -28,6 +28,7 @@ namespace MatchmakingServer
 
         public DateTimeOffset LastSuccessfulPingTimestamp { get; set; }
         public GameServerInfo? LastServerInfo { get; set; }
+        public GameServerStatus? LastStatusResponse { get; set; }
 
         public List<string> ActualPlayers { get; } = [];
 

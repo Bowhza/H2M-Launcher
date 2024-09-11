@@ -174,14 +174,27 @@ namespace MatchmakingServer
 
             _logger.LogTrace("Requesting server info...");
 
-            // Request server info for all servers part of matchmaking rn
-            await _gameServerCommunicationService.RequestServerInfoAsync(serversToRequest, (e) =>
+            try
             {
-                e.Server.LastServerInfo = e.ServerInfo;
-                e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+                // Request server info for all servers part of matchmaking rn
+                Task getInfoCompleted = await _gameServerCommunicationService.SendGetInfoAsync(serversToRequest, (e) =>
+                {
+                    e.Server.LastServerInfo = e.ServerInfo;
+                    e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
 
-                respondingServers.Add(e.Server);
-            }, requestCancellation.Token);
+                    respondingServers.Add(e.Server);
+                }, timeoutInMs: 2000, cancellationToken: requestCancellation.Token);
+
+                // Immediately after send info requests send status requests
+                Task getStatusCompleted = await _gameServerCommunicationService.SendGetStatusAsync(serversToRequest, (e) =>
+                {
+                    e.Server.LastStatusResponse = e.ServerInfo;
+                }, timeoutInMs: 2000, cancellationToken: requestCancellation.Token);
+
+                // Wait for all to complete / time out
+                await Task.WhenAll(getInfoCompleted, getStatusCompleted);
+            }
+            catch (OperationCanceledException) { }
 
             // Wait a second for all the responses
             await Task.Delay(1000);
@@ -189,10 +202,12 @@ namespace MatchmakingServer
             // Cancel remaining requests
             requestCancellation.Cancel();
 
+            _logger.LogDebug("Server info received from {numServers}. Sorting servers by match quality...", respondingServers.Count);
+
             // Sort servers: prioritize fresh servers with low player count
             respondingServers.Sort(new MmServerPriorityComparer());
 
-            _logger.LogDebug("Server info received from {numServers}. Selecting players for matchmaking...", respondingServers.Count);
+            _logger.LogDebug("Selecting players for matchmaking...");
 
             // Iterate through prioritized servers
             foreach (GameServer server in respondingServers)
