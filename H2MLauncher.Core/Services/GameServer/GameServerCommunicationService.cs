@@ -16,7 +16,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public class GameServerCommunicationService<TServer> : IAsyncDisposable
+    public partial class GameServerCommunicationService<TServer> : IAsyncDisposable
         where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, List<Request>> _queuedRequests = [];
@@ -221,7 +221,7 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        class GetStatusCommand : ICommand<GameServerStatus>
+        partial class GetStatusCommand : ICommand<GameServerStatus>
         {
             public static string CommandName => "getstatus";
 
@@ -244,8 +244,8 @@ namespace H2MLauncher.Core.Services
                     string[] lines = response.Message.Data.Split(["\r\n", "\r", "\n"], StringSplitOptions.RemoveEmptyEntries);
                     foreach (string line in lines.Skip(1))
                     {
-                        Match match = Regex.Match(line, @"(\d+) (\d+) ""(.*)""");
-                        if (match.Groups.Count != 3 || match.Groups.Values.Any(g => !g.Success))
+                        Match match = PlayerStatusLineRegex().Match(line);
+                        if (match.Groups.Count < 4 || match.Groups.Values.Any(g => !g.Success))
                         {
                             continue;
                         }
@@ -256,9 +256,9 @@ namespace H2MLauncher.Core.Services
                             continue;
                         }
 
-                        int.TryParse(match.Groups[0].Value, out int score);
-                        int.TryParse(match.Groups[1].Value, out int ping);
-                        string playerName = match.Groups[2].Value;
+                        int.TryParse(match.Groups[1].Value, out int score);
+                        int.TryParse(match.Groups[2].Value, out int ping);
+                        string playerName = match.Groups[3].Value;
 
                         status.Players.Add((score, ping, playerName));
                     }
@@ -270,6 +270,9 @@ namespace H2MLauncher.Core.Services
                     return null;
                 }
             }
+
+            [GeneratedRegex(@"(\d+) (\d+) ""(.*)""")]
+            private static partial Regex PlayerStatusLineRegex();
         }
 
         protected IDisposable RegisterQueuedCommandHandler(string requestCommandName, string responseCommandName,
@@ -996,7 +999,7 @@ namespace H2MLauncher.Core.Services
             catch
             {
                 // failed to send message (maybe server is not online)
-                // request.TryCancel();
+                request.TryCancel();
                 return false;
             }
         }
