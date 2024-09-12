@@ -1,5 +1,9 @@
 ﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Xml.Schema;
 
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using MatchmakingServer.SignalR;
@@ -22,14 +26,14 @@ namespace MatchmakingServer
         private readonly ConcurrentLinkedQueue<MMPlayer> _playerQueue = new();
 
         private readonly ServerStore _serverStore;
-        private readonly IHubContext<QueueingHub> _hubContext;
+        private readonly IHubContext<QueueingHub, IClient> _hubContext;
         private readonly QueueingService _queueingService;
         private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
         private readonly ILogger<MatchmakingService> _logger;
 
         public MatchmakingService(
             ServerStore serverStore,
-            IHubContext<QueueingHub> hubContext,
+            IHubContext<QueueingHub, IClient> hubContext,
             QueueingService queueingService,
             GameServerCommunicationService<GameServer> gameServerCommunicationService,
             ILogger<MatchmakingService> logger)
@@ -59,21 +63,61 @@ namespace MatchmakingServer
         internal sealed class MMPlayer
         {
             public Player Player { get; }
-            public Dictionary<(string ip, int port), int> PreferredServers { get; set; } // List of "ip:port" strings
-            public int MinPlayerThreshold { get; set; } // Minimum players required to start a match
-            public int MaxPing { get; set; }
-            public DateTime JoinTime { get; set; } // Time the player joined the queue
+            public Dictionary<(string ip, int port), int> PreferredServers { get; set; } // List of queued servers with ping
 
-            public MMPlayer(Player player, Dictionary<(string ip, int port), int> servers, int minThreshold)
+            public MatchSearchCriteria SearchPreferences { get; set; }
+
+            public DateTime JoinTime { get; set; } // Time the player joined the queue
+            public int SearchAttempts { get; set; } // Number of search attempts
+
+            public List<MMMatch> PossibleMatches { get; init; } // Currently possible non eligible matches
+
+            public MMPlayer(Player player, Dictionary<(string ip, int port), int> servers, MatchSearchCriteria searchPreferences)
             {
                 Player = player;
                 PreferredServers = servers;
-                MinPlayerThreshold = minThreshold;
+                SearchPreferences = searchPreferences;
                 JoinTime = DateTime.Now; // Record the time they joined the queue
+                PossibleMatches = new(servers.Count);
+            }
+
+            public bool IsEligibleForServer(GameServer server, int numPlayersForServer)
+            {
+                if (!PreferredServers.TryGetValue((server.ServerIp, server.ServerPort), out int ping))
+                {
+                    return false;
+                }
+
+                if (SearchAttempts == 0 && numPlayersForServer < SearchPreferences.MinPlayers)
+                {
+                    // On the first search attempt, wait until enough players available to potentially create a fresh match
+                    return false;
+                }
+
+                if (SearchPreferences.MaxScore >= 0 && 
+                    server.LastStatusResponse is not null && 
+                    server.LastStatusResponse.TotalScore > SearchPreferences.MaxScore)
+                {
+                    return false;
+                }
+
+                if (SearchPreferences.MaxPlayers >= 0 && 
+                    server.LastServerInfo is not null && 
+                    server.LastServerInfo.RealPlayerCount >= SearchPreferences.MaxPlayers)
+                {
+                    return false;
+                }
+
+                if (SearchPreferences.MaxPing > 0)
+                {
+                    return ping < SearchPreferences.MaxPing;
+                }
+
+                return true;
             }
         }
 
-        public bool EnterMatchmaking(Player player, int minPlayers, int maxPing, List<string> preferredServers)
+        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<string> preferredServers)
         {
             if (player.State is not (PlayerState.Connected or PlayerState.Joined))
             {
@@ -82,8 +126,8 @@ namespace MatchmakingServer
                 return false;
             }
 
-            _logger.LogDebug("Entering matchmaking for player {player} (minPlayers: {minPlayers}, servers: {numPreferredServers})",
-                player, minPlayers, preferredServers.Count);
+            _logger.LogDebug("Entering matchmaking for player {player} (searchPreferences: {@searchPreferences}, servers: {numPreferredServers})",
+                player, searchPreferences, preferredServers.Count);
 
             player.State = PlayerState.Matchmaking;
 
@@ -111,7 +155,7 @@ namespace MatchmakingServer
                 _queueingService.StartQueue(server);
             }
 
-            AddPlayerToQueue(new MMPlayer(player, preferredServersParsed.ToDictionary(x => x, _ => -1), minPlayers) { MaxPing = maxPing });
+            AddPlayerToQueue(new MMPlayer(player, preferredServersParsed.ToDictionary(x => x, _ => -1), searchPreferences));
 
             return true;
         }
@@ -154,7 +198,7 @@ namespace MatchmakingServer
             _logger.LogDebug("Player {mmPlayer} entered matchmaking", player);
         }
 
-        public bool UpdateSearchPreferences(Player player, int minPlayers, int maxPing, List<(string Ip, int Port, uint Ping)> serverPings)
+        public bool UpdateSearchPreferences(Player player, MatchSearchCriteria matchSearchPreferences, List<ServerPing> serverPings)
         {
             if (player.State is not PlayerState.Matchmaking)
             {
@@ -171,13 +215,12 @@ namespace MatchmakingServer
                 return false;
             }
 
-            _logger.LogTrace("Updating search preferences for {player}: (minPlayers: {minPlayers}, maxPing: {maxPing}, {numPings} ping updates)",
-                player, minPlayers, maxPing, serverPings.Count);
+            _logger.LogTrace("Updating search preferences for {player}: {searchPreferences} ({numServerPings} server pings)",
+                player, matchSearchPreferences, serverPings.Count);
 
-            queuedPlayer.MinPlayerThreshold = minPlayers;
-            queuedPlayer.MaxPing = maxPing;
+            queuedPlayer.SearchPreferences = matchSearchPreferences;
 
-            foreach (var (serverIp, serverPort, ping) in serverPings)
+            foreach ((string serverIp, int serverPort, uint ping) in serverPings)
             {
                 queuedPlayer.PreferredServers[(serverIp, serverPort)] = Math.Min(999, (int)ping);
             }
@@ -185,7 +228,7 @@ namespace MatchmakingServer
             return true;
         }
 
-        public double CalculateServerQuality(GameServer server)
+        private static double CalculateServerQuality(GameServer server)
         {
             if (server?.LastServerInfo is null)
             {
@@ -214,10 +257,6 @@ namespace MatchmakingServer
             }
 
             double totalScoreAssumption = server.LastStatusResponse?.TotalScore ?? 10000; // assume average score
-            //if (totalScoreAssumption == 0 && server.LastStatusResponse!.Players.Count == 0 && server.LastServerInfo.RealPlayerCount)
-            //{
-
-            //}
 
             // Calculate proportional penalty based on TotalScore (higher score means lower quality)
             double totalScorePenalty = Math.Min(totalScoreAssumption / 300, 600); // cut of at 20000 score
@@ -306,55 +345,181 @@ namespace MatchmakingServer
             //respondingServers.Sort(new MmServerPriorityComparer());
 
             var orderedServers = respondingServers.Select(s => (server: s, qualityScore: CalculateServerQuality(s)))
-                .OrderByDescending(x => x.qualityScore);
+                .OrderByDescending(x => x.qualityScore)
+                .ToList();
 
             _logger.LogDebug("Selecting players for matchmaking...");
 
-            List<(GameServer server, double qualityScore, List<MMPlayer> players)> matches = [];
+            List<MMMatch> matches = [];
+            //Dictionary<MMPlayer, List<MMMatch>> theoreticalMatchesPerPlayer = _playerQueue
+            //    .ToDictionary(p => p, p => new List<MMMatch>(p.PreferredServers.Count));
 
-            // Iterate through prioritized servers
-            foreach ((GameServer server, double qualityScore) in orderedServers)
+            do
             {
-                int availableSlots = Math.Max(0, server.LastServerInfo!.FreeSlots - server.UnavailableSlots);
-                if (availableSlots <= 0)
-                    continue; // Skip if no free slots are available
-
-                if (!_serverGroups.TryGetValue((server.ServerIp, server.ServerPort), out var playersForServer))
-                    continue;
-
-                List<MMPlayer> eligiblePlayers = playersForServer.Where(player =>
-                    player.PreferredServers.GetValueOrDefault((server.ServerIp, server.ServerPort)) < player.MaxPing).ToList();
-
-                _logger.LogTrace("{numPlayers} players ({numEligible} eligible) in matchmaking queue for server {server}",
-                    playersForServer.Count, eligiblePlayers.Count, server);
-
-                _logger.LogTrace("Server has {numPlayers} players, {numAvailableSlots} available slots, {totalScore} total score => Quality {qualityScore}",
-                    server.LastServerInfo.RealPlayerCount, availableSlots, server.LastStatusResponse?.TotalScore, qualityScore);
-
-                List<MMPlayer> selectedPlayers = SelectMaxPlayersForMatchWithTimeout(eligiblePlayers,
-                    server.LastServerInfo.RealPlayerCount,
-                    availableSlots);
-
-                if (selectedPlayers.Count > 0)
+                // Iterate through prioritized servers
+                foreach ((GameServer server, double qualityScore) in orderedServers)
                 {
-                    double adjustedQualityScore = AdjustedServerQuality(server, qualityScore, selectedPlayers);
-                    matches.Add((server, adjustedQualityScore, selectedPlayers));
+                    int availableSlots = Math.Max(0, server.LastServerInfo!.FreeSlots - server.UnavailableSlots);
+                    if (availableSlots <= 0)
+                        continue; // Skip if no free slots are available
 
-                    _logger.LogTrace("Potential match with {numPlayers} players ({numTotalPlayers} total), adjusted quality score {quality}",
-                        selectedPlayers.Count, selectedPlayers.Count + server.LastServerInfo.RealPlayerCount, adjustedQualityScore);
-
-                    foreach (MMPlayer player in selectedPlayers)
+                    // Sort players based on their min player threshold (ascending order) and check whether servers meets their criteria
+                    List<(MMPlayer player, bool isEligible)> playersForServerSorted = GetPlayersForServer(server);
+                    if (playersForServerSorted.Count == 0)
                     {
-                        matches.Add((server, adjustedQualityScore, selectedPlayers));
+                        // no players
+                        continue;
+                    }
+
+                    List<MMPlayer> eligiblePlayers = playersForServerSorted.Where(p => p.isEligible).Select(p => p.player).ToList();
+
+                    _logger.LogTrace("{numPlayers} players ({numEligible} eligible) in matchmaking queue for server {server}",
+                        playersForServerSorted.Count, eligiblePlayers.Count, server);
+
+                    if (eligiblePlayers.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    _logger.LogTrace("Server has {numPlayers} players, {numAvailableSlots} available slots, {totalScore} total score => Quality {qualityScore}",
+                        server.LastServerInfo.RealPlayerCount, availableSlots, server.LastStatusResponse?.TotalScore, qualityScore);
+
+                    // find a valid match for all eligible players
+                    if (TrySelectMatch(server, eligiblePlayers, qualityScore, availableSlots, out MMMatch validMatch))
+                    {
+                        matches.Add(validMatch);
+
+                        _logger.LogTrace("Potential match found: {validMatch}",
+                            new
+                            {
+                                NumPlayers = validMatch.SelectedPlayers.Count,
+                                TotalPlayers = validMatch.SelectedPlayers.Count + server.LastServerInfo.RealPlayerCount,
+                                AdjustedQuality = validMatch.MatchQuality
+                            });
+                    }
+
+                    _logger.LogTrace("Finding best possible matches for non eligible players...");
+
+                    // find overall best possible match for each non eligible player
+                    foreach ((MMPlayer player, bool isEligible) in playersForServerSorted)
+                    {
+                        if (isEligible) continue;
+
+                        bool foundMatch = TrySelectMatch(
+                            server,
+                            playersForServerSorted.Where(p => p.isEligible || p.player == player).Select(p => p.player).ToList(), // include only other eligible players
+                            qualityScore,
+                            availableSlots,
+                            out MMMatch match);
+
+                        if (!foundMatch)
+                        {
+                            continue;
+                        }
+
+                        player.PossibleMatches.Add(match);
+
+                        _logger.LogTrace("Possible match found for player {player}: {validMatch}",
+                            player.Player,
+                            new
+                            {
+                                NumPlayers = validMatch.SelectedPlayers.Count,
+                                TotalPlayers = validMatch.SelectedPlayers.Count + server.LastServerInfo.RealPlayerCount,
+                                AdjustedQuality = validMatch.MatchQuality
+                            });
                     }
                 }
-            }
-            
-            var bestMatch = matches.OrderByDescending(x => x.qualityScore).FirstOrDefault();
-            if (bestMatch.players is not null)
+
+                if (matches.Count == 0)
+                {
+                    // no more match
+                    _logger.LogDebug("No more matches found");
+                    break;
+                }
+
+                // Find match with best quality
+                MMMatch bestMatch = matches.OrderByDescending(x => x.MatchQuality).First();
+
+                _logger.LogDebug("Best match found: {bestMatch}", new
+                {
+                    bestMatch.Server,
+                    NumPlayers = bestMatch.SelectedPlayers.Count,
+                    TotalPlayers = bestMatch.SelectedPlayers.Count + bestMatch.Server.LastServerInfo!.RealPlayerCount,
+                    AdjustedQuality = bestMatch.MatchQuality,
+                });
+
+                await CreateMatchAsync(bestMatch.SelectedPlayers, bestMatch.Server);
+
+                // clear collections for next iteration
+                matches.Clear();
+                foreach (MMPlayer player in _playerQueue)
+                {
+                    player.PossibleMatches.Clear();
+                }
+            } while (true);
+
+
+            // Notify players of theoretically possible matches
+            List<Task> tasks = [];
+            foreach (MMPlayer player in _playerQueue)
             {
-                await CreateMatchAsync(bestMatch.players, bestMatch.server);
+                player.SearchAttempts++;
+                tasks.Add(SendMatchSearchResults(player, player.PossibleMatches));
             }
+
+            await Task.WhenAll(tasks);
+        }
+
+        private async Task SendMatchSearchResults(MMPlayer player, List<MMMatch> matchesForPlayer)
+        {
+            try
+            {
+                await _hubContext.Clients.Client(player.Player.ConnectionId)
+                        .SearchMatchUpdate(matchesForPlayer.Select(x => new SearchMatchResult()
+                        {
+                            ServerIp = x.Server.ServerIp,
+                            ServerPort = x.Server.ServerPort,
+                            MatchQuality = x.MatchQuality,
+                            NumPlayers = x.SelectedPlayers.Count,
+                            ServerScore = x.Server.LastStatusResponse?.TotalScore
+                        })).ConfigureAwait(false);
+            }
+            catch
+            {
+                _logger.LogWarning("Could not send match search results to player {player}", player.Player);
+            }
+        }
+
+        private List<(MMPlayer player, bool isEligible)> GetPlayersForServer(GameServer server)
+        {
+            if (!_serverGroups.TryGetValue((server.ServerIp, server.ServerPort), out var playersForServer))
+                return [];
+
+            // Sort players based on their min player threshold (ascending order)
+            // and check whether server meets their criteria
+            return playersForServer
+                .OrderBy(p => p.SearchPreferences.MinPlayers)
+                .Select(player => (player, isEligible: player.IsEligibleForServer(server, playersForServer.Count)))
+                .ToList();
+        }
+
+        internal bool TrySelectMatch(GameServer server, IReadOnlyList<MMPlayer> players, double serverQuality, int availableSlots, out MMMatch match)
+        {
+            List<MMPlayer> selectedPlayers = SelectMaxPlayersForMatch(
+                players,
+                server.LastServerInfo!.RealPlayerCount,
+                availableSlots);
+
+            if (selectedPlayers.Count > 0)
+            {
+                double adjustedQualityScore = AdjustedServerQuality(server, serverQuality, selectedPlayers);
+                match = (server, adjustedQualityScore, selectedPlayers);
+
+                return true;
+            }
+
+            match = default;
+            return false;
         }
 
         internal double AdjustedServerQuality(GameServer server, double qualityScore, List<MMPlayer> potentialPlayers)
@@ -364,15 +529,21 @@ namespace MatchmakingServer
             double avgWaitTime = potentialPlayers.Average(p => (now - p.JoinTime).TotalSeconds);
             double waitTimeFactor = 40;
 
-            double avgPing = potentialPlayers.Select(p => p.PreferredServers[(server.ServerIp, server.ServerPort)])
-                                             .Where(ping => ping >= 0)
-                                             .Average();
-            double pingFactor = 40;
+            double avgMaxPing = potentialPlayers.Where(p => p.SearchPreferences.MaxPing > 0)
+                .Average(p => p.SearchPreferences.MaxPing);
+            List<double> pingDeviations = potentialPlayers
+                .Select(p => p.PreferredServers[(server.ServerIp, server.ServerPort)])
+                .Where(ping => ping >= 0)
+                .Select(ping => ping - avgMaxPing)
+                .ToList();
+            
+            double avgPingDeviation = pingDeviations.Count != 0 ? pingDeviations.Average() : 0;
+            double pingFactor = 15;
 
-            _logger.LogTrace("Adjusting quality based on avg wait time ({avgWaitTime} s) and ping ({avgPing} ms)", 
-                Math.Round(avgWaitTime, 1), Math.Round(avgPing, 1));
+            _logger.LogTrace("Adjusting quality based on avg wait time ({avgWaitTime} s) and ping deviation ({avgPingDeviation} ms)",
+                Math.Round(avgWaitTime, 1), Math.Round(avgPingDeviation, 1));
 
-            return qualityScore + (potentialPlayers.Count * 15) + (waitTimeFactor * avgWaitTime) - (pingFactor * avgPing);
+            return qualityScore + (potentialPlayers.Count * 15) + (waitTimeFactor * avgWaitTime) - (pingFactor * avgPingDeviation);
         }
 
         internal static List<MMPlayer> SelectMaxPlayersForMatchWithTimeout(IEnumerable<MMPlayer> queuedPlayers, int joinedPlayersCount, int freeSlots)
@@ -380,7 +551,7 @@ namespace MatchmakingServer
             DateTime now = DateTime.Now;
 
             // Sort players based on their min player threshold (ascending order)
-            List<MMPlayer> playersForServer = queuedPlayers.OrderBy(p => p.MinPlayerThreshold).ToList();
+            List<MMPlayer> playersForServer = queuedPlayers.OrderBy(p => p.SearchPreferences.MinPlayers).ToList();
 
             // Try to create the largest possible group of players
             List<MMPlayer> selectedPlayers = SelectMaxPlayersForMatch(playersForServer, 0, freeSlots);
@@ -391,6 +562,20 @@ namespace MatchmakingServer
 
             // Try to create the largest possible group of players including the players already on the server for all that waited longer
             List<MMPlayer> timeoutPlayers = playersForServer.Where(p => (now - p.JoinTime).TotalSeconds >= FRESH_LOBBY_TIMEOUT_SECONDS).ToList();
+            if (timeoutPlayers.Count == 0 ||
+                timeoutPlayers.Count < playersForServer.Count &&
+                timeoutPlayers.Count < timeoutPlayers.Take(timeoutPlayers.Count).Max(d => d.SearchPreferences.MinPlayers))
+            {
+                // If there are other players, wait until either all time out or enough to create a match amongst them (without joining players).
+                // The latter will be the case, if there still are non-timeout players in-between that have higher min thresholds and
+                // therefore no match can be created with them. Here we check just among the timeout players (normally we would not have to do this,
+                // because they will be sorted by join time, but we have to sort by threshold)
+
+                // This prevents overlapping queue times failing to aggregate players
+                // (e.g. player gets joined alone because others entered matchmaking later and have not timeouted yet and we do not wait)
+                return [];
+            }
+
             selectedPlayers = SelectMaxPlayersForMatch(timeoutPlayers, joinedPlayersCount, freeSlots);
             if (selectedPlayers.Count > 0)
             {
@@ -415,9 +600,10 @@ namespace MatchmakingServer
                 currentMatch.Add(player);
 
                 // Update the highest min treshold
-                if (player.MinPlayerThreshold > highestMinThreshold)
+                int minTresholdForPlayer = player.SearchPreferences.MinPlayers;
+                if (minTresholdForPlayer > highestMinThreshold)
                 {
-                    highestMinThreshold = player.MinPlayerThreshold;
+                    highestMinThreshold = minTresholdForPlayer;
                     if (highestMinThreshold > maxTotalPlayers)
                     {
                         // Match is not possible anymore, we can return early
@@ -472,6 +658,19 @@ namespace MatchmakingServer
 
             return Task.WhenAll(joinTasks)
                        .ContinueWith(t => t.Result.Count(joined => joined), TaskContinuationOptions.OnlyOnRanToCompletion);
+        }
+    }
+
+    internal record struct MMMatch(GameServer Server, double MatchQuality, List<MatchmakingService.MMPlayer> SelectedPlayers)
+    {
+        public static implicit operator (GameServer server, double matchQuality, List<MatchmakingService.MMPlayer> selectedPlayers)(MMMatch value)
+        {
+            return (value.Server, value.MatchQuality, value.SelectedPlayers);
+        }
+
+        public static implicit operator MMMatch((GameServer server, double matchQuality, List<MatchmakingService.MMPlayer> selectedPlayers) value)
+        {
+            return new MMMatch(value.server, value.matchQuality, value.selectedPlayers);
         }
     }
 }

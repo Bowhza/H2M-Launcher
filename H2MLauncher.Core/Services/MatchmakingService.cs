@@ -104,12 +104,13 @@ namespace H2MLauncher.Core.Services
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(matchmakingSettings.Value.QueueingHubUrl)
-                .WithAutomaticReconnect()
+                //.WithAutomaticReconnect()
                 .Build();
 
             _connection.On<string, int, bool>("NotifyJoin", OnNotifyJoin);
             _connection.On<int, int>("QueuePositionChanged", OnQueuePositionChanged);
             _connection.On<DequeueReason>("RemovedFromQueue", OnRemovedFromQueue);
+            _connection.On<IEnumerable<SearchMatchResult>>("SearchMatchUpdate", OnSearchMatchUpdate);
 
             _connection.Closed += Connection_Closed;
 
@@ -166,6 +167,11 @@ namespace H2MLauncher.Core.Services
             QueueingState = PlayerState.Connected;
 
             _logger.LogInformation("Removed from queue. Reason: {reason}", reason);
+        }
+
+        private void OnSearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults)
+        {
+            _logger.LogInformation("Received match search results: {n}", searchMatchResults.Count());
         }
 
         #endregion
@@ -369,7 +375,13 @@ namespace H2MLauncher.Core.Services
                 }
 
                 string playerName = _playerNameProvider.PlayerName;
-                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, minPlayers, maxPing, playlist.Servers);
+                MatchSearchCriteria searchPreferences = new()
+                {
+                    MinPlayers = 8,
+                    MaxPing = 80,
+                };
+
+                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, searchPreferences, playlist.Servers);
                 if (!success)
                 {
                     _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}' as '{playerName}'", playlist.Id, playerName);
@@ -407,15 +419,15 @@ namespace H2MLauncher.Core.Services
 
                             var responses = await _gameServerCommunicationService.GetInfoAsync(serverConnectionDetails, requestTimeoutInMs: 3000);
 
-                            List<(string Ip, int Port, uint Ping)> serverPings = await responses
+                            List<ServerPing> serverPings = await responses
                                 .Where(res => res.info is not null)
-                                .Select(res => (res.server.Ip, res.server.Port, (uint)res.info!.Ping))
+                                .Select(res => new ServerPing(res.server.Ip, res.server.Port, (uint)res.info!.Ping))
                                 .ToListAsync();
 
-                            _logger.LogDebug("Found {n} potential servers with ping <= {maxPing} ms", 
-                                serverPings.Count(x => x.Ping <= maxPing), maxPing);
+                            _logger.LogDebug("Found {n}/{total} potential servers with ping <= {maxPing} ms", 
+                                serverPings.Count(x => x.Ping <= maxPing), serverPings.Count, maxPing);
 
-                            if (!await _connection.InvokeAsync<bool>("UpdateSearchSession", minPlayers, maxPing, serverPings))
+                            if (!await _connection.InvokeAsync<bool>("UpdateSearchSession", searchPreferences, serverPings))
                             {
                                 _logger.LogWarning("Could not update search session");
                             }

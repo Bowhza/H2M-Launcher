@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using Microsoft.AspNetCore.SignalR;
@@ -122,14 +123,14 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public bool SearchMatch(string playerName, int minPlayers, int maxPing, List<string> preferredServers)
+        public bool SearchMatch(string playerName, MatchSearchCriteria searchPreferences, List<string> preferredServers)
         {
             var player = GetOrAddPlayer(Context.ConnectionId, playerName);
 
-            return _matchmakingService.EnterMatchmaking(player, minPlayers, maxPing, preferredServers);
+            return _matchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers);
         }
 
-        public bool UpdateSearchSession(int minPlayers, int maxPing, List<(string Ip, int Port, uint Ping)> serverPings)
+        public bool UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)
         {
             if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
             {
@@ -137,7 +138,7 @@ namespace MatchmakingServer.SignalR
                 return false;
             }
 
-            return _matchmakingService.UpdateSearchPreferences(player, minPlayers, maxPing, serverPings);
+            return _matchmakingService.UpdateSearchPreferences(player, searchPreferences, serverPings);
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)

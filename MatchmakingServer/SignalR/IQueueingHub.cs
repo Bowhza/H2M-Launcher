@@ -1,8 +1,4 @@
-﻿
-
-using H2MLauncher.Core.Services;
-
-using Swashbuckle.AspNetCore.SwaggerGen;
+﻿using H2MLauncher.Core.Models;
 
 namespace MatchmakingServer.SignalR
 {
@@ -14,8 +10,8 @@ namespace MatchmakingServer.SignalR
 
         Task LeaveQueue();
 
-        bool SearchMatch(string playerName, int minPlayers, int maxPing, List<string> preferredServers);
+        bool SearchMatch(string playerName, MatchSearchCriteria searchPreferences, List<string> preferredServers);
 
-        bool UpdateSearchSession(int minPlayers, int maxPing, List<(string Ip, int Port, uint Ping)> serverPings);
+        bool UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings);
     }
 }
