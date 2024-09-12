@@ -68,6 +68,8 @@ namespace H2MLauncher.Core.Services
             /// </summary>
             internal TaskCompletionSource<ReceivedCommandMessage> ResponseCompletionSource { get; init; } = new();
 
+            public TimeSpan Timeout { get; set; } = TimeSpan.FromMilliseconds(REQUEST_TIMEOUT_IN_MS);
+
             /// <summary>
             /// Used to cancel the request timeout after the request is completed or canceled.
             /// </summary>
@@ -99,11 +101,11 @@ namespace H2MLauncher.Core.Services
                 });
             }
 
-            public void SetTimeout(int timeoutInMs)
+            internal void Activate()
             {
                 if (_isCanceled == 1) return;
 
-                _cancellation.CancelAfter(timeoutInMs);
+                _cancellation.CancelAfter(Timeout);
                 _isWaiting = true;
             }
 
@@ -240,7 +242,7 @@ namespace H2MLauncher.Core.Services
                     {
                         Address = response.RemoteEndPoint
                     };
-                    
+
                     string[] lines = response.Message.Data.Split(["\r\n", "\r", "\n"], StringSplitOptions.RemoveEmptyEntries);
                     foreach (string line in lines.Skip(1))
                     {
@@ -368,7 +370,7 @@ namespace H2MLauncher.Core.Services
         public async Task<GameServerInfo?> GetInfoAsync(TServer server, CancellationToken cancellationToken)
         {
             GetInfoCommand command = new();
-            Response? response = await RequestAsync(server, command.CreateMessage(), cancellationToken).ConfigureAwait(false);
+            Response? response = await RequestAsync(server, command.CreateMessage(), cancellationToken: cancellationToken).ConfigureAwait(false);
             return response.HasValue ? command.ParseResponse(response.Value) : null;
         }
 
@@ -378,11 +380,12 @@ namespace H2MLauncher.Core.Services
         public async Task<IAsyncEnumerable<(TServer server, GameServerInfo? info)>> GetInfoAsync(
             IEnumerable<TServer> servers,
             bool sendSynchronously = false,
+            int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
             GetInfoCommand command = new();
             IAsyncEnumerable<Response> responses = await RequestAsync(
-                servers, command.CreateMessage(), sendSynchronously, false, cancellationToken);
+                servers, command.CreateMessage(), sendSynchronously, false, requestTimeoutInMs, cancellationToken);
 
             return responses.Select(response => (response.Request.Server, command.ParseResponse(response)));
         }
@@ -414,7 +417,7 @@ namespace H2MLauncher.Core.Services
                             ServerInfo = serverInfo
                         });
                     }
-                }, cancellationToken);
+                }, requestTimeoutInMs: REQUEST_TIMEOUT_IN_MS, cancellationToken: cancellationToken);
 
             return stopReceiving;
         }
@@ -488,7 +491,7 @@ namespace H2MLauncher.Core.Services
         public async Task<GameServerStatus?> GetStatusAsync(TServer server, CancellationToken cancellationToken)
         {
             GetStatusCommand command = new();
-            Response? response = await RequestAsync(server, command.CreateMessage(), cancellationToken).ConfigureAwait(false);
+            Response? response = await RequestAsync(server, command.CreateMessage(), cancellationToken: cancellationToken).ConfigureAwait(false);
             return response.HasValue ? command.ParseResponse(response.Value) : null;
         }
 
@@ -519,7 +522,7 @@ namespace H2MLauncher.Core.Services
                             ServerInfo = serverInfo
                         });
                     }
-                }, cancellationToken);
+                }, requestTimeoutInMs: REQUEST_TIMEOUT_IN_MS, cancellationToken: cancellationToken);
 
             return stopReceiving;
         }
@@ -596,11 +599,12 @@ namespace H2MLauncher.Core.Services
         public async Task<IAsyncEnumerable<(TServer server, GameServerStatus? status)>> GetStatusAsync(
             IEnumerable<TServer> servers,
             bool sendSynchronously = false,
+            int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
             GetStatusCommand command = new();
             IAsyncEnumerable<Response> responses = await RequestAsync(
-                servers, command.CreateMessage(), sendSynchronously, false, cancellationToken);
+                servers, command.CreateMessage(), sendSynchronously, false, requestTimeoutInMs, cancellationToken);
 
             return responses.Select(response => (response.Request.Server, command.ParseResponse(response)));
         }
@@ -623,6 +627,7 @@ namespace H2MLauncher.Core.Services
             CommandMessage commandMessage,
             bool sendSynchronously = false,
             bool failImmediately = false,
+            int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
             IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
@@ -636,6 +641,7 @@ namespace H2MLauncher.Core.Services
             // use a channel to stream the responses in receive order
             Channel<Response> channel = Channel.CreateUnbounded<Response>();
             ChannelWriter<Response> writer = channel.Writer;
+            List<Request> requests = new(endpointServerMap.Count);
 
             // Start a background task that creates and sends all the requests
             // and writes the responses to the channel.
@@ -643,7 +649,6 @@ namespace H2MLauncher.Core.Services
             Task<Task> sendTask = Task.Run<Task>(async () =>
             {
                 List<Task> continuations = new(endpointServerMap.Count);
-                List<Request> requests = new(endpointServerMap.Count);
                 CancellationTokenRegistration reg = default;
                 try
                 {
@@ -657,7 +662,7 @@ namespace H2MLauncher.Core.Services
                     });
 
                     // Send message to all endpoints
-                    var requestEnumerable = SendRequestsAsync(endpointServerMap, (_, _) => commandMessage, cancellationToken);
+                    var requestEnumerable = SendRequestsAsync(endpointServerMap, (_, _) => commandMessage, requestTimeoutInMs, cancellationToken);
 
                     await foreach (Request request in requestEnumerable.ConfigureAwait(false))
                     {
@@ -706,11 +711,81 @@ namespace H2MLauncher.Core.Services
                 // Wait until all requests are sent before returning the responses
                 await sendTask;
             }
-            
+
             // Streamed responses.
             // Not passing token because it is only for sending.
             // Passing 'WithCancellation' to enumerable will trigger the cancellation regardless (idk how this magic works)
             return channel.Reader.ReadAllAsync(CancellationToken.None);
+        }
+
+        private static async IAsyncEnumerable<Response> ReadRequestsUntilThenCancel(
+            IAsyncEnumerable<Response> enumerable,
+            IReadOnlyList<Request> requests,
+            TimeSpan readUntil,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using CancellationTokenSource timeoutCancellation = new(readUntil);
+            using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellation.Token);
+
+            await using IAsyncEnumerator<Response> enumerator = enumerable.GetAsyncEnumerator(linkedCancellation.Token);
+
+            while (true)
+            {
+                Response nextResponse;
+                try
+                {
+                    if (!await enumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        yield break;
+                    }
+                    nextResponse = enumerator.Current;
+                }
+                catch (OperationCanceledException) when (timeoutCancellation.IsCancellationRequested)
+                {
+                    foreach (Request request in requests)
+                    {
+                        request.TryCancel();
+                    }
+
+                    yield break;
+                }
+                yield return nextResponse;
+            }
+        }
+
+        private static async IAsyncEnumerable<Response> ReadRequestsUntilThenCancel(
+            ChannelReader<Response> reader,
+            IReadOnlyList<Request> requests,
+            TimeSpan readUntil,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using CancellationTokenSource timeoutCancellation = new(readUntil);
+            using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, timeoutCancellation.Token);
+
+            await using IAsyncEnumerator<Response> enumerator = reader.ReadAllAsync().GetAsyncEnumerator(linkedCancellation.Token);
+
+            while (true)
+            {
+                Response nextResponse;
+                try
+                {
+                    if (!await enumerator.MoveNextAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        yield break;
+                    }
+                    nextResponse = enumerator.Current;
+                }
+                catch (OperationCanceledException) when (timeoutCancellation.IsCancellationRequested)
+                {
+                    foreach (Request request in requests)
+                    {
+                        request.TryCancel();
+                    }
+
+                    yield break;
+                }
+                yield return nextResponse;
+            }
         }
 
         /// <summary>
@@ -732,6 +807,7 @@ namespace H2MLauncher.Core.Services
                 servers,
                 commandMessage,
                 onResponse,
+                REQUEST_TIMEOUT_IN_MS,
                 cancellationToken);
 
 
@@ -783,6 +859,7 @@ namespace H2MLauncher.Core.Services
             IEnumerable<TServer> servers,
             CommandMessage commandMessage,
             Action<Response> onResponse,
+            int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
             IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
@@ -799,7 +876,8 @@ namespace H2MLauncher.Core.Services
             try
             {
                 // Send message to all endpoints
-                await foreach (var request in SendRequestsAsync(endpointServerMap, (_, _) => commandMessage, cancellationToken).ConfigureAwait(false))
+                var sendingRequests = SendRequestsAsync(endpointServerMap, (_, _) => commandMessage, requestTimeoutInMs, cancellationToken);
+                await foreach (Request request in sendingRequests.ConfigureAwait(false))
                 {
                     requests.Add(request);
 
@@ -845,7 +923,7 @@ namespace H2MLauncher.Core.Services
         /// Will be faulted after the request timeout.</returns>
         /// <exception cref="TimeoutException">When the request timeout is exceeded.</exception>
         protected async Task<Response?> RequestAsync(
-            TServer server, CommandMessage commandMessage, CancellationToken cancellationToken = default)
+            TServer server, CommandMessage commandMessage, int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS, CancellationToken cancellationToken = default)
         {
             // create an endpoint to send to and receive from
             IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
@@ -854,7 +932,10 @@ namespace H2MLauncher.Core.Services
                 return null;
             }
 
-            Request request = new(commandMessage, server);
+            Request request = new(commandMessage, server)
+            {
+                Timeout = TimeSpan.FromMilliseconds(requestTimeoutInMs)
+            };
 
             bool success = await SendRequestInternalAsync(endpoint, request, cancellationToken).ConfigureAwait(false);
             if (!success)
@@ -875,7 +956,10 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         /// <returns>All requests that were sent successfully.</returns>
         protected async Task<IReadOnlyList<Request>> SendRequestsAsync(
-            IEnumerable<TServer> servers, Func<IPEndPoint, TServer, CommandMessage> messageFactory, CancellationToken cancellationToken)
+            IEnumerable<TServer> servers, 
+            Func<IPEndPoint, TServer, CommandMessage> messageFactory, 
+            int requestTimeoutInMs, 
+            CancellationToken cancellationToken)
         {
             IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
 
@@ -885,7 +969,7 @@ namespace H2MLauncher.Core.Services
                 return [];
             }
 
-            return await SendRequestsAsync(endpointServerMap, messageFactory, cancellationToken)
+            return await SendRequestsAsync(endpointServerMap, messageFactory, requestTimeoutInMs, cancellationToken)
                 .ToListAsync(cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -899,7 +983,8 @@ namespace H2MLauncher.Core.Services
         protected async IAsyncEnumerable<Request> SendRequestsAsync(
             IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap,
             Func<IPEndPoint, TServer, CommandMessage> messageFactory,
-            [EnumeratorCancellation] CancellationToken cancellationToken)
+            int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             using HighResolutionTimer timer = new();
             timer.SetPeriod(MIN_REQUEST_DELAY);
@@ -908,7 +993,10 @@ namespace H2MLauncher.Core.Services
             foreach (var (endpoint, server) in endpointServerMap)
             {
                 CommandMessage message = messageFactory(endpoint, server);
-                Request request = new(message, server);
+                Request request = new(message, server)
+                {
+                    Timeout = TimeSpan.FromMilliseconds(requestTimeoutInMs)
+                };
 
                 if (await SendRequestInternalAsync(endpoint, request, cancellationToken))
                 {
@@ -991,8 +1079,8 @@ namespace H2MLauncher.Core.Services
                 // send request message
                 await _gameServerCommunication.SendAsync(serverEndpoint, request.Message, cancellationToken: cancellationToken);
 
-                // set request timeout after sending
-                request.SetTimeout(REQUEST_TIMEOUT_IN_MS);
+                // activate request to start timeout
+                request.Activate();
 
                 return true;
             }

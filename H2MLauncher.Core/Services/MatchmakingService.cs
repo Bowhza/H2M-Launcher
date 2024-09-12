@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Linq;
+using System.Net;
 using System.Reactive;
 
 using H2MLauncher.Core.Models;
@@ -40,11 +41,10 @@ namespace H2MLauncher.Core.Services
         private readonly IGameCommunicationService _gameCommunicationService;
         private readonly IPlayerNameProvider _playerNameProvider;
         private readonly CachedServerDataService _serverDataService;
+        private readonly GameServerCommunicationService<IServerConnectionDetails> _gameServerCommunicationService;
 
         private readonly IOptionsMonitor<H2MLauncherSettings> _options;
         private readonly ILogger<MatchmakingService> _logger;
-
-        private record struct ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails;
 
         private record QueuedServer(string Ip, int Port)
         {
@@ -94,7 +94,8 @@ namespace H2MLauncher.Core.Services
             IOptions<MatchmakingSettings> matchmakingSettings,
             IOptionsMonitor<H2MLauncherSettings> options,
             IPlayerNameProvider playerNameProvider,
-            CachedServerDataService serverDataService)
+            CachedServerDataService serverDataService,
+            GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService)
         {
             _logger = logger;
             _options = options;
@@ -115,6 +116,7 @@ namespace H2MLauncher.Core.Services
             _h2MCommunicationService = h2MCommunicationService;
             _gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
             _serverDataService = serverDataService;
+            _gameServerCommunicationService = gameServerCommunicationService;
         }
 
         private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
@@ -350,10 +352,15 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public async Task<bool> EnterMatchmakingAsync(Playlist playlist, int minPlayers = 8)
+        public async Task<bool> EnterMatchmakingAsync(Playlist playlist, int minPlayers = 8, int maxPing = 80)
         {
             try
             {
+                if (playlist.Servers is null || playlist.Servers.Count == 0)
+                {
+                    return false;
+                }
+
                 _logger.LogDebug("Entering matchmaking...");
 
                 if (_connection.State is HubConnectionState.Disconnected)
@@ -362,7 +369,7 @@ namespace H2MLauncher.Core.Services
                 }
 
                 string playerName = _playerNameProvider.PlayerName;
-                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, minPlayers, playlist.Servers);
+                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, minPlayers, maxPing, playlist.Servers);
                 if (!success)
                 {
                     _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}' as '{playerName}'", playlist.Id, playerName);
@@ -371,6 +378,56 @@ namespace H2MLauncher.Core.Services
 
                 QueueingState = PlayerState.Matchmaking;
                 _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}' as '{playerName}' for ", playlist.Id, playerName);
+
+                _ = Task.Run(async () =>
+                {
+                    List<IServerConnectionDetails> serverConnectionDetails = playlist.Servers.Select(address =>
+                    {
+                        string[] splitted = address.Split(':');
+                        if (splitted.Length != 2)
+                        {
+                            return default;
+                        }
+
+                        string ip = splitted[0];
+                        if (!int.TryParse(splitted[1], out int port))
+                        {
+                            return default;
+                        }
+
+                        return new ServerConnectionDetails(ip, port);
+                    }).Where(s => s.Ip is not null)
+                      .Cast<IServerConnectionDetails>().ToList();
+
+                    while (QueueingState is PlayerState.Matchmaking)
+                    {
+                        try
+                        {
+                            _logger.LogDebug("Searching for servers with ping <= {maxPing}", maxPing);
+
+                            var responses = await _gameServerCommunicationService.GetInfoAsync(serverConnectionDetails, requestTimeoutInMs: 3000);
+
+                            List<(string Ip, int Port, uint Ping)> serverPings = await responses
+                                .Where(res => res.info is not null)
+                                .Select(res => (res.server.Ip, res.server.Port, (uint)res.info!.Ping))
+                                .ToListAsync();
+
+                            _logger.LogDebug("Found {n} potential servers with ping <= {maxPing} ms", 
+                                serverPings.Count(x => x.Ping <= maxPing), maxPing);
+
+                            if (!await _connection.InvokeAsync<bool>("UpdateSearchSession", minPlayers, maxPing, serverPings))
+                            {
+                                _logger.LogWarning("Could not update search session");
+                            }
+
+                            await Task.Delay(2000);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error during matchmaking");
+                        }
+                    }
+                });
 
                 return true;
             }

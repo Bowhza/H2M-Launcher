@@ -122,11 +122,22 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public bool SearchMatch(string playerName, int minPlayers, List<string> preferredServers)
+        public bool SearchMatch(string playerName, int minPlayers, int maxPing, List<string> preferredServers)
         {
             var player = GetOrAddPlayer(Context.ConnectionId, playerName);
 
-            return _matchmakingService.EnterMatchmaking(player, minPlayers, preferredServers);
+            return _matchmakingService.EnterMatchmaking(player, minPlayers, maxPing, preferredServers);
+        }
+
+        public bool UpdateSearchSession(int minPlayers, int maxPing, List<(string Ip, int Port, uint Ping)> serverPings)
+        {
+            if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
+            {
+                // unknown player
+                return false;
+            }
+
+            return _matchmakingService.UpdateSearchPreferences(player, minPlayers, maxPing, serverPings);
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)

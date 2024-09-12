@@ -114,6 +114,7 @@ namespace H2MLauncher.UI
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService<IW4MServer>>();
+            services.AddTransient<GameServerCommunicationService<IServerConnectionDetails>>();
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
             services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();

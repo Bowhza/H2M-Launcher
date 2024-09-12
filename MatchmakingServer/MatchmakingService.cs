@@ -16,7 +16,7 @@ namespace MatchmakingServer
         /// The time in queue after which a fresh lobby is not exclusively created and 
         /// joined players are also calculated in the min players threshold.
         /// </summary>
-        private const int FRESH_LOBBY_TIMEOUT_SECONDS = 15;
+        private const int FRESH_LOBBY_TIMEOUT_SECONDS = 20;
 
         private readonly ConcurrentDictionary<(string ip, int port), ConcurrentLinkedQueue<MMPlayer>> _serverGroups = [];
         private readonly ConcurrentLinkedQueue<MMPlayer> _playerQueue = new();
@@ -61,6 +61,7 @@ namespace MatchmakingServer
             public Player Player { get; }
             public Dictionary<(string ip, int port), int> PreferredServers { get; set; } // List of "ip:port" strings
             public int MinPlayerThreshold { get; set; } // Minimum players required to start a match
+            public int MaxPing { get; set; }
             public DateTime JoinTime { get; set; } // Time the player joined the queue
 
             public MMPlayer(Player player, Dictionary<(string ip, int port), int> servers, int minThreshold)
@@ -72,9 +73,9 @@ namespace MatchmakingServer
             }
         }
 
-        public bool EnterMatchmaking(Player player, int minPlayers, List<string> preferredServers)
+        public bool EnterMatchmaking(Player player, int minPlayers, int maxPing, List<string> preferredServers)
         {
-            if (player.State is not PlayerState.Connected or PlayerState.Joined)
+            if (player.State is not (PlayerState.Connected or PlayerState.Joined))
             {
                 // invalid player state
                 _logger.LogDebug("Cannot enter matchmaking: invalid state {player}", player);
@@ -110,7 +111,7 @@ namespace MatchmakingServer
                 _queueingService.StartQueue(server);
             }
 
-            AddPlayerToQueue(new MMPlayer(player, preferredServersParsed.ToDictionary(x => x, _ => 20), minPlayers));
+            AddPlayerToQueue(new MMPlayer(player, preferredServersParsed.ToDictionary(x => x, _ => -1), minPlayers) { MaxPing = maxPing });
 
             return true;
         }
@@ -151,6 +152,37 @@ namespace MatchmakingServer
             }
 
             _logger.LogDebug("Player {mmPlayer} entered matchmaking", player);
+        }
+
+        public bool UpdateSearchPreferences(Player player, int minPlayers, int maxPing, List<(string Ip, int Port, uint Ping)> serverPings)
+        {
+            if (player.State is not PlayerState.Matchmaking)
+            {
+                // invalid player state
+                _logger.LogDebug("Cannot update search session: invalid state {player}", player);
+                return false;
+            }
+
+            MMPlayer? queuedPlayer = _playerQueue.FirstOrDefault(p => p.Player == player);
+            if (queuedPlayer is null)
+            {
+                _logger.LogWarning("Player {player} not queued in Matchmaking despite state. Correcting state to 'Connected'.", player);
+                player.State = PlayerState.Connected;
+                return false;
+            }
+
+            _logger.LogTrace("Updating search preferences for {player}: (minPlayers: {minPlayers}, maxPing: {maxPing}, {numPings} ping updates)",
+                player, minPlayers, maxPing, serverPings.Count);
+
+            queuedPlayer.MinPlayerThreshold = minPlayers;
+            queuedPlayer.MaxPing = maxPing;
+
+            foreach (var (serverIp, serverPort, ping) in serverPings)
+            {
+                queuedPlayer.PreferredServers[(serverIp, serverPort)] = Math.Min(999, (int)ping);
+            }
+
+            return true;
         }
 
         public double CalculateServerQuality(GameServer server)
@@ -279,7 +311,6 @@ namespace MatchmakingServer
             _logger.LogDebug("Selecting players for matchmaking...");
 
             List<(GameServer server, double qualityScore, List<MMPlayer> players)> matches = [];
-            Dictionary<MMPlayer, List<(GameServer server, List<MMPlayer> players)>> matchesByPlayer = [];
 
             // Iterate through prioritized servers
             foreach ((GameServer server, double qualityScore) in orderedServers)
@@ -291,13 +322,16 @@ namespace MatchmakingServer
                 if (!_serverGroups.TryGetValue((server.ServerIp, server.ServerPort), out var playersForServer))
                     continue;
 
-                _logger.LogTrace("{numPlayers} players in matchmaking queue for server {server}, checking for potential match...",
-                    playersForServer.Count, server);
+                List<MMPlayer> eligiblePlayers = playersForServer.Where(player =>
+                    player.PreferredServers.GetValueOrDefault((server.ServerIp, server.ServerPort)) < player.MaxPing).ToList();
+
+                _logger.LogTrace("{numPlayers} players ({numEligible} eligible) in matchmaking queue for server {server}",
+                    playersForServer.Count, eligiblePlayers.Count, server);
 
                 _logger.LogTrace("Server has {numPlayers} players, {numAvailableSlots} available slots, {totalScore} total score => Quality {qualityScore}",
                     server.LastServerInfo.RealPlayerCount, availableSlots, server.LastStatusResponse?.TotalScore, qualityScore);
 
-                List<MMPlayer> selectedPlayers = SelectMaxPlayersForMatchWithTimeout(playersForServer,
+                List<MMPlayer> selectedPlayers = SelectMaxPlayersForMatchWithTimeout(eligiblePlayers,
                     server.LastServerInfo.RealPlayerCount,
                     availableSlots);
 
@@ -311,13 +345,7 @@ namespace MatchmakingServer
 
                     foreach (MMPlayer player in selectedPlayers)
                     {
-                        if (!matchesByPlayer.TryGetValue(player, out var playerMatchesList))
-                        {
-                            playerMatchesList = [];
-                            matchesByPlayer.Add(player, playerMatchesList);
-                        }
-
-                        playerMatchesList.Add((server, selectedPlayers));
+                        matches.Add((server, adjustedQualityScore, selectedPlayers));
                     }
                 }
             }
@@ -332,10 +360,13 @@ namespace MatchmakingServer
         internal double AdjustedServerQuality(GameServer server, double qualityScore, List<MMPlayer> potentialPlayers)
         {
             DateTime now = DateTime.Now;
+
             double avgWaitTime = potentialPlayers.Average(p => (now - p.JoinTime).TotalSeconds);
             double waitTimeFactor = 40;
 
-            double avgPing = potentialPlayers.Average(p => p.PreferredServers[(server.ServerIp, server.ServerPort)]);
+            double avgPing = potentialPlayers.Select(p => p.PreferredServers[(server.ServerIp, server.ServerPort)])
+                                             .Where(ping => ping >= 0)
+                                             .Average();
             double pingFactor = 40;
 
             _logger.LogTrace("Adjusting quality based on avg wait time ({avgWaitTime} s) and ping ({avgPing} ms)", 
