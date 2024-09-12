@@ -12,7 +12,11 @@ namespace MatchmakingServer
 {
     public class MatchmakingService
     {
-        private const int QUEUE_TIMEOUT_SECONDS = 30; // Timeout after 30 seconds in queue
+        /// <summary>
+        /// The time in queue after which a fresh lobby is not exclusively created and 
+        /// joined players are also calculated in the min players threshold.
+        /// </summary>
+        private const int FRESH_LOBBY_TIMEOUT_SECONDS = 15;
 
         private readonly ConcurrentDictionary<(string ip, int port), ConcurrentLinkedQueue<MMPlayer>> _serverGroups = [];
         private readonly ConcurrentLinkedQueue<MMPlayer> _playerQueue = new();
@@ -52,15 +56,14 @@ namespace MatchmakingServer
             });
         }
 
-
         internal sealed class MMPlayer
         {
             public Player Player { get; }
-            public List<(string ip, int port)> PreferredServers { get; set; } // List of "ip:port" strings
+            public Dictionary<(string ip, int port), int> PreferredServers { get; set; } // List of "ip:port" strings
             public int MinPlayerThreshold { get; set; } // Minimum players required to start a match
             public DateTime JoinTime { get; set; } // Time the player joined the queue
 
-            public MMPlayer(Player player, List<(string ip, int port)> servers, int minThreshold)
+            public MMPlayer(Player player, Dictionary<(string ip, int port), int> servers, int minThreshold)
             {
                 Player = player;
                 PreferredServers = servers;
@@ -103,11 +106,11 @@ namespace MatchmakingServer
                 preferredServersParsed.Add(key);
 
                 // Make sure server is created and running queue
-                GameServer server =  _serverStore.GetOrAddServer(ip, port, "");
+                GameServer server = _serverStore.GetOrAddServer(ip, port, "");
                 _queueingService.StartQueue(server);
             }
 
-            AddPlayerToQueue(new MMPlayer(player, preferredServersParsed, minPlayers));
+            AddPlayerToQueue(new MMPlayer(player, preferredServersParsed.ToDictionary(x => x, _ => 20), minPlayers));
 
             return true;
         }
@@ -137,7 +140,7 @@ namespace MatchmakingServer
         {
             _playerQueue.Enqueue(player);
 
-            foreach (var server in player.PreferredServers)
+            foreach (var server in player.PreferredServers.Keys)
             {
                 if (!_serverGroups.ContainsKey((server.ip, server.port)))
                 {
@@ -150,6 +153,49 @@ namespace MatchmakingServer
             _logger.LogDebug("Player {mmPlayer} entered matchmaking", player);
         }
 
+        public double CalculateServerQuality(GameServer server)
+        {
+            if (server?.LastServerInfo is null)
+            {
+                return 0; // Invalid server, assign lowest score
+            }
+
+            double baseQuality = 1000; // Start with a base score for every server
+
+            // Check if the server is "half full" and under the score limit and probably needs players
+            bool isEmpty = server.LastServerInfo.RealPlayerCount == 0;
+
+            // Case 1: If server is empty, give it a high bonus
+            if (isEmpty)
+            {
+                baseQuality += 1000;
+
+                return baseQuality;
+            }
+
+            bool isHalfFull = server.LastStatusResponse?.TotalScore < 3000 && server.LastServerInfo.RealPlayerCount < 6;
+
+            // Case 2: If server is under the score limit and half full, give it a significant bonus
+            if (isHalfFull)
+            {
+                baseQuality += 3000;
+            }
+
+            double totalScoreAssumption = server.LastStatusResponse?.TotalScore ?? 10000; // assume average score
+            //if (totalScoreAssumption == 0 && server.LastStatusResponse!.Players.Count == 0 && server.LastServerInfo.RealPlayerCount)
+            //{
+
+            //}
+
+            // Calculate proportional penalty based on TotalScore (higher score means lower quality)
+            double totalScorePenalty = Math.Min(totalScoreAssumption / 300, 600); // cut of at 20000 score
+
+            // Apply proportional penalties for TotalScore and available slots
+            baseQuality -= totalScorePenalty;   // Higher TotalScore reduces the quality
+
+            return baseQuality;
+        }
+
         class MmServerPriorityComparer : IComparer<GameServer>
         {
             public int Compare(GameServer? x, GameServer? y)
@@ -159,6 +205,29 @@ namespace MatchmakingServer
                     return 0;
                 }
 
+                // Check if we should prioritize based on TotalScore < 1000
+                bool xIsHalfFull = x.LastStatusResponse?.TotalScore < 1000 && x.LastServerInfo.RealPlayerCount < 6;
+                bool yIsHalfFull = y.LastStatusResponse?.TotalScore < 1000 && x.LastServerInfo.RealPlayerCount < 6;
+
+                // Case 1: If both servers are half empty and under the score limit,
+                // prioritize by player count (servers with fewer players should be prioritized)
+                if (xIsHalfFull && yIsHalfFull)
+                {
+                    return x.LastServerInfo.RealPlayerCount.CompareTo(y.LastServerInfo.RealPlayerCount);
+                }
+
+                // Case 2: If one server is half full and under the score limit and the other one is not,
+                // prioritize the half full server
+                if (xIsHalfFull && !yIsHalfFull)
+                {
+                    return -1;
+                }
+                if (!xIsHalfFull && yIsHalfFull)
+                {
+                    return 1;
+                }
+
+                // Case 3: If both servers are over the score limit, prioritize by fewer players
                 return x.LastServerInfo.RealPlayerCount.CompareTo(y.LastServerInfo.RealPlayerCount);
             }
         }
@@ -194,23 +263,26 @@ namespace MatchmakingServer
                 // Wait for all to complete / time out
                 await Task.WhenAll(getInfoCompleted, getStatusCompleted);
             }
-            catch (OperationCanceledException) { }
-
-            // Wait a second for all the responses
-            await Task.Delay(1000);
-
-            // Cancel remaining requests
-            requestCancellation.Cancel();
+            catch (OperationCanceledException) when (!requestCancellation.IsCancellationRequested)
+            {
+                // expected timeout
+            }
 
             _logger.LogDebug("Server info received from {numServers}. Sorting servers by match quality...", respondingServers.Count);
 
             // Sort servers: prioritize fresh servers with low player count
-            respondingServers.Sort(new MmServerPriorityComparer());
+            //respondingServers.Sort(new MmServerPriorityComparer());
+
+            var orderedServers = respondingServers.Select(s => (server: s, qualityScore: CalculateServerQuality(s)))
+                .OrderByDescending(x => x.qualityScore);
 
             _logger.LogDebug("Selecting players for matchmaking...");
 
+            List<(GameServer server, double qualityScore, List<MMPlayer> players)> matches = [];
+            Dictionary<MMPlayer, List<(GameServer server, List<MMPlayer> players)>> matchesByPlayer = [];
+
             // Iterate through prioritized servers
-            foreach (GameServer server in respondingServers)
+            foreach ((GameServer server, double qualityScore) in orderedServers)
             {
                 int availableSlots = Math.Max(0, server.LastServerInfo!.FreeSlots - server.UnavailableSlots);
                 if (availableSlots <= 0)
@@ -219,11 +291,11 @@ namespace MatchmakingServer
                 if (!_serverGroups.TryGetValue((server.ServerIp, server.ServerPort), out var playersForServer))
                     continue;
 
-                _logger.LogTrace("{numPlayers} players in matchmaking queue for server {server}, trying to create match...",
+                _logger.LogTrace("{numPlayers} players in matchmaking queue for server {server}, checking for potential match...",
                     playersForServer.Count, server);
 
-                _logger.LogTrace("Server has {numPlayers} players and {numAvailableSlots} available slots.",
-                    server.LastServerInfo.RealPlayerCount, availableSlots);
+                _logger.LogTrace("Server has {numPlayers} players, {numAvailableSlots} available slots, {totalScore} total score => Quality {qualityScore}",
+                    server.LastServerInfo.RealPlayerCount, availableSlots, server.LastStatusResponse?.TotalScore, qualityScore);
 
                 List<MMPlayer> selectedPlayers = SelectMaxPlayersForMatchWithTimeout(playersForServer,
                     server.LastServerInfo.RealPlayerCount,
@@ -231,9 +303,45 @@ namespace MatchmakingServer
 
                 if (selectedPlayers.Count > 0)
                 {
-                    await CreateMatchAsync(selectedPlayers, server);
+                    double adjustedQualityScore = AdjustedServerQuality(server, qualityScore, selectedPlayers);
+                    matches.Add((server, adjustedQualityScore, selectedPlayers));
+
+                    _logger.LogTrace("Potential match with {numPlayers} players ({numTotalPlayers} total), adjusted quality score {quality}",
+                        selectedPlayers.Count, selectedPlayers.Count + server.LastServerInfo.RealPlayerCount, adjustedQualityScore);
+
+                    foreach (MMPlayer player in selectedPlayers)
+                    {
+                        if (!matchesByPlayer.TryGetValue(player, out var playerMatchesList))
+                        {
+                            playerMatchesList = [];
+                            matchesByPlayer.Add(player, playerMatchesList);
+                        }
+
+                        playerMatchesList.Add((server, selectedPlayers));
+                    }
                 }
             }
+            
+            var bestMatch = matches.OrderByDescending(x => x.qualityScore).FirstOrDefault();
+            if (bestMatch.players is not null)
+            {
+                await CreateMatchAsync(bestMatch.players, bestMatch.server);
+            }
+        }
+
+        internal double AdjustedServerQuality(GameServer server, double qualityScore, List<MMPlayer> potentialPlayers)
+        {
+            DateTime now = DateTime.Now;
+            double avgWaitTime = potentialPlayers.Average(p => (now - p.JoinTime).TotalSeconds);
+            double waitTimeFactor = 40;
+
+            double avgPing = potentialPlayers.Average(p => p.PreferredServers[(server.ServerIp, server.ServerPort)]);
+            double pingFactor = 40;
+
+            _logger.LogTrace("Adjusting quality based on avg wait time ({avgWaitTime} s) and ping ({avgPing} ms)", 
+                Math.Round(avgWaitTime, 1), Math.Round(avgPing, 1));
+
+            return qualityScore + (potentialPlayers.Count * 15) + (waitTimeFactor * avgWaitTime) - (pingFactor * avgPing);
         }
 
         internal static List<MMPlayer> SelectMaxPlayersForMatchWithTimeout(IEnumerable<MMPlayer> queuedPlayers, int joinedPlayersCount, int freeSlots)
@@ -251,7 +359,7 @@ namespace MatchmakingServer
             }
 
             // Try to create the largest possible group of players including the players already on the server for all that waited longer
-            List<MMPlayer> timeoutPlayers = playersForServer.Where(p => (now - p.JoinTime).TotalSeconds >= QUEUE_TIMEOUT_SECONDS).ToList();
+            List<MMPlayer> timeoutPlayers = playersForServer.Where(p => (now - p.JoinTime).TotalSeconds >= FRESH_LOBBY_TIMEOUT_SECONDS).ToList();
             selectedPlayers = SelectMaxPlayersForMatch(timeoutPlayers, joinedPlayersCount, freeSlots);
             if (selectedPlayers.Count > 0)
             {
@@ -300,7 +408,7 @@ namespace MatchmakingServer
         {
             _playerQueue.Remove(mmPlayer);
 
-            foreach (var srv in mmPlayer.PreferredServers)
+            foreach (var srv in mmPlayer.PreferredServers.Keys)
             {
                 if (_serverGroups.TryGetValue(srv, out ConcurrentLinkedQueue<MMPlayer>? playersForServer))
                 {
