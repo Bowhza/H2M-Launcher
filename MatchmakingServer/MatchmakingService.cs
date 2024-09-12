@@ -83,7 +83,8 @@ namespace MatchmakingServer
 
             public bool IsEligibleForServer(GameServer server, int numPlayersForServer)
             {
-                if (!PreferredServers.TryGetValue((server.ServerIp, server.ServerPort), out int ping))
+                if (!PreferredServers.TryGetValue((server.ServerIp, server.ServerPort), out int ping)
+                    || ping <= 0)
                 {
                     return false;
                 }
@@ -94,21 +95,21 @@ namespace MatchmakingServer
                     return false;
                 }
 
-                if (SearchPreferences.MaxScore >= 0 && 
-                    server.LastStatusResponse is not null && 
+                if (SearchPreferences.MaxScore >= 0 &&
+                    server.LastStatusResponse is not null &&
                     server.LastStatusResponse.TotalScore > SearchPreferences.MaxScore)
                 {
                     return false;
                 }
 
-                if (SearchPreferences.MaxPlayers >= 0 && 
-                    server.LastServerInfo is not null && 
-                    server.LastServerInfo.RealPlayerCount >= SearchPreferences.MaxPlayers)
+                if (SearchPreferences.MaxPlayersOnServer >= 0 &&
+                    server.LastServerInfo is not null &&
+                    server.LastServerInfo.RealPlayerCount > SearchPreferences.MaxPlayersOnServer)
                 {
                     return false;
                 }
 
-                if (SearchPreferences.MaxPing > 0)
+                if (SearchPreferences.MaxPing > 0 && ping > 0)
                 {
                     return ping < SearchPreferences.MaxPing;
                 }
@@ -178,6 +179,9 @@ namespace MatchmakingServer
             }
 
             RemovePlayer(queuedPlayer);
+            player.State = PlayerState.Connected;
+
+            _logger.LogInformation("Player {player} removed from matchmaking", player);
             return true;
         }
 
@@ -351,6 +355,11 @@ namespace MatchmakingServer
             _logger.LogDebug("Selecting players for matchmaking...");
 
             List<MMMatch> matches = [];
+            foreach (MMPlayer player in _playerQueue)
+            {
+                player.PossibleMatches.Clear();
+            }
+
             //Dictionary<MMPlayer, List<MMMatch>> theoreticalMatchesPerPlayer = _playerQueue
             //    .ToDictionary(p => p, p => new List<MMMatch>(p.PreferredServers.Count));
 
@@ -379,11 +388,6 @@ namespace MatchmakingServer
 
                     _logger.LogTrace("{numPlayers} players ({numEligible} eligible) in matchmaking queue for server {server}",
                         playersForServerSorted.Count, eligiblePlayers.Count, server);
-
-                    if (eligiblePlayers.Count == 0)
-                    {
-                        continue;
-                    }
 
                     // find a valid match for all eligible players
                     if (TrySelectMatch(server, eligiblePlayers, qualityScore, availableSlots, out MMMatch validMatch))
@@ -424,9 +428,9 @@ namespace MatchmakingServer
                             player.Player,
                             new
                             {
-                                NumPlayers = validMatch.SelectedPlayers.Count,
-                                TotalPlayers = validMatch.SelectedPlayers.Count + server.LastServerInfo.RealPlayerCount,
-                                AdjustedQuality = validMatch.MatchQuality
+                                NumPlayers = match.SelectedPlayers.Count,
+                                TotalPlayers = match.SelectedPlayers.Count + server.LastServerInfo.RealPlayerCount,
+                                AdjustedQuality = match.MatchQuality
                             });
                     }
                 }
@@ -449,7 +453,7 @@ namespace MatchmakingServer
                     AdjustedQuality = bestMatch.MatchQuality,
                 });
 
-                await CreateMatchAsync(bestMatch.SelectedPlayers, bestMatch.Server);
+                await CreateMatchAsync(bestMatch);
 
                 // clear collections for next iteration
                 matches.Clear();
@@ -476,19 +480,25 @@ namespace MatchmakingServer
             try
             {
                 await _hubContext.Clients.Client(player.Player.ConnectionId)
-                        .SearchMatchUpdate(matchesForPlayer.Select(x => new SearchMatchResult()
-                        {
-                            ServerIp = x.Server.ServerIp,
-                            ServerPort = x.Server.ServerPort,
-                            MatchQuality = x.MatchQuality,
-                            NumPlayers = x.SelectedPlayers.Count,
-                            ServerScore = x.Server.LastStatusResponse?.TotalScore
-                        })).ConfigureAwait(false);
+                        .SearchMatchUpdate(matchesForPlayer.Select(CreateMatchResult))
+                        .ConfigureAwait(false);
             }
             catch
             {
                 _logger.LogWarning("Could not send match search results to player {player}", player.Player);
             }
+        }
+
+        private static SearchMatchResult CreateMatchResult(MMMatch match)
+        {
+            return new SearchMatchResult()
+            {
+                ServerIp = match.Server.ServerIp,
+                ServerPort = match.Server.ServerPort,
+                MatchQuality = match.MatchQuality,
+                NumPlayers = match.SelectedPlayers.Count,
+                ServerScore = match.Server.LastStatusResponse?.TotalScore
+            };
         }
 
         private List<(MMPlayer player, bool isEligible)> GetPlayersForServer(GameServer server)
@@ -537,7 +547,7 @@ namespace MatchmakingServer
                 .Where(ping => ping >= 0)
                 .Select(ping => ping - avgMaxPing)
                 .ToList();
-            
+
             double avgPingDeviation = pingDeviations.Count != 0 ? pingDeviations.Average() : 0;
             double pingFactor = 15;
 
@@ -640,25 +650,58 @@ namespace MatchmakingServer
             }
         }
 
-        private Task<int> CreateMatchAsync(IReadOnlyList<MMPlayer> players, GameServer server)
+        private async Task<int> CreateMatchAsync(MMMatch match)
         {
             _logger.LogInformation("Match created on server {server} for {numPlayers} players: {players}",
-                server, players.Count, players.Select(p => p.Player.Name));
-
-            _logger.LogDebug("Joining players to server queue");
-
-            List<Task<bool>> joinTasks = [];
+                match.Server, match.SelectedPlayers.Count, match.SelectedPlayers.Select(p => p.Player.Name));
 
             // Remove matched players from the queue and server groups
-            foreach (var player in players)
+            foreach (MMPlayer player in match.SelectedPlayers)
             {
                 RemovePlayer(player);
-
-                joinTasks.Add(_queueingService.JoinQueue(server, player.Player));
             }
 
-            return Task.WhenAll(joinTasks)
-                       .ContinueWith(t => t.Result.Count(joined => joined), TaskContinuationOptions.OnlyOnRanToCompletion);
+            try
+            {
+                _logger.LogTrace("Notifying players with match result...");
+
+                await _hubContext.Clients.Clients(match.SelectedPlayers.Select(p => p.Player.ConnectionId))
+                    .MatchFound(match.Server.LastServerInfo!.HostName, CreateMatchResult(match));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error while notifying players with match result");
+            }
+
+            _logger.LogDebug("Joining players to server queue...");
+
+            IEnumerable<Task<bool>> queueTasks = match.SelectedPlayers.Select(p =>
+                QueuePlayer(p.Player, match.Server));
+
+            bool[] results = await Task.WhenAll(queueTasks);
+            return results.Count(success => success);
+        }
+
+        private async Task<bool> QueuePlayer(Player player, GameServer server)
+        {
+            try
+            {
+                if (!await _queueingService.JoinQueue(server, player).ConfigureAwait(false))
+                {
+                    await _hubContext.Clients.Client(player.ConnectionId)
+                        .RemovedFromMatchmaking(MatchmakingError.QueueingFailed)
+                        .ConfigureAwait(false);
+
+                    return false;
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while queueing player {player}", player);
+                return false;
+            }
         }
     }
 

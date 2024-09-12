@@ -118,7 +118,14 @@ namespace MatchmakingServer.SignalR
                 return Task.CompletedTask;
             }
 
-            _queueingService.LeaveQueue(player);
+            if (player.State is PlayerState.Queued or PlayerState.Joining)
+            {
+                _queueingService.LeaveQueue(player);
+            }
+            else if (player.State is PlayerState.Matchmaking)
+            {
+                _matchmakingService.LeaveMatchmaking(player);
+            }
 
             return Task.CompletedTask;
         }

@@ -154,7 +154,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
         ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
-        EnterMatchmakingCommand = new AsyncRelayCommand(_matchmakingService.EnterMatchmakingAsync);
+        EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();
@@ -690,7 +690,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             _ = Task.Run(async () =>
             {
                 try
-                {                    
+                {
                     await foreach ((IW4MServer server, GameServerInfo? info) in responses.ConfigureAwait(false))
                     {
                         if (info is not null)
@@ -828,8 +828,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
             if (joinedQueue)
             {
-                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService,
-                    onForceJoin: () => JoinServerInternal(serverViewModel, password));
+                MatchmakingViewModel queueViewModel = new(_matchmakingService,
+                    onForceJoin: (_) => JoinServerInternal(serverViewModel, password))
+                {
+                    ServerIp = serverViewModel.Ip,
+                    ServerPort = serverViewModel.Port,
+                    ServerHostName = serverViewModel.HostName,
+                };
 
                 if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
                 {
@@ -844,6 +849,26 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
 
         await JoinServerInternal(serverViewModel, password);
+    }
+
+    private async Task<bool> JoinServerInternal(ServerConnectionDetails server, string? password)
+    {
+        await Task.Yield();
+
+        bool hasJoined = _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
+        if (hasJoined)
+        {
+            ServerViewModel? serverViewModel = FindServerViewModel(server);
+            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+            LastServer = serverViewModel;
+            _lastServerPassword = password?.ToSecuredString();
+        }
+
+        StatusText = hasJoined
+            ? $"Joined {server.Ip}:{server.Port}"
+            : "Ready";
+
+        return hasJoined;
     }
 
     private async Task<bool> JoinServerInternal(ServerViewModel serverViewModel, string? password)
@@ -876,12 +901,38 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return Task.CompletedTask;
     }
 
+    private async Task EnterMatchmaking()
+    {
+        //if (!await _matchmakingService.EnterMatchmakingAsync())
+        //{
+        //    _errorHandlingService.HandleError("Could not enter matchmaking.");
+        //    return;
+        //}
+
+        MatchmakingViewModel matchmakingViewModel = new(_matchmakingService,
+            onForceJoin: (server) => JoinServerInternal(server, null));
+
+        matchmakingViewModel.EnterMatchmakingCommand.Execute(null);
+
+        if (_dialogService.OpenDialog<QueueDialogView>(matchmakingViewModel) == false)
+        {
+            return;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private ServerViewModel? FindServerViewModel(ServerConnectionDetails server)
+    {
+        return AllServersTab.Servers.FirstOrDefault(server =>
+                server.Ip == server.Ip && server.Port == server.Port);
+    }
+
     private void MatchmakingService_Joined((string ip, int port) joinedServer)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            ServerViewModel? serverViewModel = AllServersTab.Servers.FirstOrDefault(server =>
-                server.Ip == joinedServer.ip && server.Port == joinedServer.port);
+            ServerViewModel? serverViewModel = FindServerViewModel(joinedServer);
             if (serverViewModel is not null)
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);

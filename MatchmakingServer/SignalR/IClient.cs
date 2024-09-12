@@ -12,5 +12,7 @@ namespace MatchmakingServer.SignalR
         Task RemovedFromQueue(DequeueReason reason);
 
         Task SearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults);
+        Task MatchFound(string hostName, SearchMatchResult matchResult);
+        Task RemovedFromMatchmaking(MatchmakingError reason);
     }
 }
