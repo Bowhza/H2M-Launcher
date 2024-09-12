@@ -360,6 +360,10 @@ namespace MatchmakingServer
                 foreach ((GameServer server, double qualityScore) in orderedServers)
                 {
                     int availableSlots = Math.Max(0, server.LastServerInfo!.FreeSlots - server.UnavailableSlots);
+
+                    _logger.LogTrace("Server {server} has {numPlayers} players, {numAvailableSlots} available slots, {totalScore} total score => Quality {qualityScore}",
+                        server, server.LastServerInfo.RealPlayerCount, availableSlots, server.LastStatusResponse?.TotalScore, qualityScore);
+
                     if (availableSlots <= 0)
                         continue; // Skip if no free slots are available
 
@@ -380,9 +384,6 @@ namespace MatchmakingServer
                     {
                         continue;
                     }
-
-                    _logger.LogTrace("Server has {numPlayers} players, {numAvailableSlots} available slots, {totalScore} total score => Quality {qualityScore}",
-                        server.LastServerInfo.RealPlayerCount, availableSlots, server.LastStatusResponse?.TotalScore, qualityScore);
 
                     // find a valid match for all eligible players
                     if (TrySelectMatch(server, eligiblePlayers, qualityScore, availableSlots, out MMMatch validMatch))

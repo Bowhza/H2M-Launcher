@@ -7,6 +7,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Channels;
 using System.Threading.Tasks;
 
+using ConcurrentCollections;
+
 using H2MLauncher.Core.Models;
 
 using Haukcode.HighResolutionTimer;
@@ -19,7 +21,7 @@ namespace H2MLauncher.Core.Services
     public partial class GameServerCommunicationService<TServer> : IAsyncDisposable
         where TServer : IServerConnectionDetails
     {
-        private readonly ConcurrentDictionary<IPEndPoint, List<Request>> _queuedRequests = [];
+        private readonly ConcurrentDictionary<IPEndPoint, ConcurrentHashSet<Request>> _queuedRequests = [];
         private GameServerCommunication? _gameServerCommunication;
         private readonly List<IDisposable> _registrations = [];
 
@@ -47,7 +49,7 @@ namespace H2MLauncher.Core.Services
             Error
         }
 
-        protected record Request : IDisposable
+        protected class Request : IDisposable
         {
             private readonly CancellationTokenSource _cancellation = new();
             private int _isCanceled = 0;
@@ -315,7 +317,7 @@ namespace H2MLauncher.Core.Services
                     return;
                 }
 
-                if (!_queuedRequests.TryGetValue(receivedMessage.RemoteEndPoint, out List<Request>? queuedRequests))
+                if (!_queuedRequests.TryGetValue(receivedMessage.RemoteEndPoint, out var queuedRequests))
                 {
                     // unknown remote endpoint
                     return;
@@ -341,7 +343,7 @@ namespace H2MLauncher.Core.Services
 
                 void removeInterpretAndCallback(Request request)
                 {
-                    if (queuedRequests.Remove(request))
+                    if (queuedRequests.TryRemove(request))
                     {
                         request.ResponseCompletionSource?.TrySetResult(receivedMessage);
                         if (onResponse is not null)
@@ -956,9 +958,9 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         /// <returns>All requests that were sent successfully.</returns>
         protected async Task<IReadOnlyList<Request>> SendRequestsAsync(
-            IEnumerable<TServer> servers, 
-            Func<IPEndPoint, TServer, CommandMessage> messageFactory, 
-            int requestTimeoutInMs, 
+            IEnumerable<TServer> servers,
+            Func<IPEndPoint, TServer, CommandMessage> messageFactory,
+            int requestTimeoutInMs,
             CancellationToken cancellationToken)
         {
             IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
@@ -1061,7 +1063,7 @@ namespace H2MLauncher.Core.Services
                 // remove the request from the queue
                 if (_queuedRequests.TryGetValue(serverEndpoint, out var list))
                 {
-                    list.Remove(request);
+                    list.TryRemove(request);
 
                     if (list.Count == 0)
                     {
@@ -1098,7 +1100,7 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         private void AddToQueueCancelPreviousRequest(IPEndPoint endpoint, Request request)
         {
-            List<Request> requests = _queuedRequests.GetOrAdd(endpoint, []);
+            ConcurrentHashSet<Request> requests = _queuedRequests.GetOrAdd(endpoint, []);
 
             bool filter(Request x) =>
                 x.Message.CommandName == request.Message.CommandName &&
@@ -1108,7 +1110,7 @@ namespace H2MLauncher.Core.Services
             // cancel and remove previous operations
             foreach (Request r in requests.Where(filter).ToList())
             {
-                requests.Remove(r);
+                requests.TryRemove(r);
                 r.ResponseCompletionSource?.TrySetCanceled();
                 r.Dispose();
             }
