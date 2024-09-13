@@ -10,7 +10,7 @@ namespace H2MLauncher.Core.Services
 {
     public sealed class H2MLauncherService
     {
-        private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
+        private const string GITHUB_REPOSITORY = "https://api.github.com/repos/tobibodamer/H2M-Launcher/releases";
 
         private readonly ILogger<H2MLauncherService> _logger;
         private readonly HttpClient _httpClient;
@@ -23,7 +23,7 @@ namespace H2MLauncher.Core.Services
 
         // IMPORTANT: Set this to the same pre-release label used in GitHub
         // (appended like '-beta') or empty when this is a normal release!
-        public static readonly string CurrentPreReleaseLabel = "";
+        public static readonly string CurrentPreReleaseLabel = "beta";
         public static string CurrentVersion
         {
             get
@@ -99,6 +99,10 @@ namespace H2MLauncher.Core.Services
                 HttpResponseMessage response = await _httpClient.SendAsync(httpRequestMessage, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 JsonDocument doc = JsonDocument.Parse(response.Content.ReadAsStream(cancellationToken));
+                if (doc.RootElement.GetArrayLength() == 0)
+                {
+                    return true;
+                }
                 LatestKnownVersion = doc.RootElement[0].GetProperty("tag_name").ToString();
                 bool isUpToDate = LatestKnownVersion == CurrentVersion;
 
