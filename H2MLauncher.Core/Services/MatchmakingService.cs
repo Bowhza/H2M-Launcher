@@ -216,21 +216,22 @@ namespace H2MLauncher.Core.Services
                 return false;
             }
 
-            if (++SearchAttempts > 10 && _matchmakingPreferences.TryFreshGamesFirst)
+            if (++SearchAttempts > 7 && _matchmakingPreferences.TryFreshGamesFirst)
             {
                 // remove max score limit after 4 attempts
                 MatchSearchCriteria = MatchSearchCriteria with
                 {
-                    MaxScore = _matchmakingPreferences.SearchCriteria.MaxScore
+                    MaxScore = _matchmakingPreferences.SearchCriteria.MaxScore,
+                    MaxPlayersOnServer = _matchmakingPreferences.SearchCriteria.MaxPlayersOnServer
                 };
             }
 
-            if (SearchAttempts > 1 && _matchmakingPreferences.TryFreshGamesFirst)
+            if (SearchAttempts > 2 || (SearchAttempts > 1 && _matchmakingPreferences.TryFreshGamesFirst))
             {
                 // remove min player limit after 4 attempts
                 MatchSearchCriteria = MatchSearchCriteria with
                 {
-                    MinPlayers = 1
+                    MinPlayers = Math.Max(1, _matchmakingPreferences.SearchCriteria.MinPlayers)
                 };
             }
 
