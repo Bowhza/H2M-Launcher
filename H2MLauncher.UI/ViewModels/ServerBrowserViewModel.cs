@@ -38,15 +38,18 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly ILogger<ServerBrowserViewModel> _logger;
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly DialogService _dialogService;
-    private CancellationTokenSource _loadCancellation = new();
-    private readonly Dictionary<string, string> _mapMap = [];
-    private readonly Dictionary<string, string> _gameTypeMap = [];
-    private readonly IOptions<ResourceSettings> _resourceSettings;
-    private readonly H2MLauncherSettings _defaultSettings;
-    private readonly GameDirectoryService _gameDirectoryService;
-    private readonly List<string> _installedMaps = [];
+    private CancellationTokenSource _loadCancellation = new();    
+    private readonly IOptions<ResourceSettings> _resourceSettings;    
+    private readonly GameDirectoryService _gameDirectoryService;    
     private readonly MatchmakingService _matchmakingService;
     private readonly CachedServerDataService _serverDataService;
+    private readonly H2MLauncherSettings _defaultSettings;
+
+    private readonly Dictionary<string, string> _mapMap = [];
+    private readonly Dictionary<string, string> _gameTypeMap = [];
+
+    private readonly List<string> _installedMaps = [];
+    private IReadOnlyList<ServerData> _serverData = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -635,7 +638,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private IReadOnlyList<ServerData> _serverData = [];
     private void UpdateServerDataList(CancellationToken cancellationToken)
     {
         Task.Run(async () =>
@@ -834,6 +836,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                     ServerIp = serverViewModel.Ip,
                     ServerPort = serverViewModel.Port,
                     ServerHostName = serverViewModel.HostName,
+                    CloseOnLeave = true
                 };
 
                 if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
@@ -903,16 +906,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private async Task EnterMatchmaking()
     {
-        //if (!await _matchmakingService.EnterMatchmakingAsync())
-        //{
-        //    _errorHandlingService.HandleError("Could not enter matchmaking.");
-        //    return;
-        //}
-
         MatchmakingViewModel matchmakingViewModel = new(_matchmakingService,
             onForceJoin: (server) => JoinServerInternal(server, null));
 
-        matchmakingViewModel.EnterMatchmakingCommand.Execute(null);
+        //matchmakingViewModel.EnterMatchmakingCommand.Execute(null);
 
         if (_dialogService.OpenDialog<QueueDialogView>(matchmakingViewModel) == false)
         {

@@ -1,11 +1,15 @@
-﻿using System.Windows;
+﻿using System.Text.RegularExpressions;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 
 namespace H2MLauncher.UI.Dialog.Views
 {
     public partial class QueueDialogView : UserControl
     {
+        private Storyboard? _marqueeStoryboard;
+
         public QueueDialogView()
         {
             InitializeComponent();
@@ -31,6 +35,9 @@ namespace H2MLauncher.UI.Dialog.Views
                 Canvas.SetLeft(serverName, scrollSpan / 2.0);
 
                 // Text is smaller that container, dont animate
+                _marqueeStoryboard?.Stop();
+                _marqueeStoryboard = null;
+                serverName.RenderTransform = new TranslateTransform();
                 return;
             }
 
@@ -40,8 +47,8 @@ namespace H2MLauncher.UI.Dialog.Views
             TimeSpan initialDelay = TimeSpan.FromSeconds(3);
             TimeSpan endDelay = TimeSpan.FromSeconds(5);
 
-            Storyboard storyboard = new Storyboard();
-            storyboard.Children.Add(
+            _marqueeStoryboard = new Storyboard();
+            _marqueeStoryboard.Children.Add(
                 new DoubleAnimation()
                 {
                     From = 0,
@@ -49,7 +56,7 @@ namespace H2MLauncher.UI.Dialog.Views
                     Duration = duration,
                 });
 
-            storyboard.Children.Add(
+            _marqueeStoryboard.Children.Add(
                 new DoubleAnimation()
                 {
                     From = scrollSpan,
@@ -58,17 +65,26 @@ namespace H2MLauncher.UI.Dialog.Views
                     BeginTime = duration + delay,
                 });
 
-            storyboard.BeginTime = initialDelay;
-            storyboard.Duration = duration * 2 + delay + endDelay;
+            _marqueeStoryboard.BeginTime = initialDelay;
+            _marqueeStoryboard.Duration = duration * 2 + delay + endDelay;
 
-            foreach (var animation in storyboard.Children)
+            foreach (var animation in _marqueeStoryboard.Children)
             {
                 Storyboard.SetTarget(animation, serverName);
                 Storyboard.SetTargetProperty(animation, new PropertyPath("(UIElement.RenderTransform).(TranslateTransform.X)"));
             }
 
-            storyboard.RepeatBehavior = RepeatBehavior.Forever;
-            storyboard.Begin();
+            _marqueeStoryboard.RepeatBehavior = RepeatBehavior.Forever;
+            _marqueeStoryboard.Begin();
         }
+
+        private void NumberTextBox_PreviewTextInput(object sender, System.Windows.Input.TextCompositionEventArgs e)
+        {
+            Regex regex = NumberRegex();
+            e.Handled = regex.IsMatch(e.Text);
+        }
+
+        [GeneratedRegex("[^0-9]+")]
+        private static partial Regex NumberRegex();
     }
 }

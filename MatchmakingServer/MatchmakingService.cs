@@ -1,7 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using System.Xml.Schema;
 
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
@@ -21,6 +18,7 @@ namespace MatchmakingServer
         /// joined players are also calculated in the min players threshold.
         /// </summary>
         private const int FRESH_LOBBY_TIMEOUT_SECONDS = 20;
+        private const int MATCHMAKING_INTERVAL_MS = 3000;
 
         private readonly ConcurrentDictionary<(string ip, int port), ConcurrentLinkedQueue<MMPlayer>> _serverGroups = [];
         private readonly ConcurrentLinkedQueue<MMPlayer> _playerQueue = new();
@@ -55,15 +53,28 @@ namespace MatchmakingServer
                     }
 
                     await CheckForMatches();
-                    await Task.Delay(3000);
+                    await Task.Delay(MATCHMAKING_INTERVAL_MS);
                 }
             });
+        }
+
+        internal record struct MMMatch(GameServer Server, double MatchQuality, List<MMPlayer> SelectedPlayers)
+        {
+            public static implicit operator (GameServer server, double matchQuality, List<MMPlayer> selectedPlayers)(MMMatch value)
+            {
+                return (value.Server, value.MatchQuality, value.SelectedPlayers);
+            }
+
+            public static implicit operator MMMatch((GameServer server, double matchQuality, List<MMPlayer> selectedPlayers) value)
+            {
+                return new MMMatch(value.server, value.matchQuality, value.selectedPlayers);
+            }
         }
 
         internal sealed class MMPlayer
         {
             public Player Player { get; }
-            public Dictionary<(string ip, int port), int> PreferredServers { get; set; } // List of queued servers with ping
+            public Dictionary<ServerConnectionDetails, int> PreferredServers { get; set; } // List of queued servers with ping
 
             public MatchSearchCriteria SearchPreferences { get; set; }
 
@@ -72,7 +83,7 @@ namespace MatchmakingServer
 
             public List<MMMatch> PossibleMatches { get; init; } // Currently possible non eligible matches
 
-            public MMPlayer(Player player, Dictionary<(string ip, int port), int> servers, MatchSearchCriteria searchPreferences)
+            public MMPlayer(Player player, Dictionary<ServerConnectionDetails, int> servers, MatchSearchCriteria searchPreferences)
             {
                 Player = player;
                 PreferredServers = servers;
@@ -132,7 +143,7 @@ namespace MatchmakingServer
 
             player.State = PlayerState.Matchmaking;
 
-            List<(string ip, int port)> preferredServersParsed = [];
+            List<ServerConnectionDetails> preferredServersParsed = [];
 
             foreach (var address in preferredServers)
             {
@@ -189,9 +200,9 @@ namespace MatchmakingServer
         {
             _playerQueue.Enqueue(player);
 
-            foreach (var server in player.PreferredServers.Keys)
+            foreach (ServerConnectionDetails server in player.PreferredServers.Keys)
             {
-                if (!_serverGroups.ContainsKey((server.ip, server.port)))
+                if (!_serverGroups.ContainsKey(server))
                 {
                     _serverGroups[server] = [];
                 }
@@ -702,19 +713,6 @@ namespace MatchmakingServer
                 _logger.LogError(ex, "Error while queueing player {player}", player);
                 return false;
             }
-        }
-    }
-
-    internal record struct MMMatch(GameServer Server, double MatchQuality, List<MatchmakingService.MMPlayer> SelectedPlayers)
-    {
-        public static implicit operator (GameServer server, double matchQuality, List<MatchmakingService.MMPlayer> selectedPlayers)(MMMatch value)
-        {
-            return (value.Server, value.MatchQuality, value.SelectedPlayers);
-        }
-
-        public static implicit operator MMMatch((GameServer server, double matchQuality, List<MatchmakingService.MMPlayer> selectedPlayers) value)
-        {
-            return new MMMatch(value.server, value.matchQuality, value.selectedPlayers);
         }
     }
 }

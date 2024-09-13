@@ -1,9 +1,11 @@
-﻿using System.Windows.Input;
+﻿using CommunityToolkit.Mvvm.Input;
 
 namespace H2MLauncher.UI.Dialog
 {
     public interface IDialogViewModel
     {
-        public event EventHandler<RequestCloseEventArgs>? CloseRequested;
+        IRelayCommand LoadedCommand { get; set; }
+
+        event EventHandler<RequestCloseEventArgs>? CloseRequested;
     }
 }

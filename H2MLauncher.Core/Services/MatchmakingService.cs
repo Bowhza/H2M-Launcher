@@ -63,26 +63,27 @@ namespace H2MLauncher.Core.Services
         public int QueuePosition { get; private set; }
         public int TotalPlayersInQueue { get; private set; }
 
-        private PlayerState _queueingState = PlayerState.Disconnected;
-        public PlayerState QueueingState
+        private PlayerState _state = PlayerState.Disconnected;
+        public PlayerState State
         {
-            get => _queueingState;
+            get => _state;
             set
             {
-                if (_queueingState == value)
+                if (_state == value)
                 {
                     return;
                 }
 
                 _logger.LogTrace("Set queueing state to {queueingState}", value);
 
-                PlayerState oldState = _queueingState;
-                _queueingState = value;
+                PlayerState oldState = _state;
+                _state = value;
 
                 OnQueueingStateChanged(oldState, value);
             }
         }
 
+        private MatchmakingPreferences? _matchmakingPreferences = null;
         private MatchSearchCriteria? _currentMatchSearchCriteria = null;
         public MatchSearchCriteria? MatchSearchCriteria
         {
@@ -139,7 +140,6 @@ namespace H2MLauncher.Core.Services
 
             _connection = new HubConnectionBuilder()
                 .WithUrl(matchmakingSettings.Value.QueueingHubUrl)
-                //.WithAutomaticReconnect()
                 .Build();
 
             _connection.On<string, int, bool>("NotifyJoin", OnNotifyJoin);
@@ -180,12 +180,14 @@ namespace H2MLauncher.Core.Services
 
             if (_h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
             {
-                QueueingState = PlayerState.Joining;
+                State = PlayerState.Joining;
                 return true;
             }
 
             _logger.LogDebug("Could not join server, setting queueing state back to 'Connected'");
-            QueueingState = PlayerState.Connected;
+            State = PlayerState.Connected;
+
+            JoinFailed?.Invoke((ip, port));
             return false;
         }
 
@@ -195,35 +197,35 @@ namespace H2MLauncher.Core.Services
 
             QueuePosition = position;
             TotalPlayersInQueue = totalPlayersInQueue;
-            QueueingState = PlayerState.Queued;
+            State = PlayerState.Queued;
 
             QueuePositionChanged?.Invoke(position, totalPlayersInQueue);
         }
 
         private void OnRemovedFromQueue(DequeueReason reason)
         {
-            QueueingState = PlayerState.Connected;
+            State = PlayerState.Connected;
 
             _logger.LogInformation("Removed from queue. Reason: {reason}", reason);
         }
 
         private bool AdjustSearchCriteria(IEnumerable<SearchMatchResult> searchMatchResults)
         {
-            if (MatchSearchCriteria is null)
+            if (MatchSearchCriteria is null || _matchmakingPreferences is null)
             {
                 return false;
             }
 
-            if (++SearchAttempts > 10 && TryFreshGamesFirst)
+            if (++SearchAttempts > 10 && _matchmakingPreferences.TryFreshGamesFirst)
             {
                 // remove max score limit after 4 attempts
                 MatchSearchCriteria = MatchSearchCriteria with
                 {
-                    MaxScore = -1
+                    MaxScore = _matchmakingPreferences.SearchCriteria.MaxScore
                 };
             }
 
-            if (SearchAttempts > 1 && TryFreshGamesFirst)
+            if (SearchAttempts > 1 && _matchmakingPreferences.TryFreshGamesFirst)
             {
                 // remove min player limit after 4 attempts
                 MatchSearchCriteria = MatchSearchCriteria with
@@ -260,7 +262,7 @@ namespace H2MLauncher.Core.Services
             Matches?.Invoke(searchMatchResults);
 
 
-            if (MatchSearchCriteria is null || QueueingState is not PlayerState.Matchmaking)
+            if (MatchSearchCriteria is null || State is not PlayerState.Matchmaking)
             {
                 return;
             }
@@ -318,7 +320,7 @@ namespace H2MLauncher.Core.Services
 
         private void OnRemovedFromMatchmaking(MatchmakingError reason)
         {
-            QueueingState = PlayerState.Connected;
+            State = PlayerState.Connected;
             _logger.LogInformation("Removed from matchmaking. Reason: {reason}", reason);
             MatchmakingError?.Invoke(reason);
         }
@@ -327,7 +329,7 @@ namespace H2MLauncher.Core.Services
 
         private async void GameCommunicationService_GameStateChanged(GameState gameState)
         {
-            if (QueueingState is not (PlayerState.Joining or PlayerState.Queued))
+            if (State is not (PlayerState.Joining or PlayerState.Queued))
             {
                 // ignore events when not in queue
                 return;
@@ -349,14 +351,14 @@ namespace H2MLauncher.Core.Services
                 await AcknowledgeJoin(true);
 
                 // we are now joined :)
-                QueueingState = PlayerState.Joined;
+                State = PlayerState.Joined;
                 Joined?.Invoke((queuedServer.Ip, queuedServer.Port));
             }
             else if (gameState.IsInMainMenu && _queuedServer?.HasSeenConnecting == true)
             {
                 // something went wrong with joining, we have been connection and now are in the main menu again :(
 
-                if (QueueingState is PlayerState.Joining)
+                if (State is PlayerState.Joining)
                 {
                     // we were joining, so that's probably the queued server.
                     // tell server we could not join, maybe the server got full in the meantime
@@ -365,7 +367,7 @@ namespace H2MLauncher.Core.Services
                     _logger.LogInformation("Could not join server, sending failed join ack...");
                     await AcknowledgeJoin(false);
 
-                    QueueingState = PlayerState.Queued;
+                    State = PlayerState.Queued;
                 }
 
                 // notify others that a join failed
@@ -404,7 +406,7 @@ namespace H2MLauncher.Core.Services
 
         private Task Connection_Closed(Exception? arg)
         {
-            QueueingState = PlayerState.Disconnected;
+            State = PlayerState.Disconnected;
             ConnectionStateChanged?.Invoke();
 
             return Task.CompletedTask;
@@ -470,7 +472,7 @@ namespace H2MLauncher.Core.Services
                 };
 
                 _queuedServer = new QueuedServer(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port);
-                QueueingState = PlayerState.Queued;
+                State = PlayerState.Queued;
 
                 return true;
             }
@@ -488,7 +490,7 @@ namespace H2MLauncher.Core.Services
                 if (_connection.State is HubConnectionState.Connected)
                 {
                     await _connection.SendAsync("LeaveQueue");
-                    QueueingState = PlayerState.Connected;
+                    State = PlayerState.Connected;
                     Playlist = null;
                     SearchAttempts = 0;
                     _logger.LogInformation("Server queue left.");
@@ -500,7 +502,7 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public async Task<bool> EnterMatchmakingAsync()
+        public async Task<bool> EnterMatchmakingAsync(MatchmakingPreferences? searchPreferences = null)
         {
             try
             {
@@ -510,7 +512,7 @@ namespace H2MLauncher.Core.Services
                     return false;
                 }
 
-                return await EnterMatchmakingAsync(playlist).ConfigureAwait(false);
+                return await EnterMatchmakingAsync(playlist, searchPreferences).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -519,13 +521,16 @@ namespace H2MLauncher.Core.Services
             }
         }
 
-        public bool TryFreshGamesFirst = false;
+        private static int GetMinWhenDefault(int valueMaybeDefault, int value2, int defaultValue = -1)
+        {
+            return valueMaybeDefault == defaultValue ? value2 : Math.Min(valueMaybeDefault, value2);
+        }
 
-        public async Task<bool> EnterMatchmakingAsync(Playlist playlist)
+        public async Task<bool> EnterMatchmakingAsync(Playlist playlist, MatchmakingPreferences? searchPreferences = null)
         {
             try
             {
-                if (QueueingState is PlayerState.Queued or PlayerState.Joining or PlayerState.Matchmaking)
+                if (State is PlayerState.Queued or PlayerState.Joining or PlayerState.Matchmaking)
                 {
                     return false;
                 }
@@ -542,27 +547,38 @@ namespace H2MLauncher.Core.Services
                     await StartConnection();
                 }
 
-                string playerName = _playerNameProvider.PlayerName;
-                MatchSearchCriteria searchPreferences = new()
+                _matchmakingPreferences = searchPreferences ??= new MatchmakingPreferences()
                 {
-                    MinPlayers = 8,
-                    MaxPing = 28,
-                    MaxScore = TryFreshGamesFirst ? 2000 : -1,
-                    MaxPlayersOnServer = TryFreshGamesFirst ? 0 : -1
+                    SearchCriteria = new MatchSearchCriteria()
+                    {
+                        MaxPing = 300,
+                        MinPlayers = 8,
+                    }
+                };
+
+                MatchmakingPreferences pref = _matchmakingPreferences;
+                MatchSearchCriteria sc = _matchmakingPreferences.SearchCriteria;
+                MatchSearchCriteria initialSearchCriteria = new()
+                {
+                    MinPlayers = Math.Max(sc.MinPlayers, 8),
+                    MaxPing = GetMinWhenDefault(sc.MaxPing, 28),
+                    MaxScore = pref.TryFreshGamesFirst ? GetMinWhenDefault(sc.MaxScore, 2000) : sc.MaxScore,
+                    MaxPlayersOnServer = pref.TryFreshGamesFirst ? 0 : sc.MaxPlayersOnServer
                 };
 
                 SearchAttempts = 0;
                 Playlist = playlist;
-                MatchSearchCriteria = searchPreferences;
+                MatchSearchCriteria = initialSearchCriteria;
+                string playerName = _playerNameProvider.PlayerName;
 
-                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, searchPreferences, playlist.Servers);
+                bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, initialSearchCriteria, playlist.Servers);
                 if (!success)
                 {
                     _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}' as '{playerName}'", playlist.Id, playerName);
                     return false;
                 }
 
-                QueueingState = PlayerState.Matchmaking;
+                State = PlayerState.Matchmaking;
                 _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}' as '{playerName}' for ", playlist.Id, playerName);
 
                 return true;

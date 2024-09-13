@@ -257,7 +257,6 @@
                 <Setter Property="Foreground" Value="DarkRed" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
-                <Setter TargetName="Border" Property="Background" Value="OrangeRed" />
                 <Setter TargetName="Border" Property="BorderBrush" Value="Transparent" />
                 <Setter Property="Foreground" Value="#888888" />
                 <Setter TargetName="Arrow" Property="Fill" Value="#888888" />
@@ -311,8 +310,8 @@
                             VerticalAlignment="Center" 
                             Margin="3,3,23,3"
                             Focusable="True" 
-                            Background="{StaticResource ComboBoxBackgroundColor}"
-                            Foreground="Green"
+                            Background="Transparent"
+                            Foreground="{TemplateBinding Foreground}"
                             Visibility="Hidden"
                             IsReadOnly="{TemplateBinding IsReadOnly}"/>
                         <Popup 
@@ -502,7 +501,6 @@
     </Style>
 
     <Style TargetType="{x:Type TabItem}">
-        <Setter Property="Background" Value="Red"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontFamily" Value="Consolas" />

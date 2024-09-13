@@ -67,10 +67,20 @@ namespace H2MLauncher.UI.Dialog
             {
                 isClosed = true;
                 dialogWindow.Closed -= onClosed;
+                dialogWindow.Loaded -= onLoaded;
+            }
+
+            void onLoaded(object? sender, RoutedEventArgs args)
+            {
+                if (viewModel.LoadedCommand.CanExecute(null))
+                {
+                    viewModel.LoadedCommand.Execute(null);
+                }
             }
 
             viewModel.CloseRequested += onCloseRequested;
             dialogWindow.Closed += onClosed;
+            dialogWindow.Loaded += onLoaded;
         }
 
         public static bool? ShowDialog(IDialogViewModel viewModel, DialogWindow dialogWindow)
