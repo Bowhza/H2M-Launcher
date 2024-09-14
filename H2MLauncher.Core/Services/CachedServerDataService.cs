@@ -1,7 +1,4 @@
-﻿using System.Collections.ObjectModel;
-using System.Net.Http.Json;
-
-using CommunityToolkit.Mvvm.Messaging;
+﻿using System.Net.Http.Json;
 
 using Flurl;
 

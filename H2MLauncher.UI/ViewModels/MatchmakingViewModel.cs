@@ -241,18 +241,27 @@ namespace H2MLauncher.UI.ViewModels
 
         private async Task RefreshPlaylists()
         {
-            IReadOnlyList<Playlist>? playlists = await _serverDataService.GetPlaylists(CancellationToken.None);
-            if (playlists is null)
+            try
             {
-                return;
-            }
+                IReadOnlyList<Playlist>? playlists = await _serverDataService.GetPlaylists(CancellationToken.None);
+                if (playlists is null)
+                {
+                    return;
+                }
 
-            Playlists.Clear();
-            foreach (Playlist playlist in playlists)
-            {
-                Playlists.Add(playlist);
+                Playlists.Clear();
+                foreach (Playlist playlist in playlists)
+                {
+                    Playlists.Add(playlist);
+                }
+                SelectedPlaylist = Playlists.FirstOrDefault();
             }
-            SelectedPlaylist = Playlists.FirstOrDefault();
+            catch
+            {
+                IsError = true;
+                ErrorText = "Failed to fetch the playlists. Please try again later.";
+                ErrorTitle = "Error";
+            }
         }
 
         private void MatchmakingService_MatchmakingError(MatchmakingError reason)
@@ -313,6 +322,7 @@ namespace H2MLauncher.UI.ViewModels
             if (ConnectToServiceCommand.IsRunning)
             {
                 ConnectToServiceCommand.Cancel();
+                Application.Current.Dispatcher.Invoke(() => CloseCommand.Execute(null));
                 return;
             }
 
