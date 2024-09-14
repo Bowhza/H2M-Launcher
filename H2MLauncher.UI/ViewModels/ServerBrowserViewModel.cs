@@ -662,8 +662,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         await _loadCancellation.CancelAsync();
 
         _loadCancellation = new();
-        CancellationTokenSource timeoutCancellation = new(10000);
-        CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+        using CancellationTokenSource timeoutCancellation = new(10000);
+        using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             _loadCancellation.Token, timeoutCancellation.Token);
 
         try
@@ -693,7 +693,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             {
                 try
                 {
-                    await foreach ((IW4MServer server, GameServerInfo? info) in responses.ConfigureAwait(false))
+                    await foreach ((IW4MServer server, GameServerInfo? info) in responses.ConfigureAwait(false).WithCancellation(_loadCancellation.Token))
                     {
                         if (info is not null)
                         {
