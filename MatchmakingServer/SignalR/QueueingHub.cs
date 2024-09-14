@@ -3,6 +3,8 @@
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
+using MatchmakingServer.Queueing;
+
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR

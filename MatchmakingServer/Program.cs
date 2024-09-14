@@ -6,6 +6,7 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Authentication;
+using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.Authorization;

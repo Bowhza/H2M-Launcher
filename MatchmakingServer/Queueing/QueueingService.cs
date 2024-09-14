@@ -1,10 +1,12 @@
 ﻿using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
+using MatchmakingServer.SignalR;
+
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Options;
 
-namespace MatchmakingServer.SignalR
+namespace MatchmakingServer.Queueing
 {
     public class QueueingService
     {
@@ -571,7 +573,7 @@ namespace MatchmakingServer.SignalR
             foreach (GameServer server in _serverStore.Servers.Values)
             {
                 if (server.ProcessingState is not QueueProcessingState.Stopped ||
-                    (server.ProcessingTask is not null && !server.ProcessingTask.IsCompleted))
+                    server.ProcessingTask is not null && !server.ProcessingTask.IsCompleted)
                 {
                     continue;
                 }
@@ -704,12 +706,7 @@ namespace MatchmakingServer.SignalR
             // signal available
             server.PlayersAvailable.Set();
 
-            if (server.ProcessingState is QueueProcessingState.Stopped)
-            {
-                // (re)start processing queued players
-                server.ProcessingCancellation = new();
-                server.ProcessingTask = ServerProcessingLoop(server);
-            }
+            StartQueue(server);
 
             _logger.LogDebug("Player {player} queued on {server}", player, server);
 

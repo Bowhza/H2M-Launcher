@@ -44,7 +44,7 @@ namespace H2MLauncher.Core.Services
         private readonly IGameCommunicationService _gameCommunicationService;
         private readonly IPlayerNameProvider _playerNameProvider;
         private readonly CachedServerDataService _serverDataService;
-        private readonly GameServerCommunicationService<IServerConnectionDetails> _gameServerCommunicationService;
+        private readonly GameServerCommunicationService<ServerConnectionDetails> _gameServerCommunicationService;
 
         private readonly IOptionsMonitor<H2MLauncherSettings> _options;
         private readonly ILogger<MatchmakingService> _logger;
@@ -131,7 +131,7 @@ namespace H2MLauncher.Core.Services
             IOptionsMonitor<H2MLauncherSettings> options,
             IPlayerNameProvider playerNameProvider,
             CachedServerDataService serverDataService,
-            GameServerCommunicationService<IServerConnectionDetails> gameServerCommunicationService)
+            GameServerCommunicationService<ServerConnectionDetails> gameServerCommunicationService)
         {
             _logger = logger;
             _options = options;
@@ -262,7 +262,6 @@ namespace H2MLauncher.Core.Services
 
             Matches?.Invoke(searchMatchResults);
 
-
             if (MatchSearchCriteria is null || State is not PlayerState.Matchmaking)
             {
                 return;
@@ -274,20 +273,11 @@ namespace H2MLauncher.Core.Services
                 bool adjustPing = AdjustSearchCriteria(searchMatchResults);
 
                 // ping all servers and send updated data
-
-                List<IServerConnectionDetails> serverConnectionDetails = searchMatchResults
-                    .Select<SearchMatchResult, IServerConnectionDetails>(matchResult =>
-                        new ServerConnectionDetails(matchResult.ServerIp, matchResult.ServerPort))
+                List<ServerConnectionDetails> serverConnectionDetails = searchMatchResults
+                    .Select(matchResult => new ServerConnectionDetails(matchResult.ServerIp, matchResult.ServerPort))
                     .ToList();
 
-                _logger.LogDebug("Pinging {n} servers...", serverConnectionDetails.Count);
-
-                var responses = await _gameServerCommunicationService.GetInfoAsync(serverConnectionDetails, requestTimeoutInMs: 3000);
-
-                List<ServerPing> serverPings = await responses
-                    .Where(res => res.info is not null)
-                    .Select(res => new ServerPing(res.server.Ip, res.server.Port, (uint)res.info!.Ping))
-                    .ToListAsync();
+                List<ServerPing> serverPings = await PingServers(serverConnectionDetails);
 
                 _logger.LogDebug("Found {n}/{total} potential servers with ping <= {maxPing} ms",
                     serverPings.Count(x => x.Ping <= MatchSearchCriteria.MaxPing), serverPings.Count, MatchSearchCriteria.MaxPing);
@@ -301,7 +291,11 @@ namespace H2MLauncher.Core.Services
                     };
                 }
 
-                if (!await _connection.InvokeAsync<bool>("UpdateSearchSession", MatchSearchCriteria, serverPings))
+                if (await _connection.InvokeAsync<bool>("UpdateSearchSession", MatchSearchCriteria, serverPings))
+                {
+                    _logger.LogDebug("Updated search session: {@searchCriteria}", MatchSearchCriteria);
+                }
+                else
                 {
                     _logger.LogWarning("Could not update search session");
                 }
@@ -310,6 +304,18 @@ namespace H2MLauncher.Core.Services
             {
                 _logger.LogError(ex, "Error during matchmaking");
             }
+        }
+
+        private async Task<List<ServerPing>> PingServers(IReadOnlyList<ServerConnectionDetails> servers)
+        {
+            _logger.LogTrace("Pinging {n} servers...", servers.Count);
+
+            var responses = await _gameServerCommunicationService.GetInfoAsync(servers, requestTimeoutInMs: 3000);
+
+            return await responses
+                .Where(res => res.info is not null)
+                .Select(res => new ServerPing(res.server.Ip, res.server.Port, (uint)res.info!.Ping))
+                .ToListAsync();
         }
 
         private void OnMatchFound(string hostName, SearchMatchResult matchResult)
