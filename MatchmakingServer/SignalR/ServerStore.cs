@@ -20,7 +20,7 @@ namespace MatchmakingServer.SignalR
             _serverSettings = serverSettings;
         }
 
-        public GameServer? TryAddServer(string serverIp, int serverPort, string instanceId)
+        public GameServer? TryAddServer(string serverIp, int serverPort, string instanceId = "")
         {
             // get data for this server from the settings
             ServerData? data = _serverSettings.CurrentValue.ServerDataList.Find(s =>
@@ -42,7 +42,7 @@ namespace MatchmakingServer.SignalR
             return null;
         }
 
-        public GameServer GetOrAddServer(string serverIp, int serverPort, string instanceId)
+        public GameServer GetOrAddServer(string serverIp, int serverPort, string instanceId = "")
         {
             return _servers.GetOrAdd((serverIp, serverPort), (_) =>
             {

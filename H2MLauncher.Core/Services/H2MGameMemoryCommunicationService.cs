@@ -10,7 +10,7 @@ namespace H2MLauncher.Core.Services
 {
     public sealed class H2MGameMemoryCommunicationService : IDisposable, IGameCommunicationService
     {
-        private const int GAME_MEMORY_READ_INTERVAL = 1000;
+        private const int GAME_MEMORY_READ_INTERVAL = 200;
 
         private readonly ILogger<H2MGameMemoryCommunicationService> _logger;
 

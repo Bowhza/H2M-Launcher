@@ -1,7 +1,5 @@
-﻿using System.Collections;
-
-using MatchmakingServer.Authentication;
-using MatchmakingServer.SignalR;
+﻿using MatchmakingServer.Authentication;
+using MatchmakingServer.Queueing;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
