@@ -10,7 +10,7 @@ namespace H2MLauncher.Core.Services
 {
     public sealed class H2MLauncherService
     {
-        private const string GITHUB_REPOSITORY = "https://api.github.com/repos/tobibodamer/H2M-Launcher/releases";
+        private const string GITHUB_REPOSITORY = "https://api.github.com/repos/Bowhza/H2M-Launcher/releases";
 
         private readonly ILogger<H2MLauncherService> _logger;
         private readonly HttpClient _httpClient;

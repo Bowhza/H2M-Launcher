@@ -13,7 +13,7 @@ using System.Windows;
 
 
 
-[assembly: AssemblyVersion("2.3.0.1")]
-[assembly: AssemblyFileVersion("2.3.0.1")]
+[assembly: AssemblyVersion("2.3.0.2")]
+[assembly: AssemblyFileVersion("2.3.0.2")]
 [assembly: AssemblyTitle("Better H2M-Launcher")]
 [assembly: SupportedOSPlatform("windows")]
