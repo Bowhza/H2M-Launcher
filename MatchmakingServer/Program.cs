@@ -58,6 +58,7 @@ builder.Services.AddSingleton<ServerInstanceCache>();
 builder.Services.AddSingleton<ServerStore>();
 builder.Services.AddSingleton<QueueingService>();
 builder.Services.AddSingleton<MatchmakingServer.MatchmakingService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingServer.MatchmakingService>());
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
