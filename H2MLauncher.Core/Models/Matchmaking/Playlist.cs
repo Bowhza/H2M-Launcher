@@ -15,32 +15,24 @@
         public List<string> MapPacks { get; init; } = [];
 
         public List<string>? Servers { get; init; } = [];
-        
+
         public int ServerCount
         {
             get => Servers?.Count ?? _serverCount;
             set => _serverCount = ServerCount;
         }
 
-        public List<IServerConnectionDetails> GetServerConnectionDetails()
+        public List<ServerConnectionDetails> GetServerConnectionDetails()
         {
             return Servers?.Select(address =>
             {
-                string[] splitted = address.Split(':');
-                if (splitted.Length != 2)
+                if (ServerConnectionDetails.TryParse(address, out ServerConnectionDetails connDetails))
                 {
-                    return default;
+                    return connDetails;
                 }
 
-                string ip = splitted[0];
-                if (!int.TryParse(splitted[1], out int port))
-                {
-                    return default;
-                }
-
-                return new ServerConnectionDetails(ip, port);
-            }).Where(s => s.Ip is not null)
-                      .Cast<IServerConnectionDetails>().ToList() ?? [];
+                return default;
+            }).Where(s => s.Ip is not null).ToList() ?? [];
         }
     }
 }

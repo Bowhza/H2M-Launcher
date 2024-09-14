@@ -27,11 +27,4 @@
         /// </summary>
         public int MaxTotalPlayers { get; init; } = -1;
     }
-
-    public record MatchmakingPreferences
-    {
-        public required MatchSearchCriteria SearchCriteria { get; init; }
-
-        public bool TryFreshGamesFirst { get; init; }
-    }
 }
