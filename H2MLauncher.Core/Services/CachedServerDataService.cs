@@ -1,4 +1,9 @@
-﻿using System.Net.Http.Json;
+﻿using System.Collections.ObjectModel;
+using System.Net.Http.Json;
+
+using CommunityToolkit.Mvvm.Messaging;
+
+using Flurl;
 
 using H2MLauncher.Core.Models;
 
@@ -42,6 +47,32 @@ namespace H2MLauncher.Core.Services
                 _logger.LogDebug("Fetching default playlist...");
                 return _httpClient.GetFromJsonAsync<Playlist>("playlists/default", cancellationToken);
             });
+        }
+
+        public Task<Playlist?> GetPlaylistById(string id, CancellationToken cancellationToken)
+        {
+            return _memoryCache.GetOrCreateAsync("Playlist_" + id, async (entry) =>
+            {
+                entry.AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(2);
+
+                _logger.LogDebug("Fetching playlist {playlistId}...", id);
+                Playlist? playlist = await _httpClient.GetFromJsonAsync<Playlist?>(Url.Combine("playlists", id), cancellationToken);
+
+                return playlist;
+            });
+        }
+
+        public Task<IReadOnlyList<Playlist>?> GetPlaylists(CancellationToken cancellationToken)
+        {
+            return _memoryCache.GetOrCreateAsync<IReadOnlyList<Playlist>?>("Playlists", async (entry) =>
+            {
+                entry.AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(2);
+
+                _logger.LogDebug("Fetching default playlist...");
+                List<Playlist>? playlists = await _httpClient.GetFromJsonAsync<List<Playlist>>("playlists", cancellationToken);
+
+                return playlists?.AsReadOnly();
+            })!;
         }
     }
 }

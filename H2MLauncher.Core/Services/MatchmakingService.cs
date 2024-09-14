@@ -1,5 +1,6 @@
 ﻿using System.Net;
 
+using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Settings;
 
@@ -45,6 +46,7 @@ namespace H2MLauncher.Core.Services
         private readonly IPlayerNameProvider _playerNameProvider;
         private readonly CachedServerDataService _serverDataService;
         private readonly GameServerCommunicationService<ServerConnectionDetails> _gameServerCommunicationService;
+        private readonly IErrorHandlingService _errorHandlingService;
 
         private readonly IOptionsMonitor<H2MLauncherSettings> _options;
         private readonly ILogger<MatchmakingService> _logger;
@@ -131,7 +133,8 @@ namespace H2MLauncher.Core.Services
             IOptionsMonitor<H2MLauncherSettings> options,
             IPlayerNameProvider playerNameProvider,
             CachedServerDataService serverDataService,
-            GameServerCommunicationService<ServerConnectionDetails> gameServerCommunicationService)
+            GameServerCommunicationService<ServerConnectionDetails> gameServerCommunicationService,
+            IErrorHandlingService errorHandlingService)
         {
             _logger = logger;
             _options = options;
@@ -155,6 +158,7 @@ namespace H2MLauncher.Core.Services
             _gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
             _serverDataService = serverDataService;
             _gameServerCommunicationService = gameServerCommunicationService;
+            _errorHandlingService = errorHandlingService;
         }
 
         private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
@@ -207,6 +211,15 @@ namespace H2MLauncher.Core.Services
             State = PlayerState.Connected;
 
             _logger.LogInformation("Removed from queue. Reason: {reason}", reason);
+
+            if (reason is DequeueReason.Unknown)
+            {
+                _errorHandlingService.HandleError("Removed from queue due to unknown reason.");
+            }
+            else if (reason is DequeueReason.MaxJoinAttemptsReached)
+            {
+                _errorHandlingService.HandleError("Removed from queue: Max join attempts reached.");
+            }
         }
 
         private bool AdjustSearchCriteria(IEnumerable<SearchMatchResult> searchMatchResults)
