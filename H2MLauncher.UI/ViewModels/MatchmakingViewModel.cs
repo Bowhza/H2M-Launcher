@@ -166,6 +166,14 @@ namespace H2MLauncher.UI.ViewModels
                 Interval = TimeSpan.FromSeconds(1)
             };
             _queueTimer.Tick += QueueTimer_Tick;
+
+            if (IsInQueue)
+            {
+                // start counting seconds from 0
+                StartTime = DateTime.Now;
+                _queueTimer.Start();
+            }
+
             _onForceJoin = onForceJoin;
         }
 
@@ -444,6 +452,11 @@ namespace H2MLauncher.UI.ViewModels
                 if (state is PlayerState.Joined or PlayerState.Disconnected)
                 {
                     // we are either joined, disconnected or dequeued for some other reason
+                    CloseCommand?.Execute(null);
+                }
+
+                if (state is PlayerState.Connected && CloseOnLeave)
+                {
                     CloseCommand?.Execute(null);
                 }
 
