@@ -7,11 +7,13 @@
              mc:Ignorable="d" 
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
              xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
+             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:s="clr-namespace:System;assembly=mscorlib"
              MinHeight="200" MinWidth="300"
              Height="Auto"
              Width="400"
-             d:DataContext="{d:DesignInstance Type=vm:QueueViewModel}">
+             d:DataContext="{d:DesignInstance Type=vm:MatchmakingViewModel}">
     <UserControl.Resources>
         <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
@@ -24,13 +26,13 @@
             </Style.Triggers>
         </Style>
 
-        <Style TargetType="{x:Type TextBox}">
+        <!--<Style TargetType="{x:Type TextBox}">
             <Style.Setters>
                 <Setter Property="Foreground" Value="White"/>
                 <Setter Property="Background" Value="#33000000"/>
                 <Setter Property="CaretBrush" Value="White"/>
             </Style.Setters>
-        </Style>
+        </Style>-->
 
         <Style TargetType="ToolTip">
             <Style.Resources>
@@ -45,7 +47,17 @@
             <Setter Property="MaxWidth" Value="400" />
         </Style>
 
+        <converters:DefaultValueConverter x:Key="UnsetIntConverter">
+            <converters:DefaultValueConverter.DefaultValue>
+                <s:Int32>-1</s:Int32>
+            </converters:DefaultValueConverter.DefaultValue>
+        </converters:DefaultValueConverter>
     </UserControl.Resources>
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
     <Grid Margin="25,15,25,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -61,16 +73,41 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Row="0" Text="Joining Server" TextWrapping="WrapWithOverflow" 
+        <TextBlock Grid.Row="0" TextWrapping="WrapWithOverflow" 
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
-                   Margin="0,0,0,15"/>
+                   Margin="0,0,0,15" Text="{Binding ComputedTitle}">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Text" Value="Joining Server"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
+                            <Setter Property="Text" Value="Searching Match"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
 
         <Canvas x:Name="serverTextContainer" Grid.Row="1" Grid.ColumnSpan="2" Width="300" Margin="15,5" 
-                HorizontalAlignment="Center" ClipToBounds="True" Height="25">
+                HorizontalAlignment="Center" ClipToBounds="True" Height="25"
+                Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource invertableBooleanToVisibilityConverter}, ConverterParameter=Inverted}">
             <TextBlock x:Name="serverName" SizeChanged="ServerNameTextBox_SizeChanged" Canvas.Left="0" 
                        TextWrapping="NoWrap" HorizontalAlignment="Center">
                 <TextBlock.Inlines>
-                    <ItemsControl ItemsSource="{Binding Server.HostName, Converter={StaticResource HostNameColorConverter}}">
+                    <ItemsControl>
+                        <ItemsControl.Style>
+                            <Style TargetType="ItemsControl">
+                                <Setter Property="ItemsSource" Value="{Binding ServerHostName, Converter={StaticResource HostNameColorConverter}}"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
+                                        <Setter Property="ItemsSource" Value="{Binding PlaylistName, Converter={StaticResource HostNameColorConverter}}"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding CanEnterMatchmaking}" Value="True">
+                                        <Setter Property="ItemsSource" Value="{Binding PlaylistName, Converter={StaticResource HostNameColorConverter}}"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ItemsControl.Style>
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <StackPanel Orientation="Horizontal" />
@@ -83,30 +120,157 @@
                 </TextBlock.RenderTransform>
             </TextBlock>
         </Canvas>
-        <StackPanel Orientation="Vertical" Grid.Row="2" Grid.ColumnSpan="2" 
-                    Visibility="{Binding IsJoining, Converter={StaticResource invertableBooleanToVisibilityConverter}, ConverterParameter=Inverted}">
-            <TextBlock Text="You have been placed in the queue."
-                   Grid.Row="2" Grid.ColumnSpan="2" Margin="15,5" HorizontalAlignment="Center"
-                   TextWrapping="WrapWithOverflow" TextAlignment="Center"/>
-            <TextBlock Text="{Binding QueuePositionText,StringFormat={}Position: {0}}" Grid.Row="3" Grid.ColumnSpan="2" FontWeight="Bold" HorizontalAlignment="Center"/>
+        <ComboBox Grid.Row="1" Grid.ColumnSpan="2" Text="Default Playlist" IsEnabled="False" 
+                  Height="25" Width="300" Foreground="White" IsEditable="True"
+                  Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}"/>
+        <StackPanel Orientation="Vertical" Grid.Row="2" Grid.ColumnSpan="2">
+            <StackPanel.Resources>
+                <DataTemplate x:Key="QueueTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
+                    <StackPanel Orientation="Vertical" >
+                        <TextBlock Text="You have been placed in the queue."
+                                   Grid.Row="2" Grid.ColumnSpan="2" Margin="15,5" HorizontalAlignment="Center"
+                                   TextWrapping="WrapWithOverflow" TextAlignment="Center"/>
+                        <TextBlock Text="{Binding QueuePositionText,StringFormat={}Position: {0}}" Grid.Row="3" Grid.ColumnSpan="2" FontWeight="Bold" HorizontalAlignment="Center"/>
 
-            <TextBlock Text="{Binding QueueTime,StringFormat={}{0:mm}:{0:ss}}" Grid.Row="6" Grid.ColumnSpan="2" Margin="10" 
-                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding QueueTime,StringFormat={}{0:mm}:{0:ss}}" Grid.Row="6" Grid.ColumnSpan="2" Margin="10" 
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+
+                <DataTemplate x:Key="JoiningTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
+                    <StackPanel Orientation="Vertical" >
+                        <TextBlock Text="Connecting to server" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding JoiningServer}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+
+                <DataTemplate x:Key="MatchmakingTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
+                    <StackPanel Orientation="Vertical">
+                        <TextBlock Text="{Binding MatchmakingStatus}" FontWeight="Bold" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding SearchResultText}" HorizontalAlignment="Center"/>
+
+                        <TextBlock Text="{Binding QueueTime,StringFormat={}{0:mm}:{0:ss}}" Grid.Row="6" Grid.ColumnSpan="2" Margin="10" 
+                                   HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </DataTemplate>
+
+                <DataTemplate x:Key="LoadingTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
+                    <ProgressBar IsIndeterminate="True" Foreground="LimeGreen" />
+                </DataTemplate>
+
+                <DataTemplate x:Key="ErrorTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
+                    <TextBlock Text="{Binding ErrorText}" HorizontalAlignment="Center"/>
+                </DataTemplate>
+            </StackPanel.Resources>
+            <ContentControl Content="{Binding }">
+                <ContentControl.Style>
+                    <Style TargetType="{x:Type ContentControl}">
+                        <Setter Property="ContentTemplate">
+                            <Setter.Value>
+                                <DataTemplate DataType="vm:MatchmakingViewModel">
+                                    <Grid DataContext="{Binding MatchmakingPreferences}" Width="250">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition/>
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                            <RowDefinition/>
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock Text="Max Ping:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Right"/>
+                                        <DockPanel Grid.Row="1" Grid.Column="1">
+                                            <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" PreviewTextInput="NumberTextBox_PreviewTextInput" Margin="0,0,10,0" VerticalAlignment="Center" 
+                                                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                                            <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <TextBlock Text="Min Players:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
+                                        <DockPanel Grid.Row="2" Grid.Column="1">
+                                            <TextBox Text="{Binding MinPlayers, UpdateSourceTrigger=PropertyChanged}" Width="30" IsReadOnly="True" Margin="0,0,10,0" VerticalAlignment="Center" 
+                                                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                                            <Slider Minimum="1" Maximum="18"  Value="{Binding MinPlayers}" Width="Auto" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <TextBlock Text="Max Score:" Grid.Row="3" Margin="15,10" HorizontalAlignment="Right"/>
+                                        <DockPanel Grid.Row="3" Grid.Column="1">
+                                            <TextBox Text="{Binding MaxScore, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource UnsetIntConverter}, ConverterParameter=None}" 
+                                                     PreviewTextInput="NumberTextBox_PreviewTextInput" Width="45" Margin="0,0,10,0" VerticalAlignment="Center" 
+                                                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                                            <Slider Minimum="-1" Maximum="10000"  Value="{Binding MaxScore}" Width="Auto" VerticalAlignment="Center" />
+                                        </DockPanel>
+
+                                        <CheckBox Grid.Row="4" Grid.Column="1"
+                                                  Foreground="White" Margin="0,7" 
+                                                  VerticalAlignment="Center"
+                                                  Content="Try to find fresh match" 
+                                                  IsChecked="{Binding FindFreshMatch}"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsJoining}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource JoiningTemplate}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsInQueue}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource QueueTemplate}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource MatchmakingTemplate}" />
+                            </DataTrigger>                            
+                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource ErrorTemplate}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsConnectingToOnlineService}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource LoadingTemplate}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ContentControl.Style>
+            </ContentControl>
         </StackPanel>
 
-        <StackPanel Orientation="Vertical" Grid.Row="2" Grid.ColumnSpan="2" 
-                    Visibility="{Binding IsJoining, Converter={StaticResource booleanToVisibilityConverter}}">
-            <TextBlock Text="Connecting to server" FontWeight="Bold" HorizontalAlignment="Center"/>
-            <TextBlock Text="{Binding JoiningServer}"  HorizontalAlignment="Center"/>
-        </StackPanel>
-
-            <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15">
+        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
+              Visibility="{Binding IsInQueue, Converter={StaticResource booleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>
             </Grid.ColumnDefinitions>
             <Button Content="Leave Queue" Height="25" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
             <Button Content="Force Join" Height="25" Command="{Binding ForceJoinCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
+        </Grid>
+        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
+              Visibility="{Binding IsInMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Leave Matchmaking" Height="25" Width="200" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+        </Grid>
+        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
+              Visibility="{Binding IsConnectingToOnlineService, Converter={StaticResource booleanToVisibilityConverter}}">
+            <Button Content="Abort" Height="25" Width="200" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+        </Grid>
+        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
+                Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Cancel" Height="25" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+            <Button Content="Find Match" Height="25" Command="{Binding EnterMatchmakingCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0" />
+        </Grid>
+        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
+                Visibility="{Binding IsError, Converter={StaticResource booleanToVisibilityConverter}}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Cancel" Height="25" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+            <Button Content="Try again" Height="25" Command="{Binding RetryCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
         </Grid>
     </Grid>
 </UserControl>

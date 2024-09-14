@@ -5,6 +5,7 @@ using System.IO;
 using System.Security;
 using System.Text.Json;
 using System.Windows;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -37,15 +38,18 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly ILogger<ServerBrowserViewModel> _logger;
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly DialogService _dialogService;
-    private CancellationTokenSource _loadCancellation = new();
-    private readonly Dictionary<string, string> _mapMap = [];
-    private readonly Dictionary<string, string> _gameTypeMap = [];
-    private readonly IOptions<ResourceSettings> _resourceSettings;
-    private readonly H2MLauncherSettings _defaultSettings;
-    private readonly GameDirectoryService _gameDirectoryService;
-    private readonly List<string> _installedMaps = [];
+    private CancellationTokenSource _loadCancellation = new();    
+    private readonly IOptions<ResourceSettings> _resourceSettings;    
+    private readonly GameDirectoryService _gameDirectoryService;    
     private readonly MatchmakingService _matchmakingService;
     private readonly CachedServerDataService _serverDataService;
+    private readonly H2MLauncherSettings _defaultSettings;
+
+    private readonly Dictionary<string, string> _mapMap = [];
+    private readonly Dictionary<string, string> _gameTypeMap = [];
+
+    private readonly List<string> _installedMaps = [];
+    private IReadOnlyList<ServerData> _serverData = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -105,6 +109,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
     public IAsyncRelayCommand ReconnectCommand { get; }
+    public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
     public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
 
@@ -152,6 +157,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
         ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
+        EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();
@@ -632,7 +638,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private IReadOnlyList<ServerData> _serverData = [];
     private void UpdateServerDataList(CancellationToken cancellationToken)
     {
         Task.Run(async () =>
@@ -657,8 +662,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         await _loadCancellation.CancelAsync();
 
         _loadCancellation = new();
-        CancellationTokenSource timeoutCancellation = new(10000);
-        CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+        using CancellationTokenSource timeoutCancellation = new(10000);
+        using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             _loadCancellation.Token, timeoutCancellation.Token);
 
         try
@@ -670,18 +675,40 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList<IW4MServer> servers = await _raidMaxService.FetchServersAsync(linkedCancellation.Token);
+            IReadOnlyList<IW4MServer> servers = await Task.Run(() => _raidMaxService.FetchServersAsync(linkedCancellation.Token));
 
             // Let's prioritize populated servers first for getting game server info.
             IEnumerable<IW4MServer> serversOrderedByOccupation = servers
                 .OrderByDescending((server) => server.ClientNum);
 
-            // Start by sending info requests to the game servers
+            var responses = await _gameServerCommunicationService.GetInfoAsync(
+                serversOrderedByOccupation,
+                sendSynchronously: false,
+                cancellationToken: linkedCancellation.Token);
 
+            // Start by sending info requests to the game servers
             // NOTE: we are using Task.Run to run this in a background thread,
             // because the non async timer blocks the UI
-            await Task.Run(() => _gameServerCommunicationService.RequestServerInfoAsync(
-                serversOrderedByOccupation, OnGameServerInfoReceived, linkedCancellation.Token));
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await foreach ((IW4MServer server, GameServerInfo? info) in responses.ConfigureAwait(false).WithCancellation(_loadCancellation.Token))
+                    {
+                        if (info is not null)
+                        {
+                            Application.Current.Dispatcher.Invoke(() => OnGameServerInfoReceived(server, info), DispatcherPriority.Render);
+                        }
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    // canceled
+                }
+            });
+
+            // artificial delay
+            await Task.Delay(1000);
 
             // Start fetching server data in the background
             UpdateServerDataList(linkedCancellation.Token);
@@ -695,13 +722,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(ServerInfoEventArgs<IW4MServer> e)
+    private void OnGameServerInfoReceived(IW4MServer server, GameServerInfo gameServer)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
-
-        var server = e.Server;
-        var gameServer = e.ServerInfo;
 
         bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
         RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
@@ -745,7 +769,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             serverViewModel.Joined = recentInfo.Joined;
             RecentsTab.Servers.Add(serverViewModel);
         }
-        // Game server responded -> online
     }
 
     private async Task JoinServer(ServerViewModel? serverViewModel)
@@ -803,13 +826,18 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             bool joinedQueue = await _matchmakingService.JoinQueueAsync(
                 server: serverViewModel.Server,
                 serverEndpoint: serverViewModel.GameServerInfo.Address,
-                playerName: _gameDirectoryService.CurrentConfigMp?.PlayerName ?? "Unknown Soldier",
                 password);
 
             if (joinedQueue)
             {
-                QueueViewModel queueViewModel = new(serverViewModel, _matchmakingService,
-                    onForceJoin: () => JoinServerInternal(serverViewModel, password));
+                MatchmakingViewModel queueViewModel = new(_matchmakingService,
+                    onForceJoin: (_) => JoinServerInternal(serverViewModel, password))
+                {
+                    ServerIp = serverViewModel.Ip,
+                    ServerPort = serverViewModel.Port,
+                    ServerHostName = serverViewModel.HostName,
+                    CloseOnLeave = true
+                };
 
                 if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
                 {
@@ -824,6 +852,26 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
 
         await JoinServerInternal(serverViewModel, password);
+    }
+
+    private async Task<bool> JoinServerInternal(ServerConnectionDetails server, string? password)
+    {
+        await Task.Yield();
+
+        bool hasJoined = _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
+        if (hasJoined)
+        {
+            ServerViewModel? serverViewModel = FindServerViewModel(server);
+            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+            LastServer = serverViewModel;
+            _lastServerPassword = password?.ToSecuredString();
+        }
+
+        StatusText = hasJoined
+            ? $"Joined {server.Ip}:{server.Port}"
+            : "Ready";
+
+        return hasJoined;
     }
 
     private async Task<bool> JoinServerInternal(ServerViewModel serverViewModel, string? password)
@@ -856,12 +904,32 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return Task.CompletedTask;
     }
 
+    private async Task EnterMatchmaking()
+    {
+        MatchmakingViewModel matchmakingViewModel = new(_matchmakingService,
+            onForceJoin: (server) => JoinServerInternal(server, null));
+
+        //matchmakingViewModel.EnterMatchmakingCommand.Execute(null);
+
+        if (_dialogService.OpenDialog<QueueDialogView>(matchmakingViewModel) == false)
+        {
+            return;
+        }
+
+        await Task.CompletedTask;
+    }
+
+    private ServerViewModel? FindServerViewModel(ServerConnectionDetails server)
+    {
+        return AllServersTab.Servers.FirstOrDefault(server =>
+                server.Ip == server.Ip && server.Port == server.Port);
+    }
+
     private void MatchmakingService_Joined((string ip, int port) joinedServer)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
-            ServerViewModel? serverViewModel = AllServersTab.Servers.FirstOrDefault(server =>
-                server.Ip == joinedServer.ip && server.Port == joinedServer.port);
+            ServerViewModel? serverViewModel = FindServerViewModel(joinedServer);
             if (serverViewModel is not null)
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);

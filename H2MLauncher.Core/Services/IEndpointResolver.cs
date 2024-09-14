@@ -1,5 +1,7 @@
 ﻿using System.Net;
 
+using H2MLauncher.Core.Models;
+
 namespace H2MLauncher.Core.Services
 {
     public interface IEndpointResolver

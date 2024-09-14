@@ -1,4 +1,5 @@
-﻿
+﻿using H2MLauncher.Core.Models;
+
 namespace MatchmakingServer.SignalR
 {
     public interface IQueueingHub
@@ -8,5 +9,9 @@ namespace MatchmakingServer.SignalR
         Task JoinAck(bool successful);
 
         Task LeaveQueue();
+
+        bool SearchMatch(string playerName, MatchSearchCriteria searchPreferences, List<string> preferredServers);
+
+        bool UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings);
     }
 }

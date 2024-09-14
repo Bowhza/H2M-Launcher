@@ -6,6 +6,7 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Authentication;
+using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.Authorization;
@@ -49,12 +50,15 @@ builder.Services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>(
         client.BaseAddress = baseUri;
     });
 
-builder.Services.AddSingleton<GameServerCommunicationService<IServerConnectionDetails>>();
+builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
 
+builder.Services.AddSingleton<ServerStore>();
 builder.Services.AddSingleton<QueueingService>();
+builder.Services.AddSingleton<MatchmakingServer.MatchmakingService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingServer.MatchmakingService>());
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -84,7 +88,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
                 .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, (options) =>
-                {                    
+                {
                     options.ApiKey = builder.Configuration.GetValue<string>("ApiKey");
                     options.ForwardDefaultSelector = context =>
                     {
@@ -99,7 +103,7 @@ builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
-    { 
+    {
         // serialize enums as strings in api responses
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
@@ -115,7 +119,30 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseSerilogRequestLogging();
+app.UseSerilogRequestLogging(options =>
+{
+    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms ({ClientAppName}/{ClientAppVersion})";
+    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
+    {
+        if (httpContext.Request.Headers.TryGetValue("X-App-Name", out var appNameValues) && appNameValues.Count != 0)
+        {
+            diagnosticContext.Set("ClientAppName", appNameValues.FirstOrDefault());
+        }
+        else
+        {
+            diagnosticContext.Set("ClientAppName", "Unknown");
+        }
+
+        if (httpContext.Request.Headers.TryGetValue("X-App-Version", out var appVersionValues) && appVersionValues.Count != 0)
+        {
+            diagnosticContext.Set("ClientAppVersion", appVersionValues.FirstOrDefault());
+        }
+        else
+        {
+            diagnosticContext.Set("ClientAppVersion", "?");
+        }
+    };
+});
 
 app.UseAuthentication();
 app.MapControllers();
@@ -124,5 +151,7 @@ app.MapHealthChecks("/health");
 //app.UseHttpsRedirection();
 
 app.MapHub<QueueingHub>("/Queue");
+
+app.Services.GetRequiredService<MatchmakingServer.MatchmakingService>();
 
 app.Run();

@@ -2,6 +2,7 @@
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
+using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.Core.Services
 {

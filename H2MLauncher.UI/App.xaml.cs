@@ -114,10 +114,12 @@ namespace H2MLauncher.UI
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService<IW4MServer>>();
+            services.AddTransient<GameServerCommunicationService<ServerConnectionDetails>>();
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
             services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
+            services.AddSingleton<IPlayerNameProvider, ConfigPlayerNameProvider>();
             services.AddMemoryCache();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
@@ -133,6 +135,10 @@ namespace H2MLauncher.UI
 
                     // make sure base address is set correctly without trailing slash
                     client.BaseAddress = Url.Parse(matchmakingSettings.MatchmakingServerUrl).RemovePathSegment().ToUri();
+
+                    // add headers to identify app version
+                    client.DefaultRequestHeaders.Add("X-App-Name", "H2MLauncher");
+                    client.DefaultRequestHeaders.Add("X-App-Version", H2MLauncherService.CurrentVersion);
                 });
 
             services.AddTransient<MainWindow>();

@@ -5,7 +5,7 @@ using H2MLauncher.Core.Models;
 
 using Microsoft.Extensions.Caching.Memory;
 
-namespace MatchmakingServer.SignalR
+namespace MatchmakingServer
 {
     public class ServerInstanceCache
     {
@@ -20,7 +20,7 @@ namespace MatchmakingServer.SignalR
 
         private record struct ConnectionDetails(string IpOrHostName, int Port) { }
 
-        public ServerInstanceCache(IIW4MAdminService iw4mAdminService, IIW4MAdminMasterService iw4mAdminMasterService, 
+        public ServerInstanceCache(IIW4MAdminService iw4mAdminService, IIW4MAdminMasterService iw4mAdminMasterService,
             IMemoryCache memoryCache, ILogger<ServerInstanceCache> logger)
         {
             _iw4mAdminService = iw4mAdminService;
@@ -49,7 +49,7 @@ namespace MatchmakingServer.SignalR
             {
                 cacheEntry
                     .SetValue(instance)
-                    .RegisterPostEvictionCallback((object key, object? value, EvictionReason reason, object? state) =>
+                    .RegisterPostEvictionCallback((key, value, reason, state) =>
                     {
                         if (reason is EvictionReason.Expired && value is IW4MServerInstance oldInstance)
                         {
@@ -105,7 +105,7 @@ namespace MatchmakingServer.SignalR
                 availableMap = [];
                 _memoryCache.Set(WebfrontAvailableCacheKey, availableMap, WebfrontAvailablilityCacheExpiration);
             }
-            
+
             IReadOnlyList<IW4MServerStatus>? serverStatuses = null;
             try
             {

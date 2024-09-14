@@ -1,4 +1,5 @@
-﻿using H2MLauncher.Core.Services;
+﻿using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Services;
 
 namespace MatchmakingServer.SignalR
 {
@@ -9,5 +10,9 @@ namespace MatchmakingServer.SignalR
         Task QueuePositionChanged(int queuePosition, int queueSize);
 
         Task RemovedFromQueue(DequeueReason reason);
+
+        Task SearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults);
+        Task MatchFound(string hostName, SearchMatchResult matchResult);
+        Task RemovedFromMatchmaking(MatchmakingError reason);
     }
 }

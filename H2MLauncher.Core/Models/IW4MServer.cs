@@ -1,8 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json.Serialization;
 
-using H2MLauncher.Core.Services;
-
 namespace H2MLauncher.Core.Models
 {
     public class IW4MServer : IServerConnectionDetails

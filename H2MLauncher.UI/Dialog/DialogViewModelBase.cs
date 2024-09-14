@@ -5,12 +5,14 @@ namespace H2MLauncher.UI.Dialog
 {
     public abstract class DialogViewModelBase : ObservableObject, IDialogViewModel
     {
+        public IRelayCommand LoadedCommand { get; set; }
         public IRelayCommand<bool?> CloseCommand { get; set; }
 
         public event EventHandler<RequestCloseEventArgs>? CloseRequested;
 
         public DialogViewModelBase()
         {
+            LoadedCommand = new RelayCommand(OnLoaded);
             CloseCommand = new RelayCommand<bool?>((result) =>
             {
                 if (result is not bool boolResult)
@@ -20,6 +22,11 @@ namespace H2MLauncher.UI.Dialog
 
                 CloseRequested?.Invoke(this, new(boolResult));
             });
+        }
+
+        protected virtual void OnLoaded()
+        {
+
         }
     }
 }

@@ -21,9 +21,12 @@ namespace H2MLauncher.Core.Services
         private static readonly string TempFileName = $"{LauncherPath}.bak";
 
 
+        // IMPORTANT: Set this to the same branch name the tag is created on in GitHub
+        public static readonly string CurrentBranch = "main";
+
         // IMPORTANT: Set this to the same pre-release label used in GitHub
         // (appended like '-beta') or empty when this is a normal release!
-        public static readonly string CurrentPreReleaseLabel = "";
+        public static readonly string CurrentPreReleaseLabel = "beta";
         public static string CurrentVersion
         {
             get
@@ -99,9 +102,25 @@ namespace H2MLauncher.Core.Services
                 HttpResponseMessage response = await _httpClient.SendAsync(httpRequestMessage, cancellationToken);
                 response.EnsureSuccessStatusCode();
                 JsonDocument doc = JsonDocument.Parse(response.Content.ReadAsStream(cancellationToken));
-                LatestKnownVersion = doc.RootElement[0].GetProperty("tag_name").ToString();
-                bool isUpToDate = LatestKnownVersion == CurrentVersion;
+                if (doc.RootElement.GetArrayLength() == 0)
+                {
+                    return true;
+                }
 
+                string? tagName = doc.RootElement.EnumerateArray()
+                    .Where(e => e.GetProperty("target_commitish").ToString() == CurrentBranch)
+                    .Select(e => e.GetProperty("tag_name").ToString())
+                    .FirstOrDefault();
+
+                if (tagName == null)
+                {
+                    // this is the first version on this branch
+                    return true;
+                }
+
+                LatestKnownVersion = tagName;
+
+                bool isUpToDate = LatestKnownVersion == CurrentVersion;
                 if (!isUpToDate)
                     _logger.LogInformation("New launcher version available: {LatestKnownVersion}", LatestKnownVersion);
 
