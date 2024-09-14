@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -245,6 +246,15 @@ namespace H2MLauncher.Core.Services
 
         private void OnUsermapsChanged(string usermapsDir, string? triggeredByPath = null)
         {
+            if (!Directory.Exists(usermapsDir))
+            {
+                _logger.LogTrace("Usermaps directory not found");
+
+                _usermaps.Clear();
+                UsermapsChanged?.Invoke(usermapsDir, Usermaps);
+                return;
+            }
+
             _logger.LogTrace("Usermaps changed, updating...");
 
             _usermaps.Clear();
