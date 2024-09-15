@@ -38,9 +38,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly ILogger<ServerBrowserViewModel> _logger;
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly DialogService _dialogService;
-    private CancellationTokenSource _loadCancellation = new();    
-    private readonly IOptions<ResourceSettings> _resourceSettings;    
-    private readonly GameDirectoryService _gameDirectoryService;    
+    private CancellationTokenSource _loadCancellation = new();
+    private readonly IOptions<ResourceSettings> _resourceSettings;
+    private readonly GameDirectoryService _gameDirectoryService;
     private readonly MatchmakingService _matchmakingService;
     private readonly CachedServerDataService _serverDataService;
     private readonly H2MLauncherSettings _defaultSettings;
@@ -830,7 +830,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
             if (joinedQueue)
             {
-                MatchmakingViewModel queueViewModel = new(_matchmakingService,
+                MatchmakingViewModel queueViewModel = new(
+                    _matchmakingService,
+                    _serverDataService,
                     onForceJoin: (_) => JoinServerInternal(serverViewModel, password))
                 {
                     ServerIp = serverViewModel.Ip,
@@ -904,12 +906,14 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return Task.CompletedTask;
     }
 
+
     private async Task EnterMatchmaking()
     {
-        MatchmakingViewModel matchmakingViewModel = new(_matchmakingService,
-            onForceJoin: (server) => JoinServerInternal(server, null));
 
-        //matchmakingViewModel.EnterMatchmakingCommand.Execute(null);
+        MatchmakingViewModel matchmakingViewModel = new(
+            _matchmakingService, 
+            _serverDataService,
+            onForceJoin: (server) => JoinServerInternal(server, null));
 
         if (_dialogService.OpenDialog<QueueDialogView>(matchmakingViewModel) == false)
         {

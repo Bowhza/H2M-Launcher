@@ -12,4 +12,6 @@ public record ServerSettings
     public List<ServerData> ServerDataList { get; init; } = [];
 
     public List<Playlist> Playlists { get; init; } = [];
+
+    public int PlayerCountCacheExpirationInS { get; init; } = 120;
 }

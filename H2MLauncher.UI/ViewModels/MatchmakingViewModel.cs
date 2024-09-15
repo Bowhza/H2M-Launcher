@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -14,7 +15,9 @@ namespace H2MLauncher.UI.ViewModels
     internal partial class MatchmakingViewModel : DialogViewModelBase, IDisposable
     {
         private readonly MatchmakingService _matchmakingService;
+        private readonly CachedServerDataService _serverDataService;
         private readonly DispatcherTimer _queueTimer;
+
         private readonly Func<ServerConnectionDetails, Task<bool>> _onForceJoin;
 
         [ObservableProperty]
@@ -96,6 +99,16 @@ namespace H2MLauncher.UI.ViewModels
 
         private Playlist? _lastPlaylist = null;
 
+        public ObservableCollection<Playlist> Playlists { get; } = [
+            new Playlist()
+            {
+                Id = "Default",
+                Name = "Default Playlist"
+            }];
+
+        [ObservableProperty]
+        private Playlist? _selectedPlaylist = null;
+
         public bool CanEnterMatchmaking => IsConnectedToOnlineService && !IsInMatchmaking && !IsInQueue;
 
         public string QueuePositionText => $"{QueuePosition} / {TotalPlayersInQueue}";
@@ -114,9 +127,13 @@ namespace H2MLauncher.UI.ViewModels
 
         public IAsyncRelayCommand RetryCommand { get; }
 
-        public MatchmakingViewModel(MatchmakingService matchmakingService, Func<ServerConnectionDetails, Task<bool>> onForceJoin)
+        public MatchmakingViewModel(
+            MatchmakingService matchmakingService,
+            CachedServerDataService serverDataService,
+            Func<ServerConnectionDetails, Task<bool>> onForceJoin)
         {
             _matchmakingService = matchmakingService;
+            _serverDataService = serverDataService;
 
             AbortCommand = new AsyncRelayCommand(Abort);
             ForceJoinCommand = new AsyncRelayCommand(ForceJoin, () => !IsJoining && !string.IsNullOrEmpty(ServerIp) && ServerPort > 0);
@@ -124,7 +141,6 @@ namespace H2MLauncher.UI.ViewModels
             ConnectToServiceCommand = new AsyncRelayCommand(ConnectToService, () => !IsConnectingToOnlineService && !_matchmakingService.IsConnected);
             RetryCommand = new AsyncRelayCommand(TryAgain, () => !IsConnectingToOnlineService);
             LeaveQueueCommand = new AsyncRelayCommand(LeaveQueue);
-            LoadedCommand = new RelayCommand(OnLoaded);
 
             matchmakingService.Joining += MatchmakingService_Joining;
             matchmakingService.JoinFailed += MatchmakingService_JoinFailed;
@@ -143,12 +159,21 @@ namespace H2MLauncher.UI.ViewModels
             IsConnectingToOnlineService = matchmakingService.IsConnecting;
             IsConnectedToOnlineService = matchmakingService.IsConnected;
             Title = "Matchmaking";
+            SelectedPlaylist = Playlists.FirstOrDefault();
 
             _queueTimer = new()
             {
                 Interval = TimeSpan.FromSeconds(1)
             };
             _queueTimer.Tick += QueueTimer_Tick;
+
+            if (IsInQueue)
+            {
+                // start counting seconds from 0
+                StartTime = DateTime.Now;
+                _queueTimer.Start();
+            }
+
             _onForceJoin = onForceJoin;
         }
 
@@ -184,14 +209,6 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
-        protected override void OnLoaded()
-        {
-            if (!IsConnectedToOnlineService && !IsConnectingToOnlineService)
-            {
-                ConnectToServiceCommand.Execute(null);
-            }
-        }
-
         partial void OnIsInMatchmakingChanged(bool value)
         {
             if (value)
@@ -214,6 +231,44 @@ namespace H2MLauncher.UI.ViewModels
             if (!newValue)
             {
                 ErrorTitle = null;
+            }
+        }
+
+        protected override async Task OnLoaded()
+        {
+            if (!IsConnectedToOnlineService && !IsConnectingToOnlineService)
+            {
+                ConnectToServiceCommand.Execute(null);
+            }
+
+            if (!IsInQueue)
+            {
+                await RefreshPlaylists();
+            }
+        }
+
+        private async Task RefreshPlaylists()
+        {
+            try
+            {
+                IReadOnlyList<Playlist>? playlists = await _serverDataService.GetPlaylists(CancellationToken.None);
+                if (playlists is null)
+                {
+                    return;
+                }
+
+                Playlists.Clear();
+                foreach (Playlist playlist in playlists)
+                {
+                    Playlists.Add(playlist);
+                }
+                SelectedPlaylist = Playlists.FirstOrDefault();
+            }
+            catch
+            {
+                IsError = true;
+                ErrorText = "Failed to fetch the playlists. Please try again later.";
+                ErrorTitle = "Error";
             }
         }
 
@@ -275,6 +330,7 @@ namespace H2MLauncher.UI.ViewModels
             if (ConnectToServiceCommand.IsRunning)
             {
                 ConnectToServiceCommand.Cancel();
+                Application.Current.Dispatcher.Invoke(() => CloseCommand.Execute(null));
                 return;
             }
 
@@ -357,10 +413,9 @@ namespace H2MLauncher.UI.ViewModels
             return true;
         }
 
-
         private async Task EnterMatchmaking(Playlist? playlist, CancellationToken cancellationToken)
         {
-            _lastPlaylist = playlist;
+            _lastPlaylist = playlist ??= SelectedPlaylist;
 
             if (!_matchmakingService.IsConnected)
             {
@@ -397,6 +452,11 @@ namespace H2MLauncher.UI.ViewModels
                 if (state is PlayerState.Joined or PlayerState.Disconnected)
                 {
                     // we are either joined, disconnected or dequeued for some other reason
+                    CloseCommand?.Execute(null);
+                }
+
+                if (state is PlayerState.Connected && CloseOnLeave)
+                {
                     CloseCommand?.Execute(null);
                 }
 

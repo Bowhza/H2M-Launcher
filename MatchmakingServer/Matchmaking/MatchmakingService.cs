@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
@@ -36,6 +37,20 @@ namespace MatchmakingServer
         private readonly QueueingService _queueingService;
         private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
         private readonly ILogger<MatchmakingService> _logger;
+
+        public List<Player> GetPlayersInServer(IServerConnectionDetails serverConnectionDetails)
+        {
+            List<Player> result = [];
+            if (serverConnectionDetails is not ServerConnectionDetails key)
+            {
+                key = new(serverConnectionDetails.Ip, serverConnectionDetails.Port);
+            }
+            if (_serverGroups.TryGetValue(key, out ConcurrentLinkedQueue<MMPlayer>? queue))
+            {
+                result.AddRange(queue.Select(p => p.Player));
+            }
+            return result;
+        }
 
         public MatchmakingService(
             ServerStore serverStore,

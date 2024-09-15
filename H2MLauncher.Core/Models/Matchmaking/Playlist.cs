@@ -19,8 +19,10 @@
         public int ServerCount
         {
             get => Servers?.Count ?? _serverCount;
-            set => _serverCount = ServerCount;
+            init => _serverCount = ServerCount;
         }
+
+        public int CurrentPlayerCount { get; init; }
 
         public List<ServerConnectionDetails> GetServerConnectionDetails()
         {

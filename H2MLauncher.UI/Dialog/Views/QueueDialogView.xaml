@@ -120,9 +120,24 @@
                 </TextBlock.RenderTransform>
             </TextBlock>
         </Canvas>
-        <ComboBox Grid.Row="1" Grid.ColumnSpan="2" Text="Default Playlist" IsEnabled="False" 
-                  Height="25" Width="300" Foreground="White" IsEditable="True"
-                  Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}"/>
+        <ComboBox Grid.Row="1" Grid.ColumnSpan="2" Text="Default Playlist" SelectedItem="{Binding SelectedPlaylist}"
+                  Height="25" Width="300" Foreground="White" Margin="0,0,0,10" ItemsSource="{Binding Playlists}"
+                  Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock>
+                            <TextBlock.Text>
+                                <MultiBinding StringFormat="{}{0} ({1} players)">
+                                    <Binding Path="Name" />
+                                    <Binding Path="CurrentPlayerCount" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </StackPanel>
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
         <StackPanel Orientation="Vertical" Grid.Row="2" Grid.ColumnSpan="2">
             <StackPanel.Resources>
                 <DataTemplate x:Key="QueueTemplate" DataType="{x:Type vm:MatchmakingViewModel}">

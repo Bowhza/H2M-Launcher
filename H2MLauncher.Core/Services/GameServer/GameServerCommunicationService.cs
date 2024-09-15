@@ -393,6 +393,24 @@ namespace H2MLauncher.Core.Services
         }
 
         /// <summary>
+        /// Send info requests to all given game servers.
+        /// </summary>
+        public async IAsyncEnumerable<(TServer server, GameServerInfo? info)> GetAllInfoAsync(
+            IEnumerable<TServer> servers,
+            int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            GetInfoCommand command = new();
+            IAsyncEnumerable<Response> responses = await RequestAsync(
+                servers, command.CreateMessage(), sendSynchronously: true, false, requestTimeoutInMs, cancellationToken);
+
+            await foreach (Response response in responses.ConfigureAwait(false))
+            {
+                yield return (response.Request.Server, command.ParseResponse(response));
+            }
+        }
+
+        /// <summary>
         /// Sends info requests to all <paramref name="servers"/>
         /// and asynchronously invokes <paramref name="onInfoResponse"/> for each received response.
         /// </summary>
