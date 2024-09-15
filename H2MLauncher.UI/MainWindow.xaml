@@ -77,6 +77,7 @@
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.RefreshServers}" Command="{Binding RefreshServersCommand}" />
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.Reconnect}" Command="{Binding ReconnectCommand}"/>
+        <KeyBinding Gesture="Ctrl+Insert" HotkeyManager.RegisterGlobalHotkey="True" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
         <Border CornerRadius="10" Padding="10,10" Background="Black"/>

@@ -1,8 +1,8 @@
-﻿using System.ComponentModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
+
+using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.UI.ViewModels;
 
@@ -11,17 +11,26 @@ namespace H2MLauncher.UI
     public partial class MainWindow : Window
     {
         private readonly ServerBrowserViewModel _viewModel;
+        private readonly OverlayHelper _overlayHelper;
+
+        public ICommand ToggleOverlayCommand { get; }
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
         {
             InitializeComponent();
 
             DataContext = _viewModel = serverBrowserViewModel;
-
+            _overlayHelper = new OverlayHelper(this);
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
-
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
+
+            ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
+        }
+
+        void ToggleOverlay()
+        {
+            _overlayHelper.ShowOverlay = !_overlayHelper.ShowOverlay;
         }
 
         private void ServerBrowserViewModel_ServerFilterChanged()
