@@ -28,11 +28,19 @@ namespace H2MLauncher.UI.ViewModels
             Modifiers = ModifierKeys.Control
         };
 
+        public ShortcutViewModel ToggleOverlay { get; } = new()
+        {
+            Name = "ToggleOverlay",
+            Modifiers = ModifierKeys.Shift | ModifierKeys.Alt,
+            Key = Key.S,
+            IsHotkey = true
+        };
+
         public ObservableCollection<ShortcutViewModel> Shortcuts { get; private set; }
 
         public ShortcutsViewModel()
         {
-            Shortcuts = [RefreshServers, SaveFavourites, Reconnect];
+            Shortcuts = [RefreshServers, SaveFavourites, Reconnect, ToggleOverlay];
         }
 
         public Dictionary<string, string> ToDictionary()

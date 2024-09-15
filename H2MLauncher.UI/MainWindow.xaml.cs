@@ -1,9 +1,10 @@
-﻿using System.ComponentModel;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Input;
 
+using CommunityToolkit.Mvvm.Input;
+
+using H2MLauncher.Core.Services;
 using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
@@ -11,17 +12,36 @@ namespace H2MLauncher.UI
     public partial class MainWindow : Window
     {
         private readonly ServerBrowserViewModel _viewModel;
+        private readonly OverlayHelper _overlayHelper;
+        private readonly H2MCommunicationService _h2MCommunicationService;
 
-        public MainWindow(ServerBrowserViewModel serverBrowserViewModel)
+        public ICommand ToggleOverlayCommand { get; }
+
+        public MainWindow(ServerBrowserViewModel serverBrowserViewModel, H2MCommunicationService h2MCommunicationService)
         {
             InitializeComponent();
 
             DataContext = _viewModel = serverBrowserViewModel;
-
+            _overlayHelper = new OverlayHelper(this);
+            _h2MCommunicationService = h2MCommunicationService;
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
-
             serverBrowserViewModel.RefreshServersCommand.Execute(this);
+
+            ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
+        }
+
+        void ToggleOverlay()
+        {
+            IntPtr hWndGame = _h2MCommunicationService.GetGameWindowHandle();
+
+            _overlayHelper.CenterOverlayRelativeTo = hWndGame;
+            _overlayHelper.ShowOverlay = !_overlayHelper.ShowOverlay;
+
+            if (!_overlayHelper.ShowOverlay && hWndGame != IntPtr.Zero)
+            {
+                WindowUtils.SetForegroundWindow(hWndGame);
+            }
         }
 
         private void ServerBrowserViewModel_ServerFilterChanged()
@@ -42,6 +62,19 @@ namespace H2MLauncher.UI
             if (e.Key == Key.Escape)
             {
                 this.Close();
+            }
+
+            if (e.Key == Key.LeftAlt)
+            {
+                e.Handled = true;
+            }
+        }
+
+        private void Window_StateChanged(object sender, EventArgs e)
+        {
+            if (WindowState is WindowState.Minimized)
+            {
+                _overlayHelper.ShowOverlay = false;
             }
         }
 
