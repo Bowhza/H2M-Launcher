@@ -28,6 +28,7 @@
 - Support for private servers, you can enter the password from the launcher.
 - Filters out dead/zombie servers that do not respond to UDP packets being sent.
 - Reconnect to last server shortcut (see [Shortcuts](#shortcuts)).
+- Game overlay (see [Shortcuts](#shortcuts)).
 
 <img src="./Images/Filter-Modal.png">
 
@@ -84,6 +85,7 @@
 | `Right Click`    | Copies the server to clipboard.         |
 | `CTRL + S`       | Save the server list to favourties.json |
 | `CTRL + ALT + R` | Reconnect to server. (Can be changed)   |
+| `SHIFT + ALT + S`| Toggle game overlay. (Can be changed)   |
 
 ## FAQ
 
