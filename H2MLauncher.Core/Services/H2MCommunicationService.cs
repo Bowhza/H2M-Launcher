@@ -265,6 +265,16 @@ namespace H2MLauncher.Core.Services
             return true;
         }
 
+        public IntPtr GetGameWindowHandle()
+        {
+            if (GameDetection.DetectedGame is null)
+            {
+                return IntPtr.Zero;
+            }
+
+            return FindH2MModGameWindow(GameDetection.DetectedGame.Process);
+        }
+
         private static IntPtr FindH2MConHostProcess()
         {
             foreach (var handle in EnumerateWindowHandles())
@@ -329,7 +339,7 @@ namespace H2MLauncher.Core.Services
 
         public void StartGameCommunication()
         {
-            if (GameCommunication.IsGameCommunicationRunning || 
+            if (GameCommunication.IsGameCommunicationRunning ||
                 GameDetection.DetectedGame is not DetectedGame detectedGame ||
                 detectedGame.Process.HasExited)
             {

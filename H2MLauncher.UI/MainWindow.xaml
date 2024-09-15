@@ -23,6 +23,7 @@
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
         KeyDown="Window_KeyDown"
+        StateChanged="Window_StateChanged"
         Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
         Title="Better H2M-Launcher">
@@ -56,7 +57,7 @@
 
             <!-- Disable focus for cells -->
             <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="Focusable" Value="True"/>
             <Setter Property="IsTabStop" Value="False"/>
 
             <Style.Triggers>
@@ -77,7 +78,7 @@
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.RefreshServers}" Command="{Binding RefreshServersCommand}" />
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.Reconnect}" Command="{Binding ReconnectCommand}"/>
-        <KeyBinding Gesture="Ctrl+Insert" HotkeyManager.RegisterGlobalHotkey="True" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+        <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
         <Border CornerRadius="10" Padding="10,10" Background="Black"/>
@@ -198,9 +199,11 @@
                                 <!-- Opaque background for the header row -->
                                 <Rectangle VerticalAlignment="Top" Fill="Black" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
                                 <local:CustomDataGrid 
-                                        x:Name="serverDataGrid" ItemsSource="{Binding ServerCollectionView}" 
+                                        x:Name="serverDataGrid" 
+                                        ItemsSource="{Binding ServerCollectionView}" 
                                         FontFamily="Consolas"
-                                        Margin="-2,-2,-2,-2" Height="Auto" 
+                                        Margin="-2,-2,-2,-2" 
+                                        Height="Auto" 
                                         KeyboardNavigation.TabNavigation="Once"
                                         TabIndex="2"
                                         CanUserReorderColumns="False" 
@@ -230,12 +233,10 @@
                                             SortDirection="Descending"
                                             Binding="{Binding LastPlayed}"/>
                                     </DataGrid.Resources>
-
                                     <DataGrid.InputBindings>
                                         <!-- Key shortcut commands for row -->
                                         <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
                                     </DataGrid.InputBindings>
-
                                     <DataGrid.ItemContainerStyle>
                                         <Style TargetType="DataGridRow">
                                             <!-- Enable focus and tab navigation for row -->
@@ -336,6 +337,8 @@
                                                         Background="Transparent"
                                                         BorderThickness="0"
                                                         Margin="5,0,0,0"
+                                                        Focusable="False"
+                                                        IsTabStop="False" 
                                                         Cursor="Hand"/>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>

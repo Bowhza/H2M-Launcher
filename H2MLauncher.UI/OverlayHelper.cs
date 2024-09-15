@@ -48,6 +48,8 @@ namespace H2MLauncher.UI
             }
         }
 
+        public IntPtr CenterOverlayRelativeTo { get; set; }
+
         private void OnIsOverlayChanged()
         {
             IntPtr hWnd = _interopHelper.Handle;
@@ -74,7 +76,43 @@ namespace H2MLauncher.UI
 
                 window.Topmost = true;
                 window.Opacity = 0.8;
+
+                if (window.WindowState is WindowState.Minimized)
+                {
+                    window.WindowState = WindowState.Normal;
+                }
+
+                if (!_makeNonFocusable)
+                {
+                    window.Activate();
+                    CenterOverlay(CenterOverlayRelativeTo);
+                    window.Focus();
+                }
             }
+        }
+        
+        private void CenterOverlay(IntPtr relativeToTargetWindowHandle)
+        {
+            if (relativeToTargetWindowHandle == IntPtr.Zero || 
+                !WindowUtils.GetWindowRect(relativeToTargetWindowHandle, out WindowUtils.RECT rect))
+            {
+                return;
+            }
+
+            // Calculate the width and height of the target window
+            int targetWindowWidth = rect.Right - rect.Left;
+            int targetWindowHeight = rect.Bottom - rect.Top;
+
+            // Calculate position to center the overlay within the target window
+            int overlayWidth = (int)window.ActualWidth;
+            int overlayHeight = (int)window.ActualHeight;
+
+            int xPosition = rect.Left + (targetWindowWidth - overlayWidth) / 2;
+            int yPosition = rect.Top + (targetWindowHeight - overlayHeight) / 2;
+
+            // Move the WPF window to the calculated position
+            window.Left = xPosition;
+            window.Top = yPosition;
         }
 
         // Handle Windows messages to prevent the window from taking focus
