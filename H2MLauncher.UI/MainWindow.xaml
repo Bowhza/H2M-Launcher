@@ -198,7 +198,7 @@
                             <Grid>
                                 <!-- Opaque background for the header row -->
                                 <Rectangle VerticalAlignment="Top" Fill="Black" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
-                                <local:CustomDataGrid 
+                                <view:CustomDataGrid
                                         x:Name="serverDataGrid" 
                                         ItemsSource="{Binding ServerCollectionView}" 
                                         FontFamily="Consolas"
@@ -355,7 +355,7 @@
                                             </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
                                     </DataGrid.Columns>
-                                </local:CustomDataGrid>
+                                </view:CustomDataGrid>
                             </Grid>
                         </DataTemplate>
                     </TabControl.ContentTemplate>

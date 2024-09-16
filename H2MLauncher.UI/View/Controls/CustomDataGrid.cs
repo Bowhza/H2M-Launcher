@@ -1,8 +1,7 @@
-﻿using System.Collections;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
 
-namespace H2MLauncher.UI
+namespace H2MLauncher.UI.View
 {
     public class CustomDataGrid : DataGrid
     {

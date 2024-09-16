@@ -51,8 +51,6 @@ namespace H2MLauncher.UI.View
             inputBinding.Gesture = inputGesture;
         }
 
-
-
         public static ShortcutViewModel GetShortcut(DependencyObject obj)
         {
             return (ShortcutViewModel)obj.GetValue(ShortcutProperty);
