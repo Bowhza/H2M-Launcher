@@ -6,8 +6,8 @@ namespace H2MLauncher.UI.Dialog
 {
     public class TextDialogViewModel : DialogViewModelBase
     {
-        public required string Title { get; set; }
-        public required string Text { get; set; }
+        public required string Title { get; init; }
+        public required string Text { get; init; }
 
         public IRelayCommand AcceptCommand { get; }
 
@@ -15,9 +15,9 @@ namespace H2MLauncher.UI.Dialog
 
         public bool HasCancelButton { get; }
 
-        public string AcceptButtonText { get; } = "OK";
+        public string AcceptButtonText { get; init; } = "OK";
 
-        public string CancelButtonText { get; } = "Cancel";
+        public string CancelButtonText { get; init; } = "Cancel";
 
         public TextDialogViewModel(MessageBoxButton buttons = MessageBoxButton.OK)
         {

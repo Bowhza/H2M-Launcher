@@ -65,13 +65,28 @@ namespace H2MLauncher.UI.Dialog
             return ShowDialog(viewModel, dialogWindow);
         }
 
-        public bool? OpenTextDialog(string title, string text, MessageBoxButton buttons = MessageBoxButton.OK)
+        public bool? OpenTextDialog(string title, string text, 
+            MessageBoxButton buttons = MessageBoxButton.OK, string acceptButtonText = "", string cancelButtonText = "Cancel")
         {
             return OpenDialog<TextDialogView>(
                 new TextDialogViewModel(buttons)
                 {
                     Title = title,
-                    Text = text
+                    Text = text,
+                });
+        }
+
+        public bool? OpenTextDialog(string title, string text, string acceptButtonText, string cancelButtonText = "")
+        {
+            MessageBoxButton buttons = string.IsNullOrEmpty(cancelButtonText) ? MessageBoxButton.OK : MessageBoxButton.OKCancel;
+
+            return OpenDialog<TextDialogView>(
+                new TextDialogViewModel(buttons)
+                {
+                    Title = title,
+                    Text = text,
+                    AcceptButtonText = acceptButtonText,
+                    CancelButtonText = cancelButtonText
                 });
         }
 

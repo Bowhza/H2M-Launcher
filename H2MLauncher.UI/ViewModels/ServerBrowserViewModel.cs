@@ -40,12 +40,14 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly IClipBoardService _clipBoardService;
     private readonly ISaveFileService _saveFileService;
     private readonly IErrorHandlingService _errorHandlingService;
-    private readonly ILogger<ServerBrowserViewModel> _logger;
-    private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly DialogService _dialogService;
-    private CancellationTokenSource _loadCancellation = new();
+    private readonly IMapsProvider _mapsProvider;
+    private readonly ILogger<ServerBrowserViewModel> _logger;
+
+    private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly IOptions<ResourceSettings> _resourceSettings;
-    private readonly GameDirectoryService _gameDirectoryService;
+
+    private CancellationTokenSource _loadCancellation = new();
     private readonly MatchmakingService _matchmakingService;
     private readonly CachedServerDataService _serverDataService;
     private readonly H2MLauncherSettings _defaultSettings;
@@ -53,7 +55,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly Dictionary<string, string> _mapMap = [];
     private readonly Dictionary<string, string> _gameTypeMap = [];
 
-    private readonly List<string> _installedMaps = [];
     private IReadOnlyList<ServerData> _serverData = [];
 
     [ObservableProperty]
@@ -81,13 +82,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private ServerViewModel? _lastServer = null;
     private SecureString? _lastServerPassword = null;
 
-    public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
-
-    private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
-    private ServerTabViewModel<ServerViewModel> FavouritesTab { get; set; }
-    private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
-    public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
-
 
     [ObservableProperty]
     private GameStateViewModel _gameState = new();
@@ -100,6 +94,20 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
+
+
+    public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
+
+    public bool IsMatchmakingEnabled =>
+        _h2MCommunicationService.GameDetection.IsGameDetectionRunning &&
+        _h2MLauncherOptions.CurrentValue.GameMemoryCommunication &&
+        _h2MLauncherOptions.CurrentValue.ServerQueueing;
+
+    private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
+    private ServerTabViewModel<ServerViewModel> FavouritesTab { get; set; }
+    private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
+    public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
+
 
     public event Action? ServerFilterChanged;
 
@@ -116,7 +124,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand ReconnectCommand { get; }
     public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
-    public ObservableCollection<ServerViewModel> Servers { get; set; } = [];
+
 
     public ServerBrowserViewModel(
         IH2MServersService raidMaxService,
@@ -131,9 +139,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IWritableOptions<H2MLauncherSettings> h2mLauncherOptions,
         IOptions<ResourceSettings> resourceSettings,
         [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
-        GameDirectoryService gameDirectoryService,
         MatchmakingService matchmakingService,
-        CachedServerDataService serverDataService)
+        CachedServerDataService serverDataService,
+        IMapsProvider mapsProvider)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -147,9 +155,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MLauncherOptions = h2mLauncherOptions;
         _defaultSettings = defaultSettings;
         _resourceSettings = resourceSettings;
-        _gameDirectoryService = gameDirectoryService;
         _matchmakingService = matchmakingService;
         _serverDataService = serverDataService;
+        _mapsProvider = mapsProvider;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -162,7 +170,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
         ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
-        EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking);
+        EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking, () => IsMatchmakingEnabled);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();
@@ -219,6 +227,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 // reset shortcuts to stored values
                 Shortcuts.ResetViewModel(newSettings.KeyBindings);
 
+                OnPropertyChanged(nameof(IsMatchmakingEnabled));
+                EnterMatchmakingCommand.NotifyCanExecuteChanged();
+
                 oldSettings = newSettings;
             });
         });
@@ -234,22 +245,19 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.Error += GameDetection_Error;
         _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
         _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
-        _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
-        _gameDirectoryService.FastFileChanged += GameDirectoryService_FastFileChanged;
-
         _matchmakingService.Joined += MatchmakingService_Joined;
-
-        UpdateInstalledMaps(false);
+        _mapsProvider.MapsChanged += MapsProvider_InstalledMapsChanged;
     }
 
-    private void GameDirectoryService_FastFileChanged(string fileName, string mapName)
+    private void MapsProvider_InstalledMapsChanged(IMapsProvider provider)
     {
-        UpdateInstalledMaps(updateViewModels: true);
-    }
-
-    private void GameDirectoryService_UsermapsChanged(string? triggeredByPath, IReadOnlyList<string> usermaps)
-    {
-        UpdateInstalledMaps(updateViewModels: true);
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            foreach (var serverViewModel in AllServersTab.Servers)
+            {
+                serverViewModel.HasMap = provider.InstalledMaps.Contains(serverViewModel.Map);
+            }
+        });
     }
 
     private void H2MGameCommunication_Stopped(Exception? exception)
@@ -331,7 +339,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         if (_dialogService.OpenDialog<FilterDialogView>(AdvancedServerFilter) == true)
         {
-            OnPropertyChanged(nameof(Servers));
             ServerFilterChanged?.Invoke();
             StatusText = "Server filter applied.";
 
@@ -615,34 +622,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
     }
 
-    private void UpdateInstalledMaps(bool updateViewModels = false)
-    {
-        _installedMaps.Clear();
-
-        // in-game maps
-        foreach (var mapName in _resourceSettings.Value.MapPacks.SelectMany(p => p.Maps.Select(m => m.Name)))
-        {
-            if (_gameDirectoryService.HasOgMap(mapName) != false)
-            {
-                _installedMaps.Add(mapName);
-            }
-        }
-
-        // usermaps
-        _installedMaps.AddRange(_gameDirectoryService.Usermaps);
-
-        if (updateViewModels)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                foreach (var serverViewModel in AllServersTab.Servers)
-                {
-                    serverViewModel.HasMap = _installedMaps.Contains(serverViewModel.Map);
-                }
-            });
-        }
-    }
-
     private void UpdateServerDataList(CancellationToken cancellationToken)
     {
         Task.Run(async () =>
@@ -753,7 +732,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             GameTypeDisplayName = gameTypeDisplayName ?? gameServer.GameType,
             Map = gameServer.MapName,
             MapDisplayName = mapDisplayName ?? gameServer.MapName,
-            HasMap = _installedMaps.Contains(gameServer.MapName) || !_h2MLauncherOptions.Value.WatchGameDirectory,
+            HasMap = _mapsProvider.InstalledMaps.Contains(gameServer.MapName) || !_h2MLauncherOptions.Value.WatchGameDirectory,
             Version = server.Version,
             IsPrivate = gameServer.IsPrivate,
             Ping = gameServer.Ping,
@@ -782,6 +761,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
         if (serverViewModel is null)
             return;
+
+        if (!CheckGameRunning())
+        {
+            return;
+        }
 
         if (!serverViewModel.HasMap)
         {
@@ -911,12 +895,35 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return Task.CompletedTask;
     }
 
+    private bool CheckGameRunning()
+    {
+        if (_h2MCommunicationService.GameDetection.DetectedGame is not null)
+        {
+            return true;
+        }
+        bool? dialogResult = _dialogService.OpenTextDialog(
+            title: "Game not running",
+            text: "Matchmaking is only available when the game is running. Do you want to launch the game?",
+            acceptButtonText: "Launch Game",
+            cancelButtonText: "Cancel");
+
+        if (dialogResult == true)
+        {
+            _h2MCommunicationService.LaunchH2MMod();
+        }
+
+        return false;
+    }
 
     private async Task EnterMatchmaking()
     {
+        if (!CheckGameRunning())
+        {
+            return;
+        }
 
         MatchmakingViewModel matchmakingViewModel = new(
-            _matchmakingService, 
+            _matchmakingService,
             _serverDataService,
             onForceJoin: (server) => JoinServerInternal(server, null));
 
@@ -956,8 +963,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         _h2MCommunicationService.GameDetection.GameDetected -= H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited -= H2MCommunicationService_GameExited;
+        _h2MCommunicationService.GameDetection.Error -= GameDetection_Error;
         _h2MCommunicationService.GameCommunication.GameStateChanged -= H2MCommunicationService_GameStateChanged;
         _h2MCommunicationService.GameCommunication.Stopped -= H2MGameCommunication_Stopped;
-        _gameDirectoryService.UsermapsChanged -= GameDirectoryService_UsermapsChanged;
+        _matchmakingService.Joined -= MatchmakingService_Joined;
+        _mapsProvider.MapsChanged -= MapsProvider_InstalledMapsChanged;
     }
 }

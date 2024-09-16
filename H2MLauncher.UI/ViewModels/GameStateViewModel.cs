@@ -1,6 +1,4 @@
-﻿using System.Net;
-
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 
 using H2MLauncher.Core.Game.Models;
 
