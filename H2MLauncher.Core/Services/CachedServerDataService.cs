@@ -2,6 +2,7 @@
 
 using Flurl;
 
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 
 using Microsoft.Extensions.Caching.Memory;

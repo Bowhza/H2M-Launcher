@@ -1,4 +1,5 @@
-﻿using H2MLauncher.Core.Models;
+﻿using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Models;
 
 namespace MatchmakingServer;
 

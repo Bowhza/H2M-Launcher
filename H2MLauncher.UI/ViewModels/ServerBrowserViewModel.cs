@@ -10,13 +10,18 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using H2MLauncher.Core.Interfaces;
+using H2MLauncher.Core.Game;
+using H2MLauncher.Core.Game.Models;
+using H2MLauncher.Core.IW4MAdmin.Models;
+using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
+using H2MLauncher.UI.Services;
 
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -31,7 +36,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly IH2MServersService _raidMaxService;
     private readonly GameServerCommunicationService<IW4MServer> _gameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
-    private readonly H2MLauncherService _h2MLauncherService;
+    private readonly LauncherService _h2MLauncherService;
     private readonly IClipBoardService _clipBoardService;
     private readonly ISaveFileService _saveFileService;
     private readonly IErrorHandlingService _errorHandlingService;
@@ -117,7 +122,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IH2MServersService raidMaxService,
         H2MCommunicationService h2MCommunicationService,
         GameServerCommunicationService<IW4MServer> gameServerCommunicationService,
-        H2MLauncherService h2MLauncherService,
+        LauncherService h2MLauncherService,
         IClipBoardService clipBoardService,
         ILogger<ServerBrowserViewModel> logger,
         ISaveFileService saveFileService,
@@ -507,7 +512,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private void DoRestartCommand()
     {
-        Process.Start(H2MLauncherService.LauncherPath);
+        Process.Start(LauncherService.LauncherPath);
         Process.GetCurrentProcess().Kill();
     }
 

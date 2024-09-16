@@ -1,6 +1,6 @@
 ﻿using CommunityToolkit.Mvvm.ComponentModel;
 
-using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Matchmaking.Models;
 
 namespace H2MLauncher.UI.ViewModels
 {

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 
-using H2MLauncher.Core.Interfaces;
-using H2MLauncher.Core.Models;
+using H2MLauncher.Core.IW4MAdmin;
+using H2MLauncher.Core.IW4MAdmin.Models;
 
 using Microsoft.Extensions.Caching.Memory;
 

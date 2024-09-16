@@ -5,7 +5,6 @@ using System.Windows;
 using Flurl;
 
 using H2MLauncher.Core;
-using H2MLauncher.Core.Interfaces;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
@@ -22,6 +21,13 @@ using Nogic.WritableOptions;
 
 using Serilog;
 using H2MLauncher.Core.Utilities;
+using H2MLauncher.Core.Networking;
+using H2MLauncher.Core.IW4MAdmin.Models;
+using H2MLauncher.Core.IW4MAdmin;
+using H2MLauncher.Core.Game;
+using H2MLauncher.UI.Services;
+using H2MLauncher.Core.Game.Memory;
+using H2MLauncher.Core.Matchmaking;
 
 namespace H2MLauncher.UI
 {
@@ -71,7 +77,7 @@ namespace H2MLauncher.UI
 
             Log.Information("{applicationName} started on version {version}.",
                 Assembly.GetExecutingAssembly().GetName(),
-                H2MLauncherService.CurrentVersion);
+                LauncherService.CurrentVersion);
         }
 
         private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
@@ -93,8 +99,8 @@ namespace H2MLauncher.UI
             services.AddSingleton<DialogService>();
             services.AddTransient<IErrorHandlingService, ErrorHandlingService>();
 
-            services.AddTransient<H2MLauncherService>();
-            services.AddHttpClient<H2MLauncherService>();
+            services.AddTransient<LauncherService>();
+            services.AddHttpClient<LauncherService>();
 
             services.AddTransient<IIW4MAdminService, IW4MAdminService>();
             services.AddHttpClient<IIW4MAdminService, IW4MAdminService>();
@@ -138,7 +144,7 @@ namespace H2MLauncher.UI
 
                     // add headers to identify app version
                     client.DefaultRequestHeaders.Add("X-App-Name", "H2MLauncher");
-                    client.DefaultRequestHeaders.Add("X-App-Version", H2MLauncherService.CurrentVersion);
+                    client.DefaultRequestHeaders.Add("X-App-Version", LauncherService.CurrentVersion);
                 });
 
             services.AddTransient<MainWindow>();

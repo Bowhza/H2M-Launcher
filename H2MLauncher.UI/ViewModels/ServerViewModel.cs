@@ -2,7 +2,8 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
-using H2MLauncher.Core.Models;
+using H2MLauncher.Core.IW4MAdmin.Models;
+using H2MLauncher.Core.Networking.GameServer;
 
 namespace H2MLauncher.UI.ViewModels
 {

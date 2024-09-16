@@ -1,8 +1,9 @@
 ﻿using System.Net;
 
 using H2MLauncher.Core;
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Networking.GameServer;
 
 using Nito.AsyncEx;
 
