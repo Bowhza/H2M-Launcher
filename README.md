@@ -9,7 +9,7 @@
 
 **Join if you want to stay up-to-date with the launcher, have questions, suggestions, or looking for people to play H2M with.**
 
-[Discord]: https://discord.com/invite/2FNeBYKxq5Ru
+[Discord]: https://discord.com/invite/NeBYKxq5Ru
 [![Discord](https://img.shields.io/discord/1276483126041776192?logo=discord&logoColor=%23FFFFFF&label=Discord&labelColor=%235865F2&link=https%3A%2F%2Fdiscord.gg%2FNeBYKxq5Ru)][Discord]
 
 <img src="./Images/H2MLauncher.png">
