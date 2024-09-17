@@ -2,14 +2,15 @@
 
 **The H2M in-game server browser has a few bugs where it does not display the whole server list or does not join the correct server. The launcher aims to address these issues and provide more features.**
 
-![GitHub Release](https://img.shields.io/github/v/release/Bowhza/H2M-Launcher)
+[<img src="https://img.shields.io/github/v/release/Bowhza/H2M-Launcher">](https://github.com/Bowhza/H2M-Launcher/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Bowhza/H2M-Launcher/total)
 
 ### **New Discord for H2M Launcher**
 
 **Join if you want to stay up-to-date with the launcher, have questions, suggestions, or looking for people to play H2M with.**
 
-![Discord](https://img.shields.io/discord/1276483126041776192?logo=discord&logoColor=%23FFFFFF&label=Discord&labelColor=%235865F2&link=https%3A%2F%2Fdiscord.gg%2FNeBYKxq5Ru)
+[<img src="https://img.shields.io/discord/1276483126041776192?logo=discord&logoColor=%23FFFFFF&label=Discord&labelColor=%235865F2&link=https%3A%2F%2Fdiscord.gg%2FNeBYKxq5Ru">](https://discord.com/invite/NeBYKxq5Ru)
+
 
 <img src="./Images/H2MLauncher.png">
 
