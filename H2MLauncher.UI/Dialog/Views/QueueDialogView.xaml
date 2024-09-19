@@ -1,15 +1,14 @@
 ﻿<UserControl x:Class="H2MLauncher.UI.Dialog.Views.QueueDialogView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
-             mc:Ignorable="d" 
-             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
-             xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
-             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters"
+             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
+             xmlns:model="clr-namespace:H2MLauncher.Core.Matchmaking.Models;assembly=H2MLauncher.Core"
              xmlns:s="clr-namespace:System;assembly=mscorlib"
+             mc:Ignorable="d"
              MinHeight="200" MinWidth="300"
              Height="Auto"
              Width="400"
@@ -73,24 +72,13 @@
             <ColumnDefinition Width="Auto"/>
             <ColumnDefinition/>
         </Grid.ColumnDefinitions>
-        <TextBlock Grid.Row="0" TextWrapping="WrapWithOverflow" 
+        <TextBlock Grid.Row="0" Text="{Binding Title}" TextWrapping="WrapWithOverflow" 
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
-                   Margin="0,0,0,15" Text="{Binding ComputedTitle}">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
-                    <Setter Property="Text" Value="Joining Server"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
-                            <Setter Property="Text" Value="Searching Match"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </TextBlock.Style>
-        </TextBlock>
+                   Margin="0,0,0,15" />
 
         <Canvas x:Name="serverTextContainer" Grid.Row="1" Grid.ColumnSpan="2" Width="300" Margin="15,5" 
                 HorizontalAlignment="Center" ClipToBounds="True" Height="25"
-                Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource invertableBooleanToVisibilityConverter}, ConverterParameter=Inverted}">
+                Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource InverseBoolToVisibilityConverter}}">
             <TextBlock x:Name="serverName" SizeChanged="ServerNameTextBox_SizeChanged" Canvas.Left="0" 
                        TextWrapping="NoWrap" HorizontalAlignment="Center">
                 <TextBlock.Inlines>
@@ -99,10 +87,7 @@
                             <Style TargetType="ItemsControl">
                                 <Setter Property="ItemsSource" Value="{Binding ServerHostName, Converter={StaticResource HostNameColorConverter}}"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
-                                        <Setter Property="ItemsSource" Value="{Binding PlaylistName, Converter={StaticResource HostNameColorConverter}}"/>
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding CanEnterMatchmaking}" Value="True">
+                                    <DataTrigger Binding="{Binding State}" Value="{x:Static model:PlayerState.Matchmaking}">
                                         <Setter Property="ItemsSource" Value="{Binding PlaylistName, Converter={StaticResource HostNameColorConverter}}"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -228,15 +213,15 @@
                             </Setter.Value>
                         </Setter>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding IsJoining}" Value="True">
+                            <DataTrigger Binding="{Binding IsJoining}" Value="True" >
                                 <Setter Property="ContentTemplate" Value="{StaticResource JoiningTemplate}" />
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding IsInQueue}" Value="True">
+                            <DataTrigger Binding="{Binding State}" Value="{x:Static model:PlayerState.Queued}">
                                 <Setter Property="ContentTemplate" Value="{StaticResource QueueTemplate}" />
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
+                            <DataTrigger Binding="{Binding State}" Value="{x:Static model:PlayerState.Matchmaking}">
                                 <Setter Property="ContentTemplate" Value="{StaticResource MatchmakingTemplate}" />
-                            </DataTrigger>                            
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsError}" Value="True">
                                 <Setter Property="ContentTemplate" Value="{StaticResource ErrorTemplate}" />
                             </DataTrigger>

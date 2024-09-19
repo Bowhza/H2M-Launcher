@@ -93,7 +93,7 @@ public sealed class MatchmakingService : IAsyncDisposable
     public bool IsConnected => _connection.State is HubConnectionState.Connected;
     public bool IsConnecting => _connection.State is HubConnectionState.Connecting;
 
-    public event Action<PlayerState>? QueueingStateChanged;
+    public event Action<PlayerState, PlayerState>? QueueingStateChanged;
     public event Action<int, int>? QueuePositionChanged;
     public event Action<(string ip, int port)>? Joining;
     public event Action<(string ip, int port)>? Joined;
@@ -153,7 +153,7 @@ public sealed class MatchmakingService : IAsyncDisposable
             _privatePasswords.Clear();
         }
 
-        QueueingStateChanged?.Invoke(newState);
+        QueueingStateChanged?.Invoke(oldState, newState);
     }
 
 
@@ -423,6 +423,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         {
             ConnectionStateChanged?.Invoke();
             await startConnectionTask;
+            State = PlayerState.Connected;
         }
         finally
         {

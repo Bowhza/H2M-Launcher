@@ -582,6 +582,7 @@
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
     <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
     <converters:EmptyItemConverter x:Key="emptyItemConverter" />
     <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
