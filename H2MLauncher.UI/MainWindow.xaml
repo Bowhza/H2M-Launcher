@@ -103,26 +103,11 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="85" />
                     </Grid.ColumnDefinitions>
+
+                    <!-- Title -->
                     <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
-                    <!--<TextBlock Grid.Column="1" Text="{x:Static srv:LauncherService.CurrentVersion}" FontSize="10"  FontWeight="Bold" Foreground="White"
-                               VerticalAlignment="Center" Margin="10,10,0,0"/>-->
-                    <!--<Button Grid.Column="1" VerticalAlignment="Center" 
-                                Height="30" HorizontalAlignment="Left"
-                                Margin="9,0">
-                        <StackPanel Orientation="Horizontal" Margin="7,5">
-                            <Image Source="Assets/discord-mark-blue.png" Stretch="Uniform" Height="13"/>
-                            <TextBlock Text="H2MLauncher" Margin="7,0,0,0"></TextBlock>
-                        </StackPanel>
-                    </Button>-->
 
-                    <!--<Button Grid.Row="3" Grid.Column="2" VerticalAlignment="Top"
-                                Height="27" HorizontalAlignment="Right"
-                                Margin="5,4,0,0" Style="{StaticResource DiscordWindowButtonStyle}">
-                        <StackPanel Orientation="Horizontal" Margin="7,5" >
-                            <Image Source="Assets/discord-logo-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </StackPanel>
-                    </Button>-->
-
+                    <!-- Socials -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
                         <Button VerticalAlignment="Center" Style="{StaticResource DiscordWindowButtonStyle}" HorizontalAlignment="Left"
                                 Height="27" Width="27" Margin="0,0,5,0"
@@ -140,6 +125,7 @@
                         </Button>
                     </StackPanel>
 
+                    <!-- Update -->
                     <TextBlock Grid.Column="3" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
@@ -172,32 +158,10 @@
                         <Button Grid.Column="0" Content="Open release notes" Command="{Binding OpenReleaseNotesCommand}" />
                         <Button Grid.Column="2" Content="Restart" Command="{Binding RestartCommand}" />
                     </Grid>
+
+                    <!-- Window buttons -->
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Right" 
                                 Grid.Column="4" Margin="1,0,0,0">
-                        <!--<Button Grid.Row="3" Grid.Column="2" VerticalAlignment="Top"
-                                Height="27" Width="27" HorizontalAlignment="Right"
-                                Margin="0,0,2,0" Style="{StaticResource DiscordWindowButtonStyle}">
-                            <StackPanel Orientation="Horizontal" Margin="0,5" >
-                                <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            </StackPanel>
-                        </Button>-->
-
-
-                        <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-                                Height="27" Width="27" Margin="0,0,5,0"
-                                ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}" Background="#5865F2">
-                            <StackPanel Orientation="Horizontal" Margin="0,5">
-                                <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            </StackPanel>
-                        </Button>
-                        <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-                                Height="27" Width="27" Margin="0,0,5,0"
-                                ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}" Background="gray">
-                            <StackPanel Orientation="Horizontal" Margin="5,5">
-                                <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
-                            </StackPanel>
-                        </Button>
-
                         <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,2,0" 
                                 FontSize="18" Height="27" Width="26" Click="MinimizeButton_Click"
                                 Opacity="0.85" Padding="0,0,0,4" TextBlock.TextAlignment="Center" >
@@ -221,23 +185,31 @@
                         </Button>
                     </StackPanel>
                 </Grid>
+
+                <!-- Main grid -->
                 <Grid Grid.Row="1" >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
+
+                    <!-- Player / Server count -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
                         <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
                         <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="White" />
                         <Label Content="Total Servers:" Foreground="White"/>
                         <Label Content="{Binding SelectedTab.TotalServers}" Foreground="White" />
                     </StackPanel>
+
+                    <!-- Text Filter -->
                     <StackPanel Grid.Column="1" VerticalAlignment="Center">
                         <TextBox TabIndex="1" Text="{Binding AdvancedServerFilter.FilterText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
                                  TextChanged="TextBox_TextChanged" HorizontalAlignment="Stretch" Margin="10,0,10,0" 
                                  VerticalAlignment="Center"/>
                     </StackPanel>
+
+                    <!-- Main Buttons -->
                     <StackPanel Orientation="Horizontal" Grid.Column="2">
                         <Button TabIndex="3" Content="Filter" Width="80" Command="{Binding ShowServerFilterCommand}" />
                         <Separator Opacity="0" Width="5" />
@@ -251,6 +223,7 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- Server tabs -->
                 <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
                             Grid.Row="2" Margin="0,10,0,5" BorderThickness="1" 
                             BorderBrush="DarkGray" Background="Transparent" >
@@ -328,6 +301,7 @@
                                     </DataGrid.ItemContainerStyle>
 
                                     <DataGrid.Columns>
+                                        <!-- Private -->
                                         <DataGridTemplateColumn Header="🔒" CanUserResize="False" SortMemberPath="IsPrivate">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate>
@@ -337,6 +311,7 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
 
+                                        <!-- Hostname -->
                                         <DataGridTemplateColumn Header="Hostname" Width="5*" SortMemberPath="HostName">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate DataType="vm:ServerViewModel">
@@ -356,8 +331,10 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
 
+                                        <!-- Last played -->
                                         <StaticResource ResourceKey="ThatPeskyColumn"/>
 
+                                        <!-- Map -->
                                         <DataGridTextColumn Header="Map" 
                                                         Binding="{Binding MapDisplayName}" 
                                                         MinWidth="100"
@@ -372,11 +349,14 @@
                                                 </Style>
                                             </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
+
+                                        <!-- Game mode -->
                                         <DataGridTextColumn Header="Mode" 
                                                         Binding="{Binding GameTypeDisplayName}" 
                                                         MinWidth="110"
                                                         CanUserResize="False"/>
 
+                                        <!-- Player count -->
                                         <DataGridTextColumn Header="Players" 
                                                         SortMemberPath="ClientNum"
                                                         MinWidth="65"
@@ -410,6 +390,7 @@
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>
 
+                                        <!-- Ping -->
                                         <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False" Width="40">
                                             <DataGridTextColumn.ElementStyle>
                                                 <Style TargetType="TextBlock">
@@ -427,24 +408,6 @@
                     </TabControl.ContentTemplate>
                 </TabControl>
 
-                <!--<StackPanel Grid.Column="2" Grid.Row="2" Orientation="Horizontal" Margin="10,5,0,0"
-                            HorizontalAlignment="Right" VerticalAlignment="Top">
-                    <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-                            Height="27" Width="27" Style="{StaticResource LinkButtonStyle}" Margin="0,0,5,0"
-                            Background="#5865F2" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
-                        <StackPanel Orientation="Horizontal" Margin="0,5">
-                            <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </StackPanel>
-                    </Button>
-                    <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-                            Height="27" Width="27" Style="{StaticResource LinkButtonStyle}"
-                            Background="gray" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
-                        <StackPanel Orientation="Horizontal" Margin="5,5">
-                            <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
-                        </StackPanel>
-                    </Button>
-                </StackPanel>-->
-
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">
                     <StatusBar.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -460,6 +423,8 @@
                         </ItemsPanelTemplate>
                     </StatusBar.ItemsPanel>
                     <StatusBarItem Content="{Binding StatusText}" Grid.Column="0" VerticalContentAlignment="Center" />
+
+                    <!-- In-game state -->
                     <StatusBarItem Content="{Binding GameState.ConnectionText}" Grid.Column="1" VerticalContentAlignment="Center"/>
                     <Separator Width="1" Height="16" Grid.Column="2">
                         <Separator.Style>
@@ -472,6 +437,8 @@
                             </Style>
                         </Separator.Style>
                     </Separator>
+
+                    <!-- Game Detection -->
                     <StatusBarItem Content="{Binding GameState}" HorizontalAlignment="Right" 
                                    Grid.Column="3" VerticalContentAlignment="Center"
                                    ToolTip="{Binding GameState.InfoText}">
@@ -490,6 +457,8 @@
                             </DataTemplate>
                         </StatusBarItem.ContentTemplate>
                     </StatusBarItem>
+
+                    <!-- Settings -->
                     <StatusBarItem HorizontalAlignment="Right" Grid.Column="4" VerticalContentAlignment="Center">
                         <Button Style="{StaticResource LinkButtonStyle}"  Command="{Binding ShowSettingsCommand}">
                             <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>

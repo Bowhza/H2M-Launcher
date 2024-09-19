@@ -145,10 +145,10 @@ namespace H2MLauncher.Core.Services
                     if (progressPercentage.HasValue)
                     {
                         progress(progressPercentage!.Value);
-                        _logger.LogDebug("{totalBytesDownloaded}/{totalFileSize}MB {progressPercentage}%", totalBytesDownloaded / 1_000_000, totalFileSize / 1_000_000, progressPercentage);
+                        _logger.LogTrace("{totalBytesDownloaded}/{totalFileSize}MB {progressPercentage}%", totalBytesDownloaded / 1_000_000, totalFileSize / 1_000_000, progressPercentage);
                     }
                     else if (totalBytesDownloaded > 0)
-                        _logger.LogDebug("{totalBytesDownloaded}MB", totalBytesDownloaded / 1_000_000);
+                        _logger.LogTrace("{totalBytesDownloaded}MB", totalBytesDownloaded / 1_000_000);
                 };
 
                 // TODO: If user closed application while downloading, cancel the download -> cancellation token.
@@ -165,13 +165,13 @@ namespace H2MLauncher.Core.Services
             {
                 // NOTE: We move the current launcher as backup such that the new launcher can get the original 
                 //       name for the exe. The backup launcher will be deleted on restart of the launcher.
-                _logger.LogDebug("Attempting to move old launcher {} to {}.", LauncherPath, LauncherBackupPath);
+                _logger.LogDebug("Attempting to move old launcher {launcherPath} to {launcherBackupPath}.", LauncherPath, LauncherBackupPath);
                 File.Move(LauncherPath, LauncherBackupPath);
-                _logger.LogInformation("Moved old launcher {} to {}.", LauncherPath, LauncherBackupPath);
+                _logger.LogInformation("Moved old launcher {launcherPath} to {launcherBackupPath}.", LauncherPath, LauncherBackupPath);
 
-                _logger.LogDebug("Attempting to move new launcher {} to {}.", TempFileName, LauncherPath);
+                _logger.LogDebug("Attempting to move new launcher {tempLauncherPath} to {launcherPath}.", TempFileName, LauncherPath);
                 File.Move(TempFileName, LauncherPath);
-                _logger.LogInformation("Moved new launcher {} to {}.", TempFileName, LauncherPath);
+                _logger.LogInformation("Moved new launcher {tempLauncherPath} to {launcherPath}.", TempFileName, LauncherPath);
             }
             catch (Exception ex)
             {
