@@ -548,7 +548,8 @@ public sealed class MatchmakingService : IAsyncDisposable
         {
             if (!_options.CurrentValue.ServerQueueing ||
                 !_options.CurrentValue.GameMemoryCommunication ||
-                !_gameDetectionService.IsGameDetectionRunning)
+                !_gameDetectionService.IsGameDetectionRunning ||
+                !_gameCommunicationService.IsGameCommunicationRunning)
             {
                 return false;
             }
