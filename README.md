@@ -92,16 +92,17 @@
 
 ## Shortcuts
 
-| Keyboard/Mouse    | Description                             |
-| :---------------- | :-------------------------------------- |
-| `ESC`             | Close the H2M Launcher.                 |
-| `TAB`             | Navigate between launcher controls.     |
-| `F5`              | Refresh the server list.                |
-| `ENTER`           | Join the selected server.               |
-| `Right Click`     | Copies the server to clipboard.         |
-| `CTRL + S`        | Save the server list to favourties.json |
-| `CTRL + ALT + R`  | Reconnect to server. (Can be changed)   |
-| `SHIFT + ALT + S` | Toggle game overlay. (Can be changed)   |
+| Keyboard/Mouse    | Description                              |
+| :---------------- | :--------------------------------------- |
+| `ESC`             | Close the H2M Launcher.                  |
+| `TAB`             | Navigate between launcher controls.      |
+| `F5`              | Refresh the server list.                 |
+| `ENTER`           | Join the selected server.                |
+| `Right Click`     | Copies the server to clipboard.          |
+| `CTRL + S`        | Save the server list to favourties.json  |
+| `CTRL + ALT + R`  | Reconnect to server. (Can be changed)    |
+| `CTRL + ALT + D`  | Disconnect from server. (Can be changed) |
+| `SHIFT + ALT + S` | Toggle game overlay. (Can be changed)    |
 
 ## FAQ
 
@@ -125,7 +126,8 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 ### 3. The launcher opens but does not display any servers.
 
-**Answer**: Open the [Server List](https://master.iw4.zip/servers#) or [API Link](https://master.iw4.zip/instance/) in your browser and see if you are able to reach the domain. If not, then check if your ISP is blocking you from accessing the domain.
+**Answer**: Open the [Server List](https://master.iw4.zip/servers#) or [API Link](https://master.iw4.zip/instance/) in your browser and see if you are able to reach the domain. If not, then check if your ISP or firewall is blocking you from accessing the domain.
+Alternatively, you can try switching to the alternative master server `http://api.raidmax.org:5000`.
 
 ### 4. Why is a specific server not showing up in the list?
 
@@ -133,6 +135,7 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 - Make sure that the server reports an IPv4 Address to the panel, as IPv6 servers are not supported and will not show up.
 
+> [!NOTE]
 > **If you and others can connect to the server in game, but it does not show up, please report the concrete case!**
 
 ### 5. Saving to clipboard failed
@@ -150,9 +153,10 @@ Go to your Windows Settings and search for Clear Clipboard.
 
 **Answer**: Delete the `launchersettings.json` file located at `C:\Users\<YourUserName>\AppData\Local\BetterH2MLauncher`. After deleting the json file, next time you launch the exe it should be created again.
 
+> [!IMPORTANT]
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
-
-For other information and questions can be found at this **[Discord Server](https://discord.com/invite/NeBYKxq5Ru)**.
+> 
+> For other information and questions can be found at this **[Discord Server](https://discord.com/invite/NeBYKxq5Ru)**.
 
 ## Compiling from Source Code
 

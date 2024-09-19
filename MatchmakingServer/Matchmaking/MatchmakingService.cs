@@ -357,7 +357,7 @@ namespace MatchmakingServer
 
                         bool foundMatch = TrySelectMatch(
                             server,
-                            playersForServerSorted.Where(p => p.isEligible || p.player == player).Select(p => p.player).ToList(), // include only other eligible players
+                            playersForServerSorted.Select(p => p.player).ToList(),
                             qualityScore,
                             availableSlots,
                             out MMMatch match);
