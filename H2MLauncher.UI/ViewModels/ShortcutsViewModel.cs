@@ -21,6 +21,14 @@ namespace H2MLauncher.UI.ViewModels
             IsHotkey = true
         };
 
+        public ShortcutViewModel Disconnect { get; } = new()
+        {
+            Name = "Disconnect",
+            Key = Key.D,
+            Modifiers = ModifierKeys.Control | ModifierKeys.Alt,
+            IsHotkey = true
+        };
+
         public ShortcutViewModel SaveFavourites { get; } = new()
         {
             Name = "SaveFavourites",
@@ -40,7 +48,7 @@ namespace H2MLauncher.UI.ViewModels
 
         public ShortcutsViewModel()
         {
-            Shortcuts = [RefreshServers, SaveFavourites, Reconnect, ToggleOverlay];
+            Shortcuts = [RefreshServers, SaveFavourites, Reconnect, Disconnect, ToggleOverlay];
         }
 
         public Dictionary<string, string> ToDictionary()

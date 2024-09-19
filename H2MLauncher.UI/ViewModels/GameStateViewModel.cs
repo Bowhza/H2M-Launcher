@@ -18,9 +18,12 @@ public partial class GameStateViewModel : ObservableObject
     private string _displayText = "Game not detected";
 
     [ObservableProperty]
+    private string _infoText = "";
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ConnectionText))]
     private string? _connectedIp;
-
+        
 
     private GameState? _state;
     public GameState? State
@@ -73,11 +76,13 @@ public partial class GameStateViewModel : ObservableObject
                 IsGameRunning = false;
                 State = null;
                 DisplayText = "Game not detected";
+                InfoText = "";
             }
             else
             {
                 IsGameRunning = true;
-                DisplayText = $"Game detected: '{value.Process.ProcessName}' (v{value.Version.FileVersion}, PID: {value.Process.Id})";
+                DisplayText = $"Game detected";
+                InfoText = $"{value.Process.ProcessName} (v{ value.Version.FileVersion}, PID: { value.Process.Id})";
             }
         }
     }

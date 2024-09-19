@@ -95,11 +95,11 @@ public sealed class MatchmakingService : IAsyncDisposable
     public bool IsConnected => _connection.State is HubConnectionState.Connected;
     public bool IsConnecting => _connection.State is HubConnectionState.Connecting;
 
-    public event Action<PlayerState>? QueueingStateChanged;
+    public event Action<PlayerState, PlayerState>? QueueingStateChanged;
     public event Action<int, int>? QueuePositionChanged;
-    public event Action<(string ip, int port)>? Joining;
-    public event Action<(string ip, int port)>? Joined;
-    public event Action<(string ip, int port)>? JoinFailed;
+    public event Action<ServerConnectionDetails>? Joining;
+    public event Action<ServerConnectionDetails>? Joined;
+    public event Action<ServerConnectionDetails>? JoinFailed;
     public event Action<(string hostname, SearchMatchResult match)>? MatchFound;
     public event Action<MatchmakingError>? MatchmakingError;
     public event Action<IEnumerable<SearchMatchResult>>? Matches;
@@ -151,6 +151,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         _errorHandlingService = errorHandlingService;
 
         gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
+        gameCommunicationService.Stopped += GameCommunicationService_Stopped;
     }
 
     private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
@@ -161,12 +162,12 @@ public sealed class MatchmakingService : IAsyncDisposable
             _privatePasswords.Clear();
         }
 
-        QueueingStateChanged?.Invoke(newState);
+        QueueingStateChanged?.Invoke(oldState, newState);
     }
 
 
     #region RPC Handlers
-    private bool OnNotifyJoin(string ip, int port)
+    private async Task<bool> OnNotifyJoin(string ip, int port)
     {
         _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
 
@@ -174,7 +175,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
         Joining?.Invoke((ip, port));
 
-        if (_h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
+        if (await _h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
         {
             State = PlayerState.Joining;
             return true;
@@ -397,6 +398,14 @@ public sealed class MatchmakingService : IAsyncDisposable
         }
     }
 
+    private async void GameCommunicationService_Stopped(Exception? obj)
+    {
+        if (State is PlayerState.Joining or PlayerState.Queued or PlayerState.Matchmaking)
+        {
+            await LeaveQueueAsync();
+        }
+    }
+
     private QueuedServer? GetQueuedServer(GameState gameState)
     {
         if (gameState.Endpoint is null)
@@ -431,6 +440,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         {
             ConnectionStateChanged?.Invoke();
             await startConnectionTask;
+            State = PlayerState.Connected;
         }
         finally
         {
@@ -454,8 +464,8 @@ public sealed class MatchmakingService : IAsyncDisposable
     {
         try
         {
-            if (!_options.CurrentValue.ServerQueueing ||
-                !_options.CurrentValue.GameMemoryCommunication ||
+            if (!_options.CurrentValue.ServerQueueing || 
+                !_options.CurrentValue.GameMemoryCommunication || 
                 !_gameDetectionService.IsGameDetectionRunning)
             {
                 return false;
@@ -504,6 +514,7 @@ public sealed class MatchmakingService : IAsyncDisposable
                 await _connection.SendAsync("LeaveQueue");
                 State = PlayerState.Connected;
                 Playlist = null;
+                MatchSearchCriteria = null;
                 SearchAttempts = 0;
                 _logger.LogInformation("Server queue left.");
             }
@@ -544,7 +555,8 @@ public sealed class MatchmakingService : IAsyncDisposable
         {
             if (!_options.CurrentValue.ServerQueueing ||
                 !_options.CurrentValue.GameMemoryCommunication ||
-                !_gameDetectionService.IsGameDetectionRunning)
+                !_gameDetectionService.IsGameDetectionRunning ||
+                !_gameCommunicationService.IsGameCommunicationRunning)
             {
                 return false;
             }

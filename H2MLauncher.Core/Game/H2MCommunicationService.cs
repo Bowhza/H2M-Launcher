@@ -198,7 +198,7 @@ namespace H2MLauncher.Core.Game
             }
         }
 
-        public bool JoinServer(string ip, string port, string? password = null)
+        public Task<bool> JoinServer(string ip, string port, string? password = null)
         {
             const string disconnectCommand = "disconnect";
             string connectCommand = $"connect {ip}:{port}";
@@ -208,6 +208,16 @@ namespace H2MLauncher.Core.Game
                 connectCommand += $";password {password}";
             }
 
+            return ExecuteCommandAsync([disconnectCommand, connectCommand]);
+        }
+
+        public Task<bool> Disconnect()
+        {
+            return ExecuteCommandAsync(["disconnect"]);
+        }
+
+        private async Task<bool> ExecuteCommandAsync(string[] commands, bool bringGameWindowToForeground = true)
+        {
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)
             {
@@ -225,43 +235,32 @@ namespace H2MLauncher.Core.Game
             // Open In Game Terminal Window
             SendMessage(hWindow, WM_KEYDOWN, 192, nint.Zero);
 
-            // Send the "disconnect" command to the terminal window
-            foreach (char c in disconnectCommand)
+            foreach (string command in commands)
             {
-                SendMessage(hWindow, WM_CHAR, c, nint.Zero);
-                Thread.Sleep(1);
+                // Send the command to the terminal window
+                foreach (char c in command)
+                {
+                    SendMessage(hWindow, WM_CHAR, c, nint.Zero);
+                    await Task.Delay(1);
+                }
+
+                // Sleep for 1ms to allow the command to be processed
+                await Task.Delay(1);
+
+                // Simulate pressing the Enter key
+                SendMessage(hWindow, WM_KEYDOWN, 13, nint.Zero);
+                SendMessage(hWindow, WM_KEYUP, 13, nint.Zero);
             }
 
-            // Sleep for 1ms to allow the command to be processed
-            Thread.Sleep(1);
-
-            // Simulate pressing the Enter key
-            SendMessage(hWindow, WM_KEYDOWN, 13, nint.Zero);
-            SendMessage(hWindow, WM_KEYUP, 13, nint.Zero);
-
-            // Send the "connect" command to the terminal window
-            foreach (char c in connectCommand)
-            {
-                SendMessage(hWindow, WM_CHAR, c, nint.Zero);
-                Thread.Sleep(1);
-            }
-
-            // Sleep for 1ms to allow the command to be processed
-            Thread.Sleep(1);
-
-            // Simulate pressing the Enter key
-            SendMessage(hWindow, WM_KEYDOWN, 13, nint.Zero);
-            SendMessage(hWindow, WM_KEYUP, 13, nint.Zero);
-
+            // Close Terminal Window
             SendMessage(hWindow, WM_KEYDOWN, 192, nint.Zero);
 
-            // Set H2M to foreground window
-            var hGameWindow = FindH2MModGameWindow(h2mModProcess);
-            SetForegroundWindow(hGameWindow);
-
-
-            // TODO: confirm the user joined this server
-
+            if (bringGameWindowToForeground)
+            {
+                // Set H2M to foreground window
+                var hGameWindow = FindH2MModGameWindow(h2mModProcess);
+                SetForegroundWindow(hGameWindow);
+            }
 
             return true;
         }

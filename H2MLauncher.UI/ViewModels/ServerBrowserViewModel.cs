@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reactive;
 using System.Security;
 using System.Text.Json;
 using System.Windows;
@@ -79,7 +80,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private IServerTabViewModel _selectedTab;
 
     [ObservableProperty]
-    private ServerViewModel? _lastServer = null;
+    private IServerConnectionDetails? _lastServer = null;
     private SecureString? _lastServerPassword = null;
 
 
@@ -95,6 +96,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
 
+    [ObservableProperty]
+    private SocialsViewModel _socials = new();
 
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
@@ -122,7 +125,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
     public IAsyncRelayCommand ReconnectCommand { get; }
+    public IAsyncRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand EnterMatchmakingCommand { get; }
+
 
 
 
@@ -170,6 +175,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
         ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
+        DisconnectCommand = new AsyncRelayCommand(DisconnectServer);
         EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking, () => IsMatchmakingEnabled);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
@@ -767,6 +773,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             return;
         }
 
+        if (!CheckGameRunning())
+        {
+            return;
+        }
+
         if (!serverViewModel.HasMap)
         {
             bool? dialogResult = _dialogService.OpenTextDialog(
@@ -845,41 +856,19 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         await JoinServerInternal(serverViewModel, password);
     }
 
-    private async Task<bool> JoinServerInternal(ServerConnectionDetails server, string? password)
+    private async Task<bool> JoinServerInternal(IServerConnectionDetails server, string? password)
     {
-        await Task.Yield();
-
-        bool hasJoined = _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
+        bool hasJoined = await _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
         if (hasJoined)
         {
-            ServerViewModel? serverViewModel = FindServerViewModel(server);
+            ServerViewModel? serverViewModel = server as ServerViewModel ?? FindServerViewModel(server);
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-            LastServer = serverViewModel;
+            LastServer = server;
             _lastServerPassword = password?.ToSecuredString();
         }
 
         StatusText = hasJoined
             ? $"Joined {server.Ip}:{server.Port}"
-            : "Ready";
-
-        return hasJoined;
-    }
-
-    private async Task<bool> JoinServerInternal(ServerViewModel serverViewModel, string? password)
-    {
-        await Task.Yield();
-
-        bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
-        if (hasJoined)
-        {
-            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-
-            LastServer = serverViewModel;
-            _lastServerPassword = password?.ToSecuredString();
-        }
-
-        StatusText = hasJoined
-            ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
 
         return hasJoined;
@@ -893,6 +882,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
 
         return Task.CompletedTask;
+    }
+
+    private Task<bool> DisconnectServer()
+    {
+        return _h2MCommunicationService.Disconnect();
     }
 
     private bool CheckGameRunning()
@@ -935,13 +929,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         await Task.CompletedTask;
     }
 
-    private ServerViewModel? FindServerViewModel(ServerConnectionDetails server)
+    private ServerViewModel? FindServerViewModel(IServerConnectionDetails server)
     {
-        return AllServersTab.Servers.FirstOrDefault(server =>
-                server.Ip == server.Ip && server.Port == server.Port);
+        return AllServersTab.Servers.FirstOrDefault(s =>
+                server.Ip == s.Ip && server.Port == s.Port);
     }
 
-    private void MatchmakingService_Joined((string ip, int port) joinedServer)
+    private void MatchmakingService_Joined(ServerConnectionDetails joinedServer)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -950,6 +944,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);
                 LastServer = serverViewModel;
+            }
+            else
+            {
+                LastServer = joinedServer;
             }
         });
     }
