@@ -12,7 +12,9 @@
              MinHeight="200" MinWidth="300"
              Height="Auto"
              Width="400"
-             d:DataContext="{d:DesignInstance Type=vm:MatchmakingViewModel}">
+             d:DataContext="{d:DesignInstance Type=vm:MatchmakingViewModel}"
+             d:Foreground="White"
+             d:Background="Black">
     <UserControl.Resources>
         <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
@@ -68,7 +70,7 @@
         <!-- Title -->
         <TextBlock Grid.Row="0" Text="{Binding Title}" TextWrapping="WrapWithOverflow" 
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
-                   Margin="0,0,0,15" />
+                   Margin="0,0,0,15" d:Text="Title" />
 
         <!-- Server / Playlist Marquee -->
         <Canvas x:Name="serverTextContainer" Grid.Row="1" Grid.ColumnSpan="2" Width="300" Margin="15,5" 

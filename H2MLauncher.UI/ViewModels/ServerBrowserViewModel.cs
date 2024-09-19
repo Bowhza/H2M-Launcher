@@ -852,8 +852,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private async Task<bool> JoinServerInternal(IServerConnectionDetails server, string? password)
     {
-        await Task.Yield();
-
         bool hasJoined = await _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
         if (hasJoined)
         {
@@ -927,8 +925,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private ServerViewModel? FindServerViewModel(IServerConnectionDetails server)
     {
-        return AllServersTab.Servers.FirstOrDefault(server =>
-                server.Ip == server.Ip && server.Port == server.Port);
+        return AllServersTab.Servers.FirstOrDefault(s =>
+                server.Ip == s.Ip && server.Port == s.Port);
     }
 
     private void MatchmakingService_Joined(ServerConnectionDetails joinedServer)
