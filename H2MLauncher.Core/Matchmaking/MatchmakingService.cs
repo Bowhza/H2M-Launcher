@@ -143,6 +143,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         _errorHandlingService = errorHandlingService;
 
         gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
+        gameCommunicationService.Stopped += GameCommunicationService_Stopped;
     }
 
     private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
@@ -386,6 +387,14 @@ public sealed class MatchmakingService : IAsyncDisposable
                 // set this flag so we dont recognize a previous server connected to as the current server
                 queuedServer.HasSeenConnecting = true;
             }
+        }
+    }
+
+    private async void GameCommunicationService_Stopped(Exception? obj)
+    {
+        if (State is PlayerState.Joining or PlayerState.Queued or PlayerState.Matchmaking)
+        {
+            await LeaveQueueAsync();
         }
     }
 
