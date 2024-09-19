@@ -124,6 +124,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IRelayCommand ShowServerFilterCommand { get; }
     public IRelayCommand ShowSettingsCommand { get; }
     public IAsyncRelayCommand ReconnectCommand { get; }
+    public IAsyncRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
 
@@ -172,6 +173,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ShowServerFilterCommand = new RelayCommand(ShowServerFilter);
         ShowSettingsCommand = new RelayCommand(ShowSettings);
         ReconnectCommand = new AsyncRelayCommand(ReconnectServer);
+        DisconnectCommand = new AsyncRelayCommand(DisconnectServer);
         EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking, () => IsMatchmakingEnabled);
 
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
@@ -851,7 +853,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         await Task.Yield();
 
-        bool hasJoined = _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
+        bool hasJoined = await _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
         if (hasJoined)
         {
             ServerViewModel? serverViewModel = FindServerViewModel(server);
@@ -871,7 +873,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         await Task.Yield();
 
-        bool hasJoined = _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
+        bool hasJoined = await _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
         if (hasJoined)
         {
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);
@@ -895,6 +897,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
 
         return Task.CompletedTask;
+    }
+
+    private Task DisconnectServer()
+    {
+        return _h2MCommunicationService.Disconnect();
     }
 
     private bool CheckGameRunning()

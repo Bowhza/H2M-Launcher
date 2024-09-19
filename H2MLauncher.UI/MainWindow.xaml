@@ -79,6 +79,7 @@
         <KeyBinding Key="S" Modifiers="Ctrl" Command="{Binding SaveServersCommand}" />
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.RefreshServers}" Command="{Binding RefreshServersCommand}" />
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.Reconnect}" Command="{Binding ReconnectCommand}"/>
+        <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.Disconnect}" Command="{Binding DisconnectCommand}"/>
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>

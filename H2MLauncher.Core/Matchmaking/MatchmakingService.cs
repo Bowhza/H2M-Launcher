@@ -159,7 +159,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
 
     #region RPC Handlers
-    private bool OnNotifyJoin(string ip, int port)
+    private async Task<bool> OnNotifyJoin(string ip, int port)
     {
         _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
 
@@ -167,7 +167,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
         Joining?.Invoke((ip, port));
 
-        if (_h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
+        if (await _h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
         {
             State = PlayerState.Joining;
             return true;
