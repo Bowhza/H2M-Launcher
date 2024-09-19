@@ -353,12 +353,11 @@ namespace MatchmakingServer
                     // find overall best possible match for each non eligible player
                     foreach ((MMPlayer player, bool isEligible) in playersForServerSorted)
                     {
-                        // temp fix to include all potential matches
-                        //if (isEligible) continue;
+                        if (isEligible) continue;
 
                         bool foundMatch = TrySelectMatch(
                             server,
-                            playersForServerSorted.Where(p => p.isEligible || p.player == player).Select(p => p.player).ToList(), // include only other eligible players
+                            playersForServerSorted.Select(p => p.player).ToList(),
                             qualityScore,
                             availableSlots,
                             out MMMatch match);
