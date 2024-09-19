@@ -32,5 +32,10 @@ namespace H2MLauncher.UI
         /// The injection key for the default <see cref="Core.Settings.H2MLauncherSettings"/>.
         /// </summary>
         public const string DefaultSettingsKey = "DefaultSettings";
+
+
+        public const string DISCORD_INVITE_LINK = "https://discord.gg/J6cxWGvy4C";
+
+        public const string GITHUB_REPO = "https://github.com/Bowhza/H2M-Launcher";
     }
 }

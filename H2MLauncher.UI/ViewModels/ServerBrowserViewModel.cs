@@ -95,6 +95,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private PasswordViewModel _passwordViewModel = new();
 
+    [ObservableProperty]
+    private SocialsViewModel _socials = new();
 
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
