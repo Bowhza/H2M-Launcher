@@ -15,10 +15,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
     private static readonly ConcurrentDictionary<string, Player> ConnectedPlayers = [];
 
     private readonly PlayerStore _playerStore;
+    private readonly ILogger<PartyHub> _logger;
 
-    public PartyHub(PlayerStore playerStore)
+    public PartyHub(PlayerStore playerStore, ILogger<PartyHub> logger)
     {
         _playerStore = playerStore;
+        _logger = logger;
     }
 
     public async Task<string?> CreateParty()
@@ -74,7 +76,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         await Groups.AddToGroupAsync(Context.ConnectionId, $"party_{party.Id}");
 
         // notify others of join
-        Clients.OthersInGroup($"party_{party.Id}").OnUserJoinedParty(player.Name);
+        await Clients.OthersInGroup($"party_{party.Id}").OnUserJoinedParty(player.Id, player.Name);
 
         return party.Members.Select(m => m.Name).ToList();
     }
@@ -91,7 +93,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             // close party
             if (Parties.TryRemove(party.Id, out _))
             {
-                Clients.Group($"party_{party.Id}").OnPartyClosed();
+                await Clients.Group($"party_{party.Id}").OnPartyClosed();
             }
         }
         else
@@ -99,7 +101,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             // remove user from party
             if (party.RemovePlayer(player))
             {
-                Clients.Group($"party_{party.Id}").OnUserLeftParty(player.Name);
+                await Clients.Group($"party_{party.Id}").OnUserLeftParty(player.Id, player.Name);
             }
         }
 
@@ -133,6 +135,28 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
         // notify others to join the server
         await Clients.OthersInGroup($"party_{player.Party.Id}").OnJoinServer(server);
+    }
+
+    public async Task UpdatePlayerName(string newName)
+    {
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        {
+            return;
+        }
+
+        if (player.Name.Equals(newName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string oldName = player.Name;
+        player.Name = newName;
+        _logger.LogInformation("Player name changed from '{oldName}' to '{newName}' for {player}", oldName, newName, player);
+
+        if (player.Party is not null)
+        {
+            await Clients.OthersInGroup($"party_{player.Party.Id}").OnUserNameChanged(player.Id, newName);
+        }
     }
 
     public override async Task OnConnectedAsync()

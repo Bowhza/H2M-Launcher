@@ -11,4 +11,6 @@ public interface IPartyHub
     Task<bool> LeaveParty();
 
     Task JoinServer(ServerConnectionDetails server);
+
+    Task UpdatePlayerName(string newName);
 }

@@ -4,10 +4,11 @@ namespace MatchmakingServer.SignalR;
 
 public interface IPartyClient
 {
-    void OnUserJoinedParty(string playerName);
-    void OnUserLeftParty(string playerName);
-    void OnPartyClosed();
-    void OnKickedFromParty();
+    Task OnUserJoinedParty(string id, string playerName);
+    Task OnUserLeftParty(string id, string playerName);
+    Task OnUserNameChanged(string id, string newPlayerName);
+    Task OnPartyClosed();
+    Task OnKickedFromParty();
 
     Task OnJoinServer(ServerConnectionDetails server);
 
