@@ -508,6 +508,7 @@ public sealed class MatchmakingService : IAsyncDisposable
                 await _connection.SendAsync("LeaveQueue");
                 State = PlayerState.Connected;
                 Playlist = null;
+                MatchSearchCriteria = null;
                 SearchAttempts = 0;
                 _logger.LogInformation("Server queue left.");
             }
