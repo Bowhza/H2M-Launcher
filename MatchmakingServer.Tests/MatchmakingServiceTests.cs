@@ -1,8 +1,6 @@
 using FluentAssertions;
 
-using H2MLauncher.Core.Models;
-
-using static MatchmakingServer.MatchmakingService;
+using H2MLauncher.Core.Matchmaking.Models;
 
 namespace MatchmakingServer.Tests
 {
@@ -14,20 +12,20 @@ namespace MatchmakingServer.Tests
             DateTime timeoutAgo = DateTime.Now.Subtract(TimeSpan.FromSeconds(30));
 
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 servers: new() { { ("192.168.1.1", 8080), -1 }, { ("192.168.1.2", 8080), -1 } },
                 new MatchSearchCriteria() { MinPlayers = 2 })
             { JoinTime = timeoutAgo };
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 servers: new() { { ("192.168.1.1", 8080), -1 }, { ("192.168.1.3", 8080), -1 } },
                 new MatchSearchCriteria() { MinPlayers = 5 });
             MMPlayer player3 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Charlie" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" },
                 servers: new() { { ("192.168.1.1", 8080), -1 } }, 
                 new MatchSearchCriteria() { MinPlayers = 5 });
             MMPlayer player4 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "David" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "David" },
                 servers: new() { { ("192.168.1.2", 8080), -1 } }, 
                 new MatchSearchCriteria() { MinPlayers = 5 });
 
@@ -39,19 +37,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_HappyCase()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 6 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMPlayer player3 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Charlie" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMPlayer player4 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "David" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "David" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -63,19 +61,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldRespectFreeSlots()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 6 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMPlayer player3 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Charlie" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMPlayer player4 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "David" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "David" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -87,15 +85,15 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleExactMatchForFreeSlots()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 5 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
             MMPlayer player3 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Charlie" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
 
@@ -107,11 +105,11 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldNotSelectWhenThresholdCannotBeMet()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 10 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 8 });
 
@@ -123,11 +121,11 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldNotSelectWhenThresholdCannotBeMetByOne()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
 
@@ -139,19 +137,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleHighThresholdWhenEnoughPlayersAvailable()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 8 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMPlayer player3 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Charlie" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 5 });
             MMPlayer player4 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "David" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "David" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
 
@@ -163,19 +161,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleExcessPlayers()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMPlayer player2 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Bob" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
             MMPlayer player3 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Charlie" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMPlayer player4 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "David" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "David" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -187,7 +185,7 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleNoFreeSlots()
         {
             MMPlayer player1 = new(
-                new Player() { ConnectionId = Guid.NewGuid().ToString(), Name = "Alice" },
+                new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
 

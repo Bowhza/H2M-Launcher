@@ -1,5 +1,7 @@
 ﻿using System.Net;
 
+using Flurl;
+
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.IW4MAdmin.Models;
@@ -123,8 +125,14 @@ public sealed class MatchmakingService : IAsyncDisposable
         _playerNameProvider = playerNameProvider;
         _mapsProvider = mapsProvider;
 
+        object queryParams = new
+        {
+            uid = Guid.NewGuid().ToString(),
+            playerName = _playerNameProvider.PlayerName
+        };
+
         _connection = new HubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.QueueingHubUrl)
+            .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams))
             .Build();
 
         _connection.On<string, int, bool>("NotifyJoin", OnNotifyJoin);
@@ -446,8 +454,8 @@ public sealed class MatchmakingService : IAsyncDisposable
     {
         try
         {
-            if (!_options.CurrentValue.ServerQueueing || 
-                !_options.CurrentValue.GameMemoryCommunication || 
+            if (!_options.CurrentValue.ServerQueueing ||
+                !_options.CurrentValue.GameMemoryCommunication ||
                 !_gameDetectionService.IsGameDetectionRunning)
             {
                 return false;
@@ -459,18 +467,16 @@ public sealed class MatchmakingService : IAsyncDisposable
                 await StartConnection();
             }
 
-            string playerName = _playerNameProvider.PlayerName;
-
-            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
+            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id);
             if (!joinedSuccesfully)
             {
-                _logger.LogDebug("Could not join queue as '{playerName}' for {serverIp}:{serverPort}",
-                    playerName, server.Ip, server.Port);
+                _logger.LogDebug("Could not join queue for {serverIp}:{serverPort}",
+                    server.Ip, server.Port);
                 return false;
             }
 
-            _logger.LogInformation("Joined server queue as '{playerName}' for {serverIp}:{serverPort}",
-                playerName, server.Ip, server.Port);
+            _logger.LogInformation("Joined server queue for {serverIp}:{serverPort}",
+                server.Ip, server.Port);
 
             if (privatePassword is not null)
             {
@@ -582,17 +588,16 @@ public sealed class MatchmakingService : IAsyncDisposable
             SearchAttempts = 0;
             Playlist = playlist;
             MatchSearchCriteria = initialSearchCriteria;
-            string playerName = _playerNameProvider.PlayerName;
 
-            bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, initialSearchCriteria, playlist.Servers);
+            bool success = await _connection.InvokeAsync<bool>("SearchMatch", initialSearchCriteria, playlist.Servers);
             if (!success)
             {
-                _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}' as '{playerName}'", playlist.Id, playerName);
+                _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}'", playlist.Id);
                 return false;
             }
 
             State = PlayerState.Matchmaking;
-            _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}' as '{playerName}' for ", playlist.Id, playerName);
+            _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}'", playlist.Id);
 
             return true;
         }

@@ -129,7 +129,7 @@ namespace MatchmakingServer.Queueing
                 player.JoinAttempts.Add(DateTimeOffset.Now);
 
                 // notify client to join
-                var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.ConnectionId)
+                var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
                     .NotifyJoin(server.GetActualIpAddress(), server.ServerPort, cancellation.Token);
 
                 if (joinTriggeredSuccessfully)
@@ -785,7 +785,7 @@ namespace MatchmakingServer.Queueing
             {
                 try
                 {
-                    await _ctx.Clients.Client(player.ConnectionId).QueuePositionChanged(++queuePosition, queueLength);
+                    await _ctx.Clients.Client(player.QueueingHubId!).QueuePositionChanged(++queuePosition, queueLength);
                 }
                 catch (Exception ex)
                 {
@@ -798,7 +798,7 @@ namespace MatchmakingServer.Queueing
         {
             try
             {
-                await _ctx.Clients.Client(player.ConnectionId).RemovedFromQueue(reason).ConfigureAwait(false);
+                await _ctx.Clients.Client(player.QueueingHubId!).RemovedFromQueue(reason).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

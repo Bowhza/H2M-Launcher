@@ -424,7 +424,7 @@ namespace MatchmakingServer
         {
             try
             {
-                await _hubContext.Clients.Client(player.Player.ConnectionId)
+                await _hubContext.Clients.Client(player.Player.QueueingHubId)
                         .SearchMatchUpdate(matchesForPlayer.Select(CreateMatchResult))
                         .ConfigureAwait(false);
             }
@@ -543,6 +543,7 @@ namespace MatchmakingServer
             return selectedPlayers;
         }
 
+
         /// <summary>
         /// Selects the upper max players for a match whose <see cref="MatchSearchCriteria.MinPlayers"/> are satisfied,
         /// given a list of players ordered by their min treshold in descending order.
@@ -557,7 +558,6 @@ namespace MatchmakingServer
 
             int premain = queuedPlayers.Count; // how many players remain in the queue to consider (starting with all)
             int pjoin = Math.Min(queuedPlayers.Count, freeSlots); // how many players to pull from the queue
-            int ptotal = pjoin + joinedPlayersCount; // max total number of players
             int iMaxTreshold; // the index of the player with the max satisfyable treshold
 
             // iterate over players sorted by min player treshold, starting with the highest treshold
@@ -630,7 +630,7 @@ namespace MatchmakingServer
             {
                 _logger.LogTrace("Notifying players with match result...");
 
-                await _hubContext.Clients.Clients(match.SelectedPlayers.Select(p => p.Player.ConnectionId))
+                await _hubContext.Clients.Clients(match.SelectedPlayers.Select(p => p.Player.QueueingHubId))
                     .MatchFound(match.Server.LastServerInfo!.HostName, CreateMatchResult(match));
             }
             catch (Exception ex)
@@ -653,7 +653,7 @@ namespace MatchmakingServer
             {
                 if (!await _queueingService.JoinQueue(server, player).ConfigureAwait(false))
                 {
-                    await _hubContext.Clients.Client(player.ConnectionId)
+                    await _hubContext.Clients.Client(player.QueueingHubId)
                         .RemovedFromMatchmaking(MatchmakingError.QueueingFailed)
                         .ConfigureAwait(false);
 

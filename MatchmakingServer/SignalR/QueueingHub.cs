@@ -14,42 +14,20 @@ namespace MatchmakingServer.SignalR
         private readonly QueueingService _queueingService;
         private readonly MatchmakingService _matchmakingService;
 
+        private readonly PlayerStore _playerStore;
+
         private readonly static ConcurrentDictionary<string, Player> ConnectedPlayers = new();
 
-        public QueueingHub(ILogger<QueueingHub> logger, QueueingService queueingService, MatchmakingService matchmakingService)
+        public QueueingHub(
+            ILogger<QueueingHub> logger, 
+            QueueingService queueingService, 
+            MatchmakingService matchmakingService, 
+            PlayerStore playerStore)
         {
             _logger = logger;
             _queueingService = queueingService;
             _matchmakingService = matchmakingService;
-        }
-
-
-        /// <summary>
-        /// Register a player.
-        /// </summary>
-        /// <param name="connectionId">Client connection id.</param>
-        /// <param name="playerName">Player name</param>
-        /// <returns>Whether sucessfully registered.</returns>
-        private Player GetOrAddPlayer(string connectionId, string playerName)
-        {
-            if (ConnectedPlayers.TryGetValue(connectionId, out Player? player))
-            {
-                return player;
-            }
-
-            player = new()
-            {
-                Name = playerName,
-                ConnectionId = connectionId,
-                State = PlayerState.Connected
-            };
-
-            if (ConnectedPlayers.TryAdd(connectionId, player))
-            {
-                _logger.LogInformation("Connected player: {player}", player);
-            }
-
-            return player;
+            _playerStore = playerStore;
         }
 
         /// <summary>
@@ -95,11 +73,15 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId, string playerName)
+        public Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId)
         {
-            _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverIp, serverPort, playerName);
+            if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+            {
+                return Task.FromResult(false);
+            }
 
-            var player = GetOrAddPlayer(Context.ConnectionId, playerName);
+            _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverIp, serverPort, player.Name);
+
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
                 // player already in queue
@@ -131,9 +113,12 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public bool SearchMatch(string playerName, MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        public bool SearchMatch(MatchSearchCriteria searchPreferences, List<string> preferredServers)
         {
-            var player = GetOrAddPlayer(Context.ConnectionId, playerName);
+            if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+            {
+                return false;
+            }
 
             return _matchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers);
         }
@@ -149,19 +134,46 @@ namespace MatchmakingServer.SignalR
             return _matchmakingService.UpdateSearchPreferences(player, searchPreferences, serverPings);
         }
 
+        public override async Task OnConnectedAsync()
+        {
+            string uniqueId = Context.UserIdentifier!;
+            string playerName = Context.User!.Identity!.Name!;
+
+            Player player = _playerStore.ConnectedPlayers.GetOrAdd(uniqueId, (id) => new()
+            {
+                Id = id,
+                Name = playerName,
+                State = PlayerState.Connected
+            });
+
+            if (player.QueueingHubId is not null)
+            {
+                // Reject the connection because the user is already connected
+                Context.Abort();
+                return;
+            }
+
+            player.QueueingHubId = Context.ConnectionId;
+            ConnectedPlayers[Context.ConnectionId] = player;
+
+            await base.OnConnectedAsync();
+        }
+
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
             _logger.LogInformation(exception, "Client disconnected: {connectionId}", Context.ConnectionId);
 
-            var player = RemovePlayer(Context.ConnectionId);
-            if (player is null)
+            if (_playerStore.ConnectedPlayers.TryGetValue(Context.UserIdentifier!, out Player? player))
             {
-                return;
+                player.QueueingHubId = null;
             }
 
-            _logger.LogInformation("Removed player {player}", player);
+            if (RemovePlayer(Context.ConnectionId) != null);
+            {
+                _logger.LogInformation("Removed player {player}", player);
+            }
 
-            await Task.CompletedTask;
+            await base.OnDisconnectedAsync(exception);
         }
     }
 }

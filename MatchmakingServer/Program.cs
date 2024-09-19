@@ -7,9 +7,11 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Authentication;
+using MatchmakingServer.Authentication.Player;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
@@ -57,6 +59,7 @@ builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 builder.Services.AddSingleton<ServerInstanceCache>();
 
 builder.Services.AddSingleton<ServerStore>();
+builder.Services.AddSingleton<PlayerStore>();
 builder.Services.AddSingleton<QueueingService>();
 builder.Services.AddSingleton<MatchmakingServer.MatchmakingService>();
 builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingServer.MatchmakingService>());
@@ -101,6 +104,9 @@ builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
                         return requiresAuth ? ApiKeyDefaults.AuthenticationScheme : null;
                     };
                 });
+
+builder.Services.AddAuthentication("client")
+        .AddScheme<AuthenticationSchemeOptions, ClientAuthenticationHandler>("client", null);
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
