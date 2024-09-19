@@ -135,6 +135,7 @@ Alternatively, you can try switching to the alternative master server `http://ap
 
 - Make sure that the server reports an IPv4 Address to the panel, as IPv6 servers are not supported and will not show up.
 
+> [!NOTE]
 > **If you and others can connect to the server in game, but it does not show up, please report the concrete case!**
 
 ### 5. Saving to clipboard failed
@@ -152,9 +153,10 @@ Go to your Windows Settings and search for Clear Clipboard.
 
 **Answer**: Delete the `launchersettings.json` file located at `C:\Users\<YourUserName>\AppData\Local\BetterH2MLauncher`. After deleting the json file, next time you launch the exe it should be created again.
 
+> [!IMPORTANT]
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
-
-For other information and questions can be found at this **[Discord Server](https://discord.com/invite/NeBYKxq5Ru)**.
+> 
+> For other information and questions can be found at this **[Discord Server](https://discord.com/invite/NeBYKxq5Ru)**.
 
 ## Compiling from Source Code
 
