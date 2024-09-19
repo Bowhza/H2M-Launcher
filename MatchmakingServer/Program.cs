@@ -61,8 +61,8 @@ builder.Services.AddSingleton<ServerInstanceCache>();
 builder.Services.AddSingleton<ServerStore>();
 builder.Services.AddSingleton<PlayerStore>();
 builder.Services.AddSingleton<QueueingService>();
-builder.Services.AddSingleton<MatchmakingServer.MatchmakingService>();
-builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingServer.MatchmakingService>());
+builder.Services.AddSingleton<MatchmakingService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingService>());
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -158,6 +158,7 @@ app.MapHealthChecks("/health");
 //app.UseHttpsRedirection();
 
 app.MapHub<QueueingHub>("/Queue");
+app.MapHub<PartyHub>("/Party");
 
 app.Services.GetRequiredService<MatchmakingServer.MatchmakingService>();
 

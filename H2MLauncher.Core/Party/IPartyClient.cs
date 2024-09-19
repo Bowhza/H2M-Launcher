@@ -1,6 +1,6 @@
 ﻿using H2MLauncher.Core.Models;
 
-namespace MatchmakingServer.SignalR;
+namespace MatchmakingServer.Core.Party;
 
 public interface IPartyClient
 {

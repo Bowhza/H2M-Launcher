@@ -1,7 +1,7 @@
 ﻿using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 
-namespace MatchmakingServer.SignalR;
+namespace MatchmakingServer.Core.Party;
 
 public interface IPartyHub
 {
