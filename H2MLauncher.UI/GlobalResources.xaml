@@ -24,12 +24,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#E59400" />
+                            <Setter TargetName="border" Property="Background" Value="#E59400" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
@@ -69,6 +69,43 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#66FFFFFF" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter Property="Foreground" Value="White" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Opacity" Value="0.7" />
+                            <Setter Property="Foreground" Value="#CCC" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="DiscordWindowButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border CornerRadius="4" x:Name="border"
+                     Background="{TemplateBinding Background}"
+                     Padding="{TemplateBinding Padding}">
+                        <Grid>
+                            <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,0" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#5865F2" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
@@ -545,6 +582,7 @@
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
     <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
     <converters:EmptyItemConverter x:Key="emptyItemConverter" />
     <converters:HostNameColorConverter x:Key="HostNameColorConverter" />

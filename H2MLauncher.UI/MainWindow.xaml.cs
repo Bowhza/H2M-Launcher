@@ -4,7 +4,7 @@ using System.Windows.Input;
 
 using CommunityToolkit.Mvvm.Input;
 
-using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Game;
 using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI

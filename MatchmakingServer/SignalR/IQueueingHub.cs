@@ -1,4 +1,4 @@
-﻿using H2MLauncher.Core.Models;
+﻿using H2MLauncher.Core.Matchmaking.Models;
 
 namespace MatchmakingServer.SignalR
 {

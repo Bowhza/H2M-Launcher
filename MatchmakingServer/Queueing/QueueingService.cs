@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Models;
+﻿using H2MLauncher.Core.IW4MAdmin.Models;
+using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Services;
 
 using MatchmakingServer.SignalR;
@@ -382,6 +384,7 @@ namespace MatchmakingServer.Queueing
                     {
                         server.ProcessingState = QueueProcessingState.Idle;
                         server.PlayersAvailable.Reset();
+                        server.JoiningPlayerCount = 0; // reset if got out of sync (temp fix)
 
                         _logger.LogInformation("No players in queue for server {server}, switched to idle state", server);
 

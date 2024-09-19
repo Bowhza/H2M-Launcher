@@ -6,6 +6,8 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Matchmaking;
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
@@ -26,15 +28,11 @@ namespace H2MLauncher.UI.ViewModels
         public DateTime StartTime { get; set; }
 
         [NotifyCanExecuteChangedFor(nameof(ForceJoinCommand))]
-        [NotifyPropertyChangedFor(nameof(ComputedTitle))]
-        [ObservableProperty]
-        private bool _isJoining = false;
-
         [NotifyCanExecuteChangedFor(nameof(EnterMatchmakingCommand))]
         [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
-        [NotifyPropertyChangedFor(nameof(ComputedTitle))]
+        [NotifyPropertyChangedFor(nameof(Title))]
         [ObservableProperty]
-        private bool _isInQueue = false;
+        private bool _isJoining = false;
 
         [ObservableProperty]
         private string _joiningServer = "";
@@ -44,12 +42,6 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private int _totalPlayersInQueue = 0;
-
-        [NotifyCanExecuteChangedFor(nameof(EnterMatchmakingCommand))]
-        [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
-        [NotifyPropertyChangedFor(nameof(ComputedTitle))]
-        [ObservableProperty]
-        private bool _isInMatchmaking = false;
 
         [NotifyCanExecuteChangedFor(nameof(ForceJoinCommand))]
         [ObservableProperty]
@@ -71,25 +63,24 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private string _searchResultText = "";
 
-        [ObservableProperty]
-        private string _title = "";
-
         [NotifyCanExecuteChangedFor(nameof(RetryCommand))]
         [NotifyCanExecuteChangedFor(nameof(ConnectToServiceCommand))]
-        [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
-        [NotifyPropertyChangedFor(nameof(ComputedTitle))]
+        [NotifyPropertyChangedFor(nameof(Title))]
         [ObservableProperty]
         private bool _isConnectingToOnlineService = false;
 
         [NotifyCanExecuteChangedFor(nameof(EnterMatchmakingCommand))]
         [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
-        [NotifyPropertyChangedFor(nameof(ComputedTitle))]
+        [NotifyPropertyChangedFor(nameof(Title))]
         [ObservableProperty]
         private bool _isConnectedToOnlineService = false;
 
-        [NotifyPropertyChangedFor(nameof(ComputedTitle))]
+        [NotifyPropertyChangedFor(nameof(Title))]
         [ObservableProperty]
         private bool _isError = false;
+
+        [ObservableProperty]
+        private string? _errorTitle;
 
         [ObservableProperty]
         private string _errorText = "";
@@ -99,6 +90,23 @@ namespace H2MLauncher.UI.ViewModels
 
         private Playlist? _lastPlaylist = null;
 
+        [ObservableProperty]
+        private Playlist? _selectedPlaylist = null;
+        
+        [NotifyCanExecuteChangedFor(nameof(EnterMatchmakingCommand))]
+        [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
+        [NotifyPropertyChangedFor(nameof(IsInMatchmaking))]
+        [NotifyPropertyChangedFor(nameof(IsInQueue))]
+        [ObservableProperty]
+        private PlayerState _state;
+        public bool IsInMatchmaking => State is PlayerState.Matchmaking;
+        public bool IsInQueue => State is PlayerState.Queued;
+
+        public bool CanEnterMatchmaking => IsConnectedToOnlineService && 
+            State is PlayerState.Connected or PlayerState.Joined && !IsJoining;
+
+        public string QueuePositionText => $"{QueuePosition} / {TotalPlayersInQueue}";
+
         public ObservableCollection<Playlist> Playlists { get; } = [
             new Playlist()
             {
@@ -106,14 +114,37 @@ namespace H2MLauncher.UI.ViewModels
                 Name = "Default Playlist"
             }];
 
-        [ObservableProperty]
-        private Playlist? _selectedPlaylist = null;
-
-        public bool CanEnterMatchmaking => IsConnectedToOnlineService && !IsInMatchmaking && !IsInQueue;
-
-        public string QueuePositionText => $"{QueuePosition} / {TotalPlayersInQueue}";
 
         public bool CloseOnLeave { get; set; } = false;
+
+        public string Title
+        {
+            get
+            {
+                if (IsError && !string.IsNullOrEmpty(ErrorTitle))
+                {
+                    return ErrorTitle;
+                }
+                if (State is PlayerState.Matchmaking)
+                {
+                    return "Searching Match";
+                }
+                if (State is PlayerState.Queued or PlayerState.Joining)
+                {
+                    return "Joining Server";
+                }
+                if (IsConnectingToOnlineService)
+                {
+                    return "Connecting to online service...";
+                }
+                if (IsConnectedToOnlineService)
+                {
+                    return "Matchmaking";
+                }
+
+                return "Matchmaking";
+            }
+        }
 
         public IAsyncRelayCommand AbortCommand { get; }
 
@@ -153,12 +184,10 @@ namespace H2MLauncher.UI.ViewModels
 
             QueuePosition = matchmakingService.QueuePosition;
             TotalPlayersInQueue = matchmakingService.TotalPlayersInQueue;
-            IsInMatchmaking = matchmakingService.State is PlayerState.Matchmaking;
-            IsInQueue = matchmakingService.State is PlayerState.Queued;
+            State = matchmakingService.State;
             PlaylistName = matchmakingService.Playlist?.Name ?? "";
             IsConnectingToOnlineService = matchmakingService.IsConnecting;
             IsConnectedToOnlineService = matchmakingService.IsConnected;
-            Title = "Matchmaking";
             SelectedPlaylist = Playlists.FirstOrDefault();
 
             _queueTimer = new()
@@ -167,7 +196,7 @@ namespace H2MLauncher.UI.ViewModels
             };
             _queueTimer.Tick += QueueTimer_Tick;
 
-            if (IsInQueue)
+            if (State is PlayerState.Queued)
             {
                 // start counting seconds from 0
                 StartTime = DateTime.Now;
@@ -175,56 +204,7 @@ namespace H2MLauncher.UI.ViewModels
             }
 
             _onForceJoin = onForceJoin;
-        }
-
-        [ObservableProperty]
-        private string? _errorTitle;
-
-        public string ComputedTitle
-        {
-            get
-            {
-                if (IsError && !string.IsNullOrEmpty(ErrorTitle))
-                {
-                    return ErrorTitle;
-                }
-                if (IsInMatchmaking)
-                {
-                    return "Searching Match";
-                }
-                if (IsInQueue || IsJoining)
-                {
-                    return "Joining Server";
-                }
-                if (IsConnectingToOnlineService)
-                {
-                    return "Connecting to online service...";
-                }
-                if (IsConnectedToOnlineService)
-                {
-                    return "Matchmaking";
-                }
-
-                return "Matchmaking";
-            }
-        }
-
-        partial void OnIsInMatchmakingChanged(bool value)
-        {
-            if (value)
-            {
-                Title = "Searching Match";
-                MatchmakingStatus = "Searching for matches with ping <= " + _matchmakingService.MatchSearchCriteria?.MaxPing + " ms";
-            }
-        }
-
-        partial void OnIsInQueueChanged(bool value)
-        {
-            if (value)
-            {
-                Title = "Joining Server";
-            }
-        }
+        }        
 
         partial void OnIsErrorChanged(bool oldValue, bool newValue)
         {
@@ -236,12 +216,12 @@ namespace H2MLauncher.UI.ViewModels
 
         protected override async Task OnLoaded()
         {
-            if (!IsConnectedToOnlineService && !IsConnectingToOnlineService)
+            if (ConnectToServiceCommand.CanExecute(null))
             {
                 ConnectToServiceCommand.Execute(null);
             }
 
-            if (!IsInQueue)
+            if (State is not PlayerState.Queued)
             {
                 await RefreshPlaylists();
             }
@@ -307,16 +287,16 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void MatchmakingService_Joining((string ip, int port) server)
+        private void MatchmakingService_Joining(ServerConnectionDetails server)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
                 IsJoining = true;
-                JoiningServer = $"{server.ip}:{server.port}";
+                JoiningServer = $"{server.Ip}:{server.Port}";
             });
         }
 
-        private void MatchmakingService_JoinFailed((string ip, int port) obj)
+        private void MatchmakingService_JoinFailed(ServerConnectionDetails obj)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -383,20 +363,15 @@ namespace H2MLauncher.UI.ViewModels
             {
                 IsConnectingToOnlineService = true;
                 IsError = false;
-                Title = "Connecting to online service...";
                 try
                 {
                     Task delayTask = Task.Delay(1000, cancellationToken);
                     await _matchmakingService.StartConnection(cancellationToken);
                     await delayTask;
                     IsConnectedToOnlineService = true;
-                    Title = "Matchmaking";
                     return true;
                 }
-                catch (OperationCanceledException)
-                {
-                    Title = "Not connected";
-                }
+                catch (OperationCanceledException) { }
                 catch
                 {
                     IsError = true;
@@ -428,11 +403,6 @@ namespace H2MLauncher.UI.ViewModels
                 return;
             }
 
-            if (IsInMatchmaking)
-            {
-                return;
-            }
-
             bool success = playlist is not null
                 ? await _matchmakingService.EnterMatchmakingAsync(playlist, MatchmakingPreferences.ToModel())
                 : await _matchmakingService.EnterMatchmakingAsync(MatchmakingPreferences.ToModel());
@@ -445,7 +415,7 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
-        private void MatchmakingService_QueueingStateChanged(PlayerState state)
+        private void MatchmakingService_QueueingStateChanged(PlayerState oldState, PlayerState state)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -455,15 +425,17 @@ namespace H2MLauncher.UI.ViewModels
                     CloseCommand?.Execute(null);
                 }
 
-                if (state is PlayerState.Connected && CloseOnLeave)
+                if (CloseOnLeave && 
+                    state is PlayerState.Connected && 
+                    oldState is PlayerState.Matchmaking or PlayerState.Queued)
                 {
+                    // we were in matchmaking or queue and left
                     CloseCommand?.Execute(null);
                 }
 
-                IsInMatchmaking = state is PlayerState.Matchmaking;
-                IsInQueue = state is PlayerState.Queued;
+                State = state;
 
-                if (IsInMatchmaking)
+                if (state is PlayerState.Matchmaking)
                 {
                     PlaylistName = _matchmakingService.Playlist?.Name ?? "";
                 }
@@ -473,7 +445,7 @@ namespace H2MLauncher.UI.ViewModels
                     SearchResultText = "";
                 }
 
-                if (IsInMatchmaking || IsInQueue && !_queueTimer.IsEnabled)
+                if (state is PlayerState.Matchmaking or PlayerState.Queued && !_queueTimer.IsEnabled)
                 {
                     // start counting seconds from 0
                     StartTime = DateTime.Now;
@@ -484,6 +456,8 @@ namespace H2MLauncher.UI.ViewModels
                 {
                     _queueTimer.Stop();
                 }
+
+                IsJoining = state is PlayerState.Joining;
             });
         }
 

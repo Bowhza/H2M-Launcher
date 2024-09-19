@@ -2,11 +2,13 @@
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
+using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Networking.GameServer;
 
 namespace H2MLauncher.UI.ViewModels
 {
-    public partial class ServerViewModel : ObservableObject
+    public partial class ServerViewModel : ObservableObject, IServerConnectionDetails
     {
         public required IW4MServer Server { get; init; }
         public required GameServerInfo GameServerInfo { get; init; }

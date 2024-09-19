@@ -10,7 +10,9 @@
              MinHeight="150" MinWidth="300"
              Height="Auto"
              Width="330"
-             d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}">
+             d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}"
+             d:Foreground="White"
+             d:Background="Black">
     <UserControl.Resources>
         <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>

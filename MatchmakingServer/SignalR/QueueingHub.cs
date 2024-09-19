@@ -1,7 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Matchmaking.Models;
 
 using MatchmakingServer.Queueing;
 

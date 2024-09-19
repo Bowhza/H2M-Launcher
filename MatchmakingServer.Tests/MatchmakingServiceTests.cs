@@ -1,8 +1,6 @@
 using FluentAssertions;
 
-using H2MLauncher.Core.Models;
-
-using static MatchmakingServer.MatchmakingService;
+using H2MLauncher.Core.Matchmaking.Models;
 
 namespace MatchmakingServer.Tests
 {

@@ -1,7 +1,5 @@
-﻿using System.Reflection;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media.Converters;
 
 using H2MLauncher.UI.Dialog.Views;
 
@@ -9,43 +7,13 @@ namespace H2MLauncher.UI.Dialog
 {
     public class DialogService
     {
-        private DialogWindow? _dialogWindow;
-
-        private DialogWindow CreateDialog(Control content)
+        private static DialogWindow CreateDialog(Control content)
         {
-            _dialogWindow = new DialogWindow
+            return new DialogWindow
             {
-                Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive),
+                Owner = Application.Current.MainWindow,
                 Content = content,
             };
-
-            return _dialogWindow;
-        }
-
-        public void CloseDialogWindow()
-        {
-            _dialogWindow?.Close();
-        }
-
-        public bool? OpenTextDialog(string title, string text, MessageBoxButton buttons = MessageBoxButton.OK)
-        {
-            return OpenDialog<TextDialogView>(
-                new TextDialogViewModel(buttons)
-                {
-                    Title = title,
-                    Text = text
-                });
-        }
-
-        public static bool? OpenDialog(IDialogViewModel viewModel, Control dialogContent)
-        {
-            var dialogWindow = new DialogWindow
-            {
-                Owner = Application.Current.Windows.OfType<Window>().SingleOrDefault(x => x.IsActive),
-                Content = dialogContent,
-            };
-
-            return ShowDialog(viewModel, dialogWindow);
         }
 
         private static void PrepareDialogWindow(IDialogViewModel viewModel, DialogWindow dialogWindow)
@@ -88,6 +56,38 @@ namespace H2MLauncher.UI.Dialog
             PrepareDialogWindow(viewModel, dialogWindow);
 
             return dialogWindow.ShowDialog();
+        }
+
+        public static bool? OpenDialog(IDialogViewModel viewModel, Control dialogContent)
+        {
+            DialogWindow dialogWindow = CreateDialog(dialogContent);
+
+            return ShowDialog(viewModel, dialogWindow);
+        }
+
+        public bool? OpenTextDialog(string title, string text, 
+            MessageBoxButton buttons = MessageBoxButton.OK, string acceptButtonText = "", string cancelButtonText = "Cancel")
+        {
+            return OpenDialog<TextDialogView>(
+                new TextDialogViewModel(buttons)
+                {
+                    Title = title,
+                    Text = text,
+                });
+        }
+
+        public bool? OpenTextDialog(string title, string text, string acceptButtonText, string cancelButtonText = "")
+        {
+            MessageBoxButton buttons = string.IsNullOrEmpty(cancelButtonText) ? MessageBoxButton.OK : MessageBoxButton.OKCancel;
+
+            return OpenDialog<TextDialogView>(
+                new TextDialogViewModel(buttons)
+                {
+                    Title = title,
+                    Text = text,
+                    AcceptButtonText = acceptButtonText,
+                    CancelButtonText = cancelButtonText
+                });
         }
 
         public bool? OpenDialog<TDialog>(IDialogViewModel viewModel) where TDialog : Control, new()
