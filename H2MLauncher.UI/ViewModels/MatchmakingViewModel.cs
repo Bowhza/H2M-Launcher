@@ -287,16 +287,16 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void MatchmakingService_Joining((string ip, int port) server)
+        private void MatchmakingService_Joining(ServerConnectionDetails server)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
                 IsJoining = true;
-                JoiningServer = $"{server.ip}:{server.port}";
+                JoiningServer = $"{server.Ip}:{server.Port}";
             });
         }
 
-        private void MatchmakingService_JoinFailed((string ip, int port) obj)
+        private void MatchmakingService_JoinFailed(ServerConnectionDetails obj)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {

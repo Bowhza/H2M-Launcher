@@ -95,9 +95,9 @@ public sealed class MatchmakingService : IAsyncDisposable
 
     public event Action<PlayerState, PlayerState>? QueueingStateChanged;
     public event Action<int, int>? QueuePositionChanged;
-    public event Action<(string ip, int port)>? Joining;
-    public event Action<(string ip, int port)>? Joined;
-    public event Action<(string ip, int port)>? JoinFailed;
+    public event Action<ServerConnectionDetails>? Joining;
+    public event Action<ServerConnectionDetails>? Joined;
+    public event Action<ServerConnectionDetails>? JoinFailed;
     public event Action<(string hostname, SearchMatchResult match)>? MatchFound;
     public event Action<MatchmakingError>? MatchmakingError;
     public event Action<IEnumerable<SearchMatchResult>>? Matches;

@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reactive;
 using System.Security;
 using System.Text.Json;
 using System.Windows;
@@ -79,7 +80,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private IServerTabViewModel _selectedTab;
 
     [ObservableProperty]
-    private ServerViewModel? _lastServer = null;
+    private IServerConnectionDetails? _lastServer = null;
     private SecureString? _lastServerPassword = null;
 
 
@@ -849,41 +850,21 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         await JoinServerInternal(serverViewModel, password);
     }
 
-    private async Task<bool> JoinServerInternal(ServerConnectionDetails server, string? password)
+    private async Task<bool> JoinServerInternal(IServerConnectionDetails server, string? password)
     {
         await Task.Yield();
 
         bool hasJoined = await _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
         if (hasJoined)
         {
-            ServerViewModel? serverViewModel = FindServerViewModel(server);
+            ServerViewModel? serverViewModel = server as ServerViewModel ?? FindServerViewModel(server);
             UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-            LastServer = serverViewModel;
+            LastServer = server;
             _lastServerPassword = password?.ToSecuredString();
         }
 
         StatusText = hasJoined
             ? $"Joined {server.Ip}:{server.Port}"
-            : "Ready";
-
-        return hasJoined;
-    }
-
-    private async Task<bool> JoinServerInternal(ServerViewModel serverViewModel, string? password)
-    {
-        await Task.Yield();
-
-        bool hasJoined = await _h2MCommunicationService.JoinServer(serverViewModel.Ip, serverViewModel.Port.ToString(), password);
-        if (hasJoined)
-        {
-            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-
-            LastServer = serverViewModel;
-            _lastServerPassword = password?.ToSecuredString();
-        }
-
-        StatusText = hasJoined
-            ? $"Joined {serverViewModel.Ip}:{serverViewModel.Port}"
             : "Ready";
 
         return hasJoined;
@@ -899,7 +880,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return Task.CompletedTask;
     }
 
-    private Task DisconnectServer()
+    private Task<bool> DisconnectServer()
     {
         return _h2MCommunicationService.Disconnect();
     }
@@ -944,13 +925,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         await Task.CompletedTask;
     }
 
-    private ServerViewModel? FindServerViewModel(ServerConnectionDetails server)
+    private ServerViewModel? FindServerViewModel(IServerConnectionDetails server)
     {
         return AllServersTab.Servers.FirstOrDefault(server =>
                 server.Ip == server.Ip && server.Port == server.Port);
     }
 
-    private void MatchmakingService_Joined((string ip, int port) joinedServer)
+    private void MatchmakingService_Joined(ServerConnectionDetails joinedServer)
     {
         Application.Current.Dispatcher.BeginInvoke(() =>
         {
@@ -959,6 +940,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             {
                 UpdateRecentJoinTime(serverViewModel, DateTime.Now);
                 LastServer = serverViewModel;
+            }
+            else
+            {
+                LastServer = joinedServer;
             }
         });
     }
