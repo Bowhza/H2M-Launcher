@@ -105,10 +105,6 @@
                     <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
                     <!--<TextBlock Grid.Column="1" Text="{x:Static srv:LauncherService.CurrentVersion}" FontSize="10"  FontWeight="Bold" Foreground="White"
                                VerticalAlignment="Center" Margin="10,10,0,0"/>-->
-                    <!--<Button Grid.Column="1" VerticalAlignment="Bottom" Style="{StaticResource LinkButtonStyle}" Height="30" Width="30" HorizontalAlignment="Left"
-                            Margin="10,0">
-                        <Image Source="Assets/discord-mark-blue.png" Stretch="Uniform" Margin="5"/>
-                    </Button>-->
                     <!--<Button Grid.Column="1" VerticalAlignment="Center" 
                                 Height="30" HorizontalAlignment="Left"
                                 Margin="9,0">
@@ -126,24 +122,18 @@
                         </StackPanel>
                     </Button>-->
 
-                    <!--<StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
-                        <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-                                Height="27" Width="27" Style="{StaticResource LinkButtonStyle}" Margin="0,0,5,0"
-                                Background="#5865F2" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
-                            <StackPanel Orientation="Horizontal" Margin="0,5">
-                                <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                --><!--<TextBlock Text="H2MLauncher" Margin="7,0,0,0"></TextBlock>--><!--
-                            </StackPanel>
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
+                        <Button VerticalAlignment="Center" Style="{StaticResource DiscordWindowButtonStyle}" HorizontalAlignment="Left"
+                                Height="27" Width="87" Margin="0,0,5,0"
+                                Background="#22FFFFFF" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
+                            <Image Source="Assets/discord-logo-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
                         </Button>
                         <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-                                Height="27" Width="27" Style="{StaticResource LinkButtonStyle}"
-                                Background="gray" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
-                            <StackPanel Orientation="Horizontal" Margin="5,5">
-                                <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                --><!--<TextBlock Text="H2MLauncher" Margin="7,0,0,0"></TextBlock>--><!--
-                            </StackPanel>
+                                Height="27" Width="27" Style="{StaticResource WindowButtonStyle}"
+                                Background="#22FFFFFF" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
+                            <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
                         </Button>
-                    </StackPanel>-->
+                    </StackPanel>
 
                     <TextBlock Grid.Column="3" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
                         <TextBlock.Style>
@@ -188,22 +178,20 @@
                         </Button>-->
 
 
-                        <!--<Button VerticalAlignment="Center" HorizontalAlignment="Left"
-            Height="27" Width="27" Style="{StaticResource DiscordWindowButtonStyle}" Margin="0,0,5,0"
-            ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}" Background="#55FFFFFF">
+                        <Button VerticalAlignment="Center" HorizontalAlignment="Left"
+                                Height="27" Width="27" Margin="0,0,5,0"
+                                ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}" Background="#5865F2">
                             <StackPanel Orientation="Horizontal" Margin="0,5">
                                 <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                --><!--<TextBlock Text="H2MLauncher" Margin="7,0,0,0"></TextBlock>--><!--
                             </StackPanel>
                         </Button>
                         <Button VerticalAlignment="Center" HorizontalAlignment="Left"
-            Height="27" Width="27" Style="{StaticResource WindowButtonStyle}"
-            ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}" Background="#55FFFFFF">
+                                Height="27" Width="27" Margin="0,0,5,0"
+                                ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}" Background="gray">
                             <StackPanel Orientation="Horizontal" Margin="5,5">
                                 <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
-                                --><!--<TextBlock Text="H2MLauncher" Margin="7,0,0,0"></TextBlock>--><!--
                             </StackPanel>
-                        </Button>-->
+                        </Button>
 
                         <Button Style="{StaticResource WindowButtonStyle}" Margin="0,0,2,0" 
                                 FontSize="18" Height="27" Width="26" Click="MinimizeButton_Click"
@@ -434,7 +422,7 @@
                     </TabControl.ContentTemplate>
                 </TabControl>
 
-                <StackPanel Grid.Column="2" Grid.Row="2" Orientation="Horizontal" Margin="10,5,0,0"
+                <!--<StackPanel Grid.Column="2" Grid.Row="2" Orientation="Horizontal" Margin="10,5,0,0"
                             HorizontalAlignment="Right" VerticalAlignment="Top">
                     <Button VerticalAlignment="Center" HorizontalAlignment="Left"
                             Height="27" Width="27" Style="{StaticResource LinkButtonStyle}" Margin="0,0,5,0"
@@ -450,7 +438,7 @@
                             <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
                         </StackPanel>
                     </Button>
-                </StackPanel>
+                </StackPanel>-->
 
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">
                     <StatusBar.ItemsPanel>
