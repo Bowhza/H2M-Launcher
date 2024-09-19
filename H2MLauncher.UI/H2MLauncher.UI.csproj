@@ -21,6 +21,7 @@
     <None Remove="Assets\discord-mark-white.png" />
     <None Remove="Assets\discord.svg" />
     <None Remove="Assets\github-mark-white.png" />
+    <None Remove="Assets\GitHub_Logo_White.png" />
     <None Remove="Assets\Icon.ico" />
   </ItemGroup>
 
@@ -77,6 +78,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\discord-mark-white.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Assets\GitHub_Logo_White.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Assets\Icon.ico">

@@ -125,14 +125,18 @@
 
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
                         <Button VerticalAlignment="Center" Style="{StaticResource DiscordWindowButtonStyle}" HorizontalAlignment="Left"
-                                Height="27" Width="87" Margin="0,0,5,0"
+                                Height="27" Width="27" Margin="0,0,5,0"
                                 Background="#22FFFFFF" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
-                            <Image Source="Assets/discord-logo-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </StackPanel>
                         </Button>
                         <Button VerticalAlignment="Center" HorizontalAlignment="Left"
                                 Height="27" Width="27" Style="{StaticResource WindowButtonStyle}"
                                 Background="#22FFFFFF" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
-                            <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="15" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <StackPanel Orientation="Horizontal">
+                                <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
+                            </StackPanel>
                         </Button>
                     </StackPanel>
 
