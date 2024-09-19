@@ -353,7 +353,8 @@ namespace MatchmakingServer
                     // find overall best possible match for each non eligible player
                     foreach ((MMPlayer player, bool isEligible) in playersForServerSorted)
                     {
-                        if (isEligible) continue;
+                        // temp fix to include all potential matches
+                        //if (isEligible) continue;
 
                         bool foundMatch = TrySelectMatch(
                             server,

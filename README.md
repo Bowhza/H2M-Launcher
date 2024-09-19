@@ -92,16 +92,17 @@
 
 ## Shortcuts
 
-| Keyboard/Mouse    | Description                             |
-| :---------------- | :-------------------------------------- |
-| `ESC`             | Close the H2M Launcher.                 |
-| `TAB`             | Navigate between launcher controls.     |
-| `F5`              | Refresh the server list.                |
-| `ENTER`           | Join the selected server.               |
-| `Right Click`     | Copies the server to clipboard.         |
-| `CTRL + S`        | Save the server list to favourties.json |
-| `CTRL + ALT + R`  | Reconnect to server. (Can be changed)   |
-| `SHIFT + ALT + S` | Toggle game overlay. (Can be changed)   |
+| Keyboard/Mouse    | Description                              |
+| :---------------- | :--------------------------------------- |
+| `ESC`             | Close the H2M Launcher.                  |
+| `TAB`             | Navigate between launcher controls.      |
+| `F5`              | Refresh the server list.                 |
+| `ENTER`           | Join the selected server.                |
+| `Right Click`     | Copies the server to clipboard.          |
+| `CTRL + S`        | Save the server list to favourties.json  |
+| `CTRL + ALT + R`  | Reconnect to server. (Can be changed)    |
+| `CTRL + ALT + D`  | Disconnect from server. (Can be changed) |
+| `SHIFT + ALT + S` | Toggle game overlay. (Can be changed)    |
 
 ## FAQ
 
@@ -125,7 +126,8 @@ Fastest way to access the directory is by pressing `Win + R` to open the run men
 
 ### 3. The launcher opens but does not display any servers.
 
-**Answer**: Open the [Server List](https://master.iw4.zip/servers#) or [API Link](https://master.iw4.zip/instance/) in your browser and see if you are able to reach the domain. If not, then check if your ISP is blocking you from accessing the domain.
+**Answer**: Open the [Server List](https://master.iw4.zip/servers#) or [API Link](https://master.iw4.zip/instance/) in your browser and see if you are able to reach the domain. If not, then check if your ISP or firewall is blocking you from accessing the domain.
+Alternatively, you can try switching to the alternative master server `http://api.raidmax.org:5000`.
 
 ### 4. Why is a specific server not showing up in the list?
 
