@@ -10,6 +10,9 @@ public interface IPartyClient
     Task OnPartyClosed();
     Task OnKickedFromParty();
 
+    /// <summary>
+    /// Called when the party joins a server.
+    /// </summary>
     Task OnJoinServer(ServerConnectionDetails server);
 
     Task OnConnectionRejected(string reason);

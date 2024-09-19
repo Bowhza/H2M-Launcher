@@ -1,4 +1,5 @@
 ﻿using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Party;
 
 namespace MatchmakingServer.SignalR;
 
@@ -6,7 +7,7 @@ public interface IPartyHub
 {
     Task<string?> CreateParty();
 
-    Task<IReadOnlyList<string>?> JoinParty(string partyId);
+    Task<IReadOnlyList<PartyPlayerInfo>?> JoinParty(string partyId);
 
     Task<bool> LeaveParty();
 

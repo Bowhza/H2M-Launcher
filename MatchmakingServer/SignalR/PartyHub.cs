@@ -2,6 +2,7 @@
 
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Party;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -51,7 +52,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         return party.Id;
     }
 
-    public async Task<IReadOnlyList<string>?> JoinParty(string partyId)
+    public async Task<IReadOnlyList<PartyPlayerInfo>?> JoinParty(string partyId)
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
@@ -78,7 +79,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         // notify others of join
         await Clients.OthersInGroup($"party_{party.Id}").OnUserJoinedParty(player.Id, player.Name);
 
-        return party.Members.Select(m => m.Name).ToList();
+        return party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList();
     }
 
     private async Task<bool> LeaveOrCloseParty(Player player)

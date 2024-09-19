@@ -46,7 +46,7 @@ namespace MatchmakingServer
 
         public override string ToString()
         {
-            return $"{Name} ({QueueingHubId} - {State})";
+            return $"{Name} ({Id} - {State})";
         }
     }
 }
