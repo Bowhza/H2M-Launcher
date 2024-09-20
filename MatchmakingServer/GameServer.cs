@@ -69,7 +69,7 @@ namespace MatchmakingServer
             return ServerIp;
         }
 
-        public override string GetAddress()
+        public override string? ToString()
         {
             return $"[{ServerIp}:{ServerPort}] [{ProcessingState}]";
         }

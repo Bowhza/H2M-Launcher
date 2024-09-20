@@ -21,7 +21,7 @@ namespace MatchmakingServer
         /// </summary>
         public GameServer? Server { get; set; }
 
-        public override string GetAddress()
+        public override string? ToString()
         {
             return $"{Name} ({ConnectionId} - {State})";
         }
