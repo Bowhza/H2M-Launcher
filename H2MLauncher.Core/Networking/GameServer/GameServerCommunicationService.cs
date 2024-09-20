@@ -215,7 +215,8 @@ namespace H2MLauncher.Core.Services
                         MaxClients = int.Parse(info.Get("sv_maxclients") ?? "0"),
                         Bots = int.Parse(info.Get("bots") ?? "0"),
                         Ping = Math.Min((int)(response.Timestamp - response.Request.Timestamp).TotalMilliseconds, 999),
-                        IsPrivate = info.Get("isPrivate") == "1"
+                        IsPrivate = info.Get("isPrivate") == "1",
+                        Protocol = int.Parse(info.Get("protocol") ?? "-1")
                     };
 
                     return serverInfo;

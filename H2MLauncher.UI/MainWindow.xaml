@@ -71,6 +71,7 @@
         <converters:PingColorConverter x:Key="PingColorConverter"/>
         <converters:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
         <converters:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
+        <converters:ProtocolToIconConverter x:Key="ProtocolToIconConverter"/>
 
         <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
@@ -315,18 +316,32 @@
                                         <DataGridTemplateColumn Header="Hostname" Width="5*" SortMemberPath="HostName">
                                             <DataGridTemplateColumn.CellTemplate>
                                                 <DataTemplate DataType="vm:ServerViewModel">
-                                                    <ItemsControl                            
-                                                        Focusable="False"
-                                                        IsTabStop="False" 
-                                                        IsHitTestVisible="False" 
-                                                        ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
-                                                        FlowDirection="LeftToRight">
-                                                        <ItemsControl.ItemsPanel>
-                                                            <ItemsPanelTemplate>
-                                                                <StackPanel Orientation="Horizontal"/>
-                                                            </ItemsPanelTemplate>
-                                                        </ItemsControl.ItemsPanel>
-                                                    </ItemsControl>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Image Source="{Binding Protocol, Converter={StaticResource ProtocolToIconConverter}}" MaxWidth="16">
+                                                            <Image.Style>
+                                                                <Style TargetType="Image">
+                                                                    <Setter Property="Margin" Value="0,0,6,0"/>
+                                                                    <Style.Triggers>
+                                                                        <Trigger Property="Source" Value="{x:Null}">
+                                                                            <Setter Property="Margin" Value="0"/>
+                                                                        </Trigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Image.Style>
+                                                        </Image>
+                                                        <ItemsControl
+                                                            Focusable="False"
+                                                            IsTabStop="False" 
+                                                            IsHitTestVisible="False" 
+                                                            ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
+                                                            FlowDirection="LeftToRight">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Orientation="Horizontal"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                        </ItemsControl>
+                                                    </StackPanel>
                                                 </DataTemplate>
                                             </DataGridTemplateColumn.CellTemplate>
                                         </DataGridTemplateColumn>

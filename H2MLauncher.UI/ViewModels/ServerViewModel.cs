@@ -70,6 +70,10 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(LastPlayed))]
         private DateTime? _joined;
+
+        [ObservableProperty]
+        private int _protocol;
+
         public string? SortPath => Joined?.ToString("s");
 
         public string LastPlayed

@@ -107,6 +107,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MLauncherOptions.CurrentValue.ServerQueueing;
 
     private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
+    private ServerTabViewModel<ServerViewModel> HMWServersTab { get; set; }
+    private ServerTabViewModel<ServerViewModel> H2MServersTab { get; set; }
     private ServerTabViewModel<ServerViewModel> FavouritesTab { get; set; }
     private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
     public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
@@ -185,6 +187,16 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             throw new Exception("Could not add all servers tab");
         }
 
+        if (!TryAddNewTab("H2M Servers", out ServerTabViewModel? h2mServersTab))
+        {
+            throw new Exception("Could not add H2M servers tab");
+        }
+
+        if (!TryAddNewTab("HMW Servers", out ServerTabViewModel? hmwServersTab))
+        {
+            throw new Exception("Could not add HMW servers tab");
+        }
+
         if (!TryAddNewTab("Favourites", out ServerTabViewModel? favouritesTab))
         {
             throw new Exception("Could not add favourites tab");
@@ -200,7 +212,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             throw new Exception("Could not add recents tab");
         }
 
+        ServerTabs.Remove(allServersTab);
         AllServersTab = allServersTab;
+        H2MServersTab = h2mServersTab;
+        HMWServersTab = hmwServersTab;
         FavouritesTab = favouritesTab;
 
         SelectedTab = ServerTabs.First();
@@ -660,6 +675,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             StatusText = "Refreshing servers...";
 
             AllServersTab.Servers.Clear();
+            HMWServersTab.Servers.Clear();
             FavouritesTab.Servers.Clear();
             RecentsTab.Servers.Clear();
 
@@ -742,6 +758,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             IsPrivate = gameServer.IsPrivate,
             Ping = gameServer.Ping,
             BotsNum = gameServer.Bots,
+            Protocol = gameServer.Protocol,
             IsFavorite = isFavorite
         };
 
@@ -757,6 +774,15 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             serverViewModel.Joined = recentInfo.Joined;
             RecentsTab.Servers.Add(serverViewModel);
+        }
+
+        if (serverViewModel.Protocol == 3)
+        {
+            HMWServersTab.Servers.Add(serverViewModel);
+        }
+        else
+        {
+            H2MServersTab.Servers.Add(serverViewModel);
         }
     }
 

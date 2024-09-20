@@ -24,6 +24,8 @@ namespace H2MLauncher.Core.Networking.GameServer
 
         public required int Ping { get; init; }
 
+        public int Protocol { get; init; } = -1;
+
         public required bool IsPrivate { get; init; }
 
         public int RealPlayerCount => Clients - Bots;
