@@ -1,8 +1,10 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Reactive;
+using System.Runtime.CompilerServices;
 using System.Security;
 using System.Text.Json;
 using System.Windows;
@@ -17,6 +19,7 @@ using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
+using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
@@ -44,6 +47,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly DialogService _dialogService;
     private readonly IMapsProvider _mapsProvider;
     private readonly ILogger<ServerBrowserViewModel> _logger;
+    private readonly HMWGameServerCommunicationService _hmwGameService;
 
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly IOptions<ResourceSettings> _resourceSettings;
@@ -147,7 +151,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
         MatchmakingService matchmakingService,
         CachedServerDataService serverDataService,
-        IMapsProvider mapsProvider)
+        IMapsProvider mapsProvider,
+        HMWGameServerCommunicationService hmwGameService)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -164,6 +169,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _matchmakingService = matchmakingService;
         _serverDataService = serverDataService;
         _mapsProvider = mapsProvider;
+        _hmwGameService = hmwGameService;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -642,9 +648,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
     }
 
-    private void UpdateServerDataList(CancellationToken cancellationToken)
+    private Task UpdateServerDataList(CancellationToken cancellationToken)
     {
-        Task.Run(async () =>
+        return Task.Run(async () =>
         {
             try
             {
@@ -658,7 +664,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             {
                 _logger.LogError(ex, "Error fetching server data from matchmaking server.");
             }
-        }, cancellationToken);
+        });
     }
 
     private async Task LoadServersAsync()
@@ -675,6 +681,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             StatusText = "Refreshing servers...";
 
             AllServersTab.Servers.Clear();
+            H2MServersTab.Servers.Clear();
             HMWServersTab.Servers.Clear();
             FavouritesTab.Servers.Clear();
             RecentsTab.Servers.Clear();
@@ -694,7 +701,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             // Start by sending info requests to the game servers
             // NOTE: we are using Task.Run to run this in a background thread,
             // because the non async timer blocks the UI
-            _ = Task.Run(async () =>
+            Task callbackTask = Task.Run(async () =>
             {
                 try
                 {
@@ -702,7 +709,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                     {
                         if (info is not null)
                         {
-                            Application.Current.Dispatcher.Invoke(() => OnGameServerInfoReceived(server, info), DispatcherPriority.Render);
+                            _ = Application.Current.Dispatcher.Invoke(
+                                () => OnGameServerInfoReceived(server, info, _loadCancellation.Token),
+                                DispatcherPriority.Render);
                         }
                     }
                 }
@@ -713,10 +722,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             });
 
             // artificial delay
-            await Task.Delay(1000);
+            await Task.WhenAny(callbackTask, Task.Delay(1000));
 
             // Start fetching server data in the background
-            UpdateServerDataList(linkedCancellation.Token);
+            _ = UpdateServerDataList(linkedCancellation.Token);
 
             StatusText = "Ready";
         }
@@ -727,8 +736,20 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(IW4MServer server, GameServerInfo gameServer)
+    private async Task OnGameServerInfoReceived(IW4MServer server, GameServerInfo gameServer, CancellationToken cancellationToken)
     {
+        HMWGameServerInfo? hmwInfo = null;
+
+        if (gameServer.Protocol == 3)
+        {
+            hmwInfo = await _hmwGameService.GetInfoAsync(server, cancellationToken);
+            if (hmwInfo is null)
+            {
+                // no response -> will not work in HMW
+                return;
+            }
+        }
+
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
 
@@ -759,6 +780,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             Ping = gameServer.Ping,
             BotsNum = gameServer.Bots,
             Protocol = gameServer.Protocol,
+            PrivilegedSlots = hmwInfo?.PrivateClients ?? -1,
             IsFavorite = isFavorite
         };
 
@@ -837,7 +859,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ServerData? serverData = _serverData.FirstOrDefault(d =>
             d.Ip == serverViewModel.Ip && d.Port == serverViewModel.Port);
 
-        int assumedMaxClients = serverViewModel.MaxClientNum - (serverData?.PrivilegedSlots ?? 0);
+        int privilegedSlots = serverViewModel.PrivilegedSlots < 0 ? serverData?.PrivilegedSlots ?? 0 : serverViewModel.PrivilegedSlots;
+        int assumedMaxClients = serverViewModel.MaxClientNum - privilegedSlots;
         if (serverViewModel.ClientNum >= assumedMaxClients) //TODO: check if queueing enabled
         {
             // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)

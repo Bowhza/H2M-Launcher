@@ -74,6 +74,9 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private int _protocol;
 
+        [ObservableProperty]
+        private int _privilegedSlots;
+
         public string? SortPath => Joined?.ToString("s");
 
         public string LastPlayed

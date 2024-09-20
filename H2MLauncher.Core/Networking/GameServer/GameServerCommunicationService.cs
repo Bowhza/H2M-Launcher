@@ -1,17 +1,15 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Reactive.Disposables;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 using ConcurrentCollections;
 
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Networking;
+using H2MLauncher.Core.Networking.GameServer;
 
 using Haukcode.HighResolutionTimer;
 
@@ -134,7 +132,7 @@ namespace H2MLauncher.Core.Services
                 _cancellation.Dispose();
             }
 
-            public override string ToString()
+            public override string? ToString()
             {
                 return $"'{Message.CommandName}' - {State} ({Timestamp})";
             }
