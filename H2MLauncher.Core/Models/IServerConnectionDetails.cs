@@ -8,6 +8,8 @@ namespace H2MLauncher.Core.Models
         string Ip { get; }
 
         int Port { get; }
+
+        public string? GetAddress() => $"{Ip}:{Port}";
     }
 
     public record struct ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails
