@@ -1,17 +1,15 @@
 ﻿using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Net;
 using System.Reactive.Disposables;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 
 using ConcurrentCollections;
 
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Networking;
+using H2MLauncher.Core.Networking.GameServer;
 
 using Haukcode.HighResolutionTimer;
 
@@ -134,7 +132,7 @@ namespace H2MLauncher.Core.Services
                 _cancellation.Dispose();
             }
 
-            public override string ToString()
+            public override string? ToString()
             {
                 return $"'{Message.CommandName}' - {State} ({Timestamp})";
             }
@@ -215,7 +213,8 @@ namespace H2MLauncher.Core.Services
                         MaxClients = int.Parse(info.Get("sv_maxclients") ?? "0"),
                         Bots = int.Parse(info.Get("bots") ?? "0"),
                         Ping = Math.Min((int)(response.Timestamp - response.Request.Timestamp).TotalMilliseconds, 999),
-                        IsPrivate = info.Get("isPrivate") == "1"
+                        IsPrivate = info.Get("isPrivate") == "1",
+                        Protocol = int.Parse(info.Get("protocol") ?? "-1")
                     };
 
                     return serverInfo;

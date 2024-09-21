@@ -28,6 +28,7 @@ using H2MLauncher.Core.Game;
 using H2MLauncher.UI.Services;
 using H2MLauncher.Core.Game.Memory;
 using H2MLauncher.Core.Matchmaking;
+using H2MLauncher.Core.Networking.GameServer.HMW;
 
 namespace H2MLauncher.UI
 {
@@ -54,16 +55,16 @@ namespace H2MLauncher.UI
             // save options on startup to update user file with new settings            
             ServiceProvider.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
             {
-                // make sure a valid master server url is set
-                if (string.IsNullOrEmpty(settings.IW4MMasterServerUrl))
+                // make sure a valid master server url is set                
+                return settings with
                 {
-                    return settings with
-                    {
-                        IW4MMasterServerUrl = _defaultSettings.IW4MMasterServerUrl
-                    };
-                }
-
-                return settings;
+                    IW4MMasterServerUrl = string.IsNullOrEmpty(settings.IW4MMasterServerUrl)
+                        ? _defaultSettings.IW4MMasterServerUrl
+                        : settings.IW4MMasterServerUrl,
+                    HMWMasterServerUrl = string.IsNullOrEmpty(settings.HMWMasterServerUrl)
+                        ? _defaultSettings.HMWMasterServerUrl
+                        : settings.HMWMasterServerUrl,
+                };
             });
 
             base.OnStartup(e);
@@ -113,10 +114,22 @@ namespace H2MLauncher.UI
                   H2MLauncherSettings launcherSettings = sp.GetRequiredService<IOptionsMonitor<H2MLauncherSettings>>().CurrentValue;
 
                   // make sure base address is set correctly without trailing slash
-                  client.BaseAddress = Url.Parse(launcherSettings.IW4MMasterServerUrl).RemovePathSegment().ToUri();
+                  client.BaseAddress = Url.Parse(launcherSettings.IW4MMasterServerUrl).ToUri();
               });
 
             services.AddSingleton<IH2MServersService, H2MServersService>();
+
+            services.AddTransient<HMWGameServerCommunicationService>();
+            services.AddSingleton<HMWMasterService>();
+            services.AddHttpClient<HMWMasterService>()
+                .ConfigureHttpClient((sp, client) =>
+                {
+                    // get the current value from the options monitor cache
+                    H2MLauncherSettings launcherSettings = sp.GetRequiredService<IOptionsMonitor<H2MLauncherSettings>>().CurrentValue;
+
+                    // make sure base address is set correctly without trailing slash
+                    client.BaseAddress = Url.Parse(launcherSettings.HMWMasterServerUrl).ToUri();
+                });
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService<IW4MServer>>();

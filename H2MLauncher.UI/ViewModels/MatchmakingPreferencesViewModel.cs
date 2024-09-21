@@ -10,7 +10,7 @@ namespace H2MLauncher.UI.ViewModels
         private int _maxPing = 999;
 
         [ObservableProperty]
-        private int _minPlayers = 8;
+        private int _minPlayers = 6;
 
         [ObservableProperty]
         private int _maxScore = -1;

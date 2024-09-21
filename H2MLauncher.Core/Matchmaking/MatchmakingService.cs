@@ -224,7 +224,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
         if (++SearchAttempts > 7 && _matchmakingPreferences.TryFreshGamesFirst)
         {
-            // remove max score limit after 4 attempts
+            // remove max score limit after 7 attempts
             MatchSearchCriteria = MatchSearchCriteria with
             {
                 MaxScore = _matchmakingPreferences.SearchCriteria.MaxScore,
@@ -234,7 +234,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
         if (SearchAttempts > 2 || SearchAttempts > 1 && _matchmakingPreferences.TryFreshGamesFirst)
         {
-            // remove min player limit after 4 attempts
+            // remove min player limit after 2 attempts
             MatchSearchCriteria = MatchSearchCriteria with
             {
                 MinPlayers = Math.Max(1, _matchmakingPreferences.SearchCriteria.MinPlayers)
@@ -288,7 +288,9 @@ public sealed class MatchmakingService : IAsyncDisposable
             _logger.LogDebug("Found {n}/{total} potential servers with ping <= {maxPing} ms",
                 serverPings.Count(x => x.Ping <= MatchSearchCriteria.MaxPing), serverPings.Count, MatchSearchCriteria.MaxPing);
 
-            if (adjustPing && MatchSearchCriteria.MaxPing > 0 && serverPings.All(p => p.Ping > MatchSearchCriteria.MaxPing))
+            if (adjustPing && MatchSearchCriteria.MaxPing > 0 && 
+                serverPings.Count > 0 && 
+                serverPings.All(p => p.Ping > MatchSearchCriteria.MaxPing))
             {
                 // adjusting ping
                 MatchSearchCriteria = MatchSearchCriteria with
@@ -583,7 +585,7 @@ public sealed class MatchmakingService : IAsyncDisposable
                 SearchCriteria = new MatchSearchCriteria()
                 {
                     MaxPing = 300,
-                    MinPlayers = 8,
+                    MinPlayers = 6,
                 }
             };
 
@@ -591,7 +593,7 @@ public sealed class MatchmakingService : IAsyncDisposable
             MatchSearchCriteria sc = _matchmakingPreferences.SearchCriteria;
             MatchSearchCriteria initialSearchCriteria = new()
             {
-                MinPlayers = Math.Max(sc.MinPlayers, 8),
+                MinPlayers = Math.Max(sc.MinPlayers, 6),
                 MaxPing = GetMinWhenDefault(sc.MaxPing, 28),
                 MaxScore = pref.TryFreshGamesFirst ? GetMinWhenDefault(sc.MaxScore, 2000) : sc.MaxScore,
                 MaxPlayersOnServer = pref.TryFreshGamesFirst ? 0 : sc.MaxPlayersOnServer

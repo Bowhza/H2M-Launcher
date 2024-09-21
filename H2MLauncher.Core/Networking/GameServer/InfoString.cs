@@ -68,7 +68,7 @@ internal class InfoString
     }
 
     // Build the info string from the key-value pairs
-    public override string ToString()
+    public override string? ToString()
     {
         return string.Join("", _keyValuePairs.Select(kv => $"\\{kv.Key}\\{kv.Value}"));
     }
