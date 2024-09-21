@@ -5,13 +5,13 @@ namespace MatchmakingServer.Core.Party;
 
 public interface IPartyHub
 {
-    Task<string?> CreateParty();
+    Task<PartyInfo?> CreateParty();
 
-    Task<IReadOnlyList<PartyPlayerInfo>?> JoinParty(string partyId);
+    Task<PartyInfo?> JoinParty(string partyId);
 
     Task<bool> LeaveParty();
 
-    Task JoinServer(ServerConnectionDetails server);
+    Task JoinServer(SimpleServerInfo server);
 
     Task UpdatePlayerName(string newName);
 }

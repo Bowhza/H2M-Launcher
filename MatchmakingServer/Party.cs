@@ -1,10 +1,14 @@
-﻿namespace MatchmakingServer;
+﻿using H2MLauncher.Core.Models;
+
+namespace MatchmakingServer;
 
 public class Party
 {
     private readonly HashSet<Player> _members = [];
 
     public string Id { get; init; } = Guid.NewGuid().ToString();
+
+    public SimpleServerInfo? Server { get; set; }
 
     public required Player Leader { get; init; }
 

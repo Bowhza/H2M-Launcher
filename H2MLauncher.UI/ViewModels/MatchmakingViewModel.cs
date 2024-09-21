@@ -344,9 +344,7 @@ namespace H2MLauncher.UI.ViewModels
             IsJoining = true;
             JoiningServer = ServerIp + ":" + ServerPort;
 
-            await Task.Yield();
-
-            if (!await _serverJoinService.JoinServer(_matchmakingService.Server, _matchmakingService.Server.Password))
+            if (await _serverJoinService.JoinServer(_matchmakingService.Server, _matchmakingService.Server.Password) is not JoinServerResult.Success)
             {
                 // not successful
                 IsJoining = false;

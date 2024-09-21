@@ -12,6 +12,9 @@ namespace H2MLauncher.Core.Settings
         public string QueueingHubUrl => Url.Combine(MatchmakingServerUrl, "Queue");
 
         [JsonIgnore]
+        public string PartyHubUrl => Url.Combine(MatchmakingServerUrl, "Party");
+
+        [JsonIgnore]
         public string ServerDataUrl => Url.Combine(MatchmakingServerUrl, "servers/data");
     }
 }

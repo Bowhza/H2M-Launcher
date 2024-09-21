@@ -31,12 +31,14 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
         _matchmakingService = matchmakingService;
     }
 
-    public IServerConnectionDetails? LastServer { get; private set; }
+    public ISimpleServerInfo? LastServer { get; private set; }
+
+    private volatile int _isJoining;
 
 
-    public event Action<IServerConnectionDetails>? ServerJoined;
+    public event Action<ISimpleServerInfo>? ServerJoined;
 
-    protected virtual void OnServerJoined(IServerConnectionDetails server)
+    protected virtual void OnServerJoined(ISimpleServerInfo server)
     {
         ServerJoined?.Invoke(server);
     }
@@ -51,26 +53,16 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
         return ValueTask.FromResult(false);
     }
 
-    protected virtual async ValueTask<ServerJoinResult> OnServerFull(IServerInfo server, string? password)
+    protected virtual async ValueTask<JoinServerResult> OnServerFull(IServerInfo server, string? password)
     {
         if (!_options.CurrentValue.ServerQueueing)
         {
             // queueing disabled
-            return new()
-            {
-                Server = server,
-                Password = password,
-                ResultCode = JoinServerResult.ServerFull
-            };
+            return JoinServerResult.ServerFull;
         }
 
         bool joinedQueue = await _matchmakingService.JoinQueueAsync(server, null, password);
-        return new()
-        {
-            Server = server,
-            Password = password,
-            ResultCode = joinedQueue ? JoinServerResult.QueueJoined : JoinServerResult.QueueUnavailable
-        };
+        return joinedQueue ? JoinServerResult.QueueJoined : JoinServerResult.QueueUnavailable;
     }
 
     protected virtual ValueTask<bool> OnGameNotRunning(IServerInfo server)
@@ -78,71 +70,83 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
         return ValueTask.FromResult(!_h2mCommunicationService.GameDetection.IsGameDetectionRunning);
     }
 
-    public async Task<ServerJoinResult> JoinServer(IServerInfo server)
+    public async Task<JoinServerResult> JoinServer(IServerInfo server)
     {
-        if (_h2mCommunicationService.GameDetection.DetectedGame is null && 
-            !await OnGameNotRunning(server))
+        if (Interlocked.Exchange(ref _isJoining, 1) == 1)
         {
-            return new ServerJoinResult()
-            {
-                Server = server,
-                ResultCode = JoinServerResult.GameNotRunning
-            };
+            return JoinServerResult.AlreadyJoining;
         }
 
-        if (!server.HasMap && !await OnMissingMap(server))
+        try
         {
-            return new ServerJoinResult()
+            if (_h2mCommunicationService.GameDetection.DetectedGame is null &&
+                !await OnGameNotRunning(server))
             {
-                Server = server,
-                ResultCode = JoinServerResult.MissingMap
-            };
-        }
-
-        string? password = null;
-        if (server.IsPrivate)
-        {
-            password = await OnPasswordRequired(server);
-            if (password is null)
-            {
-                return new()
-                {
-                    Server = server,
-                    ResultCode = JoinServerResult.NoPassword
-                };
+                return JoinServerResult.GameNotRunning;
             }
+
+            if (!server.HasMap && !await OnMissingMap(server))
+            {
+                return JoinServerResult.MissingMap;
+            }
+
+            string? password = null;
+            if (server.IsPrivate)
+            {
+                password = await OnPasswordRequired(server);
+                if (password is null)
+                {
+                    return JoinServerResult.NoPassword;
+                }
+            }
+
+            int privilegedSlots = server.PrivilegedSlots < 0 ? 0 : server.PrivilegedSlots;
+            int assumedMaxClients = server.MaxClients - privilegedSlots;
+            if (server.RealPlayerCount >= assumedMaxClients)
+            {
+                // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)
+
+                return await OnServerFull(server, password);
+            }
+
+            bool joinedSuccessfully = await TryJoinServer(server, password);
+            return joinedSuccessfully ? JoinServerResult.Success : JoinServerResult.JoinFailed;
         }
-
-        int privilegedSlots = server.PrivilegedSlots < 0 ? 0 : server.PrivilegedSlots;
-        int assumedMaxClients = server.MaxClients - privilegedSlots;
-        if (server.RealPlayerCount >= assumedMaxClients)
+        finally
         {
-            // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)
-
-            return await OnServerFull(server, password);
+            _isJoining = 0;
         }
-
-        bool joinedSuccessfully = await JoinServer(server, password);
-
-        return new ServerJoinResult()
-        {
-            Server = server,
-            Password = password,
-            ResultCode = joinedSuccessfully ? JoinServerResult.Success : JoinServerResult.JoinFailed
-        };
     }
 
-    public Task<bool> JoinLastServer()
+    public async Task<JoinServerResult> JoinServer(ISimpleServerInfo server, string? password)
+    {
+        if (Interlocked.Exchange(ref _isJoining, 1) == 1)
+        {
+            return JoinServerResult.AlreadyJoining;
+        }
+
+        try
+        {
+            bool joinedSuccessfully = await TryJoinServer(server, password);
+            return joinedSuccessfully ? JoinServerResult.Success : JoinServerResult.JoinFailed;
+        }
+        finally
+        {
+            _isJoining = 0;
+        }
+    }
+
+    public Task<JoinServerResult> JoinLastServer()
     {
         if (LastServer is null)
         {
-            return Task.FromResult(false);
+            return Task.FromResult(JoinServerResult.None);
         }
 
         return JoinServer(LastServer, _lastServerPassword?.ToUnsecuredString());
     }
 
-    public async Task<bool> JoinServer(IServerConnectionDetails server, string? password)
+    protected async Task<bool> TryJoinServer(ISimpleServerInfo server, string? password)
     {
         bool hasJoined = await _h2mCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
         if (hasJoined)

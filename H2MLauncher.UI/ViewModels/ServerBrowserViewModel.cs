@@ -130,9 +130,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand DisconnectCommand { get; }
     public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
-
-
-
     public ServerBrowserViewModel(
         IH2MServersService raidMaxService,
         H2MCommunicationService h2MCommunicationService,
@@ -824,8 +821,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         if (serverViewModel is null)
             return;
 
-        ServerJoinResult joinResult = await _serverJoinService.JoinServer(serverViewModel);
-        if (joinResult.ResultCode is JoinServerResult.QueueJoined)
+        JoinServerResult joinResult = await _serverJoinService.JoinServer(serverViewModel);
+        if (joinResult is JoinServerResult.QueueJoined)
         {
             MatchmakingViewModel queueViewModel = new(
                 _matchmakingService,
@@ -846,7 +843,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private Task<bool> ReconnectServer()
+    private Task<JoinServerResult> ReconnectServer()
     {
         return _serverJoinService.JoinLastServer();
     }

@@ -4,11 +4,11 @@ namespace H2MLauncher.Core.Joining;
 
 public interface IServerJoinService
 {
-    IServerConnectionDetails? LastServer { get; }
+    ISimpleServerInfo? LastServer { get; }
 
-    event Action<IServerConnectionDetails>? ServerJoined;
+    event Action<ISimpleServerInfo>? ServerJoined;
 
-    Task<bool> JoinLastServer();
-    Task<bool> JoinServer(IServerConnectionDetails server, string? password);
-    Task<ServerJoinResult> JoinServer(IServerInfo serverInfo);
+    Task<JoinServerResult> JoinLastServer();
+    Task<JoinServerResult> JoinServer(ISimpleServerInfo server, string? password);
+    Task<JoinServerResult> JoinServer(IServerInfo serverInfo);
 }

@@ -57,32 +57,23 @@ public class ServerJoinService : ServerJoinServiceBase
         return ValueTask.FromResult(dialogResult == true);
     }
 
-    protected override async ValueTask<ServerJoinResult> OnServerFull(IServerInfo server, string? password)
+    protected override async ValueTask<JoinServerResult> OnServerFull(IServerInfo server, string? password)
     {
-        ServerJoinResult baseResult = await base.OnServerFull(server, password);
+        JoinServerResult baseResult = await base.OnServerFull(server, password);
 
-        if (baseResult.ResultCode is JoinServerResult.ServerFull &&
+        if (baseResult is JoinServerResult.ServerFull &&
             _dialogService.OpenTextDialog("Server full", "The server you are trying to join is currently full. Join anyway?", MessageBoxButton.YesNo) == true)
         {
-            bool joinedSuccessfully = await JoinServer(server, password);
+            bool joinedSuccessfully = await TryJoinServer(server, password);
 
-            return baseResult with
-            {
-                ResultCode = joinedSuccessfully ? JoinServerResult.Success : JoinServerResult.JoinFailed
-            };
+            return joinedSuccessfully ? JoinServerResult.Success : JoinServerResult.JoinFailed;
         }
 
-        if (baseResult.ResultCode is JoinServerResult.QueueUnavailable && 
+        if (baseResult is JoinServerResult.QueueUnavailable && 
             _dialogService.OpenTextDialog("Queue unavailable", "Could not join the queue, force join instead?", MessageBoxButton.YesNo) == true)
         {
-            bool joinedSuccessfully = await JoinServer(server, password);
-
-            return new()
-            {
-                Server = server,
-                Password = password,
-                ResultCode = joinedSuccessfully ? JoinServerResult.ForceJoinSuccess : JoinServerResult.JoinFailed
-            };
+            bool joinedSuccessfully = await TryJoinServer(server, password);
+            return joinedSuccessfully ? JoinServerResult.ForceJoinSuccess : JoinServerResult.JoinFailed;
         }
 
         return baseResult;

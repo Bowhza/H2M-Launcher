@@ -26,7 +26,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         _logger = logger;
     }
 
-    public async Task<string?> CreateParty()
+    private static PartyInfo CreatePartyInfo(Party party)
+    {
+        return new(party.Id, party.Server, party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList());
+    }
+
+    public async Task<PartyInfo?> CreateParty()
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
@@ -35,7 +40,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
         if (player.Party is not null)
         {
-            return null;
+            return CreatePartyInfo(player.Party);
         }
 
         Party party = new()
@@ -51,10 +56,10 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         party.AddPlayer(player);
         await Groups.AddToGroupAsync(Context.ConnectionId, $"party_{party.Id}");
 
-        return party.Id;
+        return CreatePartyInfo(party);
     }
 
-    public async Task<IReadOnlyList<PartyPlayerInfo>?> JoinParty(string partyId)
+    public async Task<PartyInfo?> JoinParty(string partyId)
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
@@ -81,7 +86,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         // notify others of join
         await Clients.OthersInGroup($"party_{party.Id}").OnUserJoinedParty(player.Id, player.Name);
 
-        return party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList();
+        return CreatePartyInfo(party);
     }
 
     private async Task<bool> LeaveOrCloseParty(Player player)
@@ -104,11 +109,11 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             // remove user from party
             if (party.RemovePlayer(player))
             {
-                await Clients.Group($"party_{party.Id}").OnUserLeftParty(player.Id, player.Name);
+                await Clients.Group($"party_{party.Id}").OnUserLeftParty(player.Id);
             }
         }
 
-        await Groups.RemoveFromGroupAsync(player.QueueingHubId, $"party_{party.Id}");
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"party_{party.Id}");
         return true;
     }
 
@@ -122,7 +127,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         return LeaveOrCloseParty(player);
     }
 
-    public async Task JoinServer(ServerConnectionDetails server)
+    public async Task JoinServer(SimpleServerInfo server)
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
@@ -134,10 +139,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             return;
         }
 
+        player.Party.Server = server;
+
         // TODO: leave party when joined alone and not leader?
 
         // notify others to join the server
-        await Clients.OthersInGroup($"party_{player.Party.Id}").OnJoinServer(server);
+        await Clients.OthersInGroup($"party_{player.Party.Id}").OnServerChanged(server);
     }
 
     public async Task UpdatePlayerName(string newName)

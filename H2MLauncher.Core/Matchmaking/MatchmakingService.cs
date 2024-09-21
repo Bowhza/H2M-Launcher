@@ -37,15 +37,15 @@ public sealed class MatchmakingService : IAsyncDisposable
     private readonly IOptionsMonitor<H2MLauncherSettings> _options;
     private readonly ILogger<MatchmakingService> _logger;
 
-    private QueuedServer? _queuedServer = null;
+    private JoinServerInfo? _queuedServer = null;
     private readonly Dictionary<ServerConnectionDetails, string> _privatePasswords = [];
 
-    public IFullServerConnectionDetails? Server => _queuedServer;
+    public JoinServerInfo? Server => _queuedServer;
 
-    private record QueuedServer(string Ip, int Port) : IFullServerConnectionDetails
-    {
-        public string? Password { get; set; }
-    }
+    //private record QueuedServer(string Ip, int Port) : IFullServerConnectionDetails
+    //{
+    //    public string? Password { get; set; }
+    //}
 
     private bool _hasSeenConnecting = false;
 
@@ -180,12 +180,13 @@ public sealed class MatchmakingService : IAsyncDisposable
     {
         _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", serverInfo.Ip, serverInfo.Port);
 
-        _queuedServer = new QueuedServer(serverInfo.Ip, serverInfo.Port);
+        _queuedServer = serverInfo;
 
         Joining?.Invoke(_queuedServer);
 
         string? password = serverInfo.Password ?? _privatePasswords.GetValueOrDefault((serverInfo.Ip, serverInfo.Port));
-        if (await WeakReferenceMessenger.Default.Send<JoinRequestMessage>(new(serverInfo, password)))
+        JoinServerResult result = await WeakReferenceMessenger.Default.Send<JoinRequestMessage>(new(serverInfo, password));
+        if (result is JoinServerResult.Success)
         {
             State = PlayerState.Joining;
             return true;
@@ -363,7 +364,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         if (gameState.IsConnected && gameState.Endpoint is not null)
         {
             // we are connected to something, check whether it has to do with us
-            QueuedServer? queuedServer = GetQueuedServer(gameState);
+            JoinServerInfo? queuedServer = GetQueuedServer(gameState);
             if (queuedServer is null)
             {
                 // nope
@@ -401,7 +402,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         else if (gameState.IsConnecting && !gameState.IsPrivateMatch)
         {
             // connecting to something public
-            QueuedServer? queuedServer = GetQueuedServer(gameState);
+            JoinServerInfo? queuedServer = GetQueuedServer(gameState);
             if (queuedServer is not null)
             {
                 // set this flag so we dont recognize a previous server connected to as the current server
@@ -418,7 +419,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         }
     }
 
-    private QueuedServer? GetQueuedServer(GameState gameState)
+    private JoinServerInfo? GetQueuedServer(GameState gameState)
     {
         if (gameState.Endpoint is null)
         {
@@ -512,7 +513,7 @@ public sealed class MatchmakingService : IAsyncDisposable
                 _privatePasswords[(server.Ip, server.Port)] = privatePassword;
             };
 
-            _queuedServer = new QueuedServer(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port);
+            _queuedServer = new JoinServerInfo(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port, server.ServerName);
             State = PlayerState.Queued;
 
             return true;

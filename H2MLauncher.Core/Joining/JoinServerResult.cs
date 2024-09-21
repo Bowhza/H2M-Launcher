@@ -2,6 +2,7 @@
 
 public enum JoinServerResult
 {
+    None,
     MissingMap,
     ServerFull,
     JoinFailed,
@@ -11,4 +12,5 @@ public enum JoinServerResult
     NoPassword,
     ForceJoinSuccess,
     Success,
+    AlreadyJoining
 }

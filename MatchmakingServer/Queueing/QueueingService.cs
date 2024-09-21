@@ -129,10 +129,7 @@ namespace MatchmakingServer.Queueing
             {
                 player.JoinAttempts.Add(DateTimeOffset.Now);
 
-                JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort)
-                {
-                    ServerName = server.LastServerInfo?.HostName
-                };
+                JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort, server.LastServerInfo?.HostName ?? "");
 
                 // notify client to join
                 var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
