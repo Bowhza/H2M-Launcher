@@ -1,5 +1,6 @@
 ﻿using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Services;
 
@@ -128,9 +129,14 @@ namespace MatchmakingServer.Queueing
             {
                 player.JoinAttempts.Add(DateTimeOffset.Now);
 
+                JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort)
+                {
+                    ServerName = server.LastServerInfo?.HostName
+                };
+
                 // notify client to join
                 var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
-                    .NotifyJoin(server.GetActualIpAddress(), server.ServerPort, cancellation.Token);
+                    .NotifyJoin(serverInfo, cancellation.Token);
 
                 if (joinTriggeredSuccessfully)
                 {

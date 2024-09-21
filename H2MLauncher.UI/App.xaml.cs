@@ -29,6 +29,7 @@ using H2MLauncher.UI.Services;
 using H2MLauncher.Core.Game.Memory;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Networking.GameServer.HMW;
+using H2MLauncher.Core.Joining;
 
 namespace H2MLauncher.UI
 {
@@ -144,9 +145,10 @@ namespace H2MLauncher.UI
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
             services.AddTransient<ISaveFileService, SaveFileService>();
+            services.AddSingleton<IServerJoinService, ServerJoinService>();
             services.AddTransient<ServerBrowserViewModel>();
 
-            services.AddTransient<MatchmakingService>();
+            services.AddSingleton<MatchmakingService>();
             services.AddTransient<CachedServerDataService>();
             services.AddHttpClient<CachedServerDataService>()
                 .ConfigureHttpClient((sp, client) =>

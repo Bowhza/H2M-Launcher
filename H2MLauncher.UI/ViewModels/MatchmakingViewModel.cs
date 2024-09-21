@@ -1,16 +1,17 @@
-﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Services;
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -18,9 +19,8 @@ namespace H2MLauncher.UI.ViewModels
     {
         private readonly MatchmakingService _matchmakingService;
         private readonly CachedServerDataService _serverDataService;
+        private readonly IServerJoinService _serverJoinService;
         private readonly DispatcherTimer _queueTimer;
-
-        private readonly Func<ServerConnectionDetails, Task<bool>> _onForceJoin;
 
         [ObservableProperty]
         private TimeSpan _queueTime = TimeSpan.Zero;
@@ -161,10 +161,11 @@ namespace H2MLauncher.UI.ViewModels
         public MatchmakingViewModel(
             MatchmakingService matchmakingService,
             CachedServerDataService serverDataService,
-            Func<ServerConnectionDetails, Task<bool>> onForceJoin)
+            IServerJoinService serverJoinService)
         {
             _matchmakingService = matchmakingService;
             _serverDataService = serverDataService;
+            _serverJoinService = serverJoinService;
 
             AbortCommand = new AsyncRelayCommand(Abort);
             ForceJoinCommand = new AsyncRelayCommand(ForceJoin, () => !IsJoining && !string.IsNullOrEmpty(ServerIp) && ServerPort > 0);
@@ -190,6 +191,9 @@ namespace H2MLauncher.UI.ViewModels
             IsConnectedToOnlineService = matchmakingService.IsConnected;
             SelectedPlaylist = Playlists.FirstOrDefault();
 
+            ServerIp = matchmakingService.Server?.Ip ?? "";
+            ServerPort = matchmakingService.Server?.Port ?? -1;
+
             _queueTimer = new()
             {
                 Interval = TimeSpan.FromSeconds(1)
@@ -202,8 +206,6 @@ namespace H2MLauncher.UI.ViewModels
                 StartTime = DateTime.Now;
                 _queueTimer.Start();
             }
-
-            _onForceJoin = onForceJoin;
         }        
 
         partial void OnIsErrorChanged(bool oldValue, bool newValue)
@@ -287,7 +289,7 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void MatchmakingService_Joining(ServerConnectionDetails server)
+        private void MatchmakingService_Joining(IServerConnectionDetails server)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -296,7 +298,7 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void MatchmakingService_JoinFailed(ServerConnectionDetails obj)
+        private void MatchmakingService_JoinFailed(IServerConnectionDetails obj)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -334,12 +336,17 @@ namespace H2MLauncher.UI.ViewModels
 
         private async Task ForceJoin()
         {
+            if (_matchmakingService.Server is null)
+            {
+                return;
+            }
+
             IsJoining = true;
             JoiningServer = ServerIp + ":" + ServerPort;
 
             await Task.Yield();
 
-            if (!await _onForceJoin.Invoke((ServerIp, ServerPort)))
+            if (!await _serverJoinService.JoinServer(_matchmakingService.Server, _matchmakingService.Server.Password))
             {
                 // not successful
                 IsJoining = false;

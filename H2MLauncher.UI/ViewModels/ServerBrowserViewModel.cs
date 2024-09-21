@@ -1,11 +1,7 @@
-﻿using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
-using System.Reactive;
-using System.Runtime.CompilerServices;
-using System.Security;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -13,9 +9,11 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.IW4MAdmin.Models;
+using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
@@ -48,6 +46,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly IMapsProvider _mapsProvider;
     private readonly ILogger<ServerBrowserViewModel> _logger;
     private readonly HMWGameServerCommunicationService _hmwGameService;
+
+
+    private readonly IServerJoinService _serverJoinService;
 
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly IOptions<ResourceSettings> _resourceSettings;
@@ -82,11 +83,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecentsSelected))]
     private IServerTabViewModel _selectedTab;
-
-    [ObservableProperty]
-    private IServerConnectionDetails? _lastServer = null;
-    private SecureString? _lastServerPassword = null;
-
 
     [ObservableProperty]
     private GameStateViewModel _gameState = new();
@@ -153,7 +149,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         MatchmakingService matchmakingService,
         CachedServerDataService serverDataService,
         IMapsProvider mapsProvider,
-        HMWGameServerCommunicationService hmwGameService)
+        HMWGameServerCommunicationService hmwGameService,
+        IServerJoinService serverJoinService)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -171,6 +168,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _serverDataService = serverDataService;
         _mapsProvider = mapsProvider;
         _hmwGameService = hmwGameService;
+        _serverJoinService = serverJoinService;        
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -272,8 +270,20 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.Error += GameDetection_Error;
         _h2MCommunicationService.GameCommunication.GameStateChanged += H2MCommunicationService_GameStateChanged;
         _h2MCommunicationService.GameCommunication.Stopped += H2MGameCommunication_Stopped;
-        _matchmakingService.Joined += MatchmakingService_Joined;
         _mapsProvider.MapsChanged += MapsProvider_InstalledMapsChanged;
+
+        _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
+    }
+
+    private void ServerJoinService_ServerJoined(IServerConnectionDetails server)
+    {
+        Application.Current.Dispatcher.Invoke(() =>
+        {
+            ServerViewModel? serverViewModel = server as ServerViewModel ?? FindServerViewModel(server);
+            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
+
+            StatusText = $"Joined {server.Ip}:{server.Port}";
+        });
     }
 
     private void MapsProvider_InstalledMapsChanged(IMapsProvider provider)
@@ -811,126 +821,34 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private async Task JoinServer(ServerViewModel? serverViewModel)
     {
-        string? password = null;
-
         if (serverViewModel is null)
             return;
 
-        if (!CheckGameRunning())
+        ServerJoinResult joinResult = await _serverJoinService.JoinServer(serverViewModel);
+        if (joinResult.ResultCode is JoinServerResult.QueueJoined)
         {
-            return;
-        }
-
-        if (!CheckGameRunning())
-        {
-            return;
-        }
-
-        if (!serverViewModel.HasMap)
-        {
-            bool? dialogResult = _dialogService.OpenTextDialog(
-                title: "Missing Map",
-                text: """
-                    You are trying to join a server with a map that's not installed. This might crash your game. 
-                    Do you want to continue?
-                    """,
-                buttons: MessageBoxButton.YesNo);
-
-            if (dialogResult == false)
+            MatchmakingViewModel queueViewModel = new(
+                _matchmakingService,
+                _serverDataService,
+                _serverJoinService)
             {
+                ServerIp = serverViewModel.Ip,
+                ServerPort = serverViewModel.Port,
+                ServerHostName = serverViewModel.HostName,
+                CloseOnLeave = true
+            };
+
+            if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
+            {
+                // queueing process terminated (left queue, joined, ...)
                 return;
             }
         }
-
-        if (serverViewModel.IsPrivate)
-        {
-            PasswordViewModel = new();
-
-            bool? result = _dialogService.OpenDialog<PasswordDialog>(PasswordViewModel);
-
-            password = PasswordViewModel.Password;
-
-            // Do not continue joining the server
-            if (result is null || result == false)
-                return;
-        }
-
-        if (!_h2MLauncherOptions.CurrentValue.ServerQueueing)
-        {
-            // queueing disabled
-            await JoinServerInternal(serverViewModel, password);
-            return;
-        }
-
-        ServerData? serverData = _serverData.FirstOrDefault(d =>
-            d.Ip == serverViewModel.Ip && d.Port == serverViewModel.Port);
-
-        int privilegedSlots = serverViewModel.PrivilegedSlots < 0 ? serverData?.PrivilegedSlots ?? 0 : serverViewModel.PrivilegedSlots;
-        int assumedMaxClients = serverViewModel.MaxClientNum - privilegedSlots;
-        if (serverViewModel.ClientNum >= assumedMaxClients) //TODO: check if queueing enabled
-        {
-            // server is full (TODO: check again if refresh was long ago to avoid unnecessary server communication?)
-
-            // Join the matchmaking server queue
-            bool joinedQueue = await _matchmakingService.JoinQueueAsync(
-                server: serverViewModel.Server,
-                serverEndpoint: serverViewModel.GameServerInfo.Address,
-                password);
-
-            if (joinedQueue)
-            {
-                MatchmakingViewModel queueViewModel = new(
-                    _matchmakingService,
-                    _serverDataService,
-                    onForceJoin: (_) => JoinServerInternal(serverViewModel, password))
-                {
-                    ServerIp = serverViewModel.Ip,
-                    ServerPort = serverViewModel.Port,
-                    ServerHostName = serverViewModel.HostName,
-                    CloseOnLeave = true
-                };
-
-                if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
-                {
-                    // queueing process terminated (left queue, joined, ...)
-                    return;
-                }
-            }
-            else if (_dialogService.OpenTextDialog("Queue unavailable", "Could not join the queue, force join instead?", MessageBoxButton.YesNo) == false)
-            {
-                return;
-            }
-        }
-
-        await JoinServerInternal(serverViewModel, password);
     }
 
-    private async Task<bool> JoinServerInternal(IServerConnectionDetails server, string? password)
+    private Task<bool> ReconnectServer()
     {
-        bool hasJoined = await _h2MCommunicationService.JoinServer(server.Ip, server.Port.ToString(), password);
-        if (hasJoined)
-        {
-            ServerViewModel? serverViewModel = server as ServerViewModel ?? FindServerViewModel(server);
-            UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-            LastServer = server;
-            _lastServerPassword = password?.ToSecuredString();
-        }
-
-        StatusText = hasJoined
-            ? $"Joined {server.Ip}:{server.Port}"
-            : "Ready";
-
-        return hasJoined;
-    }
-
-    private Task ReconnectServer()
-    {
-        if (LastServer is not null)
-        {
-            return JoinServerInternal(LastServer, _lastServerPassword?.ToUnsecuredString());
-        }
-
-        return Task.CompletedTask;
+        return _serverJoinService.JoinLastServer();
     }
 
     private Task<bool> DisconnectServer()
@@ -944,6 +862,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             return true;
         }
+
         bool? dialogResult = _dialogService.OpenTextDialog(
             title: "Game not running",
             text: "Matchmaking is only available when the game is running. Do you want to launch the game?",
@@ -968,7 +887,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         MatchmakingViewModel matchmakingViewModel = new(
             _matchmakingService,
             _serverDataService,
-            onForceJoin: (server) => JoinServerInternal(server, null));
+            _serverJoinService);
 
         if (_dialogService.OpenDialog<QueueDialogView>(matchmakingViewModel) == false)
         {
@@ -981,24 +900,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private ServerViewModel? FindServerViewModel(IServerConnectionDetails server)
     {
         return AllServersTab.Servers.FirstOrDefault(s =>
-                server.Ip == s.Ip && server.Port == s.Port);
-    }
-
-    private void MatchmakingService_Joined(ServerConnectionDetails joinedServer)
-    {
-        Application.Current.Dispatcher.BeginInvoke(() =>
-        {
-            ServerViewModel? serverViewModel = FindServerViewModel(joinedServer);
-            if (serverViewModel is not null)
-            {
-                UpdateRecentJoinTime(serverViewModel, DateTime.Now);
-                LastServer = serverViewModel;
-            }
-            else
-            {
-                LastServer = joinedServer;
-            }
-        });
+                (server.Ip == s.Ip || server.Ip == s.GameServerInfo?.Address?.Address?.GetRealAddress()?.ToString()) && 
+                server.Port == s.Port);
     }
 
     private void LaunchH2M()
@@ -1013,7 +916,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _h2MCommunicationService.GameDetection.Error -= GameDetection_Error;
         _h2MCommunicationService.GameCommunication.GameStateChanged -= H2MCommunicationService_GameStateChanged;
         _h2MCommunicationService.GameCommunication.Stopped -= H2MGameCommunication_Stopped;
-        _matchmakingService.Joined -= MatchmakingService_Joined;
         _mapsProvider.MapsChanged -= MapsProvider_InstalledMapsChanged;
+        _serverJoinService.ServerJoined -= ServerJoinService_ServerJoined;
     }
 }

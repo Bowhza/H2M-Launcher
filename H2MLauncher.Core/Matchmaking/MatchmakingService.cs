@@ -1,12 +1,16 @@
 ﻿using System.Net;
 
+using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging.Messages;
+
 using Flurl;
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
-using H2MLauncher.Core.IW4MAdmin.Models;
+using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Networking;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 
@@ -28,19 +32,22 @@ public sealed class MatchmakingService : IAsyncDisposable
     private readonly GameServerCommunicationService<ServerConnectionDetails> _gameServerCommunicationService;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IMapsProvider _mapsProvider;
+    private readonly IEndpointResolver _endpointResolver;
 
     private readonly IOptionsMonitor<H2MLauncherSettings> _options;
     private readonly ILogger<MatchmakingService> _logger;
 
-    private record QueuedServer(string Ip, int Port)
-    {
-        public bool HasSeenConnecting { get; set; }
-
-        public string? PrivatePassword { get; set; }
-    }
-
     private QueuedServer? _queuedServer = null;
     private readonly Dictionary<ServerConnectionDetails, string> _privatePasswords = [];
+
+    public IFullServerConnectionDetails? Server => _queuedServer;
+
+    private record QueuedServer(string Ip, int Port) : IFullServerConnectionDetails
+    {
+        public string? Password { get; set; }
+    }
+
+    private bool _hasSeenConnecting = false;
 
     public int SearchAttempts { get; private set; }
     public int QueuePosition { get; private set; }
@@ -97,9 +104,9 @@ public sealed class MatchmakingService : IAsyncDisposable
 
     public event Action<PlayerState, PlayerState>? QueueingStateChanged;
     public event Action<int, int>? QueuePositionChanged;
-    public event Action<ServerConnectionDetails>? Joining;
-    public event Action<ServerConnectionDetails>? Joined;
-    public event Action<ServerConnectionDetails>? JoinFailed;
+    public event Action<IServerConnectionDetails>? Joining;
+    public event Action<IServerConnectionDetails>? Joined;
+    public event Action<IServerConnectionDetails>? JoinFailed;
     public event Action<(string hostname, SearchMatchResult match)>? MatchFound;
     public event Action<MatchmakingError>? MatchmakingError;
     public event Action<IEnumerable<SearchMatchResult>>? Matches;
@@ -117,13 +124,15 @@ public sealed class MatchmakingService : IAsyncDisposable
         CachedServerDataService serverDataService,
         GameServerCommunicationService<ServerConnectionDetails> gameServerCommunicationService,
         IErrorHandlingService errorHandlingService,
-        IGameDetectionService gameDetectionService)
+        IGameDetectionService gameDetectionService,
+        IEndpointResolver endpointResolver)
     {
         _logger = logger;
         _options = options;
         _gameCommunicationService = gameCommunicationService;
         _playerNameProvider = playerNameProvider;
         _mapsProvider = mapsProvider;
+        _endpointResolver = endpointResolver;
 
         object queryParams = new
         {
@@ -135,7 +144,7 @@ public sealed class MatchmakingService : IAsyncDisposable
             .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams))
             .Build();
 
-        _connection.On<string, int, bool>("NotifyJoin", OnNotifyJoin);
+        _connection.On<JoinServerInfo, bool>("NotifyJoin", OnNotifyJoin);
         _connection.On<int, int>("QueuePositionChanged", OnQueuePositionChanged);
         _connection.On<DequeueReason>("RemovedFromQueue", OnRemovedFromQueue);
         _connection.On<IEnumerable<SearchMatchResult>>("SearchMatchUpdate", OnSearchMatchUpdate);
@@ -167,15 +176,16 @@ public sealed class MatchmakingService : IAsyncDisposable
 
 
     #region RPC Handlers
-    private async Task<bool> OnNotifyJoin(string ip, int port)
+    private async Task<bool> OnNotifyJoin(JoinServerInfo serverInfo)
     {
-        _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
+        _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", serverInfo.Ip, serverInfo.Port);
 
-        _queuedServer = new QueuedServer(ip, port);
+        _queuedServer = new QueuedServer(serverInfo.Ip, serverInfo.Port);
 
-        Joining?.Invoke((ip, port));
+        Joining?.Invoke(_queuedServer);
 
-        if (await _h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
+        string? password = serverInfo.Password ?? _privatePasswords.GetValueOrDefault((serverInfo.Ip, serverInfo.Port));
+        if (await WeakReferenceMessenger.Default.Send<JoinRequestMessage>(new(serverInfo, password)))
         {
             State = PlayerState.Joining;
             return true;
@@ -184,7 +194,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         _logger.LogDebug("Could not join server, setting queueing state back to 'Connected'");
         State = PlayerState.Connected;
 
-        JoinFailed?.Invoke((ip, port));
+        JoinFailed?.Invoke(_queuedServer);
         return false;
     }
 
@@ -288,8 +298,8 @@ public sealed class MatchmakingService : IAsyncDisposable
             _logger.LogDebug("Found {n}/{total} potential servers with ping <= {maxPing} ms",
                 serverPings.Count(x => x.Ping <= MatchSearchCriteria.MaxPing), serverPings.Count, MatchSearchCriteria.MaxPing);
 
-            if (adjustPing && MatchSearchCriteria.MaxPing > 0 && 
-                serverPings.Count > 0 && 
+            if (adjustPing && MatchSearchCriteria.MaxPing > 0 &&
+                serverPings.Count > 0 &&
                 serverPings.All(p => p.Ping > MatchSearchCriteria.MaxPing))
             {
                 // adjusting ping
@@ -367,9 +377,9 @@ public sealed class MatchmakingService : IAsyncDisposable
 
             // we are now joined :)
             State = PlayerState.Joined;
-            Joined?.Invoke((queuedServer.Ip, queuedServer.Port));
+            Joined?.Invoke(queuedServer);
         }
-        else if (gameState.IsInMainMenu && _queuedServer?.HasSeenConnecting == true)
+        else if (gameState.IsInMainMenu && _queuedServer is not null && _hasSeenConnecting)
         {
             // something went wrong with joining, we have been connection and now are in the main menu again :(
 
@@ -386,7 +396,7 @@ public sealed class MatchmakingService : IAsyncDisposable
             }
 
             // notify others that a join failed
-            JoinFailed?.Invoke((_queuedServer.Ip, _queuedServer.Port));
+            JoinFailed?.Invoke(_queuedServer);
         }
         else if (gameState.IsConnecting && !gameState.IsPrivateMatch)
         {
@@ -395,7 +405,7 @@ public sealed class MatchmakingService : IAsyncDisposable
             if (queuedServer is not null)
             {
                 // set this flag so we dont recognize a previous server connected to as the current server
-                queuedServer.HasSeenConnecting = true;
+                _hasSeenConnecting = true;
             }
         }
     }
@@ -462,12 +472,12 @@ public sealed class MatchmakingService : IAsyncDisposable
         }
     }
 
-    public async Task<bool> JoinQueueAsync(IW4MServer server, IPEndPoint serverEndpoint, string? privatePassword)
+    public async Task<bool> JoinQueueAsync(IServerInfo server, IPEndPoint? serverEndpoint, string? privatePassword)
     {
         try
         {
-            if (!_options.CurrentValue.ServerQueueing || 
-                !_options.CurrentValue.GameMemoryCommunication || 
+            if (!_options.CurrentValue.ServerQueueing ||
+                !_options.CurrentValue.GameMemoryCommunication ||
                 !_gameDetectionService.IsGameDetectionRunning)
             {
                 return false;
@@ -479,7 +489,14 @@ public sealed class MatchmakingService : IAsyncDisposable
                 await StartConnection();
             }
 
-            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id);
+            serverEndpoint ??= await _endpointResolver.GetEndpointAsync(server, CancellationToken.None);
+            if (serverEndpoint is null)
+            {
+                _logger.LogDebug("Could not resolve endpoint for {@server}", server);
+                return false;
+            }
+
+            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.InstanceId);
             if (!joinedSuccesfully)
             {
                 _logger.LogDebug("Could not join queue for {serverIp}:{serverPort}",
@@ -492,7 +509,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
             if (privatePassword is not null)
             {
-                _privatePasswords[new ServerConnectionDetails(server.Ip, server.Port)] = privatePassword;
+                _privatePasswords[(server.Ip, server.Port)] = privatePassword;
             };
 
             _queuedServer = new QueuedServer(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port);
