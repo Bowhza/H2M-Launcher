@@ -11,7 +11,6 @@ using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
-using H2MLauncher.UI.Services;
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -92,7 +91,7 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private Playlist? _selectedPlaylist = null;
-        
+
         [NotifyCanExecuteChangedFor(nameof(EnterMatchmakingCommand))]
         [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
         [NotifyPropertyChangedFor(nameof(IsInMatchmaking))]
@@ -102,7 +101,7 @@ namespace H2MLauncher.UI.ViewModels
         public bool IsInMatchmaking => State is PlayerState.Matchmaking;
         public bool IsInQueue => State is PlayerState.Queued;
 
-        public bool CanEnterMatchmaking => IsConnectedToOnlineService && 
+        public bool CanEnterMatchmaking => IsConnectedToOnlineService &&
             State is PlayerState.Connected or PlayerState.Joined && !IsJoining;
 
         public string QueuePositionText => $"{QueuePosition} / {TotalPlayersInQueue}";
@@ -206,7 +205,7 @@ namespace H2MLauncher.UI.ViewModels
                 StartTime = DateTime.Now;
                 _queueTimer.Start();
             }
-        }        
+        }
 
         partial void OnIsErrorChanged(bool oldValue, bool newValue)
         {
@@ -430,8 +429,8 @@ namespace H2MLauncher.UI.ViewModels
                     CloseCommand?.Execute(null);
                 }
 
-                if (CloseOnLeave && 
-                    state is PlayerState.Connected && 
+                if (CloseOnLeave &&
+                    state is PlayerState.Connected &&
                     oldState is PlayerState.Matchmaking or PlayerState.Queued)
                 {
                     // we were in matchmaking or queue and left

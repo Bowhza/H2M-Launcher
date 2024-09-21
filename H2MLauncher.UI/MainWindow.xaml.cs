@@ -129,5 +129,10 @@ namespace H2MLauncher.UI
             WindowState = WindowState is WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
             MaximizeButtonText.Text = WindowState is WindowState.Normal ? "🗖︎" : "🗗︎";
         }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            _viewModel.PartyViewModel.JoinPartyCommand.Execute(JoinIdTextBox.Text);
+        }
     }
 }

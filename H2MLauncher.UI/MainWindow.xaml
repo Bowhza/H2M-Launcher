@@ -187,7 +187,7 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Main grid -->
+                <!-- Info Row -->
                 <Grid Grid.Row="1" >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -224,21 +224,27 @@
                     </StackPanel>
                 </Grid>
 
-                <!-- Server tabs -->
-                <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="3.5*"/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Server tabs -->
+                    <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
                             Grid.Row="2" Margin="0,10,0,5" BorderThickness="1" 
                             BorderBrush="DarkGray" Background="Transparent" >
-                    <TabControl.ItemTemplate>
-                        <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
-                            <TextBlock Text="{Binding TabName}"/>
-                        </DataTemplate>
-                    </TabControl.ItemTemplate>
-                    <TabControl.ContentTemplate>
-                        <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
-                            <Grid>
-                                <!-- Opaque background for the header row -->
-                                <Rectangle VerticalAlignment="Top" Fill="Black" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
-                                <view:CustomDataGrid
+                        <TabControl.ItemTemplate>
+                            <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
+                                <TextBlock Text="{Binding TabName}"/>
+                            </DataTemplate>
+                        </TabControl.ItemTemplate>
+                        <TabControl.ContentTemplate>
+                            <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
+                                <Grid>
+                                    <!-- Opaque background for the header row -->
+                                    <Rectangle VerticalAlignment="Top" Fill="Black" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
+                                    <view:CustomDataGrid
                                         x:Name="serverDataGrid" 
                                         ItemsSource="{Binding ServerCollectionView}" 
                                         FontFamily="Consolas"
@@ -264,132 +270,132 @@
                                         VerticalScrollBarVisibility="Hidden"
                                         SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
                                         RowBackground="Transparent">
-                                    <DataGrid.Resources>
-                                        <DataGridTextColumn 
+                                        <DataGrid.Resources>
+                                            <DataGridTextColumn 
                                             x:Key="ThatPeskyColumn"
                                             Header="Last played" 
                                             Visibility="{Binding Path=DataContext.IsRecentsSelected, Source={x:Reference mainWindow}, Converter={StaticResource booleanToVisibilityConverter}}" 
                                             SortMemberPath="SortPath"
                                             SortDirection="Descending"
                                             Binding="{Binding LastPlayed}"/>
-                                    </DataGrid.Resources>
-                                    <DataGrid.InputBindings>
-                                        <!-- Key shortcut commands for row -->
-                                        <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
-                                    </DataGrid.InputBindings>
-                                    <DataGrid.ItemContainerStyle>
-                                        <Style TargetType="DataGridRow">
-                                            <!-- Enable focus and tab navigation for row -->
-                                            <Setter Property="IsTabStop" Value="True"/>
-                                            <Setter Property="Focusable" Value="True"/>
-                                            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                            <Setter Property="Opacity" Value="0.9"></Setter>
+                                        </DataGrid.Resources>
+                                        <DataGrid.InputBindings>
+                                            <!-- Key shortcut commands for row -->
+                                            <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
+                                        </DataGrid.InputBindings>
+                                        <DataGrid.ItemContainerStyle>
+                                            <Style TargetType="DataGridRow">
+                                                <!-- Enable focus and tab navigation for row -->
+                                                <Setter Property="IsTabStop" Value="True"/>
+                                                <Setter Property="Focusable" Value="True"/>
+                                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                                                <Setter Property="Opacity" Value="0.9"></Setter>
 
-                                            <!-- Click handlers -->
-                                            <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
-                                            <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
-                                            <EventSetter Event="GotFocus" Handler="DataGridRow_GotFocus"/>
+                                                <!-- Click handlers -->
+                                                <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
+                                                <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
+                                                <EventSetter Event="GotFocus" Handler="DataGridRow_GotFocus"/>
 
-                                            <Style.Triggers>
-                                                <!-- Selection box -->
-                                                <Trigger Property="IsSelected" Value="True">
-                                                    <Setter Property="BorderBrush" Value="LawnGreen" />
-                                                    <Setter Property="BorderThickness" Value="0 1" />
-                                                    <Setter Property="Background" Value="#454545"></Setter>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </DataGrid.ItemContainerStyle>
+                                                <Style.Triggers>
+                                                    <!-- Selection box -->
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter Property="BorderBrush" Value="LawnGreen" />
+                                                        <Setter Property="BorderThickness" Value="0 1" />
+                                                        <Setter Property="Background" Value="#454545"></Setter>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </DataGrid.ItemContainerStyle>
 
-                                    <DataGrid.Columns>
-                                        <!-- Private -->
-                                        <DataGridTemplateColumn Header="🔒" CanUserResize="False" SortMemberPath="IsPrivate">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BooleanToPrivateStatusConverter}}" 
+                                        <DataGrid.Columns>
+                                            <!-- Private -->
+                                            <DataGridTemplateColumn Header="🔒" CanUserResize="False" SortMemberPath="IsPrivate">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding IsPrivate, Converter={StaticResource BooleanToPrivateStatusConverter}}" 
                                                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
 
-                                        <!-- Hostname -->
-                                        <DataGridTemplateColumn Header="Hostname" Width="5*" SortMemberPath="HostName">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate DataType="vm:ServerViewModel">
-                                                    <StackPanel Orientation="Horizontal">
-                                                        <Image Source="{Binding Protocol, Converter={StaticResource ProtocolToIconConverter}}" MaxWidth="16">
-                                                            <Image.Style>
-                                                                <Style TargetType="Image">
-                                                                    <Setter Property="Margin" Value="0,0,6,0"/>
-                                                                    <Style.Triggers>
-                                                                        <Trigger Property="Source" Value="{x:Null}">
-                                                                            <Setter Property="Margin" Value="0"/>
-                                                                        </Trigger>
-                                                                    </Style.Triggers>
-                                                                </Style>
-                                                            </Image.Style>
-                                                        </Image>
-                                                        <ItemsControl
+                                            <!-- Hostname -->
+                                            <DataGridTemplateColumn Header="Hostname" Width="5*" SortMemberPath="HostName">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate DataType="vm:ServerViewModel">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Image Source="{Binding Protocol, Converter={StaticResource ProtocolToIconConverter}}" MaxWidth="16">
+                                                                <Image.Style>
+                                                                    <Style TargetType="Image">
+                                                                        <Setter Property="Margin" Value="0,0,6,0"/>
+                                                                        <Style.Triggers>
+                                                                            <Trigger Property="Source" Value="{x:Null}">
+                                                                                <Setter Property="Margin" Value="0"/>
+                                                                            </Trigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Image.Style>
+                                                            </Image>
+                                                            <ItemsControl
                                                             Focusable="False"
                                                             IsTabStop="False" 
                                                             IsHitTestVisible="False" 
                                                             ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
                                                             FlowDirection="LeftToRight">
-                                                            <ItemsControl.ItemsPanel>
-                                                                <ItemsPanelTemplate>
-                                                                    <StackPanel Orientation="Horizontal"/>
-                                                                </ItemsPanelTemplate>
-                                                            </ItemsControl.ItemsPanel>
-                                                        </ItemsControl>
-                                                    </StackPanel>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
+                                                                <ItemsControl.ItemsPanel>
+                                                                    <ItemsPanelTemplate>
+                                                                        <StackPanel Orientation="Horizontal"/>
+                                                                    </ItemsPanelTemplate>
+                                                                </ItemsControl.ItemsPanel>
+                                                            </ItemsControl>
+                                                        </StackPanel>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
 
-                                        <!-- Last played -->
-                                        <StaticResource ResourceKey="ThatPeskyColumn"/>
+                                            <!-- Last played -->
+                                            <StaticResource ResourceKey="ThatPeskyColumn"/>
 
-                                        <!-- Map -->
-                                        <DataGridTextColumn Header="Map" 
+                                            <!-- Map -->
+                                            <DataGridTextColumn Header="Map" 
                                                         Binding="{Binding MapDisplayName}" 
                                                         MinWidth="100"
                                                         CanUserResize="False">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding HasMap}" Value="False">
-                                                            <Setter Property="Foreground" Value="DarkRed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasMap}" Value="False">
+                                                                <Setter Property="Foreground" Value="DarkRed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
 
-                                        <!-- Game mode -->
-                                        <DataGridTextColumn Header="Mode" 
+                                            <!-- Game mode -->
+                                            <DataGridTextColumn Header="Mode" 
                                                         Binding="{Binding GameTypeDisplayName}" 
                                                         MinWidth="110"
                                                         CanUserResize="False"/>
 
-                                        <!-- Player count -->
-                                        <DataGridTextColumn Header="Players" 
+                                            <!-- Player count -->
+                                            <DataGridTextColumn Header="Players" 
                                                         SortMemberPath="ClientNum"
                                                         MinWidth="65"
                                                         Binding="{Binding Occupation}"
                                                         CanUserResize="False"
                                                         Width="80">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="HorizontalAlignment" Value="Right" />
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
 
-                                        <!-- Updated Favorite Column with Clickable Feature -->
-                                        <DataGridTemplateColumn Header="Favourite" MinWidth="69" SortMemberPath="IsFavorite" CanUserResize="False">
-                                            <DataGridTemplateColumn.CellTemplate>
-                                                <DataTemplate>
-                                                    <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
+                                            <!-- Updated Favorite Column with Clickable Feature -->
+                                            <DataGridTemplateColumn Header="Favourite" MinWidth="69" SortMemberPath="IsFavorite" CanUserResize="False">
+                                                <DataGridTemplateColumn.CellTemplate>
+                                                    <DataTemplate>
+                                                        <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
                                                         Command="{Binding DataContext.ToggleFavouriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                                         CommandParameter="{Binding}"
                                                         HorizontalAlignment="Center" 
@@ -401,27 +407,81 @@
                                                         Focusable="False"
                                                         IsTabStop="False" 
                                                         Cursor="Hand"/>
-                                                </DataTemplate>
-                                            </DataGridTemplateColumn.CellTemplate>
-                                        </DataGridTemplateColumn>
+                                                    </DataTemplate>
+                                                </DataGridTemplateColumn.CellTemplate>
+                                            </DataGridTemplateColumn>
 
-                                        <!-- Ping -->
-                                        <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False" Width="40">
-                                            <DataGridTextColumn.ElementStyle>
-                                                <Style TargetType="TextBlock">
-                                                    <Setter Property="HorizontalAlignment" Value="Right" />
-                                                    <Setter Property="FontFamily" Value="Consolas" />
-                                                    <Setter Property="Margin" Value="0,0,4,0"/>
-                                                    <Setter Property="Foreground" Value="{Binding Ping, Converter={StaticResource PingColorConverter}}" />
-                                                </Style>
-                                            </DataGridTextColumn.ElementStyle>
-                                        </DataGridTextColumn>
-                                    </DataGrid.Columns>
-                                </view:CustomDataGrid>
-                            </Grid>
-                        </DataTemplate>
-                    </TabControl.ContentTemplate>
-                </TabControl>
+                                            <!-- Ping -->
+                                            <DataGridTextColumn Header="Ping" Binding="{Binding Ping}" CanUserResize="False" Width="40">
+                                                <DataGridTextColumn.ElementStyle>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="HorizontalAlignment" Value="Right" />
+                                                        <Setter Property="FontFamily" Value="Consolas" />
+                                                        <Setter Property="Margin" Value="0,0,4,0"/>
+                                                        <Setter Property="Foreground" Value="{Binding Ping, Converter={StaticResource PingColorConverter}}" />
+                                                    </Style>
+                                                </DataGridTextColumn.ElementStyle>
+                                            </DataGridTextColumn>
+                                        </DataGrid.Columns>
+                                    </view:CustomDataGrid>
+                                </Grid>
+                            </DataTemplate>
+                        </TabControl.ContentTemplate>
+                    </TabControl>
+
+
+
+                    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#33000000" Grid.Column="1" Margin="10,20,10,5"
+                            DataContext="{Binding PartyViewModel}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" FontSize="15"/>
+                            <StackPanel Grid.Row="3">
+                                <TextBlock Text="{Binding Members.Count, StringFormat={} Members: {0}}" Foreground="White"/>
+                                <TextBlock Text="{Binding IsPartyLeader, StringFormat={} IsLeader: {0}}" Foreground="White"/>
+                                <ItemsControl ItemsSource="{Binding Members}" Margin="10" Padding="5" Background="#88000000">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                                                                    <Setter Property="FontWeight" Value="Bold"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock Text="★" Foreground="White" FontSize="15" 
+                                                           Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding PartyId}" Foreground="White" />
+                                <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5" 
+                                        Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                <TextBox x:Name="JoinIdTextBox"/>
+                                <Button Height="25" Width="80" Content="Join" Click="Button_Click" Margin="5" />
+                                <Button Height="25" Width="80" Content="Leave" Command="{Binding LeavePartyCommand}" />
+                            </StackPanel>
+                            <StackPanel Grid.Row="2" Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" VerticalAlignment="Center">
+                                <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+
+                </Grid>
 
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">
                     <StatusBar.ItemsPanel>

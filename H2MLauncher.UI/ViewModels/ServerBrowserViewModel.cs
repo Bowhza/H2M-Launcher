@@ -99,6 +99,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private SocialsViewModel _socials = new();
 
+    [ObservableProperty]
+    private PartyViewModel _partyViewModel;
+
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
     public bool IsMatchmakingEnabled =>
@@ -147,7 +150,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         CachedServerDataService serverDataService,
         IMapsProvider mapsProvider,
         HMWGameServerCommunicationService hmwGameService,
-        IServerJoinService serverJoinService)
+        IServerJoinService serverJoinService,
+        PartyViewModel partyViewModel)
     {
         _raidMaxService = raidMaxService;
         _gameServerCommunicationService = gameServerCommunicationService;
@@ -165,7 +169,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _serverDataService = serverDataService;
         _mapsProvider = mapsProvider;
         _hmwGameService = hmwGameService;
-        _serverJoinService = serverJoinService;        
+        _serverJoinService = serverJoinService;
+        _partyViewModel = partyViewModel;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -270,6 +275,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _mapsProvider.MapsChanged += MapsProvider_InstalledMapsChanged;
 
         _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
+
+        partyViewModel.CreatePartyCommand.Execute(null);
     }
 
     private void ServerJoinService_ServerJoined(IServerConnectionDetails server)
@@ -897,7 +904,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private ServerViewModel? FindServerViewModel(IServerConnectionDetails server)
     {
         return AllServersTab.Servers.FirstOrDefault(s =>
-                (server.Ip == s.Ip || server.Ip == s.GameServerInfo?.Address?.Address?.GetRealAddress()?.ToString()) && 
+                (server.Ip == s.Ip || server.Ip == s.GameServerInfo?.Address?.Address?.GetRealAddress()?.ToString()) &&
                 server.Port == s.Port);
     }
 

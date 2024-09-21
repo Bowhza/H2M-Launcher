@@ -30,6 +30,7 @@ using H2MLauncher.Core.Game.Memory;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Joining;
+using H2MLauncher.Core.Party;
 
 namespace H2MLauncher.UI
 {
@@ -147,8 +148,10 @@ namespace H2MLauncher.UI
             services.AddTransient<ISaveFileService, SaveFileService>();
             services.AddSingleton<IServerJoinService, ServerJoinService>();
             services.AddTransient<ServerBrowserViewModel>();
+            services.AddTransient<PartyViewModel>();
 
             services.AddSingleton<MatchmakingService>();
+            services.AddSingleton<PartyService>();
             services.AddTransient<CachedServerDataService>();
             services.AddHttpClient<CachedServerDataService>()
                 .ConfigureHttpClient((sp, client) =>

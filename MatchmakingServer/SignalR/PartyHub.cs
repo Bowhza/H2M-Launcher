@@ -40,7 +40,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
         if (player.Party is not null)
         {
-            return CreatePartyInfo(player.Party);
+            return null;
         }
 
         Party party = new()
@@ -101,7 +101,10 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             // close party
             if (Parties.TryRemove(party.Id, out _))
             {
-                await Clients.Group($"party_{party.Id}").OnPartyClosed();
+                int numMembers = party.CloseParty();
+
+                _logger.LogInformation("Closed party {partyId} with {numMembers}", party.Id, numMembers);
+                await Clients.OthersInGroup($"party_{party.Id}").OnPartyClosed();
             }
         }
         else
@@ -109,7 +112,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             // remove user from party
             if (party.RemovePlayer(player))
             {
-                await Clients.Group($"party_{party.Id}").OnUserLeftParty(player.Id);
+                await Clients.OthersInGroup($"party_{party.Id}").OnUserLeftParty(player.Id);
             }
         }
 
