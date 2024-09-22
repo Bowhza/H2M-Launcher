@@ -139,12 +139,7 @@ namespace MatchmakingServer.SignalR
             string uniqueId = Context.UserIdentifier!;
             string playerName = Context.User!.Identity!.Name!;
 
-            Player player = _playerStore.ConnectedPlayers.GetOrAdd(uniqueId, (id) => new()
-            {
-                Id = id,
-                Name = playerName,
-                State = PlayerState.Connected
-            });
+            Player player = await _playerStore.GetOrAdd(uniqueId, Context.ConnectionId, playerName);
 
             if (player.QueueingHubId is not null)
             {
@@ -163,12 +158,13 @@ namespace MatchmakingServer.SignalR
         {
             _logger.LogInformation(exception, "Client disconnected: {connectionId}", Context.ConnectionId);
 
-            if (_playerStore.ConnectedPlayers.TryGetValue(Context.UserIdentifier!, out Player? player))
+            Player? player = await _playerStore.TryRemove(Context.UserIdentifier!, Context.ConnectionId);
+            if (player is not null)
             {
                 player.QueueingHubId = null;
             }
 
-            if (RemovePlayer(Context.ConnectionId) != null);
+            if (RemovePlayer(Context.ConnectionId) != null)
             {
                 _logger.LogInformation("Removed player {player}", player);
             }

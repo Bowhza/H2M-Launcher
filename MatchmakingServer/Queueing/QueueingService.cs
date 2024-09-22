@@ -746,7 +746,6 @@ namespace MatchmakingServer.Queueing
         {
             if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
             {
-                _logger.LogDebug("Cannot dequeue {player}: not in queue", player);
                 return;
             }
 

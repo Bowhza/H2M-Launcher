@@ -18,6 +18,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     private readonly H2MCommunicationService _h2mCommunicationService;
     private readonly MatchmakingService _matchmakingService;
 
+    private volatile int _isJoining;
     private SecureString? _lastServerPassword;
 
     public ServerJoinServiceBase(
@@ -27,13 +28,13 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     {
         _options = options;
         _h2mCommunicationService = h2mCommunicationService;
-        WeakReferenceMessenger.Default.RegisterAll(this);
         _matchmakingService = matchmakingService;
+
+        WeakReferenceMessenger.Default.RegisterAll(this);
     }
 
     public ISimpleServerInfo? LastServer { get; private set; }
-
-    private volatile int _isJoining;
+    public bool IsJoining => _isJoining == 1;
 
 
     public event Action<ISimpleServerInfo>? ServerJoined;

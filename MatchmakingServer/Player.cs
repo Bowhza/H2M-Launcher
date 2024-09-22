@@ -2,17 +2,21 @@
 
 using H2MLauncher.Core.Matchmaking.Models;
 
-using H2MLauncher.Core.Matchmaking.Models;
-
-using MatchmakingServer.SignalR;
-
 namespace MatchmakingServer
 {
     public class Player
     {
         public required string Name { get; set; }
         public required string Id { get; init; }
+
+        /// <summary>
+        /// Gets the connection id for the queueing hub.
+        /// </summary>
         public string? QueueingHubId { get; set; }
+
+        /// <summary>
+        /// Gets the connection id for the party hub.
+        /// </summary>
         public string? PartyHubId { get; set; }
 
         public PlayerState State { get; set; }

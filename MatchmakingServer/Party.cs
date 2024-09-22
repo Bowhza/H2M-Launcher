@@ -9,8 +9,6 @@ public class Party
 
     public string Id { get; init; } = Guid.NewGuid().ToString();
 
-    public SimpleServerInfo? Server { get; set; }
-
     public required Player Leader { get; init; }
 
     public IReadOnlySet<Player> Members => _members;

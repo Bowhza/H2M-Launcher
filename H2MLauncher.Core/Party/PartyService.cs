@@ -169,15 +169,6 @@ namespace H2MLauncher.Core.Party
             PartyChanged?.Invoke();
 
             _logger.LogInformation("Joined party");
-
-            if (party.Server is null)
-            {
-                return;
-            }
-
-            _logger.LogDebug("Party has a server, joining {server}...", party.Server);
-
-            await _serverJoinService.JoinServer(party.Server, null);
         }
 
         public async Task LeaveParty()
@@ -229,6 +220,20 @@ namespace H2MLauncher.Core.Party
         public Task OnServerChanged(SimpleServerInfo server)
         {
             _logger.LogDebug("Party server changed: {server}, joining...", server);
+
+
+
+            /*
+             * How to know whether to join queue?
+             * 
+             * a) Do info request and check
+             * b) Server does info request
+             * c) Leader tells server the player count
+             * d) Server joins queue precauteously
+             * 
+             * => Since we dont care about speed and have no way to assure they get into the same team (yet)
+             *    best bet is a. Otherwise d would be the best option, but the client would loose control about whether to join then.
+             */
 
             return _serverJoinService.JoinServer(server, null);
         }

@@ -28,7 +28,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
     private static PartyInfo CreatePartyInfo(Party party)
     {
-        return new(party.Id, party.Server, party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList());
+        return new(party.Id, party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList());
+    }
+
+    private static string GetPartyGroupName(Party party)
+    {
+        return $"party_{party.Id}";
     }
 
     public async Task<PartyInfo?> CreateParty()
@@ -54,7 +59,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         }
 
         party.AddPlayer(player);
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"party_{party.Id}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, GetPartyGroupName(party));
 
         return CreatePartyInfo(party);
     }
@@ -81,10 +86,10 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
         // add player
         party.AddPlayer(player);
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"party_{party.Id}");
+        await Groups.AddToGroupAsync(Context.ConnectionId, GetPartyGroupName(party));
 
         // notify others of join
-        await Clients.OthersInGroup($"party_{party.Id}").OnUserJoinedParty(player.Id, player.Name);
+        await Clients.OthersInGroup(GetPartyGroupName(party)).OnUserJoinedParty(player.Id, player.Name);
 
         return CreatePartyInfo(party);
     }
@@ -96,7 +101,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             return false;
         }
 
-        string partyGroupName = $"party_{party.Id}";
+        string partyGroupName = GetPartyGroupName(party);
 
         if (player.IsPartyLeader)
         {
@@ -154,12 +159,10 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             return;
         }
 
-        player.Party.Server = server;
-
         // TODO: leave party when joined alone and not leader?
 
         // notify others to join the server
-        await Clients.OthersInGroup($"party_{player.Party.Id}").OnServerChanged(server);
+        await Clients.OthersInGroup(GetPartyGroupName(player.Party)).OnServerChanged(server);
     }
 
     public async Task UpdatePlayerName(string newName)
@@ -180,7 +183,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
         if (player.Party is not null)
         {
-            await Clients.OthersInGroup($"party_{player.Party.Id}").OnUserNameChanged(player.Id, newName);
+            await Clients.OthersInGroup(GetPartyGroupName(player.Party)).OnUserNameChanged(player.Id, newName);
         }
     }
 
@@ -204,7 +207,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         }
 
         Party party = player.Party;
-        string partyGroupName = $"party_{party.Id}";
+        string partyGroupName = GetPartyGroupName(party);
 
         Player? memberToRemove = party.Members.FirstOrDefault(m => m.Id == id);
         if (memberToRemove is null)
@@ -234,12 +237,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         string uniqueId = Context.UserIdentifier!;
         string playerName = Context.User!.Identity!.Name!;
 
-        Player player = _playerStore.ConnectedPlayers.GetOrAdd(uniqueId, (id) => new()
-        {
-            Id = id,
-            Name = playerName,
-            State = PlayerState.Connected
-        });
+        Player player = await _playerStore.GetOrAdd(uniqueId, Context.ConnectionId, playerName);
 
         if (player.PartyHubId is not null)
         {
@@ -258,9 +256,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        if (_playerStore.ConnectedPlayers.TryGetValue(Context.UserIdentifier!, out Player? player)
-            && player.Party is not null)
+        Player? player = await _playerStore.TryRemove(Context.UserIdentifier!, Context.ConnectionId);
+
+        if (player is not null)
         {
+            _logger.LogDebug("Player {player} disconnected from party hub, dissolving party...", player);
+
             player.PartyHubId = null;
             await LeaveOrCloseParty(player);
         }
