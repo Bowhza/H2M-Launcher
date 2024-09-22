@@ -191,6 +191,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             return false;
         }
 
+        if (player.Id == id)
+        {
+            // cannot kick self
+            return false;
+        }
+
         if (!player.IsPartyLeader)
         {
             // not a party leader

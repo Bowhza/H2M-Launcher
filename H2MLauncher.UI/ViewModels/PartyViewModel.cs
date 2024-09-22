@@ -22,6 +22,8 @@ namespace H2MLauncher.UI.ViewModels
         private bool _isSelf;
 
         public required string Id { get; init; }
+
+        public required IAsyncRelayCommand KickCommand { get; init; }
     }
 
     public sealed partial class PartyViewModel : ObservableObject, IDisposable
@@ -43,13 +45,29 @@ namespace H2MLauncher.UI.ViewModels
             _dialogService = dialogService;
             _partyService = partyService;
             _partyService.PartyChanged += PartyService_PartyChanged;
+            _partyService.PartyClosed += PartyService_PartyClosed;
+            _partyService.KickedFromParty += PartyService_KickedFromParty;
             _partyService.UserChanged += PartyService_UserChanged;
             _partyService.UserJoined += PartyService_UserJoined;
             _partyService.UserLeft += PartyService_UserLeft;
-            _partyService.KickedFromParty += PartyService_KickedFromParty;
+            _partyService.ConnectionChanged += PartyService_ConnectionChanged;
         }
 
+
         #region Event handlers
+
+        private void PartyService_ConnectionChanged(bool connected)
+        {
+            if (!connected)
+            {
+                _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+            }
+        }
+
+        private void PartyService_PartyClosed()
+        {
+            _dialogService.OpenTextDialog("Party", "Party was closed!");
+        }
 
         private void PartyService_KickedFromParty()
         {
@@ -60,13 +78,7 @@ namespace H2MLauncher.UI.ViewModels
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                Members.Add(new PartyMemberViewModel()
-                {
-                    Id = member.Id,
-                    Name = member.Name,
-                    IsLeader = member.IsLeader,
-                    IsSelf = member.Id == _partyService.CurrentClientId
-                });
+                AddMember(member);
             });
         }
 
@@ -105,13 +117,7 @@ namespace H2MLauncher.UI.ViewModels
                 {
                     foreach (PartyPlayerInfo member in _partyService.Members)
                     {
-                        Members.Add(new PartyMemberViewModel()
-                        {
-                            Id = member.Id,
-                            Name = member.Name,
-                            IsLeader = member.IsLeader,
-                            IsSelf = member.Id == _partyService.CurrentClientId
-                        });
+                        AddMember(member);
                     }
                 }
 
@@ -155,13 +161,34 @@ namespace H2MLauncher.UI.ViewModels
             return _partyService.LeaveParty();
         }
 
+        public Task KickPlayer(string id)
+        {
+            return _partyService.KickMember(id);
+        }
+
+        private void AddMember(PartyPlayerInfo member)
+        {
+            Members.Add(new PartyMemberViewModel()
+            {
+                Id = member.Id,
+                Name = member.Name,
+                IsLeader = member.IsLeader,
+                IsSelf = member.Id == _partyService.CurrentClientId,
+                KickCommand = new AsyncRelayCommand(
+                        () => KickPlayer(member.Id),
+                        () => _partyService.IsPartyLeader && member.Id != _partyService.CurrentClientId)
+            });
+        }
+
         public void Dispose()
         {
             _partyService.PartyChanged -= PartyService_PartyChanged;
+            _partyService.PartyClosed -= PartyService_PartyClosed;
+            _partyService.KickedFromParty -= PartyService_KickedFromParty;
             _partyService.UserChanged -= PartyService_UserChanged;
             _partyService.UserJoined -= PartyService_UserJoined;
             _partyService.UserLeft -= PartyService_UserLeft;
-            _partyService.KickedFromParty -= PartyService_KickedFromParty;
+            _partyService.ConnectionChanged -= PartyService_ConnectionChanged;
         }
     }
 }

@@ -441,13 +441,17 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock Text="Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" FontSize="15"/>
-                            <StackPanel Grid.Row="3">
+                            <StackPanel Grid.Row="3" x:Name="PartyPanel">
                                 <TextBlock Text="{Binding Members.Count, StringFormat={} Members: {0}}" Foreground="White"/>
                                 <TextBlock Text="{Binding IsPartyLeader, StringFormat={} IsLeader: {0}}" Foreground="White"/>
                                 <ItemsControl ItemsSource="{Binding Members}" Margin="10" Padding="5" Background="#88000000">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <StackPanel Orientation="Horizontal">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
                                                 <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
@@ -459,9 +463,25 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
-                                                <TextBlock Text="★" Foreground="White" FontSize="15" 
+                                                <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" HorizontalAlignment="Right" Grid.Column="1">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding IsSelf}" Value="False"/>
+                                                                        <Condition Binding="{Binding DataContext.IsPartyLeader, ElementName=PartyPanel}" Value="True"/>
+                                                                    </MultiDataTrigger.Conditions>
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </MultiDataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                                <TextBlock Text="★" Foreground="White" FontSize="15" HorizontalAlignment="Center" Grid.Column="1"
                                                            Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
-                                            </StackPanel>
+                                            </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>

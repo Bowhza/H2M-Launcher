@@ -124,6 +124,7 @@ namespace H2MLauncher.Core.Party
         public async Task StartConnection(CancellationToken cancellationToken = default)
         {
             await _connection.StartAsync(cancellationToken).ConfigureAwait(false);
+            ConnectionChanged?.Invoke(true);
         }
 
         public async Task<string?> CreateParty()
@@ -211,6 +212,8 @@ namespace H2MLauncher.Core.Party
                 return;
             }
 
+            // no update needed, OnUserLeftParty() will handle this
+
             _logger.LogInformation("Player {userId} was kicked from the party", id);
         }
 
@@ -236,6 +239,7 @@ namespace H2MLauncher.Core.Party
 
             _currentParty = null;
             KickedFromParty?.Invoke();
+            PartyChanged?.Invoke();
 
             return Task.CompletedTask;
         }
@@ -247,6 +251,7 @@ namespace H2MLauncher.Core.Party
             _currentParty = null;
             _isPartyLeader = false;
             PartyClosed?.Invoke();
+            PartyChanged?.Invoke();
 
             return Task.CompletedTask;
         }
@@ -331,6 +336,7 @@ namespace H2MLauncher.Core.Party
             _isPartyLeader = false;
 
             ConnectionChanged?.Invoke(false);
+            PartyChanged?.Invoke();
 
             return Task.CompletedTask;
         }
