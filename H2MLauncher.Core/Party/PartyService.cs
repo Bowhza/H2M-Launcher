@@ -18,19 +18,24 @@ using TypedSignalR.Client;
 
 namespace H2MLauncher.Core.Party
 {
-    public class PartyService : IPartyClient, IHubConnectionObserver, IDisposable
+    public sealed class PartyService : IPartyClient, IHubConnectionObserver, IDisposable
     {
         private readonly HubConnection _connection;
         private readonly IPartyHub _hubProxy;
         private readonly IDisposable _clientRegistration;
 
         private readonly IServerJoinService _serverJoinService;
+        private readonly IPlayerNameProvider _playerNameProvider;
         private readonly ILogger<PartyService> _logger;
 
         public bool IsConnected => _connection.State is HubConnectionState.Connected;
 
         public event Action? KickedFromParty;
         public event Action? PartyClosed;
+        public event Action<PartyPlayerInfo>? UserJoined;
+        public event Action<PartyPlayerInfo>? UserLeft;
+        public event Action<PartyPlayerInfo>? UserChanged;
+
         public event Action<bool>? ConnectionChanged;
         public event Action? PartyChanged;
 
@@ -70,9 +75,23 @@ namespace H2MLauncher.Core.Party
             _clientRegistration = _connection.Register<IPartyClient>(this);
 
             _serverJoinService = serverJoinService;
+            _playerNameProvider = playerNameProvider;
             _logger = logger;
 
             _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
+            _playerNameProvider.PlayerNameChanged += PlayerNameProvider_PlayerNameChanged;
+        }
+
+        private async void PlayerNameProvider_PlayerNameChanged(string oldName, string newName)
+        {
+            try
+            {
+                await _hubProxy.UpdatePlayerName(newName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while updating player name from {oldName} to {newName}.", oldName, newName);
+            }
         }
 
         /// <summary>
@@ -179,6 +198,17 @@ namespace H2MLauncher.Core.Party
             _logger.LogDebug("Party left");
         }
 
+        public Task KickMember(string id)
+        {
+            if (_currentParty is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            _hubProxy.UpdatePlayerName
+        }
+
+
         #region RPC Handlers
 
         public Task OnConnectionRejected(string reason)
@@ -211,7 +241,6 @@ namespace H2MLauncher.Core.Party
             _currentParty = null;
             _isPartyLeader = false;
             PartyClosed?.Invoke();
-            PartyChanged?.Invoke();
 
             return Task.CompletedTask;
         }
@@ -222,8 +251,11 @@ namespace H2MLauncher.Core.Party
 
             if (_currentParty is not null)
             {
-                _currentParty.Members.Add(new PartyPlayerInfo(id, playerName, IsLeader: false));
-                PartyChanged?.Invoke();
+                PartyPlayerInfo newUser = new(id, playerName, IsLeader: false);
+
+                _currentParty.Members.Add(newUser);
+
+                UserJoined?.Invoke(newUser);
             }
 
             return Task.CompletedTask;
@@ -246,7 +278,7 @@ namespace H2MLauncher.Core.Party
 
             if (_currentParty.Members.Remove(member))
             {
-                PartyChanged?.Invoke();
+                UserLeft?.Invoke(member);
             }
 
             return Task.CompletedTask;
@@ -254,15 +286,36 @@ namespace H2MLauncher.Core.Party
 
         public Task OnUserNameChanged(string id, string newPlayerName)
         {
+            if (_currentParty is null)
+            {
+                _logger.LogWarning("Received OnUserNameChanged but current party is null");
+                return Task.CompletedTask;
+            }
+
+            _logger.LogTrace("Received OnUserNameChanged({userId}, {newPlayerName})", id, newPlayerName);
+
+            int memberIndex = _currentParty.Members.FindIndex(m => m.Id == id);
+            if (memberIndex == -1)
+            {
+                _logger.LogWarning("Cannot find party member with id {userId}", id);
+                return Task.CompletedTask;
+            }
+
+            PartyPlayerInfo member = _currentParty.Members[memberIndex];
+
+            _currentParty.Members[memberIndex] = member with
+            {
+                Name = newPlayerName
+            };
+
+            UserChanged?.Invoke(_currentParty.Members[memberIndex]);
+
+            _logger.LogDebug("Party member {userId} changed name from {oldName} to {newName}", id, member.Name, newPlayerName);
+
             return Task.CompletedTask;
         }
 
         #endregion
-
-        public void Dispose()
-        {
-            _clientRegistration.Dispose();
-        }
 
         public Task OnClosed(Exception? exception)
         {
@@ -284,6 +337,13 @@ namespace H2MLauncher.Core.Party
         public Task OnReconnecting(Exception? exception)
         {
             return Task.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            _clientRegistration.Dispose();
+            _playerNameProvider.PlayerNameChanged -= PlayerNameProvider_PlayerNameChanged;
+            _serverJoinService.ServerJoined -= ServerJoinService_ServerJoined;
         }
     }
 }

@@ -62,11 +62,11 @@ public class Party
         }
     }
 
-    public int CloseParty()
+    public IReadOnlyList<Player> CloseParty()
     {
         ValidateClosed();
 
-        int count = 0;
+        List<Player> removedPlayers = [];
 
         lock (_members)
         {
@@ -77,12 +77,12 @@ public class Party
             foreach (Player member in _members)
             {
                 member.Party = null;
-                count++;
+                removedPlayers.Add(member);
             }
 
             _members.Clear();
         }
 
-        return count;
+        return removedPlayers;
     }
 }

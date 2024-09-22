@@ -96,15 +96,26 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             return false;
         }
 
+        string partyGroupName = $"party_{party.Id}";
+
         if (player.IsPartyLeader)
         {
             // close party
             if (Parties.TryRemove(party.Id, out _))
             {
-                int numMembers = party.CloseParty();
+                IReadOnlyList<Player> removedPlayers = party.CloseParty();
 
-                _logger.LogInformation("Closed party {partyId} with {numMembers}", party.Id, numMembers);
-                await Clients.OthersInGroup($"party_{party.Id}").OnPartyClosed();
+                _logger.LogInformation("Closed party {partyId} with {numMembers}", party.Id, removedPlayers.Count);
+
+                await Clients.OthersInGroup(partyGroupName).OnPartyClosed();
+
+                foreach (Player removedPlayer in removedPlayers)
+                {
+                    if (removedPlayer.PartyHubId is not null)
+                    {
+                        await Groups.RemoveFromGroupAsync(removedPlayer.PartyHubId, partyGroupName);
+                    }
+                }
             }
         }
         else
@@ -112,11 +123,12 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             // remove user from party
             if (party.RemovePlayer(player))
             {
-                await Clients.OthersInGroup($"party_{party.Id}").OnUserLeftParty(player.Id);
+                await Clients.OthersInGroup(partyGroupName).OnUserLeftParty(player.Id);
             }
+
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, partyGroupName);
         }
 
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"party_{party.Id}");
         return true;
     }
 
@@ -170,6 +182,45 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         {
             await Clients.OthersInGroup($"party_{player.Party.Id}").OnUserNameChanged(player.Id, newName);
         }
+    }
+
+    public async Task<bool> KickPlayer(string id)
+    {
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        {
+            return false;
+        }
+
+        if (!player.IsPartyLeader)
+        {
+            // not a party leader
+            return false;
+        }
+
+        Party party = player.Party;
+        string partyGroupName = $"party_{party.Id}";
+
+        Player? memberToRemove = party.Members.FirstOrDefault(m => m.Id == id);
+        if (memberToRemove is null)
+        {
+            // player not found
+            return false;
+        }
+
+        // remove user from party
+        if (party.RemovePlayer(memberToRemove))
+        {
+            // notify other users that user left
+            await Clients.GroupExcept(partyGroupName, [Context.ConnectionId, memberToRemove.PartyHubId!])
+                .OnUserLeftParty(memberToRemove.Id);
+
+            // notify user that he was kicked
+            await Clients.Client(memberToRemove.PartyHubId!).OnKickedFromParty();
+        }
+
+        await Groups.RemoveFromGroupAsync(memberToRemove.PartyHubId!, partyGroupName);
+
+        return true;
     }
 
     public override async Task OnConnectedAsync()

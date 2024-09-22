@@ -14,4 +14,6 @@ public interface IPartyHub
     Task JoinServer(SimpleServerInfo server);
 
     Task UpdatePlayerName(string newName);
+
+    Task<bool> KickPlayer(string id);
 }
