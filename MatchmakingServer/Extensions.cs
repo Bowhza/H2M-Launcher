@@ -1,4 +1,6 @@
-﻿namespace MatchmakingServer
+﻿using Nito.Disposables;
+
+namespace MatchmakingServer
 {
     public static class Extensions
     {
@@ -43,6 +45,31 @@
                     return false;
                 }
             });
+        }
+
+        public static IDisposable LockAll(this IEnumerable<object> lockObjects)
+        {
+            _ = lockObjects.TryGetNonEnumeratedCount(out int count);
+            List<object> enteredLocks = new(count);
+            try
+            {
+                foreach (var lockObject in lockObjects)
+                {
+                    Monitor.Enter(lockObject);
+                    enteredLocks.Add(lockObject);
+                }
+
+                return Disposable.Create(() =>
+                {
+                    foreach (var lockObject in enteredLocks)
+                        Monitor.Exit(lockObject);
+                });
+            }
+            finally
+            {
+                foreach (var lockObject in enteredLocks)
+                    Monitor.Exit(lockObject);
+            }
         }
     }
 }

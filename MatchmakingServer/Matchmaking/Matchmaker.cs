@@ -46,26 +46,27 @@ namespace MatchmakingServer
 
             _logger.LogDebug("Ticket added to matchmaking queue: {@ticket}", ticket);
         }
+
         public void RemoveTicket(MMTicket ticket)
         {
             ticket.SearchAttempts = 0;
             _queue.Remove(ticket);
 
-            foreach (var srv in ticket.PreferredServers.Keys)
+            foreach (ServerConnectionDetails server in ticket.PreferredServers.Keys)
             {
-                if (_serverQueues.TryGetValue(srv, out ConcurrentLinkedQueue<MMTicket>? playersForServer))
+                if (_serverQueues.TryGetValue(server, out ConcurrentLinkedQueue<MMTicket>? playersForServer))
                 {
                     playersForServer.Remove(ticket);
 
                     if (playersForServer.Count == 0)
                     {
-                        _serverQueues.TryRemove(srv, out _);
+                        _serverQueues.TryRemove(server, out _);
                     }
                 }
             }
         }
 
-        private MMMatch? CheckForNextMatch(IEnumerable<(GameServer, double)> serversWithQuality)
+        private MMMatch? CreateNextMatch(IEnumerable<(GameServer, double)> serversWithQuality)
         {
             List<MMMatch> matches = [];
 
@@ -158,10 +159,21 @@ namespace MatchmakingServer
                 AdjustedQuality = bestMatch.MatchQuality
             });
 
-            // Remove matched players from the queue and server groups
-            foreach (MMTicket ticket in bestMatch.SelectedTickets)
+            // atomic completion
+            using (bestMatch.SelectedTickets.Select(t => t.LockObj).LockAll())
             {
-                RemoveTicket(ticket);
+                if (bestMatch.SelectedTickets.Any(t => t.MatchCompletion.Task.IsCompleted))
+                {
+                    _logger.LogWarning("Invalid match: Selected ticket already completed");
+                    return null;
+                }
+
+                // Complete and remove the tickets
+                foreach (MMTicket ticket in bestMatch.SelectedTickets)
+                {
+                    ticket.MatchCompletion.TrySetResult(bestMatch);
+                    RemoveTicket(ticket);
+                }
             }
 
             return bestMatch;
@@ -190,7 +202,7 @@ namespace MatchmakingServer
 
                 do
                 {
-                    MMMatch? nextMatch = CheckForNextMatch(orderedServers);
+                    MMMatch? nextMatch = CreateNextMatch(orderedServers);
                     if (nextMatch.HasValue)
                     {
                         yield return nextMatch.Value;
@@ -212,7 +224,7 @@ namespace MatchmakingServer
             {
                 _semaphore.Release();
             }
-        }        
+        }
 
         public List<Player> GetPlayersInServer(IServerConnectionDetails serverConnectionDetails)
         {

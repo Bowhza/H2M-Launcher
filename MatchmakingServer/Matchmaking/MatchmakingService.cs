@@ -152,8 +152,29 @@ namespace MatchmakingServer
                 return false;
             }
 
-            _matchmaker.AddTicketToQueue(new MMTicket([player], preferredServersParsed, searchPreferences));
-            player.State = PlayerState.Matchmaking;
+            // select players for the ticket
+            List<Player> players;
+            if (player.IsPartyLeader)
+            {
+                // whole party
+                players = [.. player.Party.Members.Where(m =>
+                    m.QueueingHubId is not null &&
+                    m.State is not PlayerState.Matchmaking) //todo(tb): disallow or merge?
+                ];
+            }
+            else
+            {
+                // alone (player might be in party though, but allow this for now)
+                players = [player];
+            }
+
+            MMTicket ticket = new(players, preferredServersParsed, searchPreferences);
+            _matchmaker.AddTicketToQueue(ticket);
+
+            foreach (Player p in players)
+            {
+                p.State = PlayerState.Matchmaking;
+            }
 
             return true;
         }
@@ -167,7 +188,7 @@ namespace MatchmakingServer
                 return false;
             }
 
-            MMTicket? ticket = _matchmaker.Tickets.FirstOrDefault(t => t.Players.First() == player);
+            MMTicket? ticket = _matchmaker.Tickets.FirstOrDefault(t => t.Players.Contains(player));
             if (ticket is null)
             {
                 _logger.LogWarning("Player {player} not queued in Matchmaking despite state. Correcting state to 'Connected'.", player);
@@ -175,8 +196,21 @@ namespace MatchmakingServer
                 return false;
             }
 
-            _matchmaker.RemoveTicket(ticket);
-            player.State = PlayerState.Connected;
+            if (player.IsPartyLeader || ticket.Players.Count == 1)
+            {
+                // remove whole ticket
+                _matchmaker.RemoveTicket(ticket);
+                foreach (Player p in ticket.Players)
+                {
+                    p.State = PlayerState.Connected;
+                }
+            }
+            else
+            {
+                // remove from ticket
+                ticket.RemovePlayer(player);
+                player.State = PlayerState.Connected;
+            }
 
             _logger.LogInformation("Player {player} removed from matchmaking", player);
             return true;

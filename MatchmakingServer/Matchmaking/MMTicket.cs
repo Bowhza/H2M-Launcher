@@ -5,7 +5,10 @@ namespace MatchmakingServer
 {
     public sealed class MMTicket
     {
-        public IReadOnlySet<Player> Players { get; }
+        internal readonly object LockObj = new();
+
+        private readonly HashSet<Player> _players;
+        public IReadOnlySet<Player> Players => _players;
         public Dictionary<ServerConnectionDetails, int> PreferredServers { get; set; } // List of queued servers with ping
 
         public MatchSearchCriteria SearchPreferences { get; set; }
@@ -15,13 +18,20 @@ namespace MatchmakingServer
 
         public List<MMMatch> PossibleMatches { get; init; } // Currently possible non eligible matches
 
+        public TaskCompletionSource<MMMatch> MatchCompletion { get; } = new();
+
         public MMTicket(IEnumerable<Player> players, Dictionary<ServerConnectionDetails, int> servers, MatchSearchCriteria searchPreferences)
         {
-            Players = players.ToHashSet();
+            _players = players.ToHashSet();
             PreferredServers = servers;
             SearchPreferences = searchPreferences;
             JoinTime = DateTime.Now; // Record the time they joined the queue
             PossibleMatches = new(servers.Count);
+        }
+
+        public bool RemovePlayer(Player player)
+        {
+            return _players.Remove(player);
         }
 
         public bool IsEligibleForServer(GameServer server, int numPlayersForServer)
