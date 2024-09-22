@@ -3,9 +3,9 @@ using H2MLauncher.Core.Models;
 
 namespace MatchmakingServer
 {
-    internal sealed class MMPlayer
+    public sealed class MMTicket
     {
-        public Player Player { get; }
+        public IReadOnlySet<Player> Players { get; }
         public Dictionary<ServerConnectionDetails, int> PreferredServers { get; set; } // List of queued servers with ping
 
         public MatchSearchCriteria SearchPreferences { get; set; }
@@ -15,9 +15,9 @@ namespace MatchmakingServer
 
         public List<MMMatch> PossibleMatches { get; init; } // Currently possible non eligible matches
 
-        public MMPlayer(Player player, Dictionary<ServerConnectionDetails, int> servers, MatchSearchCriteria searchPreferences)
+        public MMTicket(IEnumerable<Player> players, Dictionary<ServerConnectionDetails, int> servers, MatchSearchCriteria searchPreferences)
         {
-            Player = player;
+            Players = players.ToHashSet();
             PreferredServers = servers;
             SearchPreferences = searchPreferences;
             JoinTime = DateTime.Now; // Record the time they joined the queue

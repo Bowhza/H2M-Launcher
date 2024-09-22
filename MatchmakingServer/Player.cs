@@ -42,12 +42,12 @@ namespace MatchmakingServer
 
         public override bool Equals(object? obj)
         {
-            return obj is Player otherPlayer && otherPlayer.Id == Id && otherPlayer.QueueingHubId == QueueingHubId;
+            return obj is Player otherPlayer && otherPlayer.Id == Id;
         }
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Id, QueueingHubId);
+            return Id.GetHashCode();
         }
 
         public override string ToString()

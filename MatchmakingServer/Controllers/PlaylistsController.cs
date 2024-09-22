@@ -112,7 +112,7 @@ namespace MatchmakingServer.Controllers
                         }
 
                         // players in matchmaking
-                        playerCount += _matchmakingService.GetPlayersInServer(server).Count;
+                       playerCount += _matchmakingService.GetPlayersInServer(server).Count;
                     }
 
                     _logger.LogDebug("Requesting game server info for {numServers}", serverToRequest.Count);

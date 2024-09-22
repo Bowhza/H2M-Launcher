@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace MatchmakingServer
 {
-    public class ConcurrentLinkedQueue<T> : IEnumerable<T>
+    public class ConcurrentLinkedQueue<T> : IReadOnlyCollection<T>
     {
         private readonly LinkedList<T> _list = new();
         private readonly ReaderWriterLockSlim _lock = new();
@@ -15,7 +15,7 @@ namespace MatchmakingServer
         {
             _cacheEnumerationSnapshot = cacheEnumerationSnapshot;
         }
-
+        
         public int Count
         {
             get
