@@ -198,14 +198,20 @@ namespace H2MLauncher.Core.Party
             _logger.LogDebug("Party left");
         }
 
-        public Task KickMember(string id)
+        public async Task KickMember(string id)
         {
             if (_currentParty is null)
             {
-                return Task.CompletedTask;
+                return;
             }
 
-            _hubProxy.UpdatePlayerName
+            if (!await _hubProxy.KickPlayer(id))
+            {
+                _logger.LogDebug("Could not kick player {userId} from party", id);
+                return;
+            }
+
+            _logger.LogInformation("Player {userId} was kicked from the party", id);
         }
 
 

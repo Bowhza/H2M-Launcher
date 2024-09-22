@@ -211,7 +211,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         if (party.RemovePlayer(memberToRemove))
         {
             // notify other users that user left
-            await Clients.GroupExcept(partyGroupName, [Context.ConnectionId, memberToRemove.PartyHubId!])
+            await Clients.GroupExcept(partyGroupName, memberToRemove.PartyHubId!)
                 .OnUserLeftParty(memberToRemove.Id);
 
             // notify user that he was kicked
