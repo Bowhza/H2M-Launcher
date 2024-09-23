@@ -652,7 +652,7 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await _endpointResolver.CreateEndpointServerMap(servers, cancellationToken);
 
             if (endpointServerMap.Count == 0)
             {
@@ -884,7 +884,7 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await _endpointResolver.CreateEndpointServerMap(servers, cancellationToken);
 
             if (endpointServerMap.Count == 0)
             {
@@ -983,7 +983,7 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs,
             CancellationToken cancellationToken)
         {
-            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await _endpointResolver.CreateEndpointServerMap(servers, cancellationToken);
 
             if (endpointServerMap.Count == 0)
             {
@@ -1136,39 +1136,6 @@ namespace H2MLauncher.Core.Services
             }
 
             requests.Add(request);
-        }
-
-        /// <summary>
-        /// Creates a dictionary of ip endpoints to servers by resolving the addresses in parallel and filtering out duplicates.
-        /// </summary>
-        private async Task<IReadOnlyDictionary<IPEndPoint, TServer>> CreateEndpointServerMap(
-            IEnumerable<TServer> servers, CancellationToken cancellationToken)
-        {
-            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
-
-            // resolve host names in parallel
-            await Parallel.ForEachAsync(
-                servers,
-                new ParallelOptions()
-                {
-                    CancellationToken = cancellationToken,
-                    MaxDegreeOfParallelism = MAX_PARALLEL_RESOLVE
-                },
-                async (server, token) =>
-                {
-                    // create an endpoint to send to and receive from
-                    IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, token);
-                    if (endpoint != null)
-                    {
-                        // filter out duplicates
-                        if (!endpointServerMap.TryAdd(endpoint, server))
-                        {
-                            // duplicate
-                        }
-                    }
-                });
-
-            return endpointServerMap.AsReadOnly();
         }
 
         public ValueTask DisposeAsync()
