@@ -35,13 +35,14 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
 
     public ISimpleServerInfo? LastServer { get; private set; }
     public bool IsJoining => _isJoining == 1;
+    protected JoinKind CurrentJoinKind { get; private set; }
 
 
-    public event Action<ISimpleServerInfo>? ServerJoined;
+    public event Action<ISimpleServerInfo, JoinKind>? ServerJoined;
 
-    protected virtual void OnServerJoined(ISimpleServerInfo server)
+    protected virtual void OnServerJoined(ISimpleServerInfo server, JoinKind joinKind)
     {
-        ServerJoined?.Invoke(server);
+        ServerJoined?.Invoke(server, joinKind);
     }
 
     protected virtual ValueTask<string?> OnPasswordRequired(IServerInfo server)
@@ -71,12 +72,14 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
         return ValueTask.FromResult(!_h2mCommunicationService.GameDetection.IsGameDetectionRunning);
     }
 
-    public async Task<JoinServerResult> JoinServer(IServerInfo server)
+    public async Task<JoinServerResult> JoinServer(IServerInfo server, JoinKind joinKind)
     {
         if (Interlocked.Exchange(ref _isJoining, 1) == 1)
         {
             return JoinServerResult.AlreadyJoining;
         }
+
+        CurrentJoinKind = joinKind;
 
         try
         {
@@ -119,12 +122,14 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
         }
     }
 
-    public async Task<JoinServerResult> JoinServer(ISimpleServerInfo server, string? password)
+    public async Task<JoinServerResult> JoinServer(ISimpleServerInfo server, string? password, JoinKind joinKind)
     {
         if (Interlocked.Exchange(ref _isJoining, 1) == 1)
         {
             return JoinServerResult.AlreadyJoining;
         }
+
+        CurrentJoinKind = joinKind;
 
         try
         {
@@ -144,7 +149,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
             return Task.FromResult(JoinServerResult.None);
         }
 
-        return JoinServer(LastServer, _lastServerPassword?.ToUnsecuredString());
+        return JoinServer(LastServer, _lastServerPassword?.ToUnsecuredString(), JoinKind.Rejoin);
     }
 
     protected async Task<bool> TryJoinServer(ISimpleServerInfo server, string? password)
@@ -155,7 +160,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
             LastServer = server;
             _lastServerPassword = password?.ToSecuredString();
 
-            OnServerJoined(server);
+            OnServerJoined(server, CurrentJoinKind);
         }
 
         return hasJoined;
@@ -163,6 +168,6 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
 
     void IRecipient<JoinRequestMessage>.Receive(JoinRequestMessage message)
     {
-        message.Reply(JoinServer(message.Server, message.Password));
+        message.Reply(JoinServer(message.Server, message.Password, message.Kind));
     }
 }

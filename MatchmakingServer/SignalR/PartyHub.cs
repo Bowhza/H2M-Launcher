@@ -24,9 +24,9 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
     private readonly ILogger<PartyHub> _logger;
 
     public PartyHub(
-        PlayerStore playerStore, 
-        ILogger<PartyHub> logger, 
-        MatchmakingService matchmakingService, 
+        PlayerStore playerStore,
+        ILogger<PartyHub> logger,
+        MatchmakingService matchmakingService,
         QueueingService queueingService)
     {
         _playerStore = playerStore;
@@ -188,7 +188,11 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             return;
         }
 
-        // TODO: leave party when joined alone and not leader?
+        if (player.State is not PlayerState.Connected)
+        {
+            // ignore joins when player is already joining, that means we already notified
+            return;
+        }
 
         // notify others to join the server
         await Clients.OthersInGroup(GetPartyGroupName(player.Party)).OnServerChanged(server);

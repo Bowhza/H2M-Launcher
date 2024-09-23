@@ -97,11 +97,18 @@ namespace H2MLauncher.Core.Party
         /// <summary>
         /// Called when we joined a server.
         /// </summary>
-        private async void ServerJoinService_ServerJoined(ISimpleServerInfo serverInfo)
+        private async void ServerJoinService_ServerJoined(ISimpleServerInfo serverInfo, JoinKind kind)
         {
             if (_currentParty is null || !_isPartyLeader)
             {
                 // if we are not a party leader do nothing
+                return;
+            }
+
+            if (kind is not (JoinKind.Normal or JoinKind.Forced))
+            {
+                // only propagate normal or fore joins as
+                // queue join is handled by the server
                 return;
             }
 
@@ -235,7 +242,7 @@ namespace H2MLauncher.Core.Party
              *    best bet is a. Otherwise d would be the best option, but the client would loose control about whether to join then.
              */
 
-            return _serverJoinService.JoinServer(server, null);
+            return _serverJoinService.JoinServer(server, null, JoinKind.FromParty);
         }
 
         public Task OnKickedFromParty()

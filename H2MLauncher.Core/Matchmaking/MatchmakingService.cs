@@ -185,7 +185,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         Joining?.Invoke(_queuedServer);
 
         string? password = serverInfo.Password ?? _privatePasswords.GetValueOrDefault((serverInfo.Ip, serverInfo.Port));
-        JoinServerResult result = await WeakReferenceMessenger.Default.Send<JoinRequestMessage>(new(serverInfo, password));
+        JoinServerResult result = await WeakReferenceMessenger.Default.Send<JoinRequestMessage>(new(serverInfo, password, JoinKind.FromQueue));
         if (result is JoinServerResult.Success)
         {
             State = PlayerState.Joining;

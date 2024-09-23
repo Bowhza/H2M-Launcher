@@ -279,7 +279,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         partyViewModel.CreatePartyCommand.Execute(null);
     }
 
-    private void ServerJoinService_ServerJoined(IServerConnectionDetails server)
+    private void ServerJoinService_ServerJoined(IServerConnectionDetails server, JoinKind kind)
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
@@ -828,7 +828,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         if (serverViewModel is null)
             return;
 
-        JoinServerResult joinResult = await _serverJoinService.JoinServer(serverViewModel);
+        JoinServerResult joinResult = await _serverJoinService.JoinServer(serverViewModel, JoinKind.Normal);
         if (joinResult is JoinServerResult.QueueJoined)
         {
             MatchmakingViewModel queueViewModel = new(
