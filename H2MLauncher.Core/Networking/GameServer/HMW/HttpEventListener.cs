@@ -33,10 +33,10 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
 
         protected override void OnEventWritten(EventWrittenEventArgs eventData)
         {
-            var timings = _timings.Value;
+            HttpRequestTimingDataRaw? timings = _timings.Value;
             if (timings == null)
                 return; // some event which is not related to this scope, ignore it
-            var fullName = eventData.EventSource.Name + "." + eventData.EventName;
+            string fullName = eventData.EventSource.Name + "." + eventData.EventName;
 
             switch (fullName)
             {
@@ -90,7 +90,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
 
         public HttpRequestTimings GetTimings()
         {
-            var raw = _timings.Value!;
+            HttpRequestTimingDataRaw raw = _timings.Value!;
             return new HttpRequestTimings
             {
                 Request = raw.RequestStop - raw.RequestStart,
