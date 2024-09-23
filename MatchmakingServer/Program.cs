@@ -68,9 +68,9 @@ builder.Services.AddHttpClient<HMWMasterService>()
 builder.Services.AddTransient<IErrorHandlingService, LoggingErrorHandlingService>();
 builder.Services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
-builder.Services.AddKeyedSingleton<ICanGetGameServerInfo<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) 
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) 
     => sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
-builder.Services.AddKeyedSingleton<ICanGetGameServerInfo<GameServer>, HttpGameServerCommunicationService<GameServer>>("TCP");
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerCommunicationService<GameServer>>("TCP");
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();

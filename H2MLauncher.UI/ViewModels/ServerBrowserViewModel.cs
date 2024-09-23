@@ -39,8 +39,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
     private readonly IMasterServerService _h2mMaster;
     private readonly IMasterServerService _hmwMaster;
-    private readonly ICanGetGameServerInfo<ServerConnectionDetails> _udpGameServerCommunicationService;
-    private readonly ICanGetGameServerInfo<ServerConnectionDetails> _tcpGameServerCommunicationService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _udpGameServerCommunicationService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
     private readonly LauncherService _h2MLauncherService;
     private readonly IClipBoardService _clipBoardService;
@@ -140,8 +140,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public ServerBrowserViewModel(
         [FromKeyedServices("H2M")] IMasterServerService h2mMasterService,
         [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,        
-        [FromKeyedServices("UDP")] ICanGetGameServerInfo<ServerConnectionDetails> udpGameServerService,
-        [FromKeyedServices("TCP")] ICanGetGameServerInfo<ServerConnectionDetails> tcpGameServerService,
+        [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerService,
+        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
         LauncherService h2MLauncherService,
         IClipBoardService clipBoardService,
@@ -671,7 +671,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     }
 
     private async Task GetServerInfo(
-        ICanGetGameServerInfo<ServerConnectionDetails> service, 
+        IGameServerInfoService<ServerConnectionDetails> service, 
         IEnumerable<ServerConnectionDetails> servers, 
         CancellationToken cancellationToken)
     {

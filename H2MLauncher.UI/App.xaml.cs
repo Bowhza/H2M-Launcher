@@ -129,8 +129,8 @@ namespace H2MLauncher.UI
                     client.BaseAddress = Url.Parse(launcherSettings.HMWMasterServerUrl).ToUri();
                 });
 
-            services.AddKeyedTransient(typeof(ICanGetGameServerInfo<>), "TCP", typeof(HttpGameServerCommunicationService<>));
-            services.AddKeyedTransient(typeof(ICanGetGameServerInfo<>), "UDP", typeof(GameServerCommunicationService<>));
+            services.AddKeyedTransient(typeof(IGameServerInfoService<>), "TCP", typeof(HttpGameServerCommunicationService<>));
+            services.AddKeyedTransient(typeof(IGameServerInfoService<>), "UDP", typeof(GameServerCommunicationService<>));
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService<IW4MServer>>();

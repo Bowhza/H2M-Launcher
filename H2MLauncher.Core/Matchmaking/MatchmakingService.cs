@@ -21,8 +21,8 @@ public sealed class MatchmakingService : IAsyncDisposable
     private readonly IGameDetectionService _gameDetectionService;
     private readonly IPlayerNameProvider _playerNameProvider;
     private readonly CachedServerDataService _serverDataService;
-    private readonly ICanGetGameServerInfo<ServerConnectionDetails> _tcpGameServerInfoService;
-    private readonly ICanGetGameServerInfo<ServerConnectionDetails> _udpGameServerInfoService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerInfoService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _udpGameServerInfoService;
     private readonly IMasterServerService _hmwMasterServerService;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IMapsProvider _mapsProvider;
@@ -113,8 +113,8 @@ public sealed class MatchmakingService : IAsyncDisposable
         IPlayerNameProvider playerNameProvider,
         IMapsProvider mapsProvider,
         CachedServerDataService serverDataService,
-        [FromKeyedServices("TCP")] ICanGetGameServerInfo<ServerConnectionDetails> tcpGameServerInfoService,
-        [FromKeyedServices("UDP")] ICanGetGameServerInfo<ServerConnectionDetails> udpGameServerInfoService,
+        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerInfoService,
+        [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerInfoService,
         [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService,
         IErrorHandlingService errorHandlingService,
         IGameDetectionService gameDetectionService)

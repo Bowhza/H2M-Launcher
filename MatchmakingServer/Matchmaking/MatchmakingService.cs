@@ -37,7 +37,7 @@ namespace MatchmakingServer
         private readonly IHubContext<QueueingHub, IClient> _hubContext;
         private readonly QueueingService _queueingService;
         private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
-        private readonly ICanGetGameServerInfo<GameServer> _tcpGameServerInfoService;
+        private readonly IGameServerInfoService<GameServer> _tcpGameServerInfoService;
         private readonly IMasterServerService _hmwMasterServerService;
         private readonly ILogger<MatchmakingService> _logger;
 
@@ -61,7 +61,7 @@ namespace MatchmakingServer
             QueueingService queueingService,
             GameServerCommunicationService<GameServer> gameServerCommunicationService,
             ILogger<MatchmakingService> logger,
-            [FromKeyedServices("TCP")] ICanGetGameServerInfo<GameServer> tcpGameServerInfoService,
+            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tcpGameServerInfoService,
             [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService)
         {
             _serverStore = serverStore;

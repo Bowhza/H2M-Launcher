@@ -22,8 +22,8 @@ namespace MatchmakingServer.Controllers
         private readonly IMemoryCache _memoryCache;
         private readonly ServerStore _serverStore;
         private readonly MatchmakingService _matchmakingService;
-        private readonly ICanGetGameServerInfo<GameServer> _udpGameServerCommunicationService;
-        private readonly ICanGetGameServerInfo<GameServer> _tcpGameServerCommunicationService;
+        private readonly IGameServerInfoService<GameServer> _udpGameServerCommunicationService;
+        private readonly IGameServerInfoService<GameServer> _tcpGameServerCommunicationService;
         private readonly ILogger<PlaylistsController> _logger;
 
         public PlaylistsController(
@@ -32,8 +32,8 @@ namespace MatchmakingServer.Controllers
             MatchmakingService matchmakingService,
             ServerStore serverStore,
             IMemoryCache memoryCache,
-            [FromKeyedServices("UDP")] ICanGetGameServerInfo<GameServer> udpGameServerCommunicationService,
-            [FromKeyedServices("TCP")] ICanGetGameServerInfo<GameServer> tcpGameServerCommunicationService,
+            [FromKeyedServices("UDP")] IGameServerInfoService<GameServer> udpGameServerCommunicationService,
+            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tcpGameServerCommunicationService,
             ILogger<PlaylistsController> logger)
         {
             _serverSettings = serverSettings;

@@ -18,8 +18,8 @@ namespace MatchmakingServer.Queueing
         private readonly ServerStore _serverStore;
 
         private readonly IMasterServerService _hmwMasterServerService;
-        private readonly ICanGetGameServerInfo<GameServer> _tcpGameServerCommunicationService;
-        private readonly ICanGetGameServerInfo<GameServer> _udpGameServerCommunicationService;
+        private readonly IGameServerInfoService<GameServer> _tcpGameServerCommunicationService;
+        private readonly IGameServerInfoService<GameServer> _udpGameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
@@ -48,8 +48,8 @@ namespace MatchmakingServer.Queueing
 
 
         public QueueingService(
-            [FromKeyedServices("UDP")] ICanGetGameServerInfo<GameServer> udpGameServerCommunicationService,
-            [FromKeyedServices("TCP")] ICanGetGameServerInfo<GameServer> tpcGameServerCommunicationService,
+            [FromKeyedServices("UDP")] IGameServerInfoService<GameServer> udpGameServerCommunicationService,
+            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tpcGameServerCommunicationService,
             IHubContext<QueueingHub, IClient> ctx,
             ILogger<QueueingService> logger,
             ServerInstanceCache instanceCache,
@@ -264,7 +264,7 @@ namespace MatchmakingServer.Queueing
             }
         }
 
-        private async Task<ICanGetGameServerInfo<GameServer>> SelectServerInfoServiceFor(GameServer server, CancellationToken cancellationToken)
+        private async Task<IGameServerInfoService<GameServer>> SelectServerInfoServiceFor(GameServer server, CancellationToken cancellationToken)
         {
             IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(cancellationToken);
             if (hmwServers.Contains((server.ServerIp, server.ServerPort)))
@@ -292,7 +292,7 @@ namespace MatchmakingServer.Queueing
                 _logger.LogTrace("Requesting game server info for {server}...", server);
 
 
-                ICanGetGameServerInfo<GameServer> service = await SelectServerInfoServiceFor(server, cancellationToken);
+                IGameServerInfoService<GameServer> service = await SelectServerInfoServiceFor(server, cancellationToken);
                 GameServerInfo? gameServerInfo =  await service.GetInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {

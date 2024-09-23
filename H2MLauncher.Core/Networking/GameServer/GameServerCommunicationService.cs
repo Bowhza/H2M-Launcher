@@ -18,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public partial class GameServerCommunicationService<TServer> : IAsyncDisposable, ICanGetGameServerInfo<TServer> where TServer : IServerConnectionDetails
+    public partial class GameServerCommunicationService<TServer> : IAsyncDisposable, IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, ConcurrentHashSet<Request>> _queuedRequests = [];
         private GameServerCommunication? _gameServerCommunication;

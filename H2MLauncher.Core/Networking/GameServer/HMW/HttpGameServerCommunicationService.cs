@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Networking.GameServer.HMW
 {
-    public sealed class HttpGameServerCommunicationService<TServer> : ICanGetGameServerInfo<TServer> where TServer : IServerConnectionDetails
+    public sealed class HttpGameServerCommunicationService<TServer> : IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<HttpGameServerCommunicationService<TServer>> _logger;
@@ -224,11 +224,6 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
 
                 HttpResponseMessage response;
                 HttpEventListener.HttpRequestTimings timings;
-
-                //_httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
-                //{
-                //    NoCache = true
-                //};
 
                 using (HttpEventListener listener = new())
                 {

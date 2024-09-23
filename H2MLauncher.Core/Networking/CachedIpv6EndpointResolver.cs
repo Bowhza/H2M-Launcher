@@ -97,14 +97,13 @@ namespace H2MLauncher.Core.Networking
                 {
                     // create an endpoint to send to and receive from
                     IPEndPoint? endpoint = await GetEndpointAsync(server, token);
-                    if (endpoint != null)
+                    if (endpoint is null)
                     {
-                        // filter out duplicates
-                        if (!endpointServerMap.TryAdd(endpoint, server))
-                        {
-                            // duplicate
-                        }
+                        return;
                     }
+
+                    // filter out duplicates
+                    endpointServerMap.TryAdd(endpoint, server);
                 });
 
             return endpointServerMap.AsReadOnly();
