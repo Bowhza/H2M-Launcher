@@ -119,9 +119,6 @@ namespace H2MLauncher.UI
 
             services.AddKeyedSingleton<IMasterServerService, H2MServersService>("H2M");
             services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
-
-            services.AddTransient<HMWGameServerCommunicationService>();
-            services.AddSingleton<HMWMasterService>();
             services.AddHttpClient<HMWMasterService>()
                 .ConfigureHttpClient((sp, client) =>
                 {
@@ -131,6 +128,9 @@ namespace H2MLauncher.UI
                     // make sure base address is set correctly without trailing slash
                     client.BaseAddress = Url.Parse(launcherSettings.HMWMasterServerUrl).ToUri();
                 });
+
+            services.AddKeyedTransient(typeof(ICanGetGameServerInfo<>), "TCP", typeof(HttpGameServerCommunicationService<>));
+            services.AddKeyedTransient(typeof(ICanGetGameServerInfo<>), "UDP", typeof(GameServerCommunicationService<>));
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddTransient<GameServerCommunicationService<IW4MServer>>();

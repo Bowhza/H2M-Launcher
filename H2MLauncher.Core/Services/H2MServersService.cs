@@ -1,23 +1,28 @@
-﻿using H2MLauncher.Core.IW4MAdmin;
+﻿using System.Net;
+
+using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking;
 
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace H2MLauncher.Core.Services
 {
-
-    public class H2MServersService(IServiceScopeFactory serviceScopeFactory, IErrorHandlingService errorHandlingService, IEndpointResolver endpointResolver)
-        : IMasterServerService
+    public class H2MServersService(
+        IServiceScopeFactory serviceScopeFactory,
+        IErrorHandlingService errorHandlingService,
+        IEndpointResolver endpointResolver,
+        IMemoryCache memoryCache) : CachedMasterServerService(memoryCache, "H2M_SERVERS")
     {
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService;
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
-        private readonly List<ServerConnectionDetails> _servers = [];
         private readonly IEndpointResolver _endpointResolver = endpointResolver;
-        public IReadOnlyCollection<ServerConnectionDetails> Servers => _servers.AsReadOnly();
 
-        public async Task<IReadOnlyList<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
+        private readonly HashSet<ServerConnectionDetails> _servers = [];
+
+        public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
         {
             IReadOnlyList<IW4MServerInstance>? instances = null;
 
@@ -29,20 +34,25 @@ namespace H2MLauncher.Core.Services
 
                 if (instances is not null)
                 {
-                    var filteredServers = instances
+                    IEnumerable<IW4MServer> filteredServers = instances
                         .SelectMany(instance => instance.Servers)
                         .Where(server => server.Game == "H2M");
 
-                    var endpointMap = await _endpointResolver.CreateEndpointServerMap(filteredServers, cancellationToken);
+                    IReadOnlyDictionary<IPEndPoint, IW4MServer> endpointMap = await _endpointResolver.CreateEndpointServerMap(
+                        filteredServers, cancellationToken);
 
-                    _servers.Clear();
-                    _servers.AddRange(
-                        endpointMap.Keys.Where(key =>
+                    IEnumerable<ServerConnectionDetails> ipv4Servers = endpointMap.Keys.Where(key =>
                                 key.AddressFamily is System.Net.Sockets.AddressFamily.InterNetwork ||
                                 key.Address.IsIPv4MappedToIPv6)
-                            .Select(ep => new ServerConnectionDetails(ep.Address.GetRealAddress().ToString(), ep.Port)
-                        )
-                    );
+                            .Select(ep => new ServerConnectionDetails(ep.Address.GetRealAddress().ToString(), ep.Port));
+
+                    _servers.Clear();
+                    foreach (ServerConnectionDetails server in ipv4Servers)
+                    {
+                        _servers.Add(server);
+                    }
+
+                    Cache.Set(CacheKey, _servers);
                 }
             }
             catch (Exception ex)

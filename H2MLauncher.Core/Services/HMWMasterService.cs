@@ -2,17 +2,23 @@
 
 using H2MLauncher.Core.Models;
 
+using Microsoft.Extensions.Caching.Memory;
+
 namespace H2MLauncher.Core.Services
 {
-    public class HMWMasterService(IErrorHandlingService errorHandlingService, IHttpClientFactory httpClientFactory) : IMasterServerService
+    public class HMWMasterService(IErrorHandlingService errorHandlingService, IHttpClientFactory httpClientFactory, IMemoryCache memoryCache)
+        : CachedMasterServerService(memoryCache, "HMW_SERVERS")
     {
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService;
-        private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+        private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;        
 
-        private readonly List<ServerConnectionDetails> _servers = [];
+        private readonly HashSet<ServerConnectionDetails> _servers = [];
 
-        public async Task<IReadOnlyList<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
+        private const string CACHE_KEY = "HMW_SERVERS";
+
+        public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
         {
+            Cache.Set(CacheKey, _servers, TimeSpan.FromMinutes(5));
             HttpResponseMessage response;
             HttpClient httpClient = _httpClientFactory.CreateClient(nameof(HMWMasterService));
             try
@@ -38,6 +44,8 @@ namespace H2MLauncher.Core.Services
                         _servers.Add(server);
                     }
                 }
+
+                Cache.Set(CACHE_KEY, _servers);
 
                 return _servers;
             }

@@ -1,5 +1,8 @@
-﻿using H2MLauncher.Core.IW4MAdmin.Models;
+﻿using System.Threading;
+
+using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Services;
 
@@ -14,7 +17,9 @@ namespace MatchmakingServer.Queueing
     {
         private readonly ServerStore _serverStore;
 
-        private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
+        private readonly IMasterServerService _hmwMasterServerService;
+        private readonly ICanGetGameServerInfo<GameServer> _tcpGameServerCommunicationService;
+        private readonly ICanGetGameServerInfo<GameServer> _udpGameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
@@ -43,21 +48,25 @@ namespace MatchmakingServer.Queueing
 
 
         public QueueingService(
-            GameServerCommunicationService<GameServer> gameServerCommunicationService,
+            [FromKeyedServices("UDP")] ICanGetGameServerInfo<GameServer> udpGameServerCommunicationService,
+            [FromKeyedServices("TCP")] ICanGetGameServerInfo<GameServer> tpcGameServerCommunicationService,
             IHubContext<QueueingHub, IClient> ctx,
             ILogger<QueueingService> logger,
             ServerInstanceCache instanceCache,
             IOptionsMonitor<ServerSettings> serverSettings,
             IOptionsMonitor<QueueingSettings> queueingSettings,
-            ServerStore serverStore)
+            ServerStore serverStore,
+            [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService)
         {
-            _gameServerCommunicationService = gameServerCommunicationService;
+            _udpGameServerCommunicationService = udpGameServerCommunicationService;
+            _tcpGameServerCommunicationService = tpcGameServerCommunicationService;
             _ctx = ctx;
             _logger = logger;
             _instanceCache = instanceCache;
             _serverSettings = serverSettings;
             _queueingSettings = queueingSettings;
             _serverStore = serverStore;
+            _hmwMasterServerService = hmwMasterServerService;
         }
 
 
@@ -255,6 +264,19 @@ namespace MatchmakingServer.Queueing
             }
         }
 
+        private async Task<ICanGetGameServerInfo<GameServer>> SelectServerInfoServiceFor(GameServer server, CancellationToken cancellationToken)
+        {
+            IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(cancellationToken);
+            if (hmwServers.Contains((server.ServerIp, server.ServerPort)))
+            {
+                // hmw server
+                return _tcpGameServerCommunicationService;
+            }
+
+            // normal server
+            return _udpGameServerCommunicationService;
+        }
+
         private async Task<bool> FetchGameServerInfoAsync(GameServer server, CancellationToken cancellationToken)
         {
             CancellationTokenSource timeoutCts = new CancellationTokenSource(10000);
@@ -265,7 +287,9 @@ namespace MatchmakingServer.Queueing
             {
                 _logger.LogTrace("Requesting game server info for {server}...", server);
 
-                GameServerInfo? gameServerInfo = await _gameServerCommunicationService.GetInfoAsync(server, linkedCancellation.Token);
+
+                ICanGetGameServerInfo<GameServer> service = await SelectServerInfoServiceFor(server, cancellationToken);
+                GameServerInfo? gameServerInfo =  await service.GetInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {
                     // could not send request

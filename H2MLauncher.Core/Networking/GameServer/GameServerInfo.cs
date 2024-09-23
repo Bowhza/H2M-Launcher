@@ -30,6 +30,8 @@ namespace H2MLauncher.Core.Networking.GameServer
 
         public required bool IsPrivate { get; init; }
 
+        public int PrivilegedSlots { get; init; } = -1;
+
         public int RealPlayerCount => Clients - Bots;
 
         public int FreeSlots => MaxClients - RealPlayerCount;

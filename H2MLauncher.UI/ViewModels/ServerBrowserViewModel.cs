@@ -39,7 +39,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
     private readonly IMasterServerService _h2mMaster;
     private readonly IMasterServerService _hmwMaster;
-    private readonly GameServerCommunicationService<ServerConnectionDetails> _gameServerCommunicationService;
+    private readonly ICanGetGameServerInfo<ServerConnectionDetails> _udpGameServerCommunicationService;
+    private readonly ICanGetGameServerInfo<ServerConnectionDetails> _tcpGameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
     private readonly LauncherService _h2MLauncherService;
     private readonly IClipBoardService _clipBoardService;
@@ -48,7 +49,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly DialogService _dialogService;
     private readonly IMapsProvider _mapsProvider;
     private readonly ILogger<ServerBrowserViewModel> _logger;
-    private readonly HMWGameServerCommunicationService _hmwGameService;
 
     private readonly IWritableOptions<H2MLauncherSettings> _h2MLauncherOptions;
     private readonly IOptions<ResourceSettings> _resourceSettings;
@@ -139,9 +139,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public ServerBrowserViewModel(
         [FromKeyedServices("H2M")] IMasterServerService h2mMasterService,
-        [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,
+        [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,        
+        [FromKeyedServices("UDP")] ICanGetGameServerInfo<ServerConnectionDetails> udpGameServerService,
+        [FromKeyedServices("TCP")] ICanGetGameServerInfo<ServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
-        GameServerCommunicationService<ServerConnectionDetails> gameServerCommunicationService,
         LauncherService h2MLauncherService,
         IClipBoardService clipBoardService,
         ILogger<ServerBrowserViewModel> logger,
@@ -153,12 +154,12 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
         MatchmakingService matchmakingService,
         CachedServerDataService serverDataService,
-        IMapsProvider mapsProvider,
-        HMWGameServerCommunicationService hmwGameService)
+        IMapsProvider mapsProvider)
     {
         _h2mMaster = h2mMasterService;
         _hmwMaster = hmwMasterService;
-        _gameServerCommunicationService = gameServerCommunicationService;
+        _udpGameServerCommunicationService = udpGameServerService;
+        _tcpGameServerCommunicationService = tcpGameServerService;
         _h2MCommunicationService = h2MCommunicationService;
         _h2MLauncherService = h2MLauncherService;
         _clipBoardService = clipBoardService;
@@ -172,7 +173,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _matchmakingService = matchmakingService;
         _serverDataService = serverDataService;
         _mapsProvider = mapsProvider;
-        _hmwGameService = hmwGameService;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -670,9 +670,12 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         });
     }
 
-    private async Task GetServerInfo(IEnumerable<ServerConnectionDetails> servers, CancellationToken cancellationToken)
+    private async Task GetServerInfo(
+        ICanGetGameServerInfo<ServerConnectionDetails> service, 
+        IEnumerable<ServerConnectionDetails> servers, 
+        CancellationToken cancellationToken)
     {
-        IAsyncEnumerable<(ServerConnectionDetails, GameServerInfo?)> responses = await _gameServerCommunicationService.GetInfoAsync(
+        IAsyncEnumerable<(ServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
             servers,
             sendSynchronously: false,
             cancellationToken: cancellationToken);
@@ -688,26 +691,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                 {
                     if (info is not null)
                     {
-                        ServerInfo serverInfo = new()
-                        {
-                            Ip = server.Ip,
-                            Port = server.Port,
-                            Clients = info.Clients,
-                            Bots = info.Bots,
-                            MaxClients = info.MaxClients,
-                            IsPrivate = info.IsPrivate,
-                            RealPlayerCount = info.Clients - info.Bots,
-                            ServerName = info.HostName,
-                            GameName = info.GameName,
-                            GameType = info.GameType,
-                            MapName = info.MapName,
-                            PlayMode = info.PlayMode,
-                            Protocol = info.Protocol,
-                            Ping = info.Ping
-                        };
-
                         Application.Current.Dispatcher.Invoke(
-                            () => OnGameServerInfoReceived(serverInfo),
+                            () => OnGameServerInfoReceived(server, info),
                             DispatcherPriority.Render,
                             cancellationToken);
                     }
@@ -720,27 +705,28 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }, CancellationToken.None);
     }
 
-    private Task GetHMWServerInfo(IReadOnlyList<ServerConnectionDetails> servers, CancellationToken cancellationToken)
-    {
-        return Parallel.ForEachAsync(servers, new ParallelOptions() { CancellationToken = cancellationToken }, async (server, ct) =>
-        {
-            try
-            {
-                ServerInfo? info = await _hmwGameService.GetInfoAsync(server, ct);
-                if (info is not null)
-                {
-                    Application.Current.Dispatcher.Invoke(
-                            () => OnGameServerInfoReceived(info),
-                            DispatcherPriority.DataBind,
-                            cancellationToken);
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // canceled
-            }
-        });
-    }
+    //private Task GetHMWServerInfo(IReadOnlyList<ServerConnectionDetails> servers, CancellationToken cancellationToken)
+    //{
+
+    //    return Parallel.ForEachAsync(servers, new ParallelOptions() { CancellationToken = cancellationToken }, async (server, ct) =>
+    //    {
+    //        try
+    //        {
+    //            GameServerInfo? info = await _tcpGameServerCommunicationService.GetInfoAsync(server, ct);
+    //            if (info is not null)
+    //            {
+    //                Application.Current.Dispatcher.Invoke(
+    //                        () => OnGameServerInfoReceived(server, info),
+    //                        DispatcherPriority.DataBind,
+    //                        cancellationToken);
+    //            }
+    //        }
+    //        catch (OperationCanceledException)
+    //        {
+    //            // canceled
+    //        }
+    //    });
+    //}
 
     private async Task LoadServersAsync()
     {
@@ -762,14 +748,14 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
-            IReadOnlyList<ServerConnectionDetails> hmwServers = await _hmwMaster.FetchServersAsync(linkedCancellation.Token);
-            IReadOnlyList<ServerConnectionDetails> h2mServers = await _h2mMaster.FetchServersAsync(linkedCancellation.Token);
+            IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMaster.FetchServersAsync(linkedCancellation.Token);
+            IReadOnlySet<ServerConnectionDetails> h2mServers = await _h2mMaster.FetchServersAsync(linkedCancellation.Token);
 
             // Exclude HMW only servers from H2M list
             List<ServerConnectionDetails> actualH2mServers = h2mServers.Except(hmwServers).ToList();
 
-            Task hmwServerInfoTask = GetHMWServerInfo(hmwServers, linkedCancellation.Token);
-            Task h2mServerInfoTask = GetServerInfo(actualH2mServers, linkedCancellation.Token);
+            Task hmwServerInfoTask = GetServerInfo(_tcpGameServerCommunicationService, hmwServers, linkedCancellation.Token);
+            Task h2mServerInfoTask = GetServerInfo(_udpGameServerCommunicationService, actualH2mServers, linkedCancellation.Token);
 
             // artificial delay
             await Task.WhenAny(Task.WhenAll(hmwServerInfoTask, h2mServerInfoTask), Task.Delay(1000));
@@ -786,13 +772,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(ServerInfo serverInfo)
+    private void OnGameServerInfoReceived(ServerConnectionDetails server, GameServerInfo serverInfo)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
 
-        bool isFavorite = userFavorites.Any(fav => fav.ServerIp == serverInfo.Ip && fav.ServerPort == serverInfo.Port);
-        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == serverInfo.Ip && recent.ServerPort == serverInfo.Port);
+        bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
+        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
 
         _mapMap.TryGetValue(serverInfo.MapName, out string? mapDisplayName);
         _gameTypeMap.TryGetValue(serverInfo.GameType, out string? gameTypeDisplayName);
@@ -800,9 +786,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         ServerViewModel serverViewModel = new()
         {
             GameServerInfo = serverInfo,
-            Ip = serverInfo.Ip,
-            Port = serverInfo.Port,
-            HostName = serverInfo.ServerName,
+            Ip = server.Ip,
+            Port = server.Port,
+            HostName = serverInfo.HostName,
             ClientNum = serverInfo.Clients - serverInfo.Bots,
             MaxClientNum = serverInfo.MaxClients,
             Game = serverInfo.GameName,

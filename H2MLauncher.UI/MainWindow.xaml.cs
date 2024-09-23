@@ -14,6 +14,7 @@ namespace H2MLauncher.UI
         private readonly ServerBrowserViewModel _viewModel;
         private readonly OverlayHelper _overlayHelper;
         private readonly H2MCommunicationService _h2MCommunicationService;
+        private bool _isFirstRender = true;
 
         public ICommand ToggleOverlayCommand { get; }
 
@@ -25,10 +26,22 @@ namespace H2MLauncher.UI
             _overlayHelper = new OverlayHelper(this);
             _h2MCommunicationService = h2MCommunicationService;
 
-            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
-            serverBrowserViewModel.RefreshServersCommand.Execute(this);
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;            
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
+        }
+
+        protected override void OnContentRendered(EventArgs e)
+        {
+            base.OnContentRendered(e);
+
+            if (!_isFirstRender)
+            {
+                return;
+            }
+
+            _isFirstRender = false;
+            _viewModel.RefreshServersCommand.Execute(this);
         }
 
         void ToggleOverlay()

@@ -4,6 +4,11 @@ namespace H2MLauncher.Core.Services
 {
     public interface IMasterServerService
     {
-        Task<IReadOnlyList<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken);
+        Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Gets the cached servers or fetches them if the cache entry does not exists.
+        /// </summary>
+        Task<IReadOnlySet<ServerConnectionDetails>> GetServersAsync(CancellationToken cancellationToken);
     }
 }
