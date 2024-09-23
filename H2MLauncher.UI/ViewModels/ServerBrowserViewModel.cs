@@ -705,29 +705,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }, CancellationToken.None);
     }
 
-    //private Task GetHMWServerInfo(IReadOnlyList<ServerConnectionDetails> servers, CancellationToken cancellationToken)
-    //{
-
-    //    return Parallel.ForEachAsync(servers, new ParallelOptions() { CancellationToken = cancellationToken }, async (server, ct) =>
-    //    {
-    //        try
-    //        {
-    //            GameServerInfo? info = await _tcpGameServerCommunicationService.GetInfoAsync(server, ct);
-    //            if (info is not null)
-    //            {
-    //                Application.Current.Dispatcher.Invoke(
-    //                        () => OnGameServerInfoReceived(server, info),
-    //                        DispatcherPriority.DataBind,
-    //                        cancellationToken);
-    //            }
-    //        }
-    //        catch (OperationCanceledException)
-    //        {
-    //            // canceled
-    //        }
-    //    });
-    //}
-
     private async Task LoadServersAsync()
     {
         await _loadCancellation.CancelAsync();
