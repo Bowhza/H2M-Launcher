@@ -117,7 +117,8 @@ namespace H2MLauncher.UI
                   client.BaseAddress = Url.Parse(launcherSettings.IW4MMasterServerUrl).ToUri();
               });
 
-            services.AddSingleton<IH2MServersService, H2MServersService>();
+            services.AddKeyedSingleton<IMasterServerService, H2MServersService>("H2M");
+            services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
 
             services.AddTransient<HMWGameServerCommunicationService>();
             services.AddSingleton<HMWMasterService>();

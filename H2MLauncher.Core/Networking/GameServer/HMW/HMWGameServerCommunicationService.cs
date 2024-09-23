@@ -1,4 +1,7 @@
-﻿using H2MLauncher.Core.Models;
+﻿using System.Net.Http.Headers;
+using System.Net.Http;
+
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Utilities;
 
 using Microsoft.Extensions.Logging;
@@ -16,7 +19,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             _httpClient = httpClient;
         }
 
-        public async Task<HMWGameServerInfo?> GetInfoAsync(IServerConnectionDetails server, CancellationToken cancellationToken = default)
+        public async Task<ServerInfo?> GetInfoAsync(IServerConnectionDetails server, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -30,13 +33,51 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
 
                 Uri url = uriBuilder.Uri;
 
-                HttpResponseMessage response = await _httpClient.GetAsync(url, cancellationToken);
+                HttpResponseMessage response;
+                HttpEventListener.HttpRequestTimings timings;
+
+                _httpClient.DefaultRequestHeaders.CacheControl = new CacheControlHeaderValue
+                {
+                    NoCache = true
+                };
+
+                using (HttpEventListener listener = new())
+                {
+                    response = await _httpClient.GetAsync(url, cancellationToken);
+                    timings = listener.GetTimings();
+                }
+
                 if (!response.IsSuccessStatusCode)
                 {
                     return null;
                 }
 
-                return await response.Content.TryReadFromJsonAsync<HMWGameServerInfo>(cancellationToken).ConfigureAwait(false);
+                HMWGameServerInfo? info = await response.Content.TryReadFromJsonAsync<HMWGameServerInfo>(cancellationToken);
+                if (info is null)
+                {
+                    return null;
+                }
+
+                int ping = (int)(timings.Response?.TotalMilliseconds ?? timings.Request?.TotalMilliseconds ?? -1);
+
+                return new ServerInfo()
+                {
+                    Ip = server.Ip,
+                    Port = server.Port,
+                    Clients = info.Clients,
+                    Bots = info.Bots,
+                    MaxClients = info.MaxClients,
+                    IsPrivate = info.IsPrivate == 1,
+                    PrivilegedSlots = info.PrivateClients,
+                    RealPlayerCount = info.Clients - info.Bots,
+                    ServerName = info.HostName,
+                    GameName = info.Game,
+                    GameType = info.GameType,
+                    MapName = info.MapName,
+                    PlayMode = info.PlayMode,
+                    Protocol = info.Protocol,
+                    Ping = ping
+                };
             }
             catch (OperationCanceledException) { return null; }
             catch (Exception ex)

@@ -207,6 +207,7 @@ namespace H2MLauncher.Core.Services
                         HostName = info.Get("hostname") ?? "",
                         MapName = info.Get("mapname") ?? "",
                         GameType = info.Get("gametype") ?? "",
+                        GameName = info.Get("gamename") ?? "",
                         ModName = info.Get("fs_game") ?? "",
                         PlayMode = info.Get("playmode") ?? "Unknown",
                         Clients = int.Parse(info.Get("clients") ?? "0"),

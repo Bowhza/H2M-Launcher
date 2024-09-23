@@ -12,6 +12,8 @@ namespace H2MLauncher.Core.Networking.GameServer
 
         public required string GameType { get; init; }
 
+        public required string GameName { get; init; }
+
         public required string ModName { get; init; }
 
         public required string PlayMode { get; init; }

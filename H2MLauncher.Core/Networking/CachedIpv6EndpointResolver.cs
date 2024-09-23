@@ -1,8 +1,10 @@
-﻿using System.Net;
+﻿using System.Collections.Concurrent;
+using System.Net;
 
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Caching.Memory;
 using H2MLauncher.Core.Models;
+
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Networking
 {
@@ -27,6 +29,7 @@ namespace H2MLauncher.Core.Networking
                 var ipAddressList = await Dns.GetHostAddressesAsync(server.Ip, cancellationToken);
                 var compatibleIp = ipAddressList.OrderByDescending(ip => ip.AddressFamily is System.Net.Sockets.AddressFamily.InterNetwork)
                                                 .FirstOrDefault();
+
                 if (compatibleIp == null)
                 {
                     // could not resolve ip address
@@ -75,6 +78,36 @@ namespace H2MLauncher.Core.Networking
         public Task<IPEndPoint?> GetEndpointAsync(IServerConnectionDetails server, CancellationToken cancellationToken)
         {
             return GetOrResolveEndpointAsync(server, cancellationToken);
+        }
+
+        public async Task<IReadOnlyDictionary<IPEndPoint, TServer>> CreateEndpointServerMap<TServer>(
+            IEnumerable<TServer> servers, CancellationToken cancellationToken) where TServer : IServerConnectionDetails
+        {
+            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
+
+            // resolve host names in parallel
+            await Parallel.ForEachAsync(
+                servers,
+                new ParallelOptions()
+                {
+                    CancellationToken = cancellationToken,
+                    MaxDegreeOfParallelism = 20
+                },
+                async (server, token) =>
+                {
+                    // create an endpoint to send to and receive from
+                    IPEndPoint? endpoint = await GetEndpointAsync(server, token);
+                    if (endpoint != null)
+                    {
+                        // filter out duplicates
+                        if (!endpointServerMap.TryAdd(endpoint, server))
+                        {
+                            // duplicate
+                        }
+                    }
+                });
+
+            return endpointServerMap.AsReadOnly();
         }
     }
 }

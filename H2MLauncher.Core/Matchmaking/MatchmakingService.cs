@@ -454,7 +454,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         }
     }
 
-    public async Task<bool> JoinQueueAsync(IW4MServer server, IPEndPoint serverEndpoint, string? privatePassword)
+    public async Task<bool> JoinQueueAsync(IServerConnectionDetails server, string? privatePassword)
     {
         try
         {
@@ -473,7 +473,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
             string playerName = _playerNameProvider.PlayerName;
 
-            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
+            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, "", playerName);
             if (!joinedSuccesfully)
             {
                 _logger.LogDebug("Could not join queue as '{playerName}' for {serverIp}:{serverPort}",
@@ -489,7 +489,7 @@ public sealed class MatchmakingService : IAsyncDisposable
                 _privatePasswords[new ServerConnectionDetails(server.Ip, server.Port)] = privatePassword;
             };
 
-            _queuedServer = new QueuedServer(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port);
+            _queuedServer = new QueuedServer(server.Ip, server.Port);
             State = PlayerState.Queued;
 
             return true;
