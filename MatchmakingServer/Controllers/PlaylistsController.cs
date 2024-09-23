@@ -1,5 +1,6 @@
 ﻿using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
 
 using MatchmakingServer.SignalR;
@@ -7,6 +8,8 @@ using MatchmakingServer.SignalR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
+
+using Nito.AsyncEx;
 
 namespace MatchmakingServer.Controllers
 {
@@ -19,7 +22,8 @@ namespace MatchmakingServer.Controllers
         private readonly IMemoryCache _memoryCache;
         private readonly ServerStore _serverStore;
         private readonly MatchmakingService _matchmakingService;
-        private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
+        private readonly ICanGetGameServerInfo<GameServer> _udpGameServerCommunicationService;
+        private readonly ICanGetGameServerInfo<GameServer> _tcpGameServerCommunicationService;
         private readonly ILogger<PlaylistsController> _logger;
 
         public PlaylistsController(
@@ -28,7 +32,8 @@ namespace MatchmakingServer.Controllers
             MatchmakingService matchmakingService,
             ServerStore serverStore,
             IMemoryCache memoryCache,
-            GameServerCommunicationService<GameServer> gameServerCommunicationService,
+            [FromKeyedServices("UDP")] ICanGetGameServerInfo<GameServer> udpGameServerCommunicationService,
+            [FromKeyedServices("TCP")] ICanGetGameServerInfo<GameServer> tcpGameServerCommunicationService,
             ILogger<PlaylistsController> logger)
         {
             _serverSettings = serverSettings;
@@ -36,7 +41,8 @@ namespace MatchmakingServer.Controllers
             _matchmakingService = matchmakingService;
             _serverStore = serverStore;
             _memoryCache = memoryCache;
-            _gameServerCommunicationService = gameServerCommunicationService;
+            _udpGameServerCommunicationService = udpGameServerCommunicationService;
+            _tcpGameServerCommunicationService = tcpGameServerCommunicationService;
             _logger = logger;
         }
 
@@ -62,13 +68,21 @@ namespace MatchmakingServer.Controllers
         public async Task<IActionResult> GetAllPlaylists()
         {
             List<Playlist> result = [];
+            List<Task> tasks = [];
+
             foreach (Playlist playlist in _serverSettings.CurrentValue.Playlists)
             {
-                result.Add(playlist with
+                tasks.Add(GetPlayerCountAsync(playlist).ContinueWith(t =>
                 {
-                    CurrentPlayerCount = await GetPlayerCountAsync(playlist)
-                });
+                    if (t.IsCompletedSuccessfully)
+                    {
+                        result.Add(playlist with { CurrentPlayerCount = t.Result });
+                    }
+                }));
             }
+
+            await tasks.WhenAll();
+
             return Ok(result);
         }
 
@@ -117,11 +131,36 @@ namespace MatchmakingServer.Controllers
 
                     _logger.LogDebug("Requesting game server info for {numServers}", serverToRequest.Count);
 
-                    // request server info of all remaining servers
-                    playerCount += await _gameServerCommunicationService
-                         .GetAllInfoAsync(serverToRequest, requestTimeoutInMs: 1000)
-                         .Select(r => r.info?.RealPlayerCount ?? 0)
-                         .SumAsync();
+                    if (playlist.Id.StartsWith("HMW", StringComparison.OrdinalIgnoreCase))
+                    {
+                        CancellationTokenSource timeoutCancellation = new(3000);
+                        try
+                        {
+                            // request HMW servers with HTTP
+                            await serverToRequest
+                                .Select((s) => _tcpGameServerCommunicationService.GetInfoAsync(s, timeoutCancellation.Token).ContinueWith(t =>
+                                {
+                                    if (t.IsCompletedSuccessfully && t.Result is not null)
+                                    {
+                                        Interlocked.Add(ref playerCount, t.Result.Clients - t.Result.Bots);
+                                    }
+                                }))
+                                .WhenAll();
+                        }
+                        catch (OperationCanceledException) { }
+                        finally
+                        {
+                            timeoutCancellation.Dispose();
+                        }
+                    }
+                    else
+                    {
+                        // request server info of all remaining servers
+                        playerCount += await _udpGameServerCommunicationService
+                             .GetAllInfoAsync(serverToRequest, requestTimeoutInMs: 1000)
+                             .Select(r => r.info?.RealPlayerCount ?? 0)
+                             .SumAsync();
+                    }
 
                     return playerCount;
                 }).ConfigureAwait(false);
