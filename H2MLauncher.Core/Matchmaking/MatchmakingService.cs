@@ -1,14 +1,12 @@
-﻿using System.Net;
-
-using H2MLauncher.Core.Game;
+﻿using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
-using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -23,7 +21,9 @@ public sealed class MatchmakingService : IAsyncDisposable
     private readonly IGameDetectionService _gameDetectionService;
     private readonly IPlayerNameProvider _playerNameProvider;
     private readonly CachedServerDataService _serverDataService;
-    private readonly GameServerCommunicationService<ServerConnectionDetails> _gameServerCommunicationService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerInfoService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _udpGameServerInfoService;
+    private readonly IMasterServerService _hmwMasterServerService;
     private readonly IErrorHandlingService _errorHandlingService;
     private readonly IMapsProvider _mapsProvider;
 
@@ -113,7 +113,9 @@ public sealed class MatchmakingService : IAsyncDisposable
         IPlayerNameProvider playerNameProvider,
         IMapsProvider mapsProvider,
         CachedServerDataService serverDataService,
-        GameServerCommunicationService<ServerConnectionDetails> gameServerCommunicationService,
+        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerInfoService,
+        [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerInfoService,
+        [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService,
         IErrorHandlingService errorHandlingService,
         IGameDetectionService gameDetectionService)
     {
@@ -138,7 +140,9 @@ public sealed class MatchmakingService : IAsyncDisposable
 
         _h2MCommunicationService = h2MCommunicationService;
         _serverDataService = serverDataService;
-        _gameServerCommunicationService = gameServerCommunicationService;
+        _tcpGameServerInfoService = tcpGameServerInfoService;
+        _udpGameServerInfoService = udpGameServerInfoService;
+        _hmwMasterServerService = hmwMasterServerService;
         _gameDetectionService = gameDetectionService;
         _errorHandlingService = errorHandlingService;
 
@@ -308,11 +312,14 @@ public sealed class MatchmakingService : IAsyncDisposable
 
     private async Task<List<ServerPing>> PingServersAndFilter(IReadOnlyList<ServerConnectionDetails> servers)
     {
-        _logger.LogTrace("Pinging {n} servers...", servers.Count);
+        _logger.LogDebug("Pinging {n} servers...", servers.Count);
 
-        var responses = await _gameServerCommunicationService.GetInfoAsync(servers, requestTimeoutInMs: 3000);
+        IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(CancellationToken.None);
+        var tcpResponses = await _tcpGameServerInfoService.GetInfoAsync(servers.Where(hmwServers.Contains), requestTimeoutInMs: 3000);
+        var udpResponses = await _udpGameServerInfoService.GetInfoAsync(servers.Where(s => !hmwServers.Contains(s)), requestTimeoutInMs: 3000);
 
-        return await responses
+        return await tcpResponses
+            .Concat(udpResponses)
             .Where(res => res.info is not null && _mapsProvider.InstalledMaps.Contains(res.info.MapName)) // filter out servers with missing maps
             .Select(res => new ServerPing(res.server.Ip, res.server.Port, (uint)res.info!.Ping))
             .ToListAsync();
@@ -454,7 +461,7 @@ public sealed class MatchmakingService : IAsyncDisposable
         }
     }
 
-    public async Task<bool> JoinQueueAsync(IW4MServer server, IPEndPoint serverEndpoint, string? privatePassword)
+    public async Task<bool> JoinQueueAsync(IServerConnectionDetails server, string? privatePassword)
     {
         try
         {
@@ -473,7 +480,7 @@ public sealed class MatchmakingService : IAsyncDisposable
 
             string playerName = _playerNameProvider.PlayerName;
 
-            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, server.Instance.Id, playerName);
+            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, "", playerName);
             if (!joinedSuccesfully)
             {
                 _logger.LogDebug("Could not join queue as '{playerName}' for {serverIp}:{serverPort}",
@@ -489,7 +496,7 @@ public sealed class MatchmakingService : IAsyncDisposable
                 _privatePasswords[new ServerConnectionDetails(server.Ip, server.Port)] = privatePassword;
             };
 
-            _queuedServer = new QueuedServer(serverEndpoint.Address.GetRealAddress().ToString(), serverEndpoint.Port);
+            _queuedServer = new QueuedServer(server.Ip, server.Port);
             State = PlayerState.Queued;
 
             return true;

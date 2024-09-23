@@ -18,8 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public partial class GameServerCommunicationService<TServer> : IAsyncDisposable
-        where TServer : IServerConnectionDetails
+    public partial class GameServerCommunicationService<TServer> : IAsyncDisposable, IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, ConcurrentHashSet<Request>> _queuedRequests = [];
         private GameServerCommunication? _gameServerCommunication;
@@ -207,6 +206,7 @@ namespace H2MLauncher.Core.Services
                         HostName = info.Get("hostname") ?? "",
                         MapName = info.Get("mapname") ?? "",
                         GameType = info.Get("gametype") ?? "",
+                        GameName = info.Get("gamename") ?? "",
                         ModName = info.Get("fs_game") ?? "",
                         PlayMode = info.Get("playmode") ?? "Unknown",
                         Clients = int.Parse(info.Get("clients") ?? "0"),
@@ -651,7 +651,7 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await _endpointResolver.CreateEndpointServerMap(servers, cancellationToken);
 
             if (endpointServerMap.Count == 0)
             {
@@ -883,7 +883,7 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await _endpointResolver.CreateEndpointServerMap(servers, cancellationToken);
 
             if (endpointServerMap.Count == 0)
             {
@@ -982,7 +982,7 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs,
             CancellationToken cancellationToken)
         {
-            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await CreateEndpointServerMap(servers, cancellationToken);
+            IReadOnlyDictionary<IPEndPoint, TServer> endpointServerMap = await _endpointResolver.CreateEndpointServerMap(servers, cancellationToken);
 
             if (endpointServerMap.Count == 0)
             {
@@ -1135,39 +1135,6 @@ namespace H2MLauncher.Core.Services
             }
 
             requests.Add(request);
-        }
-
-        /// <summary>
-        /// Creates a dictionary of ip endpoints to servers by resolving the addresses in parallel and filtering out duplicates.
-        /// </summary>
-        private async Task<IReadOnlyDictionary<IPEndPoint, TServer>> CreateEndpointServerMap(
-            IEnumerable<TServer> servers, CancellationToken cancellationToken)
-        {
-            ConcurrentDictionary<IPEndPoint, TServer> endpointServerMap = [];
-
-            // resolve host names in parallel
-            await Parallel.ForEachAsync(
-                servers,
-                new ParallelOptions()
-                {
-                    CancellationToken = cancellationToken,
-                    MaxDegreeOfParallelism = MAX_PARALLEL_RESOLVE
-                },
-                async (server, token) =>
-                {
-                    // create an endpoint to send to and receive from
-                    IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, token);
-                    if (endpoint != null)
-                    {
-                        // filter out duplicates
-                        if (!endpointServerMap.TryAdd(endpoint, server))
-                        {
-                            // duplicate
-                        }
-                    }
-                });
-
-            return endpointServerMap.AsReadOnly();
         }
 
         public ValueTask DisposeAsync()
