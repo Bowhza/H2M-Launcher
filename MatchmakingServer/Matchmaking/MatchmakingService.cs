@@ -225,11 +225,17 @@ namespace MatchmakingServer
                 return false;
             }
 
-            MMTicket? ticket = _matchmaker.Tickets.FirstOrDefault(p => p.Players.First() == player);
+            MMTicket? ticket = _matchmaker.Tickets.FirstOrDefault(p => p.Players.Contains(player));
             if (ticket is null)
             {
                 _logger.LogWarning("Player {player} not queued in Matchmaking despite state. Correcting state to 'Connected'.", player);
                 player.State = PlayerState.Connected;
+                return false;
+            }
+
+            if (ticket.Players.Count > 1 && !player.IsPartyLeader)
+            {
+                _logger.LogDebug("Only party leader can update multi player ticket perferences");
                 return false;
             }
 

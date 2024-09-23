@@ -5,6 +5,7 @@ using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 
 using MatchmakingServer.Core.Party;
+using MatchmakingServer.Queueing;
 
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
@@ -17,13 +18,21 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
     private static readonly ConcurrentDictionary<string, Party> Parties = [];
     private static readonly ConcurrentDictionary<string, Player> ConnectedPlayers = [];
 
+    private readonly MatchmakingService _matchmakingService;
+    private readonly QueueingService _queueingService;
     private readonly PlayerStore _playerStore;
     private readonly ILogger<PartyHub> _logger;
 
-    public PartyHub(PlayerStore playerStore, ILogger<PartyHub> logger)
+    public PartyHub(
+        PlayerStore playerStore, 
+        ILogger<PartyHub> logger, 
+        MatchmakingService matchmakingService, 
+        QueueingService queueingService)
     {
         _playerStore = playerStore;
         _logger = logger;
+        _matchmakingService = matchmakingService;
+        _queueingService = queueingService;
     }
 
     private static PartyInfo CreatePartyInfo(Party party)
@@ -94,6 +103,22 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         return CreatePartyInfo(party);
     }
 
+
+
+    // cleanup
+    private void OnRemovedFromParty(Player player)
+    {
+        if (player.State is PlayerState.Matchmaking)
+        {
+            _matchmakingService.LeaveMatchmaking(player);
+        }
+
+        if (player.State is PlayerState.Queued)
+        {
+            _queueingService.LeaveQueue(player);
+        }
+    }
+
     private async Task<bool> LeaveOrCloseParty(Player player)
     {
         if (player.Party is not Party party)
@@ -120,6 +145,8 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
                     {
                         await Groups.RemoveFromGroupAsync(removedPlayer.PartyHubId, partyGroupName);
                     }
+
+                    OnRemovedFromParty(removedPlayer);
                 }
             }
         }
@@ -132,6 +159,8 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
             }
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, partyGroupName);
+
+            OnRemovedFromParty(player);
         }
 
         return true;
