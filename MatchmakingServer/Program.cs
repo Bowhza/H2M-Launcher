@@ -62,7 +62,7 @@ builder.Services.AddHttpClient<HMWMasterService>()
         Settings launcherSettings = sp.GetRequiredService<IOptionsMonitor<Settings>>().CurrentValue;
 
         // make sure base address is set correctly without trailing slash
-        client.BaseAddress = Url.Parse(launcherSettings.IW4MAdminMasterApiUrl).ToUri();
+        client.BaseAddress = Url.Parse(launcherSettings.HMWMasterServerUrl).ToUri();
     });
 
 builder.Services.AddTransient<IErrorHandlingService, LoggingErrorHandlingService>();
