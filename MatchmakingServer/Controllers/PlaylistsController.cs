@@ -133,7 +133,7 @@ namespace MatchmakingServer.Controllers
 
                     if (playlist.Id.StartsWith("HMW", StringComparison.OrdinalIgnoreCase))
                     {
-                        CancellationTokenSource timeoutCancellation = new(3000);
+                        CancellationTokenSource timeoutCancellation = new(1500);
                         try
                         {
                             // request HMW servers with HTTP

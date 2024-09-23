@@ -269,9 +269,13 @@ namespace MatchmakingServer.Queueing
             IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(cancellationToken);
             if (hmwServers.Contains((server.ServerIp, server.ServerPort)))
             {
+                _logger.LogTrace("Selecting TCP server info service for {server}", server);
+
                 // hmw server
                 return _tcpGameServerCommunicationService;
             }
+
+            _logger.LogTrace("Selecting UDP server info service for {server}", server);
 
             // normal server
             return _udpGameServerCommunicationService;
