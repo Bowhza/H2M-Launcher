@@ -303,7 +303,7 @@ namespace MatchmakingServer
                 }, timeoutInMs: 2000, cancellationToken: cancellationToken);
 
                 // Wait for all to complete / time out
-                await Task.WhenAll(getInfoCompleted, getStatusCompleted);
+                await Task.WhenAll(getInfoCompleted, getInfoTcpCompleted, getStatusCompleted);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {
