@@ -103,17 +103,17 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         return CreatePartyInfo(party);
     }
 
-
-
-    // cleanup
-    private void OnRemovedFromParty(Player player)
+    /// <summary>
+    /// Cleanup, remove player from matchmaking / queue when leader was in queue and removed from party.
+    /// </summary>
+    private void OnRemovedFromParty(Player player, Player leader)
     {
-        if (player.State is PlayerState.Matchmaking)
+        if (player.State is PlayerState.Matchmaking && leader.State is PlayerState.Matchmaking)
         {
             _matchmakingService.LeaveMatchmaking(player);
         }
 
-        if (player.State is PlayerState.Queued)
+        if (player.State is PlayerState.Queued && leader.State is PlayerState.Queued)
         {
             _queueingService.LeaveQueue(player);
         }
@@ -145,9 +145,9 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
                     {
                         await Groups.RemoveFromGroupAsync(removedPlayer.PartyHubId, partyGroupName);
                     }
-
-                    OnRemovedFromParty(removedPlayer);
                 }
+
+                OnRemovedFromParty(player, player);
             }
         }
         else
@@ -160,7 +160,7 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
 
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, partyGroupName);
 
-            OnRemovedFromParty(player);
+            OnRemovedFromParty(player, party.Leader);
         }
 
         return true;
@@ -257,6 +257,8 @@ class PartyHub : Hub<IPartyClient>, IPartyHub
         }
 
         await Groups.RemoveFromGroupAsync(memberToRemove.PartyHubId!, partyGroupName);
+
+        OnRemovedFromParty(memberToRemove, player);
 
         return true;
     }
