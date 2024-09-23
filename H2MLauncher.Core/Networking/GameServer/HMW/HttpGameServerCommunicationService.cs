@@ -145,19 +145,29 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             IAsyncEnumerable<(TServer server, GameServerInfo? info)> responses = await GetInfoAsync(
                 servers, sendSynchronously: true, timeoutInMs, cancellationToken);
 
-            using CancellationTokenSource innerCancellation = new(timeoutInMs);
+            var timeoutCancellation = new CancellationTokenSource(timeoutInMs);
+            var linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellation.Token, cancellationToken);
+            IDisposable disposable = Disposable.Create(linkedCancellation.Cancel);
 
-            IDisposable disposable = Disposable.Create(innerCancellation.Cancel);
             Task responseTask = Task.Run(async () =>
             {
-                await foreach ((TServer server, GameServerInfo? info) response in responses.ConfigureAwait(false).WithCancellation(innerCancellation.Token))
+                try
                 {
-                    if (response.info is not null)
+                    await foreach ((TServer server, GameServerInfo? info) response in responses.ConfigureAwait(false).WithCancellation(linkedCancellation.Token))
                     {
-                        onInfoResponse(new() { Server = response.server, ServerInfo = response.info });
+                        if (response.info is not null)
+                        {
+                            onInfoResponse(new() { Server = response.server, ServerInfo = response.info });
+                        }
                     }
                 }
-            });
+                catch { }
+                finally
+                {
+                    timeoutCancellation.Dispose();
+                    linkedCancellation.Dispose();
+                }
+            }, CancellationToken.None);
 
             return (responseTask, disposable);
         }
