@@ -11,7 +11,7 @@ namespace H2MLauncher.UI.Dialog
         {
             return new DialogWindow
             {
-                Owner = Application.Current.MainWindow,
+                Owner = Application.Current.MainWindow.IsActive ? Application.Current.MainWindow : null,
                 Content = content,
             };
         }

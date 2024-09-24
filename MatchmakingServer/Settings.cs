@@ -6,6 +6,8 @@ namespace MatchmakingServer;
 public record Settings
 {
     public required string IW4MAdminMasterApiUrl { get; init; }
+
+    public string HMWMasterServerUrl { get; init; } = string.Empty;
 }
 
 public record ServerSettings

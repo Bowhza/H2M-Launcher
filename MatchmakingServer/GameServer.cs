@@ -46,7 +46,18 @@ namespace MatchmakingServer
 
         public int PrivilegedSlots { get; init; }
 
-        public int UnavailableSlots => JoiningPlayerCount + PrivilegedSlots;
+        public int UnavailableSlots
+        {
+            get
+            {
+                if (LastServerInfo is null || LastServerInfo.PrivilegedSlots < 0)
+                {
+                    return JoiningPlayerCount + PrivilegedSlots;
+                }
+
+                return JoiningPlayerCount + LastServerInfo.PrivilegedSlots;
+            }
+        }
 
         public GameServer(string instanceId)
         {

@@ -1,8 +1,12 @@
 using System.Text.Json.Serialization;
 
+using Flurl;
+
 using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.Networking;
+using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
@@ -13,13 +17,13 @@ using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
 using Serilog;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder();
-
 
 // Add services to the container.
 
@@ -53,7 +57,22 @@ builder.Services.AddHttpClient<IIW4MAdminMasterService, IW4MAdminMasterService>(
         client.BaseAddress = baseUri;
     });
 
+builder.Services.AddHttpClient<HMWMasterService>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        // get the current value from the options monitor cache
+        Settings launcherSettings = sp.GetRequiredService<IOptionsMonitor<Settings>>().CurrentValue;
+
+        // make sure base address is set correctly without trailing slash
+        client.BaseAddress = Url.Parse(launcherSettings.HMWMasterServerUrl).ToUri();
+    });
+
+builder.Services.AddTransient<IErrorHandlingService, LoggingErrorHandlingService>();
+builder.Services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) 
+    => sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerCommunicationService<GameServer>>("TCP");
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();

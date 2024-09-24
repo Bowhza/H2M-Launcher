@@ -1,18 +1,24 @@
 ﻿using System.Net.Http.Json;
-using System.Runtime.CompilerServices;
 
-using Microsoft.Extensions.DependencyInjection;
+using H2MLauncher.Core.Models;
+
+using Microsoft.Extensions.Caching.Memory;
 
 namespace H2MLauncher.Core.Services
 {
-    public class HMWMasterService(IServiceScopeFactory serviceScopeFactory, IErrorHandlingService errorHandlingService, IHttpClientFactory httpClientFactory)
+    public class HMWMasterService(IErrorHandlingService errorHandlingService, IHttpClientFactory httpClientFactory, IMemoryCache memoryCache)
+        : CachedMasterServerService(memoryCache, "HMW_SERVERS")
     {
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService;
-        private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
-        private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
+        private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;        
 
-        public async IAsyncEnumerable<string> FetchServersAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        private readonly HashSet<ServerConnectionDetails> _servers = [];
+
+        private const string CACHE_KEY = "HMW_SERVERS";
+
+        public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
         {
+            Cache.Set(CacheKey, _servers, TimeSpan.FromMinutes(5));
             HttpResponseMessage response;
             HttpClient httpClient = _httpClientFactory.CreateClient(nameof(HMWMasterService));
             try
@@ -20,22 +26,33 @@ namespace H2MLauncher.Core.Services
                 response = await httpClient.GetAsync("game-servers", cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
-                    yield break;
+                    return _servers;
                 }
+
+                List<string>? addresses = await response.Content.ReadFromJsonAsync<List<string>>(cancellationToken);
+                
+                if (addresses is null)
+                {
+                    return _servers;
+                }
+
+                _servers.Clear();
+                foreach (string address in addresses)
+                {
+                    if (ServerConnectionDetails.TryParse(address, out var server))
+                    {
+                        _servers.Add(server);
+                    }
+                }
+
+                Cache.Set(CACHE_KEY, _servers);
+
+                return _servers;
             }
             catch (Exception ex)
             {
                 _errorHandlingService.HandleException(ex, "Unable to fetch the HMW servers details at this time. Please try again later.");
-                yield break;
-            }
-
-            IAsyncEnumerable<string?> addresses = response.Content.ReadFromJsonAsAsyncEnumerable<string>(cancellationToken);
-            await foreach (string? address in addresses.ConfigureAwait(false))
-            {
-                if (!string.IsNullOrEmpty(address))
-                {
-                    yield return address!;
-                }
+                return _servers;
             }
         }
     }
