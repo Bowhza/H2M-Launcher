@@ -34,40 +34,45 @@ namespace MatchmakingServer
             return _players.Remove(player);
         }
 
-        public bool IsEligibleForServer(GameServer server, int numPlayersForServer)
+        public EligibilityResult IsEligibleForServer(GameServer server, int numPlayersForServer)
         {
             if (!PreferredServers.TryGetValue((server.ServerIp, server.ServerPort), out int ping)
                 || ping <= 0)
             {
-                return false;
+                return new(false, "No ping");
             }
 
             if (SearchAttempts == 0 && numPlayersForServer < SearchPreferences.MinPlayers)
             {
                 // On the first search attempt, wait until enough players available to potentially create a fresh match
-                return false;
+                return new(false, "Not enough players in queue (first attempt)");
             }
 
             if (SearchPreferences.MaxScore >= 0 &&
                 server.LastStatusResponse is not null &&
                 server.LastStatusResponse.TotalScore > SearchPreferences.MaxScore)
             {
-                return false;
+                return new(false, "Score too high");
             }
 
             if (SearchPreferences.MaxPlayersOnServer >= 0 &&
                 server.LastServerInfo is not null &&
                 server.LastServerInfo.RealPlayerCount > SearchPreferences.MaxPlayersOnServer)
             {
-                return false;
+                return new(false, "Max players on server");
             }
 
-            if (SearchPreferences.MaxPing > 0 && ping > 0)
+            if (SearchPreferences.MaxPing > 0 && ping > SearchPreferences.MaxPing)
             {
-                return ping < SearchPreferences.MaxPing;
+                return new(false, "Max ping");
             }
 
-            return true;
+            return new(true, null);
+        }
+
+        public override string ToString()
+        {
+            return $"[{string.Join(',', Players.Select(p => p.Name))}]";
         }
     }
 }

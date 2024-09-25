@@ -70,6 +70,8 @@ namespace MatchmakingServer
 
         private async Task CheckForMatches(CancellationToken cancellationToken)
         {
+            try
+            {
             List<GameServer> serversToRequest = _matchmaker.QueuedServers
                     .Select(key => _serverStore.Servers.TryGetValue(key, out GameServer? server) ? server : null)
                     .WhereNotNull()
@@ -90,6 +92,11 @@ namespace MatchmakingServer
             }
 
             await Task.WhenAll(notifyTasks);
+        }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in matchmaking loop");
+            }
         }
 
         private async Task<List<GameServer>> RefreshServerInfo(IReadOnlyList<GameServer> servers, CancellationToken cancellationToken)

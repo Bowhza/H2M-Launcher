@@ -22,12 +22,11 @@ namespace MatchmakingServer
         private readonly ConcurrentLinkedQueue<MMTicket> _queue = new();
 
         public IReadOnlyCollection<MMTicket> Tickets => _queue;
-        public IReadOnlyCollection<ServerConnectionDetails> QueuedServers { get; }
+        public IReadOnlyCollection<ServerConnectionDetails> QueuedServers => new ReadOnlyCollectionWrapper<ServerConnectionDetails>(_serverQueues.Keys);
 
         public Matchmaker(ILogger<Matchmaker> logger)
         {
             _logger = logger;
-            QueuedServers = new ReadOnlyCollectionWrapper<ServerConnectionDetails>(_serverQueues.Keys);
         }
 
         public void AddTicketToQueue(MMTicket ticket)
@@ -44,7 +43,7 @@ namespace MatchmakingServer
                 _serverQueues[server].Enqueue(ticket);
             }
 
-            _logger.LogDebug("Ticket added to matchmaking queue: {@ticket}", ticket);
+            _logger.LogDebug("Ticket added to matchmaking queue: {ticket}", ticket);
         }
 
         public void RemoveTicket(MMTicket ticket)
@@ -64,6 +63,8 @@ namespace MatchmakingServer
                     }
                 }
             }
+
+            _logger.LogDebug("Ticket removed from matchmaking queue: {ticket}", ticket);
         }
 
         private MMMatch? CreateNextMatch(IEnumerable<(GameServer, double)> serversWithQuality)
@@ -82,20 +83,23 @@ namespace MatchmakingServer
                     continue; // Skip if no free slots are available
 
                 // Sort players based on their min player threshold (ascending order) and check whether servers meets their criteria
-                List<(MMTicket player, bool isEligible)> playersForServerSorted = GetTicketsForServer(server);
-                if (playersForServerSorted.Count == 0)
+                List<(MMTicket ticket, EligibilityResult eligibility)> ticketsForServerSorted = GetTicketsForServer(server);
+                if (ticketsForServerSorted.Count == 0)
                 {
                     // no players
                     continue;
                 }
 
-                List<MMTicket> eligiblePlayers = playersForServerSorted.Where(p => p.isEligible).Select(p => p.player).ToList();
+                List<MMTicket> eligibleTickets = ticketsForServerSorted
+                    .Where(x => x.eligibility.IsEligibile)
+                    .Select(x => x.ticket)
+                    .ToList();
 
-                _logger.LogTrace("{numPlayers} players ({numEligible} eligible) in matchmaking queue for server {server}",
-                    playersForServerSorted.Count, eligiblePlayers.Count, server);
+                _logger.LogTrace("{numTickets} tickets ({numEligible} eligible) in matchmaking queue for server {server}",
+                    ticketsForServerSorted.Count, eligibleTickets.Count, server);
 
                 // find a valid match for all eligible players
-                if (TrySelectMatch(server, eligiblePlayers, qualityScore, availableSlots, out MMMatch validMatch))
+                if (TrySelectMatch(server, eligibleTickets, qualityScore, availableSlots, out MMMatch validMatch))
                 {
                     matches.Add(validMatch);
 
@@ -110,13 +114,15 @@ namespace MatchmakingServer
                 }
 
                 // find overall best possible match for each non eligible player
-                foreach ((MMTicket ticket, bool isEligible) in playersForServerSorted)
+                foreach ((MMTicket ticket, EligibilityResult eligibility) in ticketsForServerSorted)
                 {
-                    if (isEligible) continue;
+                    if (eligibility.IsEligibile) continue;
+
+                    _logger.LogTrace("Try finding match for ineligible ticket {ticket}, reason: {ineligibilityReason}", ticket, eligibility.Reason);
 
                     bool foundMatch = TrySelectMatch(
                         server,
-                        playersForServerSorted.Select(p => p.player).ToList(),
+                        ticketsForServerSorted.Select(x => x.ticket).ToList(),
                         qualityScore,
                         availableSlots,
                         out MMMatch match);
@@ -209,7 +215,8 @@ namespace MatchmakingServer
                     }
                     else
                     {
-                        yield break;
+                        // no more matches in this pass
+                        break;
                     }
 
                     cancellationToken.ThrowIfCancellationRequested();
@@ -240,7 +247,7 @@ namespace MatchmakingServer
             return result;
         }
 
-        private List<(MMTicket ticket, bool isEligible)> GetTicketsForServer(GameServer server)
+        private List<(MMTicket ticket, EligibilityResult eligibility)> GetTicketsForServer(GameServer server)
         {
             if (!_serverQueues.TryGetValue((server.ServerIp, server.ServerPort), out ConcurrentLinkedQueue<MMTicket>? ticketsForServer))
                 return [];
@@ -250,21 +257,21 @@ namespace MatchmakingServer
             return ticketsForServer
                 .Where(t => t.SearchPreferences.MinPlayers <= server.LastServerInfo?.MaxClients) // rule out impossible treshold directly
                 .OrderByDescending(t => t.SearchPreferences.MinPlayers)
-                .Select(ticket => (ticket, isEligible: ticket.IsEligibleForServer(server, ticketsForServer.Count)))
+                .Select(ticket => (ticket, eligibility: ticket.IsEligibleForServer(server, ticketsForServer.Sum(t => t.Players.Count))))
                 .ToList();
         }
 
         internal bool TrySelectMatch(GameServer server, IReadOnlyList<MMTicket> tickets, double serverQuality, int availableSlots, out MMMatch match)
         {
-            List<MMTicket> selectedPlayers = SelectMaxPlayersForMatchDesc(
+            List<MMTicket> selectedTickets = SelectMaxPlayersForMatchDesc(
                 tickets,
                 server.LastServerInfo!.RealPlayerCount,
                 availableSlots);
 
-            if (selectedPlayers.Count > 0)
+            if (selectedTickets.Count > 0)
             {
-                double adjustedQualityScore = AdjustedServerQuality(server, serverQuality, selectedPlayers, _logger);
-                match = (server, adjustedQualityScore, selectedPlayers);
+                double adjustedQualityScore = AdjustedServerQuality(server, serverQuality, selectedTickets, _logger);
+                match = (server, adjustedQualityScore, selectedTickets);
 
                 return true;
             }
