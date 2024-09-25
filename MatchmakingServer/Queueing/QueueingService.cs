@@ -156,7 +156,7 @@ namespace MatchmakingServer.Queueing
                     DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: false);
                 }
             }
-            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            catch (HubException) when (cancellation.IsCancellationRequested)
             {
                 // timeout
                 _logger.LogDebug("Timed out while waiting for player {player} to join", player);
