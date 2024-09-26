@@ -16,7 +16,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
 {
     private readonly IOptionsMonitor<H2MLauncherSettings> _options;
     private readonly H2MCommunicationService _h2mCommunicationService;
-    private readonly MatchmakingService _matchmakingService;
+    private readonly QueueingService _queueingService;
 
     private volatile int _isJoining;
     private SecureString? _lastServerPassword;
@@ -24,11 +24,11 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     public ServerJoinServiceBase(
         IOptionsMonitor<H2MLauncherSettings> options,
         H2MCommunicationService h2mCommunicationService,
-        MatchmakingService matchmakingService)
+        QueueingService queueingService)
     {
         _options = options;
         _h2mCommunicationService = h2mCommunicationService;
-        _matchmakingService = matchmakingService;
+        _queueingService = queueingService;
 
         WeakReferenceMessenger.Default.RegisterAll(this);
     }
@@ -63,7 +63,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
             return JoinServerResult.ServerFull;
         }
 
-        bool joinedQueue = await _matchmakingService.JoinQueueAsync(server, null, password);
+        bool joinedQueue = await _queueingService.JoinQueueAsync(server, null, password);
         return joinedQueue ? JoinServerResult.QueueJoined : JoinServerResult.QueueUnavailable;
     }
 

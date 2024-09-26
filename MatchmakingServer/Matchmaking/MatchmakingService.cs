@@ -1,4 +1,5 @@
-﻿using H2MLauncher.Core.Matchmaking.Models;
+﻿using H2MLauncher.Core;
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
@@ -72,27 +73,27 @@ namespace MatchmakingServer
         {
             try
             {
-            List<GameServer> serversToRequest = _matchmaker.QueuedServers
-                    .Select(key => _serverStore.Servers.TryGetValue(key, out GameServer? server) ? server : null)
-                    .WhereNotNull()
-                    .ToList();
+                List<GameServer> serversToRequest = _matchmaker.QueuedServers
+                        .Select(key => _serverStore.Servers.TryGetValue(key, out GameServer? server) ? server : null)
+                        .WhereNotNull()
+                        .ToList();
 
-            List<GameServer> respondingServers = await RefreshServerInfo(serversToRequest, cancellationToken);
+                List<GameServer> respondingServers = await RefreshServerInfo(serversToRequest, cancellationToken);
 
-            await foreach (MMMatch match in _matchmaker.CheckForMatchesAsync(respondingServers, cancellationToken))
-            {
-                _ = await CreateMatchAsync(match);
+                await foreach (MMMatch match in _matchmaker.CheckForMatchesAsync(respondingServers, cancellationToken))
+                {
+                    _ = await CreateMatchAsync(match);
+                }
+
+                // Notify players of theoretically possible matches
+                List<Task> notifyTasks = new(_matchmaker.Tickets.Count);
+                foreach (MMTicket ticket in _matchmaker.Tickets)
+                {
+                    notifyTasks.Add(SendMatchSearchResults(ticket, ticket.PossibleMatches));
+                }
+
+                await Task.WhenAll(notifyTasks);
             }
-
-            // Notify players of theoretically possible matches
-            List<Task> notifyTasks = new(_matchmaker.Tickets.Count);
-            foreach (MMTicket ticket in _matchmaker.Tickets)
-            {
-                notifyTasks.Add(SendMatchSearchResults(ticket, ticket.PossibleMatches));
-            }
-
-            await Task.WhenAll(notifyTasks);
-        }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in matchmaking loop");
@@ -294,7 +295,7 @@ namespace MatchmakingServer
             try
             {
                 await _hubContext.Clients.Clients(ticket.Players.Select(p => p.QueueingHubId!))
-                        .SearchMatchUpdate(matchesForPlayer.Select(CreateMatchResult))
+                        .OnSearchMatchUpdate(matchesForPlayer.Select(CreateMatchResult))
                         .ConfigureAwait(false);
             }
             catch
@@ -329,7 +330,7 @@ namespace MatchmakingServer
                 _logger.LogTrace("Notifying players with match result...");
 
                 await _hubContext.Clients.Clients(selectedPlayers.Select(p => p.QueueingHubId!))
-                    .MatchFound(match.Server.LastServerInfo!.HostName, CreateMatchResult(match));
+                    .OnMatchFound(match.Server.LastServerInfo!.HostName, CreateMatchResult(match));
             }
             catch (Exception ex)
             {
@@ -351,7 +352,7 @@ namespace MatchmakingServer
                 if (!await _queueingService.JoinQueue(server, player).ConfigureAwait(false))
                 {
                     await _hubContext.Clients.Client(player.QueueingHubId!)
-                        .RemovedFromMatchmaking(MatchmakingError.QueueingFailed)
+                        .OnRemovedFromMatchmaking(MatchmakingError.QueueingFailed)
                         .ConfigureAwait(false);
 
                     return false;

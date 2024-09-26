@@ -31,6 +31,11 @@ using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Party;
+using MatchmakingServer.Core.Party;
+using H2MLauncher.Core.OnlineServices;
+using H2MLauncher.Core.Utilities.Http;
+using H2MLauncher.Core.Utilities.SignalR;
+using H2MLauncher.Core.OnlineServices.Authentication;
 
 namespace H2MLauncher.UI
 {
@@ -151,21 +156,26 @@ namespace H2MLauncher.UI
             services.AddTransient<ServerBrowserViewModel>();
             services.AddTransient<PartyViewModel>();
 
-            services.AddSingleton<MatchmakingService>();
-            services.AddSingleton<PartyService>();
+            // online services
+            services.AddSingleton<OnlineServiceManager>();
+            services.AddSingleton<IOnlineServices, OnlineServiceManager>(sp => sp.GetRequiredService<OnlineServiceManager>());
+
+            // authentication
+            services.AddSingleton<AuthenticationService>();
+            services.AddHttpClient<AuthenticationService>()
+                .ConfigureMatchmakingClient();
+
+            // server data / playlists
             services.AddTransient<CachedServerDataService>();
+            services.AddTransient<IPlaylistService, CachedServerDataService>(sp => sp.GetRequiredService<CachedServerDataService>());
             services.AddHttpClient<CachedServerDataService>()
-                .ConfigureHttpClient((sp, client) =>
-                {
-                    MatchmakingSettings matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>().Value;
+                .ConfigureMatchmakingClient();
 
-                    // make sure base address is set correctly without trailing slash
-                    client.BaseAddress = Url.Parse(matchmakingSettings.MatchmakingServerUrl).RemovePathSegment().ToUri();
+            // hub clients
+            services.AddHubClient<QueueingService, IMatchmakingHub>((sp, manager) => manager.QueueingHubConnection);
+            services.AddHubClient<MatchmakingService, IMatchmakingHub>((sp, manager) => manager.QueueingHubConnection);
+            services.AddHubClient<PartyClient, IPartyHub>((sp, manager) => manager.PartyHubConnection);
 
-                    // add headers to identify app version
-                    client.DefaultRequestHeaders.Add("X-App-Name", "H2MLauncher");
-                    client.DefaultRequestHeaders.Add("X-App-Version", LauncherService.CurrentVersion);
-                });
 
             services.AddTransient<MainWindow>();
         }

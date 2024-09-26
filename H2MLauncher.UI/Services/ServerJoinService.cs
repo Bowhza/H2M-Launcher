@@ -21,8 +21,8 @@ public class ServerJoinService : ServerJoinServiceBase
         DialogService dialogService,
         IOptionsMonitor<H2MLauncherSettings> options,
         H2MCommunicationService h2mCommunicationService,
-        MatchmakingService matchmakingService)
-        : base(options, h2mCommunicationService, matchmakingService)
+        QueueingService queueingService)
+        : base(options, h2mCommunicationService, queueingService)
     {
         _dialogService = dialogService;
         _communicationService = h2mCommunicationService;

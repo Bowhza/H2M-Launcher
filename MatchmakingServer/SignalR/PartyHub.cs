@@ -7,12 +7,13 @@ using H2MLauncher.Core.Party;
 using MatchmakingServer.Core.Party;
 using MatchmakingServer.Queueing;
 
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR;
 
-[Authorize(AuthenticationSchemes = "client")]
+[Authorize(AuthenticationSchemes = BearerTokenDefaults.AuthenticationScheme)]
 class PartyHub : Hub<IPartyClient>, IPartyHub
 {
     private static readonly ConcurrentDictionary<string, Party> Parties = [];

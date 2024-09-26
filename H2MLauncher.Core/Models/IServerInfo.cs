@@ -1,11 +1,5 @@
 ﻿namespace H2MLauncher.Core.Models;
 
-
-public interface ISimpleServerInfo : IServerConnectionDetails
-{
-    public string ServerName { get; }
-}
-
 public interface IServerInfo : ISimpleServerInfo
 {
     public int MaxClients { get; }
@@ -21,6 +15,4 @@ public interface IServerInfo : ISimpleServerInfo
     public bool HasMap { get; }
 
     public bool IsPrivate { get; }
-
-    public string InstanceId { get; }
 }

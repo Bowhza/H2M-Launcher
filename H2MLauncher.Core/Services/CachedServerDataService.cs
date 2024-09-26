@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public sealed class CachedServerDataService
+    public sealed class CachedServerDataService : IPlaylistService
     {
         private readonly HttpClient _httpClient;
         private readonly IMemoryCache _memoryCache;

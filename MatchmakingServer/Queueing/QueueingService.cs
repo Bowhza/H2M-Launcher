@@ -1,4 +1,4 @@
-﻿using System.Threading;
+﻿using H2MLauncher.Core;
 
 using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking.Models;
@@ -138,7 +138,7 @@ namespace MatchmakingServer.Queueing
                 player.JoinAttempts.Add(DateTimeOffset.Now);
 
                 JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort, server.LastServerInfo?.HostName ?? "");
-
+                
                 // notify client to join
                 var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
                     .NotifyJoin(serverInfo, cancellation.Token);
@@ -815,7 +815,7 @@ namespace MatchmakingServer.Queueing
             {
                 try
                 {
-                    await _ctx.Clients.Client(player.QueueingHubId!).QueuePositionChanged(++queuePosition, queueLength);
+                    await _ctx.Clients.Client(player.QueueingHubId!).OnQueuePositionChanged(++queuePosition, queueLength);
                 }
                 catch (Exception ex)
                 {
@@ -828,7 +828,7 @@ namespace MatchmakingServer.Queueing
         {
             try
             {
-                await _ctx.Clients.Client(player.QueueingHubId!).RemovedFromQueue(reason).ConfigureAwait(false);
+                await _ctx.Clients.Client(player.QueueingHubId!).OnRemovedFromQueue(reason).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

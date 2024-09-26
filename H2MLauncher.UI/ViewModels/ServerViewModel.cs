@@ -104,8 +104,7 @@ namespace H2MLauncher.UI.ViewModels
         int IServerInfo.Clients => GameServerInfo.Clients;
         int IServerInfo.Bots => GameServerInfo.Bots;
         int IServerInfo.RealPlayerCount => GameServerInfo.RealPlayerCount;
-        string IServerInfo.InstanceId => Server.Instance.Id;
-        string ISimpleServerInfo.ServerName => Server.HostName;
+        string ISimpleServerInfo.ServerName => GameServerInfo.HostName;
 
 
         [GeneratedRegex(@"(\^\d)")]

@@ -1,34 +1,35 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
-using Flurl;
-
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Utilities;
+using H2MLauncher.Core.Utilities.SignalR;
 
 using MatchmakingServer.Core.Party;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 using TypedSignalR.Client;
 
 namespace H2MLauncher.Core.Party
 {
-    public sealed class PartyService : IPartyClient, IHubConnectionObserver, IDisposable
+    public record PartyState
     {
-        private readonly HubConnection _connection;
-        private readonly IPartyHub _hubProxy;
+        public PartyInfo? Party { get; }
+        public bool IsPartyLeader { get; }
+        public bool IsPartyActive => Party is not null;
+    }
+
+    public sealed class PartyClient : HubClient<IPartyHub>, IPartyClient, IDisposable
+    {
         private readonly IDisposable _clientRegistration;
 
         private readonly IServerJoinService _serverJoinService;
         private readonly IPlayerNameProvider _playerNameProvider;
-        private readonly ILogger<PartyService> _logger;
-
-        public bool IsConnected => _connection.State is HubConnectionState.Connected;
+        private readonly ILogger<PartyClient> _logger;
 
         public event Action? KickedFromParty;
         public event Action? PartyClosed;
@@ -36,12 +37,11 @@ namespace H2MLauncher.Core.Party
         public event Action<PartyPlayerInfo>? UserLeft;
         public event Action<PartyPlayerInfo>? UserChanged;
 
-        public event Action<bool>? ConnectionChanged;
         public event Action? PartyChanged;
 
-        private readonly string _currentClientId;
         private PartyInfo? _currentParty;
         private bool _isPartyLeader;
+        private readonly string _clientId;
 
         public string? PartyId => _currentParty?.PartyId;
         public IReadOnlyList<PartyPlayerInfo>? Members => _currentParty?.Members.AsReadOnly();
@@ -51,28 +51,16 @@ namespace H2MLauncher.Core.Party
         public bool IsPartyActive => _currentParty is not null;
         public bool IsPartyLeader => _isPartyLeader;
 
-        public string CurrentClientId => _currentClientId;
-
-        public PartyService(
-            IOptions<MatchmakingSettings> matchmakingSettings,
+        public PartyClient(
             IPlayerNameProvider playerNameProvider,
             IServerJoinService serverJoinService,
-            ILogger<PartyService> logger)
+            ILogger<PartyClient> logger,
+            HubConnection hubConnection,
+            IOnlineServices onlineService) : base(hubConnection)
         {
-            _currentClientId = Guid.NewGuid().ToString();
+            _clientId = onlineService.ClientContext.ClientId;
 
-            object queryParams = new
-            {
-                uid = _currentClientId,
-                playerName = playerNameProvider.PlayerName
-            };
-
-            _connection = new HubConnectionBuilder()
-                .WithUrl(matchmakingSettings.Value.PartyHubUrl.SetQueryParams(queryParams))
-                .Build();
-
-            _hubProxy = _connection.CreateHubProxy<IPartyHub>();
-            _clientRegistration = _connection.Register<IPartyClient>(this);
+            _clientRegistration = hubConnection.Register<IPartyClient>(this);
 
             _serverJoinService = serverJoinService;
             _playerNameProvider = playerNameProvider;
@@ -82,11 +70,17 @@ namespace H2MLauncher.Core.Party
             _playerNameProvider.PlayerNameChanged += PlayerNameProvider_PlayerNameChanged;
         }
 
+        protected override IPartyHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
+        {
+            return hubConnection.CreateHubProxy<IPartyHub>(hubCancellationToken);
+        }
+
         private async void PlayerNameProvider_PlayerNameChanged(string oldName, string newName)
         {
             try
             {
-                await _hubProxy.UpdatePlayerName(newName);
+
+                await Hub.UpdatePlayerName(newName);
             }
             catch (Exception ex)
             {
@@ -115,7 +109,7 @@ namespace H2MLauncher.Core.Party
             try
             {
                 // notify the server that the party server changed
-                await _hubProxy.JoinServer(new()
+                await Hub.JoinServer(new()
                 {
                     ServerIp = serverInfo.Ip,
                     ServerPort = serverInfo.Port,
@@ -128,54 +122,57 @@ namespace H2MLauncher.Core.Party
             }
         }
 
-        public async Task StartConnection(CancellationToken cancellationToken = default)
-        {
-            await _connection.StartAsync(cancellationToken).ConfigureAwait(false);
-            ConnectionChanged?.Invoke(true);
-        }
-
         public async Task<string?> CreateParty()
         {
-            if (_connection.State is HubConnectionState.Disconnected)
+            try
             {
                 await StartConnection();
+
+                _logger.LogDebug("Creating party...");
+
+                _currentParty = await Hub.CreateParty();
+
+                if (_currentParty is not null)
+                {
+                    _isPartyLeader = true;
+                    PartyChanged?.Invoke();
+                }
+
+                return _currentParty?.PartyId;
             }
-
-            _logger.LogDebug("Creating party...");
-
-            _currentParty = await _hubProxy.CreateParty();
-
-            if (_currentParty is not null)
+            catch (Exception ex)
             {
-                _isPartyLeader = true;
-                PartyChanged?.Invoke();
+                _logger.LogError(ex, "Error while creating party");
+                return null;
             }
-
-            return _currentParty?.PartyId;
         }
 
         public async Task JoinParty(string partyId)
         {
-            if (_connection.State is HubConnectionState.Disconnected)
+            try
             {
                 await StartConnection();
+
+                using var _ = _logger.BeginPropertyScope(partyId);
+                _logger.LogDebug("Joining party...");
+
+                PartyInfo? party = await Hub.JoinParty(partyId);
+                if (party is null)
+                {
+                    _logger.LogDebug("Could not join party");
+                    return;
+                }
+
+                _currentParty = party;
+                _isPartyLeader = false;
+                PartyChanged?.Invoke();
+
+                _logger.LogInformation("Joined party");
             }
-
-            using var _ = _logger.BeginPropertyScope(partyId);
-            _logger.LogDebug("Joining party...");
-
-            PartyInfo? party = await _hubProxy.JoinParty(partyId);
-            if (party is null)
+            catch (Exception ex)
             {
-                _logger.LogDebug("Could not join party");
-                return;
+                _logger.LogError(ex, "Error while joining party");
             }
-
-            _currentParty = party;
-            _isPartyLeader = false;
-            PartyChanged?.Invoke();
-
-            _logger.LogInformation("Joined party");
         }
 
         public async Task LeaveParty()
@@ -185,7 +182,7 @@ namespace H2MLauncher.Core.Party
                 return;
             }
 
-            if (!await _hubProxy.LeaveParty())
+            if (!await Hub.LeaveParty())
             {
                 _logger.LogWarning("Could not leave party {partyId}", _currentParty?.PartyId);
             }
@@ -204,7 +201,7 @@ namespace H2MLauncher.Core.Party
                 return;
             }
 
-            if (!await _hubProxy.KickPlayer(id))
+            if (!await Hub.KickPlayer(id))
             {
                 _logger.LogDebug("Could not kick player {userId} from party", id);
                 return;
@@ -215,37 +212,27 @@ namespace H2MLauncher.Core.Party
             _logger.LogInformation("Player {userId} was kicked from the party", id);
         }
 
+        public bool IsSelf(PartyPlayerInfo member)
+        {
+            return member.Id == _clientId;
+        }
 
         #region RPC Handlers
 
-        public Task OnConnectionRejected(string reason)
+        Task IPartyClient.OnConnectionRejected(string reason)
         {
             _logger.LogError("Connection to party hub was rejected. Reason: {reason}", reason);
             return Task.CompletedTask;
         }
 
-        public Task OnServerChanged(SimpleServerInfo server)
+        Task IPartyClient.OnServerChanged(SimpleServerInfo server)
         {
             _logger.LogDebug("Party server changed: {server}, joining...", server);
-
-
-
-            /*
-             * How to know whether to join queue?
-             * 
-             * a) Do info request and check
-             * b) Server does info request
-             * c) Leader tells server the player count
-             * d) Server joins queue precauteously
-             * 
-             * => Since we dont care about speed and have no way to assure they get into the same team (yet)
-             *    best bet is a. Otherwise d would be the best option, but the client would loose control about whether to join then.
-             */
 
             return _serverJoinService.JoinServer(server, null, JoinKind.FromParty);
         }
 
-        public Task OnKickedFromParty()
+        Task IPartyClient.OnKickedFromParty()
         {
             _logger.LogDebug("Kicked from the party {partyId}", _currentParty?.PartyId);
 
@@ -256,7 +243,7 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
-        public Task OnPartyClosed()
+        Task IPartyClient.OnPartyClosed()
         {
             _logger.LogDebug("Party {partyId} closed", _currentParty?.PartyId);
 
@@ -268,7 +255,7 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
-        public Task OnUserJoinedParty(string id, string playerName)
+        Task IPartyClient.OnUserJoinedParty(string id, string playerName)
         {
             _logger.LogDebug("Player {playerName} ({playerId}) joined the party", playerName, id);
 
@@ -284,7 +271,7 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
-        public Task OnUserLeftParty(string id)
+        Task IPartyClient.OnUserLeftParty(string id)
         {
             _logger.LogDebug("Player ({playerId}) left the party", id);
 
@@ -307,7 +294,7 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
-        public Task OnUserNameChanged(string id, string newPlayerName)
+        Task IPartyClient.OnUserNameChanged(string id, string newPlayerName)
         {
             if (_currentParty is null)
             {
@@ -347,27 +334,21 @@ namespace H2MLauncher.Core.Party
             _currentParty = null;
             _isPartyLeader = false;
 
-            ConnectionChanged?.Invoke(false);
             PartyChanged?.Invoke();
 
             return Task.CompletedTask;
         }
 
-        public Task OnReconnected(string? connectionId)
+        protected override void Dispose(bool disposing)
         {
-            return Task.CompletedTask;
-        }
+            if (disposing)
+            {
+                _clientRegistration.Dispose();
+                _playerNameProvider.PlayerNameChanged -= PlayerNameProvider_PlayerNameChanged;
+                _serverJoinService.ServerJoined -= ServerJoinService_ServerJoined;
+            }
 
-        public Task OnReconnecting(Exception? exception)
-        {
-            return Task.CompletedTask;
-        }
-
-        public void Dispose()
-        {
-            _clientRegistration.Dispose();
-            _playerNameProvider.PlayerNameChanged -= PlayerNameProvider_PlayerNameChanged;
-            _serverJoinService.ServerJoined -= ServerJoinService_ServerJoined;
+            base.Dispose(disposing);
         }
     }
 }

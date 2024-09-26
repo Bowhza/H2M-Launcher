@@ -18,6 +18,7 @@ using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Networking.GameServer.HMW;
+using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
@@ -56,6 +57,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private CancellationTokenSource _loadCancellation = new();
     private readonly MatchmakingService _matchmakingService;
+    private readonly QueueingService _queueingService;
+    private readonly IOnlineServices _onlineService;
     private readonly CachedServerDataService _serverDataService;
     private readonly H2MLauncherSettings _defaultSettings;
 
@@ -149,10 +152,12 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IWritableOptions<H2MLauncherSettings> h2mLauncherOptions,
         IOptions<ResourceSettings> resourceSettings,
         [FromKeyedServices(Constants.DefaultSettingsKey)] H2MLauncherSettings defaultSettings,
+        QueueingService queueingService,
         MatchmakingService matchmakingService,
         CachedServerDataService serverDataService,
         IMapsProvider mapsProvider,
         IServerJoinService serverJoinService,
+        IOnlineServices onlineService,
         PartyViewModel partyViewModel)
     {
         _h2mMaster = h2mMasterService;
@@ -170,6 +175,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _defaultSettings = defaultSettings;
         _resourceSettings = resourceSettings;
         _matchmakingService = matchmakingService;
+        _queueingService = queueingService;
+        _onlineService = onlineService;
         _serverDataService = serverDataService;
         _mapsProvider = mapsProvider;
         _serverJoinService = serverJoinService;
@@ -831,6 +838,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             MatchmakingViewModel queueViewModel = new(
                 _matchmakingService,
+                _queueingService,
+                _onlineService,
                 _serverDataService,
                 _serverJoinService)
             {
@@ -881,13 +890,17 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private async Task EnterMatchmaking()
     {
+#if DEBUG == false
         if (!CheckGameRunning())
         {
             return;
         }
+#endif
 
         MatchmakingViewModel matchmakingViewModel = new(
             _matchmakingService,
+            _queueingService,
+            _onlineService,
             _serverDataService,
             _serverJoinService);
 

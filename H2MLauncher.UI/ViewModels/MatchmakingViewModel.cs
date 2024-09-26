@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -9,6 +10,7 @@ using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
 
@@ -17,6 +19,10 @@ namespace H2MLauncher.UI.ViewModels
     internal partial class MatchmakingViewModel : DialogViewModelBase, IDisposable
     {
         private readonly MatchmakingService _matchmakingService;
+        private readonly QueueingService _queueingService;
+        private readonly IOnlineServices _onlineService;
+
+
         private readonly CachedServerDataService _serverDataService;
         private readonly IServerJoinService _serverJoinService;
         private readonly DispatcherTimer _queueTimer;
@@ -159,39 +165,44 @@ namespace H2MLauncher.UI.ViewModels
 
         public MatchmakingViewModel(
             MatchmakingService matchmakingService,
+            QueueingService queueingService,
+            IOnlineServices onlineService,
             CachedServerDataService serverDataService,
             IServerJoinService serverJoinService)
         {
             _matchmakingService = matchmakingService;
+            _queueingService = queueingService;
+            _onlineService = onlineService;
+
             _serverDataService = serverDataService;
             _serverJoinService = serverJoinService;
 
             AbortCommand = new AsyncRelayCommand(Abort);
             ForceJoinCommand = new AsyncRelayCommand(ForceJoin, () => !IsJoining && !string.IsNullOrEmpty(ServerIp) && ServerPort > 0);
             EnterMatchmakingCommand = new AsyncRelayCommand<Playlist?>(EnterMatchmaking, (_) => CanEnterMatchmaking);
-            ConnectToServiceCommand = new AsyncRelayCommand(ConnectToService, () => !IsConnectingToOnlineService && !_matchmakingService.IsConnected);
+            ConnectToServiceCommand = new AsyncRelayCommand(ConnectToService, () => !IsConnectingToOnlineService && !IsConnectedToOnlineService);
             RetryCommand = new AsyncRelayCommand(TryAgain, () => !IsConnectingToOnlineService);
             LeaveQueueCommand = new AsyncRelayCommand(LeaveQueue);
 
-            matchmakingService.Joining += MatchmakingService_Joining;
-            matchmakingService.JoinFailed += MatchmakingService_JoinFailed;
-            matchmakingService.QueuePositionChanged += MatchmakingService_QueuePositionChanged;
-            matchmakingService.QueueingStateChanged += MatchmakingService_QueueingStateChanged;
+            queueingService.Joining += QueueingService_Joining;
+            queueingService.JoinFailed += QueueingService_JoinFailed;
+            queueingService.QueuePositionChanged += QueueingService_QueuePositionChanged;
+            onlineService.StateChanged += OnlineService_StateChanged;
             matchmakingService.MatchFound += MatchmakingService_MatchFound;
             matchmakingService.Matches += MatchmakingService_Matches;
             matchmakingService.MatchSearchCriteriaChanged += MatchmakingService_MatchSearchCriteriaChanged;
             matchmakingService.MatchmakingError += MatchmakingService_MatchmakingError;
 
-            QueuePosition = matchmakingService.QueuePosition;
-            TotalPlayersInQueue = matchmakingService.TotalPlayersInQueue;
-            State = matchmakingService.State;
+            QueuePosition = queueingService.QueuePosition;
+            TotalPlayersInQueue = queueingService.TotalPlayersInQueue;
+            State = onlineService.State;
             PlaylistName = matchmakingService.Playlist?.Name ?? "";
             IsConnectingToOnlineService = matchmakingService.IsConnecting;
             IsConnectedToOnlineService = matchmakingService.IsConnected;
             SelectedPlaylist = Playlists.FirstOrDefault();
 
-            ServerIp = matchmakingService.Server?.Ip ?? "";
-            ServerPort = matchmakingService.Server?.Port ?? -1;
+            ServerIp = queueingService.QueuedServer?.Ip ?? "";
+            ServerPort = queueingService.QueuedServer?.Port ?? -1;
 
             _queueTimer = new()
             {
@@ -253,59 +264,6 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
-        private void MatchmakingService_MatchmakingError(MatchmakingError reason)
-        {
-            IsError = true;
-            ErrorText = $"Matchmaking error - Reason: {reason}";
-        }
-
-        private void MatchmakingService_MatchSearchCriteriaChanged(MatchSearchCriteria matchSearchCriteria)
-        {
-            MatchmakingStatus = "Searching for matches with ping <= " + matchSearchCriteria.MaxPing + " ms";
-        }
-
-        private void MatchmakingService_Matches(IEnumerable<SearchMatchResult> matchResults)
-        {
-            List<SearchMatchResult> results = matchResults.ToList();
-            if (results.Count == 0)
-            {
-                SearchResultText = $"No matches with >= {_matchmakingService.MatchSearchCriteria?.MinPlayers} players found";
-            }
-            else
-            {
-                SearchMatchResult bestMatch = results.OrderByDescending(r => r.MatchQuality).First();
-                SearchResultText = $"{results.Count} matches found (best with {bestMatch.NumPlayers} players)";
-            }
-        }
-
-        private void MatchmakingService_MatchFound((string hostname, SearchMatchResult match) obj)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                ServerHostName = obj.hostname;
-                ServerIp = obj.match.ServerIp;
-                ServerPort = obj.match.ServerPort;
-            });
-        }
-
-        private void MatchmakingService_Joining(IServerConnectionDetails server)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                IsJoining = true;
-                JoiningServer = $"{server.Ip}:{server.Port}";
-            });
-        }
-
-        private void MatchmakingService_JoinFailed(IServerConnectionDetails obj)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                IsJoining = false;
-                JoiningServer = "";
-            });
-        }
-
         private async Task Abort()
         {
             if (ConnectToServiceCommand.IsRunning)
@@ -335,7 +293,7 @@ namespace H2MLauncher.UI.ViewModels
 
         private async Task ForceJoin()
         {
-            if (_matchmakingService.Server is null)
+            if (_queueingService.QueuedServer is null)
             {
                 return;
             }
@@ -344,8 +302,8 @@ namespace H2MLauncher.UI.ViewModels
             JoiningServer = ServerIp + ":" + ServerPort;
 
             JoinServerResult joinResult = await _serverJoinService.JoinServer(
-                server: _matchmakingService.Server,
-                password: _matchmakingService.Server.Password,
+                server: _queueingService.QueuedServer,
+                password: _queueingService.QueuedServer.Password,
                 kind: JoinKind.Forced);
 
             if (joinResult is not JoinServerResult.Success)
@@ -424,7 +382,7 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
-        private void MatchmakingService_QueueingStateChanged(PlayerState oldState, PlayerState state)
+        private void OnlineService_StateChanged(PlayerState oldState, PlayerState state)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -470,7 +428,60 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void MatchmakingService_QueuePositionChanged(int position, int totalPlayers)
+        private void MatchmakingService_MatchmakingError(MatchmakingError reason)
+        {
+            IsError = true;
+            ErrorText = $"Matchmaking error - Reason: {reason}";
+        }
+
+        private void MatchmakingService_MatchSearchCriteriaChanged(MatchSearchCriteria matchSearchCriteria)
+        {
+            MatchmakingStatus = "Searching for matches with ping <= " + matchSearchCriteria.MaxPing + " ms";
+        }
+
+        private void MatchmakingService_Matches(IEnumerable<SearchMatchResult> matchResults)
+        {
+            List<SearchMatchResult> results = matchResults.ToList();
+            if (results.Count == 0)
+            {
+                SearchResultText = $"No matches with >= {_matchmakingService.MatchSearchCriteria?.MinPlayers} players found";
+            }
+            else
+            {
+                SearchMatchResult bestMatch = results.OrderByDescending(r => r.MatchQuality).First();
+                SearchResultText = $"{results.Count} matches found (best with {bestMatch.NumPlayers} players)";
+            }
+        }
+
+        private void MatchmakingService_MatchFound((string hostname, SearchMatchResult match) obj)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                ServerHostName = obj.hostname;
+                ServerIp = obj.match.ServerIp;
+                ServerPort = obj.match.ServerPort;
+            });
+        }
+
+        private void QueueingService_Joining(IServerConnectionDetails server)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsJoining = true;
+                JoiningServer = $"{server.Ip}:{server.Port}";
+            });
+        }
+
+        private void QueueingService_JoinFailed(IServerConnectionDetails obj)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsJoining = false;
+                JoiningServer = "";
+            });
+        }
+
+        private void QueueingService_QueuePositionChanged(int position, int totalPlayers)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -487,11 +498,14 @@ namespace H2MLauncher.UI.ViewModels
 
         public void Dispose()
         {
-            _matchmakingService.Joining -= MatchmakingService_Joining;
-            _matchmakingService.JoinFailed -= MatchmakingService_JoinFailed;
-            _matchmakingService.QueuePositionChanged -= MatchmakingService_QueuePositionChanged;
-            _matchmakingService.QueueingStateChanged -= MatchmakingService_QueueingStateChanged;
+            _queueingService.Joining -= QueueingService_Joining;
+            _queueingService.JoinFailed -= QueueingService_JoinFailed;
+            _queueingService.QueuePositionChanged -= QueueingService_QueuePositionChanged;
+            _onlineService.StateChanged -= OnlineService_StateChanged;
             _matchmakingService.MatchFound -= MatchmakingService_MatchFound;
+            _matchmakingService.Matches -= MatchmakingService_Matches;
+            _matchmakingService.MatchSearchCriteriaChanged -= MatchmakingService_MatchSearchCriteriaChanged;
+            _matchmakingService.MatchmakingError -= MatchmakingService_MatchmakingError;
             _queueTimer.Stop();
             _queueTimer.Tick -= QueueTimer_Tick;
         }

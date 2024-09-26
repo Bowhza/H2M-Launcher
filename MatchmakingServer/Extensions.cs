@@ -47,6 +47,36 @@ namespace MatchmakingServer
             });
         }
 
+        public static async Task LockAll(this IEnumerable<SemaphoreSlim> items, Func<Task> asyncOperation)
+        {
+            // create local copy
+            List<SemaphoreSlim> locks = items.ToList();
+
+            // Step 1: Lock all items
+            var lockTasks = new List<Task>();
+            foreach (SemaphoreSlim item in locks)
+            {
+                lockTasks.Add(item.WaitAsync()); // Lock the item asynchronously
+            }
+
+            // Wait for all locks to be acquired
+            await Task.WhenAll(lockTasks);
+
+            try
+            {
+                // Step 2: Perform async operation
+                await asyncOperation();
+            }
+            finally
+            {
+                // Step 3: Release all locks
+                foreach (SemaphoreSlim item in locks)
+                {
+                    item.Release();
+                }
+            }
+        }
+
         public static IDisposable LockAll(this IEnumerable<object> lockObjects)
         {
             _ = lockObjects.TryGetNonEnumeratedCount(out int count);
@@ -65,10 +95,11 @@ namespace MatchmakingServer
                         Monitor.Exit(lockObject);
                 });
             }
-            finally
+            catch
             {
                 foreach (var lockObject in enteredLocks)
                     Monitor.Exit(lockObject);
+                throw;
             }
         }
     }

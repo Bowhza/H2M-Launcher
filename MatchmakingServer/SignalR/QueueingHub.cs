@@ -1,14 +1,18 @@
 ﻿using System.Collections.Concurrent;
 
+using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 
 using MatchmakingServer.Queueing;
 
+using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
 {
-    public class QueueingHub : Hub<IClient>, IQueueingHub
+    [Authorize(AuthenticationSchemes = BearerTokenDefaults.AuthenticationScheme)]
+    public class QueueingHub : Hub<IClient>, IMatchmakingHub
     {
         private readonly ILogger<QueueingHub> _logger;
         private readonly QueueingService _queueingService;
@@ -19,9 +23,9 @@ namespace MatchmakingServer.SignalR
         private readonly static ConcurrentDictionary<string, Player> ConnectedPlayers = new();
 
         public QueueingHub(
-            ILogger<QueueingHub> logger, 
-            QueueingService queueingService, 
-            MatchmakingService matchmakingService, 
+            ILogger<QueueingHub> logger,
+            QueueingService queueingService,
+            MatchmakingService matchmakingService,
             PlayerStore playerStore)
         {
             _logger = logger;
@@ -82,14 +86,6 @@ namespace MatchmakingServer.SignalR
 
             _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverIp, serverPort, player.Name);
 
-            if (player.State is PlayerState.Queued or PlayerState.Joining)
-            {
-                // player already in queue
-                _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued",
-                    serverIp, serverPort, player);
-                return Task.FromResult(false);
-            }
-
             return _queueingService.JoinQueue(serverIp, serverPort, player, instanceId);
         }
 
@@ -113,25 +109,25 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public bool SearchMatch(MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        public Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, List<string> preferredServers)
         {
             if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
             {
-                return false;
+                return Task.FromResult(false);
             }
 
-            return _matchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers);
+            return Task.FromResult(_matchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers));
         }
 
-        public bool UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)
+        public Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)
         {
             if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
             {
                 // unknown player
-                return false;
+                return Task.FromResult(false);
             }
 
-            return _matchmakingService.UpdateSearchPreferences(player, searchPreferences, serverPings);
+            return Task.FromResult(_matchmakingService.UpdateSearchPreferences(player, searchPreferences, serverPings));
         }
 
         public override async Task OnConnectedAsync()
