@@ -12,13 +12,13 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Networking.GameServer.HMW
 {
-    public sealed class HttpGameServerCommunicationService<TServer> : IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
+    public sealed class HttpGameServerInfoService<TServer> : IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger<HttpGameServerCommunicationService<TServer>> _logger;
+        private readonly ILogger<HttpGameServerInfoService<TServer>> _logger;
         private const int MAX_PARALLEL_REQUESTS = 15;
 
-        public HttpGameServerCommunicationService(ILogger<HttpGameServerCommunicationService<TServer>> logger, HttpClient httpClient)
+        public HttpGameServerInfoService(ILogger<HttpGameServerInfoService<TServer>> logger, HttpClient httpClient)
         {
             _logger = logger;
             _httpClient = httpClient;

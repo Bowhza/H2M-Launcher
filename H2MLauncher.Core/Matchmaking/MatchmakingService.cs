@@ -7,7 +7,6 @@ using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities.SignalR;
 
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -18,9 +17,7 @@ namespace H2MLauncher.Core.Matchmaking;
 public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 {
     private readonly ILogger<MatchmakingService> _logger;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerInfoService;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _udpGameServerInfoService;
-    private readonly IMasterServerService _hmwMasterServerService;
+    private readonly IGameServerInfoService<ServerConnectionDetails> _gameServerInfoService;
     private readonly IMapsProvider _mapsProvider;
     private readonly IGameDetectionService _gameDetectionService;
     private readonly IGameCommunicationService _gameCommunicationService;
@@ -77,9 +74,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     public MatchmakingService(
         OnlineServiceManager onlineServiceManager,
         ILogger<MatchmakingService> logger,
-        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerInfoService,
-        [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerInfoService,
-        [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService,
+        IGameServerInfoService<ServerConnectionDetails> gameServerInfoService,
         IMapsProvider mapsProvider,
         IGameDetectionService gameDetectionService,
         IGameCommunicationService gameCommunicationService,
@@ -88,9 +83,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
         HubConnection connection) : base(connection)
     {
         _logger = logger;
-        _hmwMasterServerService = hmwMasterServerService;
-        _tcpGameServerInfoService = tcpGameServerInfoService;
-        _udpGameServerInfoService = udpGameServerInfoService;
+        _gameServerInfoService = gameServerInfoService;
         _mapsProvider = mapsProvider;
         _gameDetectionService = gameDetectionService;
         _gameCommunicationService = gameCommunicationService;
@@ -342,12 +335,9 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     {
         _logger.LogDebug("Pinging {n} servers...", servers.Count);
 
-        IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(CancellationToken.None);
-        var tcpResponses = await _tcpGameServerInfoService.GetInfoAsync(servers.Where(hmwServers.Contains), requestTimeoutInMs: 3000);
-        var udpResponses = await _udpGameServerInfoService.GetInfoAsync(servers.Where(s => !hmwServers.Contains(s)), requestTimeoutInMs: 3000);
+        var responses = await _gameServerInfoService.GetInfoAsync(servers, requestTimeoutInMs: 3000);
 
-        return await tcpResponses
-            .Concat(udpResponses)
+        return await responses
             .Where(res => res.info is not null && _mapsProvider.InstalledMaps.Contains(res.info.MapName)) // filter out servers with missing maps
             .Select(res => new ServerPing(res.server.Ip, res.server.Port, (uint)res.info!.Ping))
             .ToListAsync();

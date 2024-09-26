@@ -27,8 +27,7 @@ namespace MatchmakingServer
         private readonly IHubContext<QueueingHub, IClient> _hubContext;
         private readonly QueueingService _queueingService;
         private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
-        private readonly IGameServerInfoService<GameServer> _tcpGameServerInfoService;
-        private readonly IMasterServerService _hmwMasterServerService;
+        private readonly IGameServerInfoService<GameServer> _gameServerInfoService;
         private readonly ILogger<MatchmakingService> _logger;
 
         public MatchmakingService(
@@ -37,8 +36,7 @@ namespace MatchmakingServer
             QueueingService queueingService,
             GameServerCommunicationService<GameServer> gameServerCommunicationService,
             ILogger<MatchmakingService> logger,
-            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tcpGameServerInfoService,
-            [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService,
+            IGameServerInfoService<GameServer> gameServerInfoService,
             Matchmaker matchmaker)
         {
             _serverStore = serverStore;
@@ -46,8 +44,7 @@ namespace MatchmakingServer
             _queueingService = queueingService;
             _gameServerCommunicationService = gameServerCommunicationService;
             _logger = logger;
-            _tcpGameServerInfoService = tcpGameServerInfoService;
-            _hmwMasterServerService = hmwMasterServerService;
+            _gameServerInfoService = gameServerInfoService;
             _matchmaker = matchmaker;
         }
 
@@ -106,32 +103,8 @@ namespace MatchmakingServer
             _logger.LogTrace("Requesting server info for {numServers} servers...", servers.Count);
             try
             {
-                IReadOnlySet<ServerConnectionDetails> hmwServerList = await _hmwMasterServerService.GetServersAsync(cancellationToken);
-                List<GameServer> tcpServers = [];
-                List<GameServer> udpServers = [];
-
-                foreach (GameServer server in servers)
-                {
-                    if (hmwServerList.Contains((server.ServerIp, server.ServerPort)))
-                    {
-                        tcpServers.Add(server);
-                    }
-                    else
-                    {
-                        udpServers.Add(server);
-                    }
-                }
-
                 // Request server info for all servers part of matchmaking rn
-                Task getInfoTcpCompleted = await _tcpGameServerInfoService.SendGetInfoAsync(tcpServers, (e) =>
-                {
-                    e.Server.LastServerInfo = e.ServerInfo;
-                    e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
-
-                    respondingServers.Add(e.Server);
-                }, timeoutInMs: 2000, cancellationToken: cancellationToken);
-
-                Task getInfoCompleted = await _gameServerCommunicationService.SendGetInfoAsync(udpServers, (e) =>
+                Task getInfoCompleted = await _gameServerInfoService.SendGetInfoAsync(servers, (e) =>
                 {
                     e.Server.LastServerInfo = e.ServerInfo;
                     e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
@@ -146,7 +119,7 @@ namespace MatchmakingServer
                 }, timeoutInMs: 2000, cancellationToken: cancellationToken);
 
                 // Wait for all to complete / time out
-                await Task.WhenAll(getInfoCompleted, getInfoTcpCompleted, getStatusCompleted);
+                await Task.WhenAll(getInfoCompleted, getStatusCompleted);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
             {

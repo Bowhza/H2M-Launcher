@@ -139,7 +139,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public ServerBrowserViewModel(
         [FromKeyedServices("H2M")] IMasterServerService h2mMasterService,
-        [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,        
+        [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,
         [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerService,
         [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
@@ -693,8 +693,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     }
 
     private async Task GetServerInfo(
-        IGameServerInfoService<ServerConnectionDetails> service, 
-        IEnumerable<ServerConnectionDetails> servers, 
+        IGameServerInfoService<ServerConnectionDetails> service,
+        IEnumerable<ServerConnectionDetails> servers,
         CancellationToken cancellationToken)
     {
         IAsyncEnumerable<(ServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
@@ -723,6 +723,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             catch (OperationCanceledException)
             {
                 // canceled
+            }
+            catch (Exception ex)
+            {
+                _errorHandlingService.HandleException(ex, "Could not fetch server info due to an unknown error.");
             }
         }, CancellationToken.None);
     }
@@ -768,6 +772,10 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             // canceled
             Debug.WriteLine($"LoadServersAsync cancelled: {ex.Message}");
+        }
+        catch (Exception ex)
+        {
+            _errorHandlingService.HandleException(ex, "Could not refresh servers due to an unknown error.");
         }
     }
 

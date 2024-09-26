@@ -36,6 +36,7 @@ using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Utilities.Http;
 using H2MLauncher.Core.Utilities.SignalR;
 using H2MLauncher.Core.OnlineServices.Authentication;
+using H2MLauncher.Core.Networking.GameServer;
 
 namespace H2MLauncher.UI
 {
@@ -136,12 +137,13 @@ namespace H2MLauncher.UI
                     client.BaseAddress = Url.Parse(launcherSettings.HMWMasterServerUrl).ToUri();
                 });
 
-            services.AddKeyedTransient(typeof(IGameServerInfoService<>), "TCP", typeof(HttpGameServerCommunicationService<>));
+            // game server communication
+            services.AddTransient<UdpGameServerCommunication>();
+            services.AddKeyedTransient(typeof(IGameServerInfoService<>), "TCP", typeof(HttpGameServerInfoService<>));
             services.AddKeyedTransient(typeof(IGameServerInfoService<>), "UDP", typeof(GameServerCommunicationService<>));
+            services.AddTransient(typeof(IGameServerInfoService<>), typeof(TcpUdpDynamicGameServerInfoService<>));
 
             services.AddSingleton<H2MCommunicationService>();
-            services.AddTransient<GameServerCommunicationService<IW4MServer>>();
-            services.AddTransient<GameServerCommunicationService<ServerConnectionDetails>>();
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
             services.AddSingleton<IGameDetectionService, H2MGameDetectionService>();
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
@@ -159,9 +161,10 @@ namespace H2MLauncher.UI
             // online services
             services.AddSingleton<OnlineServiceManager>();
             services.AddSingleton<IOnlineServices, OnlineServiceManager>(sp => sp.GetRequiredService<OnlineServiceManager>());
+            services.AddSingleton<ClientContext>();
 
             // authentication
-            services.AddSingleton<AuthenticationService>();
+            services.AddTransient<AuthenticationService>();
             services.AddHttpClient<AuthenticationService>()
                 .ConfigureMatchmakingClient();
 

@@ -17,9 +17,7 @@ namespace MatchmakingServer.Queueing
     {
         private readonly ServerStore _serverStore;
 
-        private readonly IMasterServerService _hmwMasterServerService;
-        private readonly IGameServerInfoService<GameServer> _tcpGameServerCommunicationService;
-        private readonly IGameServerInfoService<GameServer> _udpGameServerCommunicationService;
+        private readonly IGameServerInfoService<GameServer> _gameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
@@ -48,25 +46,21 @@ namespace MatchmakingServer.Queueing
 
 
         public QueueingService(
-            [FromKeyedServices("UDP")] IGameServerInfoService<GameServer> udpGameServerCommunicationService,
-            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tpcGameServerCommunicationService,
+            IGameServerInfoService<GameServer> gameServerCommunicationService,
             IHubContext<QueueingHub, IClient> ctx,
             ILogger<QueueingService> logger,
             ServerInstanceCache instanceCache,
             IOptionsMonitor<ServerSettings> serverSettings,
             IOptionsMonitor<QueueingSettings> queueingSettings,
-            ServerStore serverStore,
-            [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService)
+            ServerStore serverStore)
         {
-            _udpGameServerCommunicationService = udpGameServerCommunicationService;
-            _tcpGameServerCommunicationService = tpcGameServerCommunicationService;
+            _gameServerCommunicationService = gameServerCommunicationService;
             _ctx = ctx;
             _logger = logger;
             _instanceCache = instanceCache;
             _serverSettings = serverSettings;
             _queueingSettings = queueingSettings;
             _serverStore = serverStore;
-            _hmwMasterServerService = hmwMasterServerService;
         }
 
 
@@ -266,23 +260,6 @@ namespace MatchmakingServer.Queueing
             }
         }
 
-        private async Task<IGameServerInfoService<GameServer>> SelectServerInfoServiceFor(GameServer server, CancellationToken cancellationToken)
-        {
-            IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(cancellationToken);
-            if (hmwServers.Contains((server.ServerIp, server.ServerPort)))
-            {
-                _logger.LogTrace("Selecting TCP server info service for {server}", server);
-
-                // hmw server
-                return _tcpGameServerCommunicationService;
-            }
-
-            _logger.LogTrace("Selecting UDP server info service for {server}", server);
-
-            // normal server
-            return _udpGameServerCommunicationService;
-        }
-
         private async Task<bool> FetchGameServerInfoAsync(GameServer server, CancellationToken cancellationToken)
         {
             CancellationTokenSource timeoutCts = new CancellationTokenSource(10000);
@@ -292,10 +269,8 @@ namespace MatchmakingServer.Queueing
             try
             {
                 _logger.LogTrace("Requesting game server info for {server}...", server);
-
-
-                IGameServerInfoService<GameServer> service = await SelectServerInfoServiceFor(server, cancellationToken);
-                GameServerInfo? gameServerInfo =  await service.GetInfoAsync(server, linkedCancellation.Token);
+                
+                GameServerInfo? gameServerInfo =  await _gameServerCommunicationService.GetInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {
                     // could not send request
