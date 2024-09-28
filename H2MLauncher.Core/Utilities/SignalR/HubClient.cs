@@ -33,13 +33,25 @@ public abstract class HubClient<THub> : IDisposable
 
     protected abstract THub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken);
 
-    public async Task StartConnection(CancellationToken cancellationToken = default)
+    public async Task<bool> StartConnection(CancellationToken cancellationToken = default)
     {
         if (Connection.State is HubConnectionState.Disconnected)
         {
             await Connection.StartAsync(cancellationToken);
             await OnConnected(cancellationToken);
         }
+
+        return Connection.State is HubConnectionState.Connected;
+    }
+
+    public Task StopConnection(CancellationToken cancellationToken)
+    {
+        if (Connection.State is HubConnectionState.Disconnected)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Connection.StopAsync(cancellationToken);
     }
 
     protected virtual Task OnConnected(CancellationToken cancellationToken = default)
@@ -62,16 +74,6 @@ public abstract class HubClient<THub> : IDisposable
     protected virtual Task OnReconnected(string? connectionId)
     {
         return Task.CompletedTask;
-    }
-
-    public Task StopConnection(CancellationToken cancellationToken)
-    {
-        if (Connection.State is HubConnectionState.Disconnected)
-        {
-            return Task.CompletedTask;
-        }
-
-        return Connection.StopAsync(cancellationToken);
     }
 
     protected virtual void Dispose(bool disposing)

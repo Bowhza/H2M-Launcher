@@ -17,13 +17,6 @@ using TypedSignalR.Client;
 
 namespace H2MLauncher.Core.Party
 {
-    public record PartyState
-    {
-        public PartyInfo? Party { get; }
-        public bool IsPartyLeader { get; }
-        public bool IsPartyActive => Party is not null;
-    }
-
     public sealed class PartyClient : HubClient<IPartyHub>, IPartyClient, IDisposable
     {
         private readonly IDisposable _clientRegistration;
@@ -33,13 +26,7 @@ namespace H2MLauncher.Core.Party
         private readonly MatchmakingService _matchmakingService;
         private readonly ILogger<PartyClient> _logger;
 
-        public event Action? KickedFromParty;
-        public event Action? PartyClosed;
-        public event Action<PartyPlayerInfo>? UserJoined;
-        public event Action<PartyPlayerInfo>? UserLeft;
-        public event Action<PartyPlayerInfo>? UserChanged;
-
-        public event Action? PartyChanged;
+        private readonly SemaphoreSlim _joinCreateLock = new(1, 1);
 
         private PartyInfo? _currentParty;
         private bool _isPartyLeader;
@@ -53,6 +40,14 @@ namespace H2MLauncher.Core.Party
         [MemberNotNullWhen(true, nameof(_currentParty))]
         public bool IsPartyActive => _currentParty is not null;
         public bool IsPartyLeader => _isPartyLeader;
+
+
+        public event Action? KickedFromParty;
+        public event Action? PartyClosed;
+        public event Action? PartyChanged;
+        public event Action<PartyPlayerInfo>? UserJoined;
+        public event Action<PartyPlayerInfo>? UserLeft;
+        public event Action<PartyPlayerInfo>? UserChanged;
 
         public PartyClient(
             IPlayerNameProvider playerNameProvider,
@@ -148,9 +143,13 @@ namespace H2MLauncher.Core.Party
 
         public async Task<string?> CreateParty()
         {
+            await _joinCreateLock.WaitAsync();
             try
-            {
-                await StartConnection();
+            {                
+                if (!await StartConnection())
+                {
+                    return null;
+                }
 
                 _logger.LogDebug("Creating party...");
 
@@ -169,13 +168,21 @@ namespace H2MLauncher.Core.Party
                 _logger.LogError(ex, "Error while creating party");
                 return null;
             }
+            finally
+            {
+                _joinCreateLock.Release();
+            }
         }
 
         public async Task<bool> JoinParty(string partyId)
         {
+            await _joinCreateLock.WaitAsync();
             try
             {
-                await StartConnection();
+                if (!await StartConnection())
+                {
+                    return false;
+                }
 
                 using var _ = _logger.BeginPropertyScope(partyId);
                 _logger.LogDebug("Joining party...");
@@ -203,27 +210,46 @@ namespace H2MLauncher.Core.Party
                 _logger.LogError(ex, "Error while joining party");
                 return false;
             }
+            finally
+            {
+                _joinCreateLock.Release();
+            }
         }
 
         public async Task LeaveParty()
         {
-            if (_currentParty is null)
+            await _joinCreateLock.WaitAsync();
+            try
             {
-                return;
+                if (_currentParty is null)
+                {
+                    return;
+                }
+
+                if (!await StartConnection())
+                {
+                    return;
+                }
+
+                if (!await Hub.LeaveParty())
+                {
+                    _logger.LogWarning("Could not leave party {partyId}", _currentParty?.PartyId);
+                }
+
+                _currentParty = null;
+                _isPartyLeader = false;
+                PartyChanged?.Invoke();
+
+                _logger.LogDebug("Party left");
             }
-
-            await StartConnection();
-
-            if (!await Hub.LeaveParty())
+            catch (Exception ex)
             {
-                _logger.LogWarning("Could not leave party {partyId}", _currentParty?.PartyId);
+                _logger.LogError(ex, "Error while leaving party");
             }
-
-            _currentParty = null;
-            _isPartyLeader = false;
-            PartyChanged?.Invoke();
-
-            _logger.LogDebug("Party left");
+            finally
+            {
+                _joinCreateLock.Release();
+            }
         }
 
         public async Task KickMember(string id)
@@ -233,7 +259,10 @@ namespace H2MLauncher.Core.Party
                 return;
             }
 
-            await StartConnection();
+            if (!await StartConnection())
+            {
+                return;
+            }
 
             if (!await Hub.KickPlayer(id))
             {

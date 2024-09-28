@@ -434,14 +434,14 @@
                                 Margin="10,5,5,5" DataContext="{Binding PartyViewModel}" Orientation="Horizontal"
                                 Visibility="{Binding IsEmpty, Converter={StaticResource booleanToVisibilityConverter}}">
                         <!--<TextBlock Text="{Binding Members.Count, StringFormat={}Party ({0} Member)}"
-                                   Margin="3,0" FontSize="13" Foreground="White" VerticalAlignment="Center"/>-->
-                        <!--<TextBlock Text="Party /" Foreground="White" VerticalAlignment="Center"/>-->
+                                   Margin="3,0" FontSize="13" Foreground="White" VerticalAlignment="Center"/>-->                        
                         <Grid>                            
-                            <TextBox local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="5,5,0,5" Width="200"
-                                 Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                                 VerticalContentAlignment="Center" x:Name="JoinPartyIdTextBox"/>
+                            <TextBox local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="5,5,0,5" Width="230"
+                                     Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                     VerticalContentAlignment="Center" x:Name="JoinPartyIdTextBox" Padding="1,0"/>
                             <TextBlock IsHitTestVisible="False" Text="Paste Party ID to join..." 
-                                   VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" Margin="5" Foreground="DarkGray">
+                                       VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" 
+                                       Margin="5" Foreground="DarkGray">
                                 <TextBlock.Style>
                                     <Style TargetType="{x:Type TextBlock}">
                                         <Setter Property="Visibility" Value="Collapsed"/>
@@ -453,13 +453,15 @@
                                     </Style>
                                 </TextBlock.Style>
                             </TextBlock>
-                        </Grid>
-                        <!--<Button Height="25" Width="80" Content="Join Party" Click="Button_Click" Margin="5,5,0,5"
-                            Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
-                        <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5" 
-                                Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                        </Grid>                        
+                        <Button Height="25" Width="65" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="2,5,5,5" 
+                                Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"
+                                Background="DarkOrange" Foreground="#222"/>
                         <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5"
-                                Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                        <!--<Button Height="25" Width="80" Content="Join Party" Click="Button_Click" Margin="0"
+                                Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
+                        <!--<TextBlock Text="Party: Open" Foreground="White" VerticalAlignment="Center"/>-->
                     </StackPanel>
 
                     <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#66000000" Grid.Column="1" Margin="10,10,10,5"

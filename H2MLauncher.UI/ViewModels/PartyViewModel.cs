@@ -162,7 +162,7 @@ namespace H2MLauncher.UI.ViewModels
         }
 
         [RelayCommand]
-        public async Task JoinParty(string partyId)
+        public async Task JoinParty(string? partyId)
         {
             if (!Guid.TryParse(partyId, out _))
             {

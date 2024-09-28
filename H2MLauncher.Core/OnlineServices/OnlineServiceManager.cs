@@ -86,11 +86,28 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
                 opts.Headers.Add("X-App-Name", "H2MLauncher");
                 opts.Headers.Add("X-App-Version", LauncherService.CurrentVersion);
             })
+            .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)])
             .Build();
 
         _hubConnections = [(CustomHubConnection)QueueingHubConnection, (CustomHubConnection)PartyHubConnection];
         _hubConnections.ForEach(conn => conn.Closed += HubConnection_Closed);
         _hubConnections.ForEach(conn => conn.Connected += HubConnection_Connected);
+    }
+
+    class PartyHubConnectionRetryPolicy : IRetryPolicy
+    {
+        internal static TimeSpan?[] DEFAULT_RETRY_DELAYS =
+        [
+            TimeSpan.Zero,
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(30),
+        ];
+
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length)];
+        }
     }
 
     private Task<string?> GetAccessTokenAsync()
