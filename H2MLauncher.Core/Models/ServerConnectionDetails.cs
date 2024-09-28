@@ -1,7 +1,13 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.ComponentModel;
+using System.Diagnostics.CodeAnalysis;
+using System.Text.Json.Serialization;
+
+using H2MLauncher.Core.Utilities;
 
 namespace H2MLauncher.Core.Models
 {
+    [JsonConverter(typeof(ServerConnectionDetailsJsonConverter))]
+    [TypeConverter(typeof(ServerConnectionDetailsTypeConverter))]
     public record struct ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails
     {
         public static implicit operator (string Ip, int Port)(ServerConnectionDetails value)
@@ -32,6 +38,11 @@ namespace H2MLauncher.Core.Models
 
             connectionDetails = (ip, port);
             return true;
+        }
+
+        public readonly override string ToString()
+        {
+            return $"{Ip}:{Port}";
         }
     }
 }

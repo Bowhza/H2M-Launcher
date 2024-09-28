@@ -11,7 +11,7 @@ namespace H2MLauncher.Core
 
         Task LeaveQueue();
 
-        Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, List<string> preferredServers);
+        Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, string playlistId);
 
         Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings);
     }

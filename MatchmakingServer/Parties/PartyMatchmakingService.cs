@@ -5,6 +5,8 @@ using H2MLauncher.Core.Models;
 
 using MatchmakingServer.Queueing;
 
+using Microsoft.Extensions.Options;
+
 namespace MatchmakingServer.Parties
 {
     public sealed class PartyMatchmakingService : IDisposable
@@ -12,17 +14,24 @@ namespace MatchmakingServer.Parties
         private readonly PartyService _partyService;
         private readonly MatchmakingService _matchmakingService;
         private readonly QueueingService _queueingService;
+        private readonly IOptionsMonitor<ServerSettings> _serverSettings;
 
         private readonly ConcurrentDictionary<Party, PartyQueueingContext> _contextMap = [];
 
-        public PartyMatchmakingService(PartyService partyService, MatchmakingService matchmakingService, QueueingService queueingService)
+        public PartyMatchmakingService(
+            PartyService partyService, 
+            MatchmakingService matchmakingService, 
+            QueueingService queueingService, 
+            IOptionsMonitor<ServerSettings> serverSettings)
         {
             _partyService = partyService;
             _partyService.PartyClosed += OnPartyClosed;
             _partyService.PlayerRemovedFromParty += OnPlayerRemovedFromParty;
             _partyService.PartyLeaderChanged += OnPartyLeaderChanged;
+
             _matchmakingService = matchmakingService;
             _queueingService = queueingService;
+            _serverSettings = serverSettings;
         }
 
         private void OnPartyLeaderChanged(Party party, Player oldLeader, Player newLeader)
@@ -32,7 +41,7 @@ namespace MatchmakingServer.Parties
                 context.MatchmakingTicket is not null)
             {
                 // change the active searcher to the new leader
-                _matchmakingService.UpdateMetadata(context.MatchmakingTicket, new() { ActiveSearcher = newLeader });
+                _matchmakingService.UpdateTicketMetadata(context.MatchmakingTicket, new() { ActiveSearcher = newLeader });
             }
         }
 
@@ -106,7 +115,18 @@ namespace MatchmakingServer.Parties
 
         #region Matchmaking
 
-        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, string playlistId)
+        {
+            Playlist? playlist = _serverSettings.CurrentValue.Playlists.FirstOrDefault(p => p.Id.Equals(playlistId, StringComparison.OrdinalIgnoreCase));
+            if (playlist?.Servers is null)
+            {
+                return false;
+            }
+
+            return EnterMatchmaking(player, searchPreferences, playlist.Servers, playlist);
+        }
+
+        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> preferredServers, Playlist? playlist = null)
         {
             // select players for the ticket
             HashSet<Player> players = GetEligiblePartyMembers(player);
@@ -120,7 +140,7 @@ namespace MatchmakingServer.Parties
                 players,
                 searchPreferences,
                 preferredServers,
-                new MatchmakingService.TicketMetadata() { ActiveSearcher = player });
+                new MatchmakingService.TicketMetadata() { ActiveSearcher = player, AssociatedPlaylist = playlist });
 
             if (ticket is null)
             {

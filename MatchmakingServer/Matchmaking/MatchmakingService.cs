@@ -37,6 +37,8 @@ namespace MatchmakingServer
         public readonly record struct TicketMetadata
         {
             public required Player ActiveSearcher { get; init; }
+
+            public Playlist? AssociatedPlaylist { get; init; }
         }
 
         public MatchmakingService(
@@ -142,42 +144,44 @@ namespace MatchmakingServer
         }
 
         private MMTicket? PrepareTicketWithMetadata(
-             IReadOnlySet<Player> players, TicketMetadata ticketMetadata, MatchSearchCriteria searchPreferences, List<string> preferredServers)
+             IReadOnlySet<Player> players, TicketMetadata ticketMetadata, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> servers)
         {
-            ValidateMetadata(players, ticketMetadata);
+            ValidateMetadata(players, servers, ticketMetadata);
 
-            Dictionary<ServerConnectionDetails, int> preferredServersParsed = [];
-            foreach (string address in preferredServers)
+            Dictionary<ServerConnectionDetails, int> serversParsed = [];
+            foreach (ServerConnectionDetails connDetails in servers)
             {
-                if (!ServerConnectionDetails.TryParse(address, out ServerConnectionDetails connDetails))
+                if (serversParsed.TryAdd(connDetails, -1))
                 {
-                    continue;
+                    // Make sure server is created
+                    _serverStore.GetOrAddServer(connDetails.Ip, connDetails.Port);
                 }
-
-                preferredServersParsed.TryAdd(connDetails, -1);
-
-                // Make sure server is created
-                _serverStore.GetOrAddServer(connDetails.Ip, connDetails.Port);
             }
 
-            if (preferredServersParsed.Count == 0)
+            if (serversParsed.Count == 0)
             {
                 return null;
             }
 
-            MMTicket ticket = new(players, preferredServersParsed, searchPreferences);
+            MMTicket ticket = new(players, serversParsed, searchPreferences);
 
             _metadata.TryAdd(ticket, ticketMetadata);
 
             return ticket;
         }
 
-        private static void ValidateMetadata(IReadOnlySet<Player> players, TicketMetadata ticketMetadata)
+        private static void ValidateMetadata(IReadOnlySet<Player> players, IEnumerable<ServerConnectionDetails> servers, TicketMetadata ticketMetadata)
         {
             // validate metadata
             if (!players.Contains(ticketMetadata.ActiveSearcher))
             {
                 throw new ArgumentException("Active searcher not part of provided player set.", nameof(ticketMetadata));
+            }
+
+            if (ticketMetadata.AssociatedPlaylist?.Servers is not null &&
+                servers.Any(s => !ticketMetadata.AssociatedPlaylist.Servers.Contains(s)))
+            {
+                throw new ArgumentException("Server is not in playlist", nameof(ticketMetadata));
             }
         }
 
@@ -213,7 +217,8 @@ namespace MatchmakingServer
                     TotalGroupSize = ticket.Players.Count,
                     QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
                     JoinTime = ticket.JoinTime,
-                    SearchPreferences = ticket.SearchPreferences
+                    SearchPreferences = ticket.SearchPreferences,
+                    Playlist = ticketMetadata.AssociatedPlaylist
                 };
 
                 _ = NotifyPlayersMachmakingEntered(ticket.Players.Where(p => p != ticketMetadata.ActiveSearcher), metadata);
@@ -266,7 +271,7 @@ namespace MatchmakingServer
         public IMMTicket? EnterMatchmaking(
             IReadOnlySet<Player> players,
             MatchSearchCriteria searchPreferences,
-            List<string> preferredServers,
+            List<ServerConnectionDetails> servers,
             TicketMetadata ticketMetadata = default)
         {
             if (players.Any(p => p.State is not (PlayerState.Connected or PlayerState.Joined)))
@@ -274,7 +279,7 @@ namespace MatchmakingServer
                 return null;
             }
 
-            MMTicket? ticket = PrepareTicketWithMetadata(players, ticketMetadata, searchPreferences, preferredServers);
+            MMTicket? ticket = PrepareTicketWithMetadata(players, ticketMetadata, searchPreferences, servers);
             if (ticket is null)
             {
                 return null;
@@ -291,26 +296,35 @@ namespace MatchmakingServer
         /// <summary>
         /// Creates a matchmaking ticket with the <paramref name="player"/> and adds him to the matchmaking queue.
         /// </summary>
-        /// <returns>True, if successfully added.</returns>
-        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        /// <returns>The matchmaking ticket, if successful.</returns>
+        public IMMTicket? EnterMatchmaking(
+            Player player, 
+            MatchSearchCriteria searchPreferences, 
+            List<ServerConnectionDetails> servers, 
+            TicketMetadata ticketMetadata = default)
         {
             if (player.State is not (PlayerState.Connected or PlayerState.Joined))
             {
                 // invalid player state
                 _logger.LogDebug("Cannot enter matchmaking: invalid state {player}", player);
-                return false;
+                return null;
             }
 
             _logger.LogDebug("Entering matchmaking for player {player} (searchPreferences: {@searchPreferences}, servers: {numPreferredServers})",
-                player, searchPreferences, preferredServers.Count);
+                player, searchPreferences, servers.Count);
 
-            MMTicket? ticket = PrepareTicketWithMetadata(new HashSet<Player>(), default, searchPreferences, preferredServers);
+            MMTicket? ticket = PrepareTicketWithMetadata(new HashSet<Player>(), ticketMetadata, searchPreferences, servers);
             if (ticket is null)
             {
-                return false;
+                return null;
             }
 
-            return QueueTicket(ticket);
+            if (QueueTicket(ticket))
+            {
+                return ticket;
+            }
+
+            return null;
         }
 
         /// <summary>
@@ -334,8 +348,8 @@ namespace MatchmakingServer
         }
 
         /// <summary>
-        /// Removes the <paramref name="player"/> from the matchmaking ticket or the 
-        /// ticket entirely.
+        /// Finds the ticket associated with the <paramref name="player"/> and either removes the player 
+        /// or the whole ticket from the matchmaking queue.
         /// </summary>
         /// <param name="player">The player to remove.</param>
         /// <param name="removeTicket">Whether to remove the whole associated ticket.</param>
@@ -382,11 +396,11 @@ namespace MatchmakingServer
         }
 
         /// <summary>
-        /// Updates the metadata for the given <paramref name="ticket"/>.
+        /// Updates the metadata for the given <paramref name="ticket"/> to <paramref name="ticketMetadata"/>.
         /// </summary>
-        public void UpdateMetadata(IMMTicket ticket, TicketMetadata ticketMetadata)
+        public void UpdateTicketMetadata(IMMTicket ticket, TicketMetadata ticketMetadata)
         {
-            ValidateMetadata(ticket.Players, ticketMetadata);
+            ValidateMetadata(ticket.Players, ticket.PreferredServers, ticketMetadata);
 
             if (_metadata.ContainsKey(ticket))
             {

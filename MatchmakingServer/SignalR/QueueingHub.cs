@@ -113,14 +113,14 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        public Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, string playlistId)
         {
             if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
             {
                 return Task.FromResult(false);
             }
 
-            return Task.FromResult(_partyMatchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers));
+            return Task.FromResult(_partyMatchmakingService.EnterMatchmaking(player, searchPreferences, playlistId));
         }
 
         public Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)

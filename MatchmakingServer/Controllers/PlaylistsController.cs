@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Matchmaking.Models;
+﻿using System.Diagnostics;
+
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
@@ -78,10 +80,16 @@ namespace MatchmakingServer.Controllers
                     {
                         result.Add(playlist with { CurrentPlayerCount = t.Result });
                     }
+                    else
+                    {
+                        result.Add(playlist);
+                    }
                 }));
             }
 
             await tasks.WhenAll();
+
+            _logger.LogTrace("Responding with {n} playlists", result.Count);
 
             return Ok(result);
         }
@@ -102,13 +110,8 @@ namespace MatchmakingServer.Controllers
                     int playerCount = 0;
                     List<GameServer> serverToRequest = [];
 
-                    foreach (string address in playlist.Servers)
+                    foreach (ServerConnectionDetails connDetails in playlist.Servers)
                     {
-                        if (!ServerConnectionDetails.TryParse(address, out var connDetails))
-                        {
-                            continue;
-                        }
-
                         GameServer server = _serverStore.GetOrAddServer(connDetails.Ip, connDetails.Port);
 
                         // players in queue

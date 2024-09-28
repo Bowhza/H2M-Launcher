@@ -269,7 +269,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
             //MatchSearchCriteria = initialSearchCriteria;
             //MatchSearchStartTime = DateTimeOffset.Now;
 
-            bool success = await Hub.SearchMatch(initialSearchCriteria, playlist.Servers);
+            bool success = await Hub.SearchMatch(initialSearchCriteria, playlist.Id);
             if (!success)
             {
                 _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}'", playlist.Id);
