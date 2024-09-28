@@ -1,0 +1,28 @@
+name: Build H2M-Launcher and release it
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build-and-tests:
+    name: Build and release it
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Publish H2MLauncher.UI
+        run: dotnet publish H2MLauncher.UI --configuration Release --runtime win-x64 /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true --self-contained true --output H2MLauncher.UI\release_binary
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: H2MLauncher.UI/release_binary/H2MLauncher.UI.exe
