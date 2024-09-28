@@ -81,24 +81,22 @@ public class ServerJoinService : ServerJoinServiceBase
 
     protected override ValueTask<bool> OnGameNotRunning(IServerInfo server)
     {
-        return ValueTask.FromResult(true);
+        if (!_communicationService.GameDetection.IsGameDetectionRunning)
+        {
+            return ValueTask.FromResult(true);
+        }
 
-        //if (!_communicationService.GameDetection.IsGameDetectionRunning)
-        //{
-        //    return ValueTask.FromResult(true);
-        //}
+        bool? dialogResult = _dialogService.OpenTextDialog(
+            title: "Game not running",
+            text: "We could not detect your game. Do you want to launch the game now?",
+            acceptButtonText: "Launch Game",
+            cancelButtonText: "Cancel");
 
-        //bool? dialogResult = _dialogService.OpenTextDialog(
-        //    title: "Game not running",
-        //    text: "We could not detect your game. Do you want to launch the game now?",
-        //    acceptButtonText: "Launch Game",
-        //    cancelButtonText: "Cancel");
+        if (dialogResult == true)
+        {
+            _communicationService.LaunchH2MMod();
+        }
 
-        //if (dialogResult == true)
-        //{
-        //    _communicationService.LaunchH2MMod();
-        //}
-
-        //return ValueTask.FromResult(false);
+        return ValueTask.FromResult(false);
     }
 }
