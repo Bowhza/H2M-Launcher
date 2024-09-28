@@ -6,6 +6,7 @@ namespace H2MLauncher.Core
     {
         Task OnMatchmakingEntered(MatchmakingMetadata metadata);
         Task OnSearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults);
+        Task OnMetadataUpdate(MatchmakingMetadata metadata);
         Task OnMatchFound(string hostName, SearchMatchResult matchResult);
         Task OnRemovedFromMatchmaking(MatchmakingError reason);
     }

@@ -402,11 +402,20 @@ namespace MatchmakingServer
         {
             ValidateMetadata(ticket.Players, ticket.PreferredServers, ticketMetadata);
 
-            if (_metadata.ContainsKey(ticket))
+            if (_metadata.TryGetValue(ticket, out TicketMetadata oldTicketMetadata))
             {
                 _metadata[ticket] = ticketMetadata;
 
-                // todo: notify participants of updated metadata, namely the new active searcher
+                _ = NotifyMatchmakingMetadata(ticket.Players.Where(p => p != oldTicketMetadata.ActiveSearcher),
+                    new MatchmakingMetadata()
+                    {
+                        IsActiveSearcher = false,
+                        JoinTime = ticket.JoinTime,
+                        TotalGroupSize = ticket.Players.Count,
+                        QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
+                        SearchPreferences = ticket.SearchPreferences,
+                        Playlist = ticketMetadata.AssociatedPlaylist
+                    });
             }
         }
 
@@ -434,8 +443,10 @@ namespace MatchmakingServer
                 return false;
             }
 
+            TicketMetadata ticketMetadata = default;
+
             if (ticket.Players.Count > 0 &&
-                _metadata.TryGetValue(ticket, out TicketMetadata ticketMetadata) &&
+                _metadata.TryGetValue(ticket, out ticketMetadata) &&
                 ticketMetadata.ActiveSearcher != player)
             {
                 _logger.LogDebug("Only the active searcher can update multi player ticket perferences");
@@ -446,6 +457,17 @@ namespace MatchmakingServer
                 player, matchSearchPreferences, serverPings.Count);
 
             ticket.SearchPreferences = matchSearchPreferences;
+            
+            _ = NotifyMatchmakingMetadata(ticket.Players.Where(p => p != player),
+                    new MatchmakingMetadata()
+                    {
+                        IsActiveSearcher = false,
+                        JoinTime = ticket.JoinTime,
+                        TotalGroupSize = ticket.Players.Count,
+                        QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
+                        SearchPreferences = ticket.SearchPreferences,
+                        Playlist = ticketMetadata.AssociatedPlaylist
+                    });
 
             foreach ((string serverIp, int serverPort, uint ping) in serverPings)
             {
@@ -546,6 +568,24 @@ namespace MatchmakingServer
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while notifying player entered matchmaking");
+            }
+        }
+
+        private async Task NotifyMatchmakingMetadata(IEnumerable<Player> players, MatchmakingMetadata metadata)
+        {
+            try
+            {
+                _logger.LogDebug("Notifying players of matchmaking metadata update...");
+
+                IEnumerable<string> connectionIds = players.Select(p => p.QueueingHubId).WhereNotNull();
+
+                await _hubContext.Clients.Clients(connectionIds)
+                    .OnMetadataUpdate(metadata)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while notifying players of metadata update");
             }
         }
 

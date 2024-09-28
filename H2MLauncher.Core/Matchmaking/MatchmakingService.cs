@@ -104,9 +104,22 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 
     Task IMatchmakingClient.OnMatchmakingEntered(MatchmakingMetadata metadata)
     {
-        _logger.LogDebug("OnMatchmakingEntered(): Received matchmaking metadata {@matchmakingMetdatada}", metadata);
+        _logger.LogDebug("OnMatchmakingEntered(): Received matchmaking metadata {@matchmakingMetadata}", metadata);
         _currentMetadata = metadata;
         _onlineServiceManager.State = PlayerState.Matchmaking;
+
+        if (metadata.SearchPreferences is not null)
+        {
+            MatchSearchCriteriaChanged?.Invoke(metadata.SearchPreferences);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    Task IMatchmakingClient.OnMetadataUpdate(MatchmakingMetadata metadata)
+    {
+        _logger.LogDebug("OnMetadataUpdate(): Received matchmaking metadata {@matchmakingMetadata}", metadata);
+        _currentMetadata = metadata;
 
         if (metadata.SearchPreferences is not null)
         {
