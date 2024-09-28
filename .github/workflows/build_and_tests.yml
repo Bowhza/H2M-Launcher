@@ -1,0 +1,49 @@
+name: Build H2M-Launcher
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest for ${{ matrix.runtime }}
+
+    strategy:
+      matrix:
+        runtime: [win-x64, linux-x64, osx-x64, osx-arm64]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Install dependencies
+        run: dotnet restore H2M-Launcher.sln
+
+      - name: Build project
+        run: dotnet build H2M-Launcher.sln --configuration Release
+
+      - name: Run tests
+        run: dotnet test H2M-Launcher.sln --no-build --verbosity normal
+
+      - name: Publish
+        run: dotnet publish H2M-Launcher.sln --configuration Release --runtime ${{ matrix.runtime }} /p:PublishSingleFile=true /p:IncludeNativeLibrariesForSelfExtract=true --self-contained true
+
+      - name: List file (for debugging)
+        run: tree
+
+      # Upload the artifacts for each platform
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: H2M-Launcher-${{ matrix.runtime }}
+          if-no-files-found: error
+          path: |
+            **/bin/Release/net8.0/**/publish
