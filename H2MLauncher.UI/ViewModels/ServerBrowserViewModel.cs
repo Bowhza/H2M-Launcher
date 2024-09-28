@@ -294,7 +294,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private void OnlineService_StateChanged(PlayerState oldState, PlayerState newState)
     {
-        Application.Current.Dispatcher.InvokeAsync(() =>
+        Application.Current.Dispatcher.Invoke(() =>
         {
             if (MatchmakingViewModel is not null)
             {
@@ -314,12 +314,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                     CloseOnLeave = newState is PlayerState.Queued
                 };
 
-                if (_dialogService.OpenDialog<QueueDialogView>(MatchmakingViewModel) == false)
-                {
-                    // queueing process terminated (left queue, joined, ...)
-                }
-
-                MatchmakingViewModel = null;
+                _dialogService.ShowDialogAsync<QueueDialogView>(MatchmakingViewModel)
+                   .ContinueWith(_ =>
+                   {
+                       MatchmakingViewModel = null;
+                   }, TaskScheduler.FromCurrentSynchronizationContext());
             }
         });
     }
