@@ -201,8 +201,14 @@ namespace H2MLauncher.UI.ViewModels
             IsConnectedToOnlineService = matchmakingService.IsConnected;
             SelectedPlaylist = Playlists.FirstOrDefault();
 
-            ServerIp = queueingService.QueuedServer?.Ip ?? "";
-            ServerPort = queueingService.QueuedServer?.Port ?? -1;
+            if (queueingService.QueuedServer is not null)
+            {
+                ServerIp = queueingService.QueuedServer.Ip;
+                ServerPort = queueingService.QueuedServer.Port;
+                ServerHostName = string.IsNullOrEmpty(queueingService.QueuedServer.ServerName)
+                    ? $"{ServerIp}:{ServerPort}"
+                    : queueingService.QueuedServer.ServerName;
+            }
 
             _queueTimer = new()
             {

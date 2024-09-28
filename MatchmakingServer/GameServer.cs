@@ -7,11 +7,26 @@ using Nito.AsyncEx;
 
 namespace MatchmakingServer
 {
-    public class GameServer : IServerConnectionDetails
+    public class GameServer : IServerConnectionDetails, ISimpleServerInfo
     {
         public required string ServerIp { get; init; }
 
         public required int ServerPort { get; init; }
+
+        private string? _serverName;
+        public string ServerName
+        {
+            get
+            {
+                return string.IsNullOrEmpty(_serverName)
+                    ? LastServerInfo?.HostName ?? ""
+                    : _serverName;
+            }
+            set
+            {
+                _serverName = value;
+            }
+        }
 
         public ConcurrentLinkedQueue<Player> PlayerQueue { get; } = [];
 
@@ -31,8 +46,7 @@ namespace MatchmakingServer
 
         public List<string> ActualPlayers { get; } = [];
 
-        public string InstanceId { get; }
-
+        public string InstanceId { get; } = "";
 
         public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
 
@@ -57,11 +71,6 @@ namespace MatchmakingServer
 
                 return JoiningPlayerCount + LastServerInfo.PrivilegedSlots;
             }
-        }
-
-        public GameServer(string instanceId)
-        {
-            InstanceId = instanceId;
         }
 
         /// <summary>

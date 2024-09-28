@@ -166,7 +166,7 @@ namespace MatchmakingServer.SignalR
 
             if (RemovePlayer(Context.ConnectionId) != null)
             {
-                _logger.LogInformation("Removed player {player}", player);
+                _logger.LogInformation("Removed player {player} from queueing hub", player);
             }
 
             await base.OnDisconnectedAsync(exception);

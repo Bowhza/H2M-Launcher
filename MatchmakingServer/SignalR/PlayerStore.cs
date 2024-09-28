@@ -62,9 +62,8 @@ public class PlayerStore
             if (connectionInfo.Connections.Count == 0)
             {
                 _connectedPlayers.Remove(userId);
+                connectionInfo.Player.State = PlayerState.Disconnected;
             }
-
-            connectionInfo.Player.State = PlayerState.Disconnected;
 
             return connectionInfo.Player;
         }

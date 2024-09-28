@@ -717,7 +717,7 @@ namespace MatchmakingServer.Queueing
 
             _logger.LogDebug("Player {player} queued on {server}", player, server);
 
-            Task notifyQueuedTask = NotifyPlayerQueued(player, new JoinServerInfo(server.ServerIp, server.ServerPort, server.LastServerInfo?.HostName ?? ""));
+            Task notifyQueuedTask = NotifyPlayerQueued(player, new JoinServerInfo(server.ServerIp, server.ServerPort, server.ServerName));
             Task notifyPositionTask = NotifyPlayerQueuePositions(server);
 
             await notifyQueuedTask;
@@ -735,13 +735,15 @@ namespace MatchmakingServer.Queueing
                 return Task.FromResult(false);
             }
 
-            GameServer server = _serverStore.GetOrAddServer(serverInfo.Ip, serverInfo.Port, "");
+            GameServer server = _serverStore.GetOrAddServer(serverInfo.Ip, serverInfo.Port, serverInfo.ServerName);
 
             return JoinQueue(server, player);
         }
 
         public void LeaveQueue(Player player, DequeueReason reason)
         {
+            _logger.LogDebug("Trying to dequeue {player} for reason {reason}", player, reason);
+
             DequeuePlayer(player,
                 reason is DequeueReason.Disconnect ? PlayerState.Disconnected : PlayerState.Connected,
                 reason);
@@ -751,6 +753,7 @@ namespace MatchmakingServer.Queueing
         {
             if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
             {
+                _logger.LogTrace("Cannot dequeue {player} to {newState}", player, newState);
                 return;
             }
 

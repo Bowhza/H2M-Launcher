@@ -150,6 +150,7 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
     {
         _logger.LogInformation("OnAddedToQueue({serverInfo})", serverInfo);
 
+        _queuedServer = serverInfo;
         _onlineServiceManager.State = PlayerState.Queued;
 
         return Task.CompletedTask;
