@@ -26,7 +26,6 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     private readonly OnlineServiceManager _onlineServiceManager;
 
     private MatchmakingPreferences? _matchmakingPreferences = null;
-    //private MatchSearchCriteria? _currentMatchSearchCriteria = null;
     private MatchmakingMetadata _currentMetadata = default;
 
     /// <summary>
@@ -53,19 +52,22 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     }
 
     /// <summary>
-    /// Gets the playlist currently searching a match in.
-    /// </summary>
-    public Playlist? Playlist => _currentMetadata.Playlist;
-
-    /// <summary>
     /// Gets the number of search passes since entering matchmaking.
     /// </summary>
     public int SearchAttempts { get; private set; }
 
     /// <summary>
+    /// Gets the playlist currently searching a match in.
+    /// </summary>
+    public Playlist? Playlist => _currentMetadata.Playlist;
+
+    /// <summary>
     /// Gets the time when entered matchmaking.
     /// </summary>
-    public DateTimeOffset MatchSearchStartTime { get; private set; }
+    public DateTimeOffset MatchSearchStartTime => _currentMetadata.JoinTime;
+
+    public bool IsActiveSearcher => _currentMetadata.IsActiveSearcher;
+
 
     public event Action<(string hostname, SearchMatchResult match)>? MatchFound;
     public event Action<MatchmakingError>? RemovedFromMatchmaking;
@@ -98,6 +100,15 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     protected override IMatchmakingHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
     {
         return hubConnection.CreateHubProxy<IMatchmakingHub>(hubCancellationToken);
+    }
+
+    protected override Task OnConnectionClosed(Exception? exception)
+    {
+        _currentMetadata = default;
+        SearchAttempts = 0;
+        MatchSearchCriteria = null;
+
+        return base.OnConnectionClosed(exception);
     }
 
     #region RPC handlers
@@ -278,9 +289,6 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
             };
 
             SearchAttempts = 0;
-            //Playlist = playlist;
-            //MatchSearchCriteria = initialSearchCriteria;
-            //MatchSearchStartTime = DateTimeOffset.Now;
 
             bool success = await Hub.SearchMatch(initialSearchCriteria, playlist.Id);
             if (!success)
@@ -321,8 +329,8 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
                 _logger.LogDebug("Leaving server queue...");
 
                 await Hub.LeaveQueue();
+
                 _onlineServiceManager.State = PlayerState.Connected;
-                //Playlist = null;
                 _currentMetadata = default;
                 MatchSearchCriteria = null;
                 SearchAttempts = 0;

@@ -75,7 +75,6 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
                 opts.Headers.Add("X-App-Name", "H2MLauncher");
                 opts.Headers.Add("X-App-Version", LauncherService.CurrentVersion);
             })
-            .WithAutomaticReconnect()
             .Build();
 
         PartyHubConnection = new CustomHubConnectionBuilder()
@@ -87,7 +86,6 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
                 opts.Headers.Add("X-App-Name", "H2MLauncher");
                 opts.Headers.Add("X-App-Version", LauncherService.CurrentVersion);
             })
-            .WithAutomaticReconnect()
             .Build();
 
         _hubConnections = [(CustomHubConnection)QueueingHubConnection, (CustomHubConnection)PartyHubConnection];

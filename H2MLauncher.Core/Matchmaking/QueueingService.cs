@@ -83,6 +83,7 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
         {
             _queuedServer = null;
             _privatePasswords.Clear();
+            _hasSeenConnecting = false;
         }
     }
 
@@ -324,6 +325,8 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
     public ValueTask DisposeAsync()
     {
         _gameCommunicationService.GameStateChanged -= GameCommunicationService_GameStateChanged;
+        _gameCommunicationService.Stopped += GameCommunicationService_Stopped;
+        _onlineServiceManager.StateChanged += OnlineServiceManager_StateChanged;
         return ValueTask.CompletedTask;
     }
 }

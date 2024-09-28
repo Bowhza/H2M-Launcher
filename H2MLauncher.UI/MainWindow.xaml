@@ -227,7 +227,7 @@
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3.5*"/>
-                        <ColumnDefinition/>
+                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
 
                     <!-- Server tabs -->
@@ -429,30 +429,66 @@
                         </TabControl.ContentTemplate>
                     </TabControl>
 
+                    <StackPanel Grid.Column="0" Grid.ColumnSpan="2" Height="35" HorizontalAlignment="Right" 
+                                VerticalAlignment="Top"
+                                Margin="10,5,5,5" DataContext="{Binding PartyViewModel}" Orientation="Horizontal"
+                                Visibility="{Binding IsEmpty, Converter={StaticResource booleanToVisibilityConverter}}">
+                        <!--<TextBlock Text="{Binding Members.Count, StringFormat={}Party ({0} Member)}"
+                                   Margin="3,0" FontSize="13" Foreground="White" VerticalAlignment="Center"/>-->
+                        <!--<TextBlock Text="Party /" Foreground="White" VerticalAlignment="Center"/>-->
+                        <Grid>                            
+                            <TextBox local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="5,5,0,5" Width="200"
+                                 Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                 VerticalContentAlignment="Center" x:Name="JoinPartyIdTextBox"/>
+                            <TextBlock IsHitTestVisible="False" Text="Paste Party ID to join..." 
+                                   VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" Margin="5" Foreground="DarkGray">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Text, ElementName=JoinPartyIdTextBox}" Value="">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Grid>
+                        <!--<Button Height="25" Width="80" Content="Join Party" Click="Button_Click" Margin="5,5,0,5"
+                            Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
+                        <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5" 
+                                Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                        <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5"
+                                Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                    </StackPanel>
 
-
-                    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#33000000" Grid.Column="1" Margin="10,20,10,5"
-                            DataContext="{Binding PartyViewModel}">
+                    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#66000000" Grid.Column="1" Margin="10,10,10,5"
+                            DataContext="{Binding PartyViewModel}" Visibility="{Binding IsEmpty, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                            MinWidth="150">
                         <Grid>
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
 
-                            <TextBlock Text="Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" FontSize="15"/>
-                            <StackPanel Grid.Row="3" x:Name="PartyPanel">
-                                <TextBlock Text="{Binding Members.Count, StringFormat={} Members: {0}}" Foreground="White"/>
-                                <TextBlock Text="{Binding IsPartyLeader, StringFormat={} IsLeader: {0}}" Foreground="White"/>
-                                <ItemsControl ItemsSource="{Binding Members}" Margin="10" Padding="5" Background="#88000000">
+                            <TextBlock Text="In Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" FontSize="15"
+                                       FontWeight="Bold"/>
+                            <StackPanel Grid.Row="1" x:Name="PartyPanel" Margin="6">
+                                <TextBlock Text="{Binding Members.Count, StringFormat={}{0} Members}"
+                                           Margin="3,0" FontSize="13" Foreground="White"/>
+                                <!--<TextBlock Text="{Binding IsPartyLeader, StringFormat={} IsLeader: {0}}" Foreground="White"/>-->
+                                <ItemsControl ItemsSource="{Binding Members}" Margin="0,5" Padding="5" Background="#88000000"
+                                              Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Grid>
+                                            <Grid Height="22" Margin="0">
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*"/>
                                                     <ColumnDefinition Width="Auto"/>
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15">
+                                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15" 
+                                                           VerticalAlignment="Center" Margin="0,0,0,0">
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Style.Triggers>
@@ -463,7 +499,9 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
-                                                <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" HorizontalAlignment="Right" Grid.Column="1">
+                                                <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" 
+                                                        HorizontalAlignment="Right" Grid.Column="1"
+                                                        VerticalAlignment="Center" Height="20">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -480,22 +518,28 @@
                                                     </Button.Style>
                                                 </Button>
                                                 <TextBlock Text="★" Foreground="White" FontSize="15" HorizontalAlignment="Center" Grid.Column="1"
+                                                           VerticalAlignment="Center"
                                                            Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
                                             </Grid>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+
+                                <Button Height="25" Width="80" Content="Leave ⏎" Command="{Binding LeavePartyCommand}" Margin="5" 
+                                        Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
                             </StackPanel>
-                            <StackPanel Grid.Row="2" Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding PartyId}" Foreground="White" />
-                                <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5" 
+                            <StackPanel Grid.Row="2" VerticalAlignment="Center" Margin="0,3">
+                                <TextBlock Text="{Binding PartyId}" Foreground="White" Margin="5"
+                                           Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5"
                                         Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
-                                <TextBox x:Name="JoinIdTextBox"/>
-                                <Button Height="25" Width="80" Content="Join" Click="Button_Click" Margin="5" />
-                                <Button Height="25" Width="80" Content="Leave" Command="{Binding LeavePartyCommand}" />
-                            </StackPanel>
-                            <StackPanel Grid.Row="2" Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" VerticalAlignment="Center">
-                                <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}"/>
+                                <!--<TextBox x:Name="JoinIdTextBox" local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="5"
+                                         Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
+                                <!--<Button Height="25" Width="80" Content="Join" Click="Button_Click" Margin="5"
+                                        Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
+
+                                <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5"
+                                        Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
                             </StackPanel>
                         </Grid>
                     </Border>

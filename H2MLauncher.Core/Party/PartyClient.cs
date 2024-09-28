@@ -50,6 +50,7 @@ namespace H2MLauncher.Core.Party
 
         [MemberNotNullWhen(true, nameof(PartyId))]
         [MemberNotNullWhen(true, nameof(Members))]
+        [MemberNotNullWhen(true, nameof(_currentParty))]
         public bool IsPartyActive => _currentParty is not null;
         public bool IsPartyLeader => _isPartyLeader;
 
@@ -82,6 +83,27 @@ namespace H2MLauncher.Core.Party
         {
             try
             {
+                if (Connection.State is HubConnectionState.Disconnected)
+                {
+                    return;
+                }
+
+                if (IsPartyActive)
+                {
+                    int selfIndex = _currentParty.Members.FindIndex(m => m.Id == _clientId);
+                    if (selfIndex != -1)
+                    {
+                        PartyPlayerInfo self = _currentParty.Members[selfIndex];
+                        PartyPlayerInfo newSelf = self with
+                        {
+                            Name = newName
+                        };
+
+                        _currentParty.Members[selfIndex] = newSelf;
+                        UserChanged?.Invoke(newSelf);
+                    }
+                }
+
                 await Hub.UpdatePlayerName(newName);
             }
             catch (Exception ex)
@@ -149,7 +171,7 @@ namespace H2MLauncher.Core.Party
             }
         }
 
-        public async Task JoinParty(string partyId)
+        public async Task<bool> JoinParty(string partyId)
         {
             try
             {
@@ -162,7 +184,7 @@ namespace H2MLauncher.Core.Party
                 if (party is null)
                 {
                     _logger.LogDebug("Could not join party");
-                    return;
+                    return false;
                 }
 
                 _currentParty = party;
@@ -173,10 +195,13 @@ namespace H2MLauncher.Core.Party
 
                 // make sure matchmaking service is connected to allow party matchmaking
                 await _matchmakingService.StartConnection();
+
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error while joining party");
+                return false;
             }
         }
 

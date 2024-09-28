@@ -398,7 +398,7 @@ namespace H2MLauncher.UI.ViewModels
                     CloseCommand?.Execute(null);
                 }
 
-                if (CloseOnLeave &&
+                if ((CloseOnLeave || !_matchmakingService.IsActiveSearcher) &&
                     state is PlayerState.Connected &&
                     oldState is PlayerState.Matchmaking or PlayerState.Queued)
                 {
@@ -445,7 +445,7 @@ namespace H2MLauncher.UI.ViewModels
 
         private void MatchmakingService_MatchSearchCriteriaChanged(MatchSearchCriteria matchSearchCriteria)
         {
-            MatchmakingStatus = "Searching for matches with ping <= " + matchSearchCriteria.MaxPing + " ms";
+            MatchmakingStatus = "Searching for matches with ping <= " + (matchSearchCriteria.MaxPing) + " ms";
         }
 
         private void MatchmakingService_Matches(IEnumerable<SearchMatchResult> matchResults)
@@ -453,7 +453,7 @@ namespace H2MLauncher.UI.ViewModels
             List<SearchMatchResult> results = matchResults.ToList();
             if (results.Count == 0)
             {
-                SearchResultText = $"No matches with >= {_matchmakingService.MatchSearchCriteria?.MinPlayers} players found";
+                SearchResultText = $"No matches with {_matchmakingService.MatchSearchCriteria?.MinPlayers} players found";
             }
             else
             {

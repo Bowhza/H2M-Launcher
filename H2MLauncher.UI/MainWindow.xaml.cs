@@ -145,7 +145,7 @@ namespace H2MLauncher.UI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            _viewModel.PartyViewModel.JoinPartyCommand.Execute(JoinIdTextBox.Text);
+            _viewModel.PartyViewModel.JoinPartyCommand.Execute(JoinPartyIdTextBox.Text);
         }
     }
 }
