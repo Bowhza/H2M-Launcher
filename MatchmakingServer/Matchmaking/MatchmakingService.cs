@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core;
+﻿using System.Collections.Concurrent;
+
+using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
@@ -29,6 +31,13 @@ namespace MatchmakingServer
         private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
         private readonly IGameServerInfoService<GameServer> _gameServerInfoService;
         private readonly ILogger<MatchmakingService> _logger;
+
+        private readonly ConcurrentDictionary<IMMTicket, TicketMetadata> _metadata = [];
+
+        public readonly record struct TicketMetadata
+        {
+            public required Player ActiveSearcher { get; init; }
+        }
 
         public MatchmakingService(
             ServerStore serverStore,
@@ -132,17 +141,10 @@ namespace MatchmakingServer
             return respondingServers;
         }
 
-        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        private MMTicket? PrepareTicketWithMetadata(
+             IReadOnlySet<Player> players, TicketMetadata ticketMetadata, MatchSearchCriteria searchPreferences, List<string> preferredServers)
         {
-            if (player.State is not (PlayerState.Connected or PlayerState.Joined))
-            {
-                // invalid player state
-                _logger.LogDebug("Cannot enter matchmaking: invalid state {player}", player);
-                return false;
-            }
-
-            _logger.LogDebug("Entering matchmaking for player {player} (searchPreferences: {@searchPreferences}, servers: {numPreferredServers})",
-                player, searchPreferences, preferredServers.Count);
+            ValidateMetadata(players, ticketMetadata);
 
             Dictionary<ServerConnectionDetails, int> preferredServersParsed = [];
             foreach (string address in preferredServers)
@@ -160,37 +162,184 @@ namespace MatchmakingServer
 
             if (preferredServersParsed.Count == 0)
             {
-                return false;
-            }
-
-            // select players for the ticket
-            List<Player> players;
-            if (player.IsPartyLeader)
-            {
-                // whole party
-                players = [.. player.Party.Members.Where(m =>
-                    m.QueueingHubId is not null &&
-                    m.State is not PlayerState.Matchmaking) //todo(tb): disallow or merge?
-                ];
-            }
-            else
-            {
-                // alone (player might be in party though, but allow this for now)
-                players = [player];
+                return null;
             }
 
             MMTicket ticket = new(players, preferredServersParsed, searchPreferences);
+
+            _metadata.TryAdd(ticket, ticketMetadata);
+
+            return ticket;
+        }
+
+        private static void ValidateMetadata(IReadOnlySet<Player> players, TicketMetadata ticketMetadata)
+        {
+            // validate metadata
+            if (!players.Contains(ticketMetadata.ActiveSearcher))
+            {
+                throw new ArgumentException("Active searcher not part of provided player set.", nameof(ticketMetadata));
+            }
+        }
+
+        private bool QueueTicket(MMTicket ticket)
+        {
+            if (ticket.Players.Any(p => p.State is not (PlayerState.Connected or PlayerState.Joined)))
+            {
+                return false;
+            }
+
             _matchmaker.AddTicketToQueue(ticket);
 
-            foreach (Player p in players)
+            // update state
+            foreach (Player p in ticket.Players)
             {
                 p.State = PlayerState.Matchmaking;
+            }
+
+            // notify other participants they entered
+            if (ticket.Players.Count > 1)
+            {
+                if (!_metadata.TryGetValue(ticket, out TicketMetadata ticketMetadata))
+                {
+                    ticketMetadata = new()
+                    {
+                        ActiveSearcher = ticket.Players.First()
+                    };
+                }
+
+                MatchmakingMetadata metadata = new()
+                {
+                    IsActiveSearcher = false,
+                    TotalGroupSize = ticket.Players.Count,
+                    QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
+                    JoinTime = ticket.JoinTime,
+                    SearchPreferences = ticket.SearchPreferences
+                };
+
+                _ = NotifyPlayersMachmakingEntered(ticket.Players.Where(p => p != ticketMetadata.ActiveSearcher), metadata);
             }
 
             return true;
         }
 
-        public bool LeaveMatchmaking(Player player)
+        private bool DequeueTicket(MMTicket ticket)
+        {
+            if (ticket.MatchCompletion.Task.IsCompleted)
+            {
+                // ticket is already completed and therfore not owned by the Matchmaker anymore
+                return false;
+            }
+
+            // remove whole ticket
+            if (!_matchmaker.RemoveTicket(ticket))
+            {
+                _logger.LogWarning("Matchmaking ticket {ticket} could not be removed.", ticket);
+                return false;
+            }
+
+            _metadata.Remove(ticket, out _);
+
+            // update state
+            foreach (Player p in ticket.Players)
+            {
+                if (p.State is not PlayerState.Matchmaking)
+                {
+                    // skip player with other state
+                    continue;
+                }
+
+                p.State = PlayerState.Connected;
+            }
+
+            // notify participants of removal
+            _ = NotifyPlayersRemovedFromMatchmaking(ticket.Players, MatchmakingError.UserLeave);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Creates a matchmaking ticket with the <paramref name="players"/> and adds them to the matchmaking queue.
+        /// </summary>
+        /// <param name="players">The players to queue together.</param>
+        /// <param name="searchPreferences">Initial search criteria.</param>
+        /// <returns>The matchmaking ticket, if successful.</returns>
+        public IMMTicket? EnterMatchmaking(
+            IReadOnlySet<Player> players,
+            MatchSearchCriteria searchPreferences,
+            List<string> preferredServers,
+            TicketMetadata ticketMetadata = default)
+        {
+            if (players.Any(p => p.State is not (PlayerState.Connected or PlayerState.Joined)))
+            {
+                return null;
+            }
+
+            MMTicket? ticket = PrepareTicketWithMetadata(players, ticketMetadata, searchPreferences, preferredServers);
+            if (ticket is null)
+            {
+                return null;
+            }
+
+            if (QueueTicket(ticket))
+            {
+                return ticket;
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Creates a matchmaking ticket with the <paramref name="player"/> and adds him to the matchmaking queue.
+        /// </summary>
+        /// <returns>True, if successfully added.</returns>
+        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<string> preferredServers)
+        {
+            if (player.State is not (PlayerState.Connected or PlayerState.Joined))
+            {
+                // invalid player state
+                _logger.LogDebug("Cannot enter matchmaking: invalid state {player}", player);
+                return false;
+            }
+
+            _logger.LogDebug("Entering matchmaking for player {player} (searchPreferences: {@searchPreferences}, servers: {numPreferredServers})",
+                player, searchPreferences, preferredServers.Count);
+
+            MMTicket? ticket = PrepareTicketWithMetadata(new HashSet<Player>(), default, searchPreferences, preferredServers);
+            if (ticket is null)
+            {
+                return false;
+            }
+
+            return QueueTicket(ticket);
+        }
+
+        /// <summary>
+        /// Removes the <paramref name="ticket"/> from the matchmaking queue.
+        /// </summary>
+        public bool LeaveMatchmaking(IMMTicket ticket)
+        {
+            MMTicket? internalTicket = _matchmaker.FindTicketById(ticket.Id);
+            if (internalTicket is null)
+            {
+                return false;
+            }
+
+            // remove whole ticket
+            if (!DequeueTicket(internalTicket))
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Removes the <paramref name="player"/> from the matchmaking ticket or the 
+        /// ticket entirely.
+        /// </summary>
+        /// <param name="player">The player to remove.</param>
+        /// <param name="removeTicket">Whether to remove the whole associated ticket.</param>
+        public bool LeaveMatchmaking(Player player, bool removeTicket = false)
         {
             if (player.State is not PlayerState.Matchmaking)
             {
@@ -207,13 +356,12 @@ namespace MatchmakingServer
                 return false;
             }
 
-            if (player.IsPartyLeader || ticket.Players.Count == 1)
+            if (ticket.Players.Count == 1 || removeTicket)
             {
                 // remove whole ticket
-                _matchmaker.RemoveTicket(ticket);
-                foreach (Player p in ticket.Players)
+                if (!DequeueTicket(ticket))
                 {
-                    p.State = PlayerState.Connected;
+                    return false;
                 }
             }
             else
@@ -223,10 +371,38 @@ namespace MatchmakingServer
                 player.State = PlayerState.Connected;
             }
 
+            if (player.QueueingHubId is not null)
+            {
+                _hubContext.Clients.Client(player.QueueingHubId)
+                    .OnRemovedFromMatchmaking(MatchmakingError.UserLeave);
+            }
+
             _logger.LogInformation("Player {player} removed from matchmaking", player);
             return true;
         }
 
+        /// <summary>
+        /// Updates the metadata for the given <paramref name="ticket"/>.
+        /// </summary>
+        public void UpdateMetadata(IMMTicket ticket, TicketMetadata ticketMetadata)
+        {
+            ValidateMetadata(ticket.Players, ticketMetadata);
+
+            if (_metadata.ContainsKey(ticket))
+            {
+                _metadata[ticket] = ticketMetadata;
+
+                // todo: notify participants of updated metadata, namely the new active searcher
+            }
+        }
+
+        /// <summary>
+        /// Updates the current search criteria and server pings of the ticket for the active searcher <paramref name="player"/>.
+        /// </summary>
+        /// <param name="player">The active searcher of the ticket to update.</param>
+        /// <param name="matchSearchPreferences">The new match search criteria.</param>
+        /// <param name="serverPings">Updated list of server pings.</param>
+        /// <returns>True if the update was successful.</returns>
         public bool UpdateSearchPreferences(Player player, MatchSearchCriteria matchSearchPreferences, List<ServerPing> serverPings)
         {
             if (player.State is not PlayerState.Matchmaking)
@@ -244,9 +420,11 @@ namespace MatchmakingServer
                 return false;
             }
 
-            if (ticket.Players.Count > 1 && !player.IsPartyLeader)
+            if (ticket.Players.Count > 0 &&
+                _metadata.TryGetValue(ticket, out TicketMetadata ticketMetadata) &&
+                ticketMetadata.ActiveSearcher != player)
             {
-                _logger.LogDebug("Only party leader can update multi player ticket perferences");
+                _logger.LogDebug("Only the active searcher can update multi player ticket perferences");
                 return false;
             }
 
@@ -263,19 +441,6 @@ namespace MatchmakingServer
             return true;
         }
 
-        private async Task SendMatchSearchResults(MMTicket ticket, List<MMMatch> matchesForPlayer)
-        {
-            try
-            {
-                await _hubContext.Clients.Clients(ticket.Players.Select(p => p.QueueingHubId!))
-                        .OnSearchMatchUpdate(matchesForPlayer.Select(CreateMatchResult))
-                        .ConfigureAwait(false);
-            }
-            catch
-            {
-                _logger.LogWarning("Could not send match search results to ticket {ticket}", ticket);
-            }
-        }
 
         private static SearchMatchResult CreateMatchResult(MMMatch match)
         {
@@ -337,6 +502,52 @@ namespace MatchmakingServer
             {
                 _logger.LogError(ex, "Error while queueing player {player}", player);
                 return false;
+            }
+        }
+
+        private async Task SendMatchSearchResults(MMTicket ticket, List<MMMatch> matchesForPlayer)
+        {
+            try
+            {
+                await _hubContext.Clients.Clients(ticket.Players.Select(p => p.QueueingHubId!))
+                        .OnSearchMatchUpdate(matchesForPlayer.Select(CreateMatchResult))
+                        .ConfigureAwait(false);
+            }
+            catch
+            {
+                _logger.LogWarning("Could not send match search results to ticket {ticket}", ticket);
+            }
+        }
+
+        private async Task NotifyPlayersMachmakingEntered(IEnumerable<Player> players, MatchmakingMetadata metadata)
+        {
+            try
+            {
+                IEnumerable<string> connectionIds = players.Select(p => p.QueueingHubId).WhereNotNull();
+
+                await _hubContext.Clients.Clients(connectionIds)
+                    .OnMatchmakingEntered(metadata)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while notifying player entered matchmaking");
+            }
+        }
+
+        private async Task NotifyPlayersRemovedFromMatchmaking(IEnumerable<Player> players, MatchmakingError reason)
+        {
+            try
+            {
+                IEnumerable<string> connectionIds = players.Select(p => p.QueueingHubId).WhereNotNull();
+
+                await _hubContext.Clients.Clients(connectionIds)
+                    .OnRemovedFromMatchmaking(reason)
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while notifying player removed from matchmaking");
             }
         }
 

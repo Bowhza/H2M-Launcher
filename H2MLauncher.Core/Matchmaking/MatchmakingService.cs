@@ -26,23 +26,24 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     private readonly OnlineServiceManager _onlineServiceManager;
 
     private MatchmakingPreferences? _matchmakingPreferences = null;
-    private MatchSearchCriteria? _currentMatchSearchCriteria = null;
+    //private MatchSearchCriteria? _currentMatchSearchCriteria = null;
+    private MatchmakingMetadata _currentMetadata = default;
 
     /// <summary>
     /// Gets the currently applied match search criteria.
     /// </summary>
     public MatchSearchCriteria? MatchSearchCriteria
     {
-        get => _currentMatchSearchCriteria;
+        get => _currentMetadata.SearchPreferences;
         private set
         {
-            if (EqualityComparer<MatchSearchCriteria>.Default.Equals(_currentMatchSearchCriteria, value))
+            if (EqualityComparer<MatchSearchCriteria>.Default.Equals(_currentMetadata.SearchPreferences, value))
             {
                 return;
             }
 
-            MatchSearchCriteria? oldValue = _currentMatchSearchCriteria;
-            _currentMatchSearchCriteria = value;
+            MatchSearchCriteria? oldValue = _currentMetadata.SearchPreferences;
+            _currentMetadata = _currentMetadata with { SearchPreferences = value };
 
             if (value is not null)
             {
@@ -54,7 +55,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     /// <summary>
     /// Gets the playlist currently searching a match in.
     /// </summary>
-    public Playlist? Playlist { get; private set; }
+    public Playlist? Playlist => _currentMetadata.Playlist;
 
     /// <summary>
     /// Gets the number of search passes since entering matchmaking.
@@ -67,7 +68,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     public DateTimeOffset MatchSearchStartTime { get; private set; }
 
     public event Action<(string hostname, SearchMatchResult match)>? MatchFound;
-    public event Action<MatchmakingError>? MatchmakingError;
+    public event Action<MatchmakingError>? RemovedFromMatchmaking;
     public event Action<IEnumerable<SearchMatchResult>>? Matches;
     public event Action<MatchSearchCriteria>? MatchSearchCriteriaChanged;
 
@@ -101,6 +102,15 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 
     #region RPC handlers
 
+    Task IMatchmakingClient.OnMatchmakingEntered(MatchmakingMetadata metadata)
+    {
+        _logger.LogDebug("OnMatchmakingEntered(): Received matchmaking metadata {@matchmakingMetdatada}", metadata);
+        _currentMetadata = metadata;
+        _onlineServiceManager.State = PlayerState.Matchmaking;
+
+        return Task.CompletedTask;
+    }
+
     async Task IMatchmakingClient.OnSearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults)
     {
         _logger.LogInformation("Received match search results: {n}", searchMatchResults.Count());
@@ -109,6 +119,12 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 
         if (MatchSearchCriteria is null || _onlineServiceManager.State is not PlayerState.Matchmaking)
         {
+            return;
+        }
+
+        if (!_currentMetadata.IsActiveSearcher)
+        {
+            // only passive, dont participate in the matchmaking algorithm
             return;
         }
 
@@ -165,8 +181,9 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     Task IMatchmakingClient.OnRemovedFromMatchmaking(MatchmakingError reason)
     {
         _onlineServiceManager.State = PlayerState.Connected;
+        _currentMetadata = default;
         _logger.LogInformation("Removed from matchmaking. Reason: {reason}", reason);
-        MatchmakingError?.Invoke(reason);
+        RemovedFromMatchmaking?.Invoke(reason);
 
         return Task.CompletedTask;
     }
@@ -241,9 +258,9 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
             };
 
             SearchAttempts = 0;
-            Playlist = playlist;
-            MatchSearchCriteria = initialSearchCriteria;
-            MatchSearchStartTime = DateTimeOffset.Now;
+            //Playlist = playlist;
+            //MatchSearchCriteria = initialSearchCriteria;
+            //MatchSearchStartTime = DateTimeOffset.Now;
 
             bool success = await Hub.SearchMatch(initialSearchCriteria, playlist.Servers);
             if (!success)
@@ -252,7 +269,18 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
                 return false;
             }
 
+            _currentMetadata = new()
+            {
+                IsActiveSearcher = true,
+                JoinTime = DateTime.Now,
+                Playlist = playlist,
+                SearchPreferences = initialSearchCriteria
+            };
+
             _onlineServiceManager.State = PlayerState.Matchmaking;
+
+            MatchSearchCriteriaChanged?.Invoke(_currentMetadata.SearchPreferences);
+
             _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}'", playlist.Id);
 
             return true;
@@ -272,7 +300,8 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
             {
                 await Hub.LeaveQueue();
                 _onlineServiceManager.State = PlayerState.Connected;
-                Playlist = null;
+                //Playlist = null;
+                _currentMetadata = default;
                 MatchSearchCriteria = null;
                 SearchAttempts = 0;
                 _logger.LogInformation("Server queue left.");

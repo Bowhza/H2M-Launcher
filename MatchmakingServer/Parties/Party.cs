@@ -1,6 +1,4 @@
-﻿using H2MLauncher.Core.Models;
-
-namespace MatchmakingServer;
+﻿namespace MatchmakingServer.Parties;
 
 public class Party
 {

@@ -2,6 +2,7 @@
 {
     public enum MatchmakingError
     {
-        QueueingFailed
+        QueueingFailed,
+        UserLeave
     }
 }

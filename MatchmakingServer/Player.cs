@@ -2,6 +2,8 @@
 
 using H2MLauncher.Core.Matchmaking.Models;
 
+using MatchmakingServer.Parties;
+
 namespace MatchmakingServer
 {
     public class Player

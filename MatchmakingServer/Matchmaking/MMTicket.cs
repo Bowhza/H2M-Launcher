@@ -3,22 +3,29 @@ using H2MLauncher.Core.Models;
 
 namespace MatchmakingServer
 {
-    public sealed class MMTicket
+    public sealed class MMTicket : IMMTicket
     {
         internal readonly object LockObj = new();
+        public Guid Id { get; init; } = Guid.NewGuid();
 
         private readonly HashSet<Player> _players;
         public IReadOnlySet<Player> Players => _players;
-        public Dictionary<ServerConnectionDetails, int> PreferredServers { get; set; } // List of queued servers with ping
+        public Dictionary<ServerConnectionDetails, int> PreferredServers { get; set; }
 
         public MatchSearchCriteria SearchPreferences { get; set; }
 
-        public DateTime JoinTime { get; set; } // Time the player joined the queue
-        public int SearchAttempts { get; set; } // Number of search attempts
+        public DateTime JoinTime { get; set; }
+        public int SearchAttempts { get; set; }
 
-        public List<MMMatch> PossibleMatches { get; init; } // Currently possible non eligible matches
+        public List<MMMatch> PossibleMatches { get; init; }
 
         public TaskCompletionSource<MMMatch> MatchCompletion { get; } = new();
+
+        IReadOnlyList<MMMatch> IMMTicket.PossibleMatches => PossibleMatches.AsReadOnly();
+
+        IReadOnlyCollection<ServerConnectionDetails> IMMTicket.PreferredServers => PreferredServers.Keys;
+
+        bool IMMTicket.IsComplete => MatchCompletion.Task.IsCompleted;
 
         public MMTicket(IEnumerable<Player> players, Dictionary<ServerConnectionDetails, int> servers, MatchSearchCriteria searchPreferences)
         {
@@ -73,6 +80,11 @@ namespace MatchmakingServer
         public override string ToString()
         {
             return $"[{string.Join(',', Players.Select(p => p.Name))}]";
+        }
+
+        Task<MMMatch> IMMTicket.WaitForMatchAsync()
+        {
+            return MatchCompletion.Task;
         }
     }
 }

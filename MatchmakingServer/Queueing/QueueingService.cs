@@ -461,7 +461,7 @@ namespace MatchmakingServer.Queueing
             {
                 if (player.State is PlayerState.Queued && joinedPlayers < nonReservedFreeSlots)
                 {
-                    await TryJoinPlayer(player, server);
+                    _ = TryJoinPlayer(player, server);
                     joinedPlayers++;
                 }
                 else

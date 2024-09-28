@@ -191,7 +191,7 @@ namespace H2MLauncher.UI.ViewModels
             matchmakingService.MatchFound += MatchmakingService_MatchFound;
             matchmakingService.Matches += MatchmakingService_Matches;
             matchmakingService.MatchSearchCriteriaChanged += MatchmakingService_MatchSearchCriteriaChanged;
-            matchmakingService.MatchmakingError += MatchmakingService_MatchmakingError;
+            matchmakingService.RemovedFromMatchmaking += MatchmakingService_RemovedFromMatchmaking;
 
             QueuePosition = queueingService.QueuePosition;
             TotalPlayersInQueue = queueingService.TotalPlayersInQueue;
@@ -428,10 +428,13 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void MatchmakingService_MatchmakingError(MatchmakingError reason)
+        private void MatchmakingService_RemovedFromMatchmaking(MatchmakingError reason)
         {
-            IsError = true;
-            ErrorText = $"Matchmaking error - Reason: {reason}";
+            if (reason is not MatchmakingError.UserLeave)
+            {
+                IsError = true;
+                ErrorText = $"Matchmaking error - Reason: {reason}";
+            }
         }
 
         private void MatchmakingService_MatchSearchCriteriaChanged(MatchSearchCriteria matchSearchCriteria)
@@ -505,7 +508,7 @@ namespace H2MLauncher.UI.ViewModels
             _matchmakingService.MatchFound -= MatchmakingService_MatchFound;
             _matchmakingService.Matches -= MatchmakingService_Matches;
             _matchmakingService.MatchSearchCriteriaChanged -= MatchmakingService_MatchSearchCriteriaChanged;
-            _matchmakingService.MatchmakingError -= MatchmakingService_MatchmakingError;
+            _matchmakingService.RemovedFromMatchmaking -= MatchmakingService_RemovedFromMatchmaking;
             _queueTimer.Stop();
             _queueTimer.Tick -= QueueTimer_Tick;
         }

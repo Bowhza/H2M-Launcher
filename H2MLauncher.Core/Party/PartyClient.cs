@@ -2,6 +2,7 @@
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
+using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Utilities;
@@ -29,6 +30,7 @@ namespace H2MLauncher.Core.Party
 
         private readonly IServerJoinService _serverJoinService;
         private readonly IPlayerNameProvider _playerNameProvider;
+        private readonly MatchmakingService _matchmakingService;
         private readonly ILogger<PartyClient> _logger;
 
         public event Action? KickedFromParty;
@@ -54,6 +56,7 @@ namespace H2MLauncher.Core.Party
         public PartyClient(
             IPlayerNameProvider playerNameProvider,
             IServerJoinService serverJoinService,
+            MatchmakingService matchmakingService,
             ILogger<PartyClient> logger,
             HubConnection hubConnection,
             IOnlineServices onlineService) : base(hubConnection)
@@ -63,11 +66,11 @@ namespace H2MLauncher.Core.Party
             _clientRegistration = hubConnection.Register<IPartyClient>(this);
 
             _serverJoinService = serverJoinService;
+            _matchmakingService = matchmakingService;
             _playerNameProvider = playerNameProvider;
             _logger = logger;
 
             _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
-            _playerNameProvider.PlayerNameChanged += PlayerNameProvider_PlayerNameChanged;
         }
 
         protected override IPartyHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
@@ -79,7 +82,6 @@ namespace H2MLauncher.Core.Party
         {
             try
             {
-
                 await Hub.UpdatePlayerName(newName);
             }
             catch (Exception ex)
@@ -93,7 +95,7 @@ namespace H2MLauncher.Core.Party
         /// </summary>
         private async void ServerJoinService_ServerJoined(ISimpleServerInfo serverInfo, JoinKind kind)
         {
-            if (_currentParty is null || !_isPartyLeader)
+            if (_currentParty is null || !_isPartyLeader || Connection.State is HubConnectionState.Disconnected)
             {
                 // if we are not a party leader do nothing
                 return;
@@ -167,7 +169,10 @@ namespace H2MLauncher.Core.Party
                 _isPartyLeader = false;
                 PartyChanged?.Invoke();
 
-                _logger.LogInformation("Joined party");
+                _logger.LogInformation("Joined party.");
+
+                // make sure matchmaking service is connected to allow party matchmaking
+                await _matchmakingService.StartConnection();
             }
             catch (Exception ex)
             {
@@ -181,6 +186,8 @@ namespace H2MLauncher.Core.Party
             {
                 return;
             }
+
+            await StartConnection();
 
             if (!await Hub.LeaveParty())
             {
@@ -201,6 +208,8 @@ namespace H2MLauncher.Core.Party
                 return;
             }
 
+            await StartConnection();
+
             if (!await Hub.KickPlayer(id))
             {
                 _logger.LogDebug("Could not kick player {userId} from party", id);
@@ -215,6 +224,20 @@ namespace H2MLauncher.Core.Party
         public bool IsSelf(PartyPlayerInfo member)
         {
             return member.Id == _clientId;
+        }
+
+        protected override Task OnConnected(CancellationToken cancellationToken = default)
+        {
+            _playerNameProvider.PlayerNameChanged += PlayerNameProvider_PlayerNameChanged;
+            return base.OnConnected(cancellationToken);
+        }
+
+        protected override Task OnConnectionClosed(Exception? exception)
+        {
+            _currentParty = null;
+            _isPartyLeader = false;
+            _playerNameProvider.PlayerNameChanged -= PlayerNameProvider_PlayerNameChanged;
+            return base.OnConnectionClosed(exception);
         }
 
         #region RPC Handlers

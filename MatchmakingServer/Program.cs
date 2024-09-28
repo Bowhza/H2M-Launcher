@@ -13,6 +13,7 @@ using H2MLauncher.Core.Utilities;
 using MatchmakingServer;
 using MatchmakingServer.Authentication;
 using MatchmakingServer.Authentication.Player;
+using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
@@ -81,12 +82,14 @@ builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
 
-builder.Services.AddSingleton<Matchmaker>();
 builder.Services.AddSingleton<ServerStore>();
 builder.Services.AddSingleton<PlayerStore>();
 builder.Services.AddSingleton<QueueingService>();
+builder.Services.AddSingleton<Matchmaker>();
 builder.Services.AddSingleton<MatchmakingService>();
 builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingService>());
+builder.Services.AddSingleton<PartyService>();
+builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();

@@ -148,7 +148,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             int timeoutInMs = 10000, CancellationToken cancellationToken = default)
         {
             (Task task, IDisposable disposable) = await SendGetInfoWithCallbackAsync(
-                servers, onInfoResponse, cancellationToken: cancellationToken).ConfigureAwait(false);
+                servers, onInfoResponse, timeoutInMs, cancellationToken).ConfigureAwait(false);
 
             return task;
         }

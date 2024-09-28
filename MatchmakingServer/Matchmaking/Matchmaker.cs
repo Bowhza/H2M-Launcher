@@ -46,10 +46,11 @@ namespace MatchmakingServer
             _logger.LogDebug("Ticket added to matchmaking queue: {ticket}", ticket);
         }
 
-        public void RemoveTicket(MMTicket ticket)
+        public bool RemoveTicket(MMTicket ticket)
         {
-            ticket.SearchAttempts = 0;
-            _queue.Remove(ticket);
+            bool removed = _queue.Remove(ticket);
+
+            ticket.MatchCompletion.TrySetCanceled();
 
             foreach (ServerConnectionDetails server in ticket.PreferredServers.Keys)
             {
@@ -65,6 +66,13 @@ namespace MatchmakingServer
             }
 
             _logger.LogDebug("Ticket removed from matchmaking queue: {ticket}", ticket);
+
+            return removed;
+        }
+
+        public MMTicket? FindTicketById(Guid ticketId)
+        {
+            return _queue.FirstOrDefault(t => t.Id == ticketId);
         }
 
         private MMMatch? CreateNextMatch(IEnumerable<(GameServer, double)> serversWithQuality)

@@ -3,6 +3,7 @@
 using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 
+using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
 
 using Microsoft.AspNetCore.Authentication.BearerToken;
@@ -15,6 +16,7 @@ namespace MatchmakingServer.SignalR
     public class QueueingHub : Hub<IClient>, IMatchmakingHub
     {
         private readonly ILogger<QueueingHub> _logger;
+        private readonly PartyMatchmakingService _partyMatchmakingService;
         private readonly QueueingService _queueingService;
         private readonly MatchmakingService _matchmakingService;
 
@@ -26,12 +28,14 @@ namespace MatchmakingServer.SignalR
             ILogger<QueueingHub> logger,
             QueueingService queueingService,
             MatchmakingService matchmakingService,
-            PlayerStore playerStore)
+            PlayerStore playerStore,
+            PartyMatchmakingService partyMatchmakingService)
         {
             _logger = logger;
             _queueingService = queueingService;
             _matchmakingService = matchmakingService;
             _playerStore = playerStore;
+            _partyMatchmakingService = partyMatchmakingService;
         }
 
         /// <summary>
@@ -86,7 +90,7 @@ namespace MatchmakingServer.SignalR
 
             _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverIp, serverPort, player.Name);
 
-            return _queueingService.JoinQueue(serverIp, serverPort, player, instanceId);
+            return _partyMatchmakingService.JoinQueue(player, new(serverIp, serverPort, ""));
         }
 
         public Task LeaveQueue()
@@ -99,13 +103,12 @@ namespace MatchmakingServer.SignalR
 
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
-                _queueingService.LeaveQueue(player);
+                _partyMatchmakingService.LeaveQueue(player);
             }
             else if (player.State is PlayerState.Matchmaking)
             {
-                _matchmakingService.LeaveMatchmaking(player);
+                _partyMatchmakingService.LeaveMatchmaking(player);
             }
-
             return Task.CompletedTask;
         }
 
@@ -116,7 +119,7 @@ namespace MatchmakingServer.SignalR
                 return Task.FromResult(false);
             }
 
-            return Task.FromResult(_matchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers));
+            return Task.FromResult(_partyMatchmakingService.EnterMatchmaking(player, searchPreferences, preferredServers));
         }
 
         public Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)
