@@ -108,6 +108,11 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
         _currentMetadata = metadata;
         _onlineServiceManager.State = PlayerState.Matchmaking;
 
+        if (metadata.SearchPreferences is not null)
+        {
+            MatchSearchCriteriaChanged?.Invoke(metadata.SearchPreferences);
+        }
+
         return Task.CompletedTask;
     }
 
@@ -180,9 +185,11 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 
     Task IMatchmakingClient.OnRemovedFromMatchmaking(MatchmakingError reason)
     {
+        _logger.LogInformation("Removed from matchmaking. Reason: {reason}", reason);
+
         _onlineServiceManager.State = PlayerState.Connected;
         _currentMetadata = default;
-        _logger.LogInformation("Removed from matchmaking. Reason: {reason}", reason);
+
         RemovedFromMatchmaking?.Invoke(reason);
 
         return Task.CompletedTask;
@@ -298,12 +305,15 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
         {
             if (Connection.State is HubConnectionState.Connected)
             {
+                _logger.LogDebug("Leaving server queue...");
+
                 await Hub.LeaveQueue();
                 _onlineServiceManager.State = PlayerState.Connected;
                 //Playlist = null;
                 _currentMetadata = default;
                 MatchSearchCriteria = null;
                 SearchAttempts = 0;
+
                 _logger.LogInformation("Server queue left.");
             }
         }

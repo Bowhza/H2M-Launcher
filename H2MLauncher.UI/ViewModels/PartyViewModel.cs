@@ -61,6 +61,8 @@ namespace H2MLauncher.UI.ViewModels
             if (!connected)
             {
                 _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+
+                Members.Clear();
                 OnPropertyChanged(nameof(PartyId));
                 OnPropertyChanged(nameof(IsPartyLeader));
                 OnPropertyChanged(nameof(IsPartyActive));

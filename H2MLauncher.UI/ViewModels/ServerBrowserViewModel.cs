@@ -12,12 +12,11 @@ using CommunityToolkit.Mvvm.Input;
 using H2MLauncher.Core;
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
-using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
-using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
@@ -105,6 +104,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     [ObservableProperty]
     private PartyViewModel _partyViewModel;
+
+    [ObservableProperty]
+    private MatchmakingViewModel? _matchmakingViewModel;
 
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
@@ -285,8 +287,41 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _mapsProvider.MapsChanged += MapsProvider_InstalledMapsChanged;
 
         _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
+        _onlineService.StateChanged += OnlineService_StateChanged;
 
         partyViewModel.CreatePartyCommand.Execute(null);
+    }
+
+    private void OnlineService_StateChanged(PlayerState oldState, PlayerState newState)
+    {
+        Application.Current.Dispatcher.InvokeAsync(() =>
+        {
+            if (MatchmakingViewModel is not null)
+            {
+                return;
+            }
+
+            if (oldState is PlayerState.Disconnected or PlayerState.Connected or PlayerState.Joined &&
+                newState is PlayerState.Matchmaking or PlayerState.Queued)
+            {
+                MatchmakingViewModel = new(
+                    _matchmakingService,
+                    _queueingService,
+                    _onlineService,
+                    _serverDataService,
+                    _serverJoinService)
+                {
+                    CloseOnLeave = newState is PlayerState.Queued
+                };
+
+                if (_dialogService.OpenDialog<QueueDialogView>(MatchmakingViewModel) == false)
+                {
+                    // queueing process terminated (left queue, joined, ...)
+                }
+
+                MatchmakingViewModel = null;
+            }
+        });
     }
 
     private void ServerJoinService_ServerJoined(IServerConnectionDetails server, JoinKind kind)
@@ -841,28 +876,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         if (serverViewModel is null)
             return;
 
-        JoinServerResult joinResult = await _serverJoinService.JoinServer(serverViewModel, JoinKind.Normal);
-        if (joinResult is JoinServerResult.QueueJoined)
-        {
-            MatchmakingViewModel queueViewModel = new(
-                _matchmakingService,
-                _queueingService,
-                _onlineService,
-                _serverDataService,
-                _serverJoinService)
-            {
-                ServerIp = serverViewModel.Ip,
-                ServerPort = serverViewModel.Port,
-                ServerHostName = serverViewModel.HostName,
-                CloseOnLeave = true
-            };
-
-            if (_dialogService.OpenDialog<QueueDialogView>(queueViewModel) == false)
-            {
-                // queueing process terminated (left queue, joined, ...)
-                return;
-            }
-        }
+        await _serverJoinService.JoinServer(serverViewModel, JoinKind.Normal);
     }
 
     private Task<JoinServerResult> ReconnectServer()
@@ -905,17 +919,16 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
 #endif
 
-        MatchmakingViewModel matchmakingViewModel = new(
+        MatchmakingViewModel = new(
             _matchmakingService,
             _queueingService,
             _onlineService,
             _serverDataService,
             _serverJoinService);
 
-        if (_dialogService.OpenDialog<QueueDialogView>(matchmakingViewModel) == false)
-        {
-            return;
-        }
+        _dialogService.OpenDialog<QueueDialogView>(MatchmakingViewModel);
+
+        MatchmakingViewModel = null;
 
         await Task.CompletedTask;
     }

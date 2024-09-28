@@ -91,6 +91,12 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
     {
         _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", serverInfo.Ip, serverInfo.Port);
 
+        if (_onlineServiceManager.State is not PlayerState.Queued)
+        {
+            _logger.LogWarning("Invalid state: expected Queued but state was {state}", _onlineServiceManager.State);
+            return false;
+        }
+
         _queuedServer = serverInfo;
 
         Joining?.Invoke(_queuedServer);
@@ -116,7 +122,6 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
 
         QueuePosition = position;
         TotalPlayersInQueue = totalPlayersInQueue;
-        _onlineServiceManager.State = PlayerState.Queued;
 
         QueuePositionChanged?.Invoke(position, totalPlayersInQueue);
 
@@ -137,6 +142,15 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
         {
             _errorHandlingService.HandleError("Removed from queue: Max join attempts reached.");
         }
+
+        return Task.CompletedTask;
+    }
+
+    Task IQueueingClient.OnAddedToQueue(JoinServerInfo serverInfo)
+    {
+        _logger.LogInformation("OnAddedToQueue({serverInfo})", serverInfo);
+
+        _onlineServiceManager.State = PlayerState.Queued;
 
         return Task.CompletedTask;
     }
@@ -261,7 +275,7 @@ public sealed class QueueingService : HubClient<IMatchmakingHub>, IQueueingClien
                 return false;
             }
 
-            bool joinedSuccesfully = await Hub.JoinQueue(server.Ip, server.Port, "");
+            bool joinedSuccesfully = await Hub.JoinQueue(new(server.Ip, server.Port, server.ServerName));
             if (!joinedSuccesfully)
             {
                 _logger.LogDebug("Could not join queue for {serverIp}:{serverPort}",

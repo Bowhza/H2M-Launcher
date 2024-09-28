@@ -1,10 +1,11 @@
 ﻿using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.Core
 {
     public interface IMatchmakingHub
     {
-        Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId);
+        Task<bool> JoinQueue(JoinServerInfo serverInfo);
 
         Task JoinAck(bool successful);
 

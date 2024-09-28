@@ -2,6 +2,7 @@
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Models;
 
 using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
@@ -81,16 +82,16 @@ namespace MatchmakingServer.SignalR
             return Task.CompletedTask;
         }
 
-        public Task<bool> JoinQueue(string serverIp, int serverPort, string instanceId)
+        public Task<bool> JoinQueue(JoinServerInfo serverInfo)
         {
             if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
             {
                 return Task.FromResult(false);
             }
 
-            _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverIp, serverPort, player.Name);
+            _logger.LogTrace("JoinQueue({serverIp}:{serverPort}, {playerName}) triggered", serverInfo.Ip, serverInfo.Port, player.Name);
 
-            return _partyMatchmakingService.JoinQueue(player, new(serverIp, serverPort, ""));
+            return _partyMatchmakingService.JoinQueue(player, serverInfo);
         }
 
         public Task LeaveQueue()

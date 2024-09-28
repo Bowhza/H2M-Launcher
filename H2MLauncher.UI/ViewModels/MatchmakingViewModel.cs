@@ -1,5 +1,4 @@
 ﻿using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -16,7 +15,7 @@ using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels
 {
-    internal partial class MatchmakingViewModel : DialogViewModelBase, IDisposable
+    public partial class MatchmakingViewModel : DialogViewModelBase, IDisposable
     {
         private readonly MatchmakingService _matchmakingService;
         private readonly QueueingService _queueingService;
@@ -102,6 +101,7 @@ namespace H2MLauncher.UI.ViewModels
         [NotifyPropertyChangedFor(nameof(CanEnterMatchmaking))]
         [NotifyPropertyChangedFor(nameof(IsInMatchmaking))]
         [NotifyPropertyChangedFor(nameof(IsInQueue))]
+        [NotifyPropertyChangedFor(nameof(Title))]
         [ObservableProperty]
         private PlayerState _state;
         public bool IsInMatchmaking => State is PlayerState.Matchmaking;
@@ -210,7 +210,7 @@ namespace H2MLauncher.UI.ViewModels
             };
             _queueTimer.Tick += QueueTimer_Tick;
 
-            if (State is PlayerState.Queued)
+            if (State is PlayerState.Queued or PlayerState.Matchmaking)
             {
                 // start counting seconds from 0
                 StartTime = DateTime.Now;

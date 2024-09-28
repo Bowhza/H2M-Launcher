@@ -11,7 +11,7 @@ namespace H2MLauncher.UI.Dialog
         {
             return new DialogWindow
             {
-                Owner = Application.Current.MainWindow.IsActive ? Application.Current.MainWindow : null,
+                Owner = Application.Current.MainWindow,
                 Content = content,
             };
         }
@@ -65,8 +65,7 @@ namespace H2MLauncher.UI.Dialog
             return ShowDialog(viewModel, dialogWindow);
         }
 
-        public bool? OpenTextDialog(string title, string text, 
-            MessageBoxButton buttons = MessageBoxButton.OK, string acceptButtonText = "", string cancelButtonText = "Cancel")
+        public bool? OpenTextDialog(string title, string text, MessageBoxButton buttons = MessageBoxButton.OK)
         {
             return OpenDialog<TextDialogView>(
                 new TextDialogViewModel(buttons)
@@ -76,7 +75,7 @@ namespace H2MLauncher.UI.Dialog
                 });
         }
 
-        public bool? OpenTextDialog(string title, string text, string acceptButtonText, string cancelButtonText = "")
+        public bool? OpenTextDialog(string title, string text, string acceptButtonText, string cancelButtonText = "Cancel")
         {
             MessageBoxButton buttons = string.IsNullOrEmpty(cancelButtonText) ? MessageBoxButton.OK : MessageBoxButton.OKCancel;
 

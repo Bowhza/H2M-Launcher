@@ -10,5 +10,7 @@ namespace H2MLauncher.Core
         Task OnQueuePositionChanged(int queuePosition, int queueSize);
 
         Task OnRemovedFromQueue(DequeueReason reason);
+
+        Task OnAddedToQueue(JoinServerInfo serverInfo);
     }
 }

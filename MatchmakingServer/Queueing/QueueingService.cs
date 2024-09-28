@@ -129,7 +129,9 @@ namespace MatchmakingServer.Queueing
             CancellationTokenSource cancellation = new(JoinTimeout);
             try
             {
+                player.State = PlayerState.Joining;
                 player.JoinAttempts.Add(DateTimeOffset.Now);
+                server.JoiningPlayerCount++;
 
                 JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort, server.LastServerInfo?.HostName ?? "");
                 
@@ -139,9 +141,6 @@ namespace MatchmakingServer.Queueing
 
                 if (joinTriggeredSuccessfully)
                 {
-                    player.State = PlayerState.Joining;
-                    server.JoiningPlayerCount++;
-
                     _logger.LogDebug("Player {player} triggered join to {server} successfully.", player, server);
                 }
                 else
@@ -351,7 +350,7 @@ namespace MatchmakingServer.Queueing
                 }
 
                 // now do the actual check for joining
-                await HandlePlayerJoinsAsync(server, cancellationToken);
+                HandlePlayerJoins(server, cancellationToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -434,7 +433,7 @@ namespace MatchmakingServer.Queueing
             }
         }
 
-        private async Task HandlePlayerJoinsAsync(GameServer server, CancellationToken cancellationToken)
+        private void HandlePlayerJoins(GameServer server, CancellationToken cancellationToken)
         {
             if (server.LastServerInfo is null)
             {
@@ -718,21 +717,25 @@ namespace MatchmakingServer.Queueing
 
             _logger.LogDebug("Player {player} queued on {server}", player, server);
 
-            await NotifyPlayerQueuePositions(server);
+            Task notifyQueuedTask = NotifyPlayerQueued(player, new JoinServerInfo(server.ServerIp, server.ServerPort, server.LastServerInfo?.HostName ?? ""));
+            Task notifyPositionTask = NotifyPlayerQueuePositions(server);
+
+            await notifyQueuedTask;
+            await notifyPositionTask;
 
             return true;
         }
 
-        public Task<bool> JoinQueue(string serverIp, int serverPort, Player player, string instanceId)
+        public Task<bool> JoinQueue(JoinServerInfo serverInfo, Player player)
         {
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
                 _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued",
-                    serverIp, serverPort, player);
+                    serverInfo.Ip, serverInfo.Port, player);
                 return Task.FromResult(false);
             }
 
-            GameServer server = _serverStore.GetOrAddServer(serverIp, serverPort, instanceId);
+            GameServer server = _serverStore.GetOrAddServer(serverInfo.Ip, serverInfo.Port, "");
 
             return JoinQueue(server, player);
         }
@@ -797,6 +800,19 @@ namespace MatchmakingServer.Queueing
                     _logger.LogError(ex, "Error while notifying player {player} of queue position", player);
                 }
             }
+        }
+
+        private async Task NotifyPlayerQueued(Player player, JoinServerInfo serverInfo)
+        {
+            try
+            {
+                await _ctx.Clients.Client(player.QueueingHubId!).OnAddedToQueue(serverInfo).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to notify player joined queue. {player}", player);
+            }
+            
         }
 
         private async Task NotifyPlayerDequeued(Player player, DequeueReason reason)

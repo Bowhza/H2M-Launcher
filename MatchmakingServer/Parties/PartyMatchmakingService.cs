@@ -167,14 +167,14 @@ namespace MatchmakingServer.Parties
             HashSet<Player> players = GetEligiblePartyMembers(player);
             HashSet<Player> queuedPlayers = new(players.Count);
 
-            if (queuedPlayers.Count == 0)
+            if (players.Count == 0)
             {
-
+                return false;
             }
 
             foreach (Player p in players)
             {
-                if (await _queueingService.JoinQueue(server.Ip, server.Port, p, ""))
+                if (await _queueingService.JoinQueue(server, p))
                 {
                     queuedPlayers.Add(p);
                 }
