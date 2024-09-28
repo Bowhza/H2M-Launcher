@@ -173,7 +173,7 @@ namespace H2MLauncher.UI.ViewModels
 
         private void AddMember(PartyPlayerInfo member)
         {
-            Members.Add(new PartyMemberViewModel()
+            PartyMemberViewModel memberViewModel = new()
             {
                 Id = member.Id,
                 Name = member.Name,
@@ -182,7 +182,18 @@ namespace H2MLauncher.UI.ViewModels
                 KickCommand = new AsyncRelayCommand(
                         () => KickPlayer(member.Id),
                         () => _partyClient.IsPartyLeader && !_partyClient.IsSelf(member))
-            });
+            };
+
+            if (memberViewModel.IsSelf)
+            {
+                // make sure self is always the first one
+                Members.Insert(0, memberViewModel);
+            }
+            else
+            {
+                Members.Add(memberViewModel);
+            }
+            
         }
 
         public void Dispose()
