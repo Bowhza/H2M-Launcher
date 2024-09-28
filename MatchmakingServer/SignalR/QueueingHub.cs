@@ -52,7 +52,7 @@ namespace MatchmakingServer.SignalR
             }
 
             // clean up
-            _queueingService.LeaveQueue(player, disconnected: true);
+            _queueingService.LeaveQueue(player, DequeueReason.Disconnect);
 
             if (player.State is PlayerState.Matchmaking)
             {

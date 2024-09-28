@@ -740,11 +740,11 @@ namespace MatchmakingServer.Queueing
             return JoinQueue(server, player);
         }
 
-        public void LeaveQueue(Player player, bool disconnected = false)
+        public void LeaveQueue(Player player, DequeueReason reason)
         {
             DequeuePlayer(player,
-                disconnected ? PlayerState.Disconnected : PlayerState.Connected,
-                disconnected ? DequeueReason.UserLeave : DequeueReason.Disconnect);
+                reason is DequeueReason.Disconnect ? PlayerState.Disconnected : PlayerState.Connected,
+                reason);
         }
 
         private void DequeuePlayer(Player player, PlayerState newState, DequeueReason reason, bool notifyPlayerDequeued = true)

@@ -8,6 +8,8 @@
         JoinTimeout,
         Disconnect,
         Joined,
-        JoinFailed
+        JoinFailed,
+        PartyLeave,
+        PartyClosed,
     }
 }

@@ -53,7 +53,7 @@ namespace MatchmakingServer.Parties
             else if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
                 // remove player from queue when he leaves party he was queueing with
-                _queueingService.LeaveQueue(player);
+                _queueingService.LeaveQueue(player, DequeueReason.PartyLeave);
             }
 
             if (context.QueuedPlayers.Count == 0)
@@ -84,7 +84,7 @@ namespace MatchmakingServer.Parties
                 if (p.State is PlayerState.Queued)
                 {
                     // remove player from queue when party closed and was matchmaking
-                    _queueingService.LeaveQueue(p);
+                    _queueingService.LeaveQueue(p, DequeueReason.PartyClosed);
                 }
             }
         }
@@ -197,20 +197,20 @@ namespace MatchmakingServer.Parties
         {
             if (!player.IsPartyLeader)
             {
-                _queueingService.LeaveQueue(player);
+                _queueingService.LeaveQueue(player, DequeueReason.UserLeave);
                 return;
             }
 
             if (!_contextMap.TryRemove(player.Party, out PartyQueueingContext? context))
             {
-                _queueingService.LeaveQueue(player);
+                _queueingService.LeaveQueue(player, DequeueReason.UserLeave);
                 return;
             }
 
             foreach (Player p in context.QueuedPlayers)
             {
                 // todo: send disconnect if already joined?
-                _queueingService.LeaveQueue(p);
+                _queueingService.LeaveQueue(p, DequeueReason.PartyLeave);
             }
         }
 
