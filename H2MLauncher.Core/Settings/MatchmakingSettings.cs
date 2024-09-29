@@ -16,5 +16,7 @@ namespace H2MLauncher.Core.Settings
 
         [JsonIgnore]
         public string ServerDataUrl => Url.Combine(MatchmakingServerUrl, "servers/data");
+
+        public bool UseRandomCliendId { get; init; } = false;
     }
 }

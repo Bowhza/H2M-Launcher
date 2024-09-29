@@ -18,7 +18,7 @@ public sealed class ClientContext : IDisposable
         _playerNameProvider.PlayerNameChanged += OnPlayerNameChanged;
     }
 
-    public string ClientId { get; } = Guid.NewGuid().ToString();
+    public string ClientId { get; init; } = Guid.NewGuid().ToString();
     public string PlayerName => _playerNameProvider.PlayerName;
     
 

@@ -161,7 +161,19 @@ namespace H2MLauncher.UI
             // online services
             services.AddSingleton<OnlineServiceManager>();
             services.AddSingleton<IOnlineServices, OnlineServiceManager>(sp => sp.GetRequiredService<OnlineServiceManager>());
-            services.AddSingleton<ClientContext>();
+            services.AddSingleton<ClientContext>(sp =>
+            {
+                var playerNameProvider = sp.GetRequiredService<IPlayerNameProvider>();
+                var matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>();
+                var userSettings = sp.GetRequiredService<IOptions<H2MLauncherSettings>>();
+
+                return matchmakingSettings.Value.UseRandomCliendId
+                    ? new ClientContext(playerNameProvider)
+                    : new ClientContext(playerNameProvider)
+                    {
+                        ClientId = userSettings.Value.ClientId.ToString()
+                    };
+            });
 
             // authentication
             services.AddTransient<AuthenticationService>();

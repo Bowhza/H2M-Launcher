@@ -25,5 +25,7 @@ namespace H2MLauncher.Core.Settings
         public bool ServerQueueing { get; init; } = false;
 
         public Dictionary<string, string> KeyBindings { get; init; } = [];
+
+        public Guid ClientId { get; init; } = Guid.NewGuid();
     }
 }
