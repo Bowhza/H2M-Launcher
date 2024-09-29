@@ -35,10 +35,38 @@ namespace H2MLauncher.UI.ViewModels
 
         #region Bindings
 
+        public string Status
+        {
+            get
+            {
+                if (!_partyClient.IsConnected)
+                {
+                    return "Disconnected";
+                }
+
+                if (_partyClient.IsConnecting)
+                {
+                    return "Connecting";
+                }
+
+                if (!IsPartyActive)
+                {
+                    return "Connected";
+                }
+
+                if (IsPartyGuest)
+                {
+                    return $"Joined ({Members.Count})";
+                }
+
+                return HasOtherMembers ? $"Open ({Members.Count})" : "Open";
+            }
+        }
+
         public bool IsPartyActive => _partyClient.IsPartyActive;
         public bool IsPartyLeader => _partyClient.IsPartyLeader;
         public bool IsPartyGuest => IsPartyActive && !IsPartyLeader;
-        public bool IsEmpty => !IsPartyActive || (IsPartyLeader && Members.Count == 1);
+        public bool HasOtherMembers => IsPartyActive && Members.Count > 1;
 
         public string? PartyId => _partyClient.PartyId;
         public ObservableCollection<PartyMemberViewModel> Members { get; } = [];
@@ -67,11 +95,13 @@ namespace H2MLauncher.UI.ViewModels
             if (!connected)
             {
                 Members.Clear();
+
                 OnPropertyChanged(nameof(PartyId));
                 OnPropertyChanged(nameof(IsPartyLeader));
                 OnPropertyChanged(nameof(IsPartyActive));
                 OnPropertyChanged(nameof(IsPartyGuest));
-                OnPropertyChanged(nameof(IsEmpty));
+                OnPropertyChanged(nameof(HasOtherMembers));
+                OnPropertyChanged(nameof(Status));
 
                 _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
             }
@@ -92,6 +122,9 @@ namespace H2MLauncher.UI.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 AddMember(member);
+
+                OnPropertyChanged(nameof(HasOtherMembers));
+                OnPropertyChanged(nameof(Status));
             });
         }
 
@@ -105,7 +138,8 @@ namespace H2MLauncher.UI.ViewModels
                     Members.RemoveAt(index);
                 }
 
-                OnPropertyChanged(nameof(IsEmpty));
+                OnPropertyChanged(nameof(HasOtherMembers));
+                OnPropertyChanged(nameof(Status));
             });
         }
 
@@ -140,7 +174,8 @@ namespace H2MLauncher.UI.ViewModels
                 OnPropertyChanged(nameof(IsPartyLeader));
                 OnPropertyChanged(nameof(IsPartyActive));
                 OnPropertyChanged(nameof(IsPartyGuest));
-                OnPropertyChanged(nameof(IsEmpty));
+                OnPropertyChanged(nameof(HasOtherMembers));
+                OnPropertyChanged(nameof(Status));
             });
         }
 
@@ -164,7 +199,7 @@ namespace H2MLauncher.UI.ViewModels
         [RelayCommand]
         public async Task JoinParty(string? partyId)
         {
-            partyId ??= _dialogService.OpenInputDialog("Join Party", "Enter or paste the ID of the party to join:", 
+            partyId ??= _dialogService.OpenInputDialog("Join Party", "Enter or paste the ID of the party to join:",
                 acceptButtonText: "Join");
 
             if (partyId is null)
@@ -226,7 +261,7 @@ namespace H2MLauncher.UI.ViewModels
                 Members.Add(memberViewModel);
             }
 
-            OnPropertyChanged(nameof(IsEmpty));
+            OnPropertyChanged(nameof(HasOtherMembers));
         }
 
         public void Dispose()

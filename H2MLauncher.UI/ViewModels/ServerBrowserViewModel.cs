@@ -103,10 +103,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private SocialsViewModel _socials = new();
 
     [ObservableProperty]
-    private PartyViewModel _partyViewModel;
-
-    [ObservableProperty]
     private MatchmakingViewModel? _matchmakingViewModel;
+
+    public PartyViewModel PartyViewModel { get; }
 
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
@@ -182,7 +181,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _serverDataService = serverDataService;
         _mapsProvider = mapsProvider;
         _serverJoinService = serverJoinService;
-        _partyViewModel = partyViewModel;
 
         RefreshServersCommand = new AsyncRelayCommand(LoadServersAsync);
         LaunchH2MCommand = new RelayCommand(LaunchH2M);
@@ -198,6 +196,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         DisconnectCommand = new AsyncRelayCommand(DisconnectServer);
         EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking, () => IsMatchmakingEnabled);
 
+        PartyViewModel = partyViewModel;
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();
 

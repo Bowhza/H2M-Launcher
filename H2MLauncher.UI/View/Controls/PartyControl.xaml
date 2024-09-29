@@ -16,14 +16,13 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Text="In Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" FontSize="15"
-                    FontWeight="Bold"/>
+            <TextBlock Text="In Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" 
+                       FontSize="15" FontWeight="Bold"/>
             <StackPanel Grid.Row="1" x:Name="PartyPanel" Margin="6">
                 <TextBlock Text="{Binding Members.Count, StringFormat={}{0} Members}"
                         Margin="3,0" FontSize="13" Foreground="White"/>
-                <!--<TextBlock Text="{Binding IsPartyLeader, StringFormat={} IsLeader: {0}}" Foreground="White"/>-->
                 <ItemsControl ItemsSource="{Binding Members}" Margin="0,5" Padding="5" Background="#88000000"
-                           Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
+                              Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Grid Height="22" Margin="0">
@@ -62,21 +61,32 @@
                                     </Button.Style>
                                 </Button>
                                 <TextBlock Text="★" Foreground="Orange" FontSize="15" HorizontalAlignment="Center" Grid.Column="1"
-                                        VerticalAlignment="Center"
-                                        Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                           VerticalAlignment="Center"
+                                           Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <Button Height="25" Width="80" Content="Leave Party" Command="{Binding LeavePartyCommand}" Margin="5" 
-                     Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                <Button Height="25" Width="80" Command="{Binding LeavePartyCommand}" Margin="5" 
+                        Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
+                    <Button.Style>
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                            <Setter Property="Content" Value="Leave Party"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPartyLeader}" Value="True">
+                                    <Setter Property="Content" Value="Close Party"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
             </StackPanel>
             <StackPanel Grid.Row="2" VerticalAlignment="Center" Margin="0,3">
                 <TextBlock Text="{Binding PartyId}" Foreground="White" Margin="5"
                         Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5"
-                     Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                     Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 <!--<TextBox x:Name="JoinIdTextBox" local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="5"
                       Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
                 <!--<Button Height="25" Width="80" Content="Join" Click="Button_Click" Margin="5"

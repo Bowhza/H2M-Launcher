@@ -230,10 +230,14 @@
                         <ColumnDefinition Width="3.5*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
 
                     <!-- Server tabs -->
                     <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
-                            Grid.Row="2" Margin="0,10,0,5" BorderThickness="1" 
+                            Grid.RowSpan="2" Margin="0,10,0,5" BorderThickness="1" 
                             BorderBrush="DarkGray" Background="Transparent" >
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
@@ -337,11 +341,11 @@
                                                                 </Image.Style>
                                                             </Image>
                                                             <ItemsControl
-                                                            Focusable="False"
-                                                            IsTabStop="False" 
-                                                            IsHitTestVisible="False" 
-                                                            ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
-                                                            FlowDirection="LeftToRight">
+                                                                Focusable="False"
+                                                                IsTabStop="False" 
+                                                                IsHitTestVisible="False" 
+                                                                ItemsSource="{Binding HostName, Converter={StaticResource HostNameColorConverter}}" 
+                                                                FlowDirection="LeftToRight">
                                                                 <ItemsControl.ItemsPanel>
                                                                     <ItemsPanelTemplate>
                                                                         <StackPanel Orientation="Horizontal"/>
@@ -431,115 +435,95 @@
                     </TabControl>
 
                     <!-- Party Header -->
-                    <Border Grid.Column="0" Grid.ColumnSpan="1" Height="Auto" 
-                            HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
+                    <Border Grid.Column="0" Height="35" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
                             Margin="0,3,0,5" BorderThickness="0.5" DataContext="{Binding PartyViewModel}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsEmpty}" Value="False">
-                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
 
-                        <StackPanel Height="Auto" HorizontalAlignment="Right" 
-                                    VerticalAlignment="Top"
-                                    Margin="1,0,25,0" Orientation="Horizontal" >
-                            <TextBlock Text="Party: Open" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Setter Property="Visibility" Value="Visible"/>
+                            <StackPanel Height="Auto" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                        Margin="1,0,5,0" Orientation="Horizontal" >
+
+                                <!-- Party Status -->
+                                <TextBlock Text="{Binding Status, StringFormat={}Party: {0}}" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding IsPartyGuest}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <!-- Party ID | Copy -->
+                                <Border BorderBrush="DarkGray"
+                                        BorderThickness="1" Margin="5,0"
+                                        CornerRadius="0,4,4,0" Height="25">
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <MultiDataTrigger>
+                                                    <MultiDataTrigger.Conditions>
+                                                        <!-- Show only when hosting party & collapsed -->
+                                                        <Condition Binding="{Binding IsPartyLeader}" Value="True"/>
+                                                        <Condition Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False"/>
+                                                    </MultiDataTrigger.Conditions>
+                                                    <MultiDataTrigger.Setters>
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </MultiDataTrigger.Setters>
+                                                </MultiDataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Border.Style>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Grid>
+                                            <TextBox Margin="0" Width="230" VerticalContentAlignment="Center" Padding="2,0"
+                                                     Text="{Binding PartyId, Mode=OneWay}" BorderThickness="0" IsReadOnly="True" IsReadOnlyCaretVisible="True"/>
+                                        </Grid>
+                                        <Button Height="Auto" Width="65" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="0" 
+                                                Background="DarkOrange" Foreground="Black" Style="{StaticResource TextBoxButtonStyle}"/>
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Create Party Button -->
+                                <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
+                                    Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+
+                                <!-- Join Party Button -->
+                                <Button Height="25" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
+                                    Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                            </StackPanel>
+
+                            <!-- Expand / collapse Party -->
+                            <ToggleButton Width="20" Height="25" Margin="0,0,2,0" Grid.Column="1" 
+                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                                          Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow}"
+                                          Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
+                                <ToggleButton.Style>
+                                    <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
+                                        <Setter Property="Content" Value="&#10094;"/>
                                         <Style.Triggers>
-                                            <MultiDataTrigger>
-                                                <MultiDataTrigger.Conditions>
-                                                    <Condition Binding="{Binding IsExpanded, ElementName=mainWindow}" Value="True"/>
-                                                    <Condition Binding="{Binding IsEmpty}" Value="False"/>
-                                                </MultiDataTrigger.Conditions>
-                                                <MultiDataTrigger.Setters>
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                </MultiDataTrigger.Setters>
-                                            </MultiDataTrigger>
-                                            <DataTrigger Binding="{Binding IsPartyActive}" Value="False">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                            </DataTrigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter Property="Content" Value="&#10095;"/>
+                                            </Trigger>
                                         </Style.Triggers>
                                     </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <Border BorderBrush="DarkGray"
-                                    BorderThickness="1" Margin="5"
-                                    CornerRadius="0,4,4,0" Height="27"
-                                    Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}">
-                                <StackPanel Orientation="Horizontal">
-                                    <Grid>
-                                        <TextBox local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="0" Width="230"                                             
-                                             VerticalContentAlignment="Center" x:Name="JoinPartyIdTextBox" Padding="1,0"
-                                             Text="{Binding PartyId, Mode=OneWay}" BorderThickness="0" IsReadOnly="True" />
-                                        <TextBlock IsHitTestVisible="False" Text="Paste Party ID to join..." 
-                                               VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" 
-                                               Margin="5" Foreground="DarkGray">
-                                            <TextBlock.Style>
-                                                <Style TargetType="{x:Type TextBlock}">
-                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding Text, ElementName=JoinPartyIdTextBox}" Value="">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
-                                    </Grid>
-                                    <Button Height="25" Width="65" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="0" 
-                                        Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}"
-                                        Background="DarkOrange" Foreground="Black" Style="{StaticResource TextBoxButtonStyle}"/>
-                                </StackPanel>
-                            </Border>
-                            <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5"
-                                Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                            <Button Height="25" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
-                                Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-                        </StackPanel>
+                                </ToggleButton.Style>
+                            </ToggleButton>
+                        </Grid>
                     </Border>
 
-                    <ToggleButton Width="20" Height="25" Margin="0,9,0,0" Grid.Column="0" 
-                                  HorizontalAlignment="Right" VerticalAlignment="Top"
-                                      Foreground="White" IsChecked="{Binding IsExpanded, ElementName=mainWindow}">
-                        <ToggleButton.Style>
-                            <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
-                                <Setter Property="Content" Value="&#10094;"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsChecked" Value="True">
-                                        <Setter Property="Content" Value="&#10095;"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ToggleButton.Style>
-                    </ToggleButton>
-
-                    <controls:PartyControl DataContext="{Binding PartyViewModel}" Grid.Column="1" Margin="10,10,10,5" MinWidth="150">
-                        <controls:PartyControl.Style>
-                            <Style TargetType="controls:PartyControl">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <MultiDataTrigger>
-                                        <MultiDataTrigger.Conditions>
-                                            <Condition Binding="{Binding IsExpanded, ElementName=mainWindow}" Value="True"/>
-                                            <Condition Binding="{Binding IsPartyActive}" Value="True"/>
-                                        </MultiDataTrigger.Conditions>
-                                        <MultiDataTrigger.Setters>
-                                            <Setter Property="Visibility" Value="Visible"/>
-                                        </MultiDataTrigger.Setters>
-                                    </MultiDataTrigger>
-                                    <DataTrigger Binding="{Binding IsEmpty}" Value="False">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </controls:PartyControl.Style>
-                    </controls:PartyControl>
+                    <controls:PartyControl DataContext="{Binding PartyViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,10,5" MinWidth="150"
+                                           Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 </Grid>
 
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">

@@ -3,6 +3,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Game;
@@ -10,27 +11,25 @@ using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
-    public partial class MainWindow : Window, INotifyPropertyChanged
+    [ObservableObject]
+    public partial class MainWindow : Window
     {
         private readonly ServerBrowserViewModel _viewModel;
         private readonly OverlayHelper _overlayHelper;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private bool _isFirstRender = true;
-        private bool _isPartyExpanded = false;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
 
         public ICommand ToggleOverlayCommand { get; }
 
-        public bool IsExpanded
-        {
-            get => _isPartyExpanded; 
-            set
-            {
-                _isPartyExpanded = value;
-                PropertyChanged?.Invoke(this, new(nameof(IsExpanded)));
-            }
-        }
+        // Expand when:
+        // - Party has > 1 player
+        // - 
+        // Prevent when
+        // - Party is inactive
+
+        [ObservableProperty]
+        private bool _isPartyExpanded;
+        
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel, H2MCommunicationService h2MCommunicationService)
         {
@@ -43,6 +42,26 @@ namespace H2MLauncher.UI
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
+
+            _viewModel.PartyViewModel.PropertyChanged += PartyViewModel_PropertyChanged;
+        }
+
+        private void PartyViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (sender is not PartyViewModel partyViewModel)
+            {
+                return;
+            }
+
+            if (e.PropertyName == nameof(PartyViewModel.HasOtherMembers) && partyViewModel.HasOtherMembers)
+            {
+                IsPartyExpanded = true;
+            }
+
+            if (!partyViewModel.IsPartyActive)
+            {
+                IsPartyExpanded = false;
+            }
         }
 
         protected override void OnContentRendered(EventArgs e)
@@ -155,11 +174,6 @@ namespace H2MLauncher.UI
         {
             WindowState = WindowState is WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
             MaximizeButtonText.Text = WindowState is WindowState.Normal ? "🗖︎" : "🗗︎";
-        }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            _viewModel.PartyViewModel.JoinPartyCommand.Execute(JoinPartyIdTextBox.Text);
         }
     }
 }
