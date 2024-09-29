@@ -20,14 +20,14 @@ namespace H2MLauncher.Core.Party
     public sealed class PartyClient : HubClient<IPartyHub>, IPartyClient, IDisposable
     {
         private readonly IDisposable _clientRegistration;
+        private readonly SemaphoreSlim _joinCreateLock = new(1, 1);
 
         private readonly IServerJoinService _serverJoinService;
         private readonly IPlayerNameProvider _playerNameProvider;
         private readonly MatchmakingService _matchmakingService;
         private readonly ILogger<PartyClient> _logger;
 
-        private readonly SemaphoreSlim _joinCreateLock = new(1, 1);
-
+        private readonly bool _autoCreateParty = true;
         private PartyInfo? _currentParty;
         private bool _isPartyLeader;
         private readonly string _clientId;
@@ -58,7 +58,6 @@ namespace H2MLauncher.Core.Party
             IOnlineServices onlineService) : base(hubConnection)
         {
             _clientId = onlineService.ClientContext.ClientId;
-
             _clientRegistration = hubConnection.Register<IPartyClient>(this);
 
             _serverJoinService = serverJoinService;
@@ -236,11 +235,18 @@ namespace H2MLauncher.Core.Party
                     _logger.LogWarning("Could not leave party {partyId}", _currentParty?.PartyId);
                 }
 
+                bool wasPartyLeader = _isPartyLeader;
+
                 _currentParty = null;
                 _isPartyLeader = false;
                 PartyChanged?.Invoke();
 
                 _logger.LogDebug("Party left");
+
+                if (_autoCreateParty && !wasPartyLeader)
+                {
+                    _ = CreateParty();
+                }
             }
             catch (Exception ex)
             {
@@ -317,6 +323,11 @@ namespace H2MLauncher.Core.Party
             KickedFromParty?.Invoke();
             PartyChanged?.Invoke();
 
+            if (_autoCreateParty)
+            {
+                _ = CreateParty();
+            }
+
             return Task.CompletedTask;
         }
 
@@ -328,6 +339,11 @@ namespace H2MLauncher.Core.Party
             _isPartyLeader = false;
             PartyClosed?.Invoke();
             PartyChanged?.Invoke();
+
+            if (_autoCreateParty)
+            {
+                _ = CreateParty();
+            }
 
             return Task.CompletedTask;
         }
