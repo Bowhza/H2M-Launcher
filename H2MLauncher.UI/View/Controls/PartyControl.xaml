@@ -68,11 +68,10 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <Button Height="25" Width="80" Command="{Binding LeavePartyCommand}" Margin="5" Background="#33000000"
-                        BorderThickness="0.5" BorderBrush="#44000000"
+                <Button Height="25" Width="80" Command="{Binding LeavePartyCommand}" Margin="5"
                         Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
                     <Button.Style>
-                        <Style TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                             <Setter Property="Content" Value="Leave Party"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsPartyLeader}" Value="True">

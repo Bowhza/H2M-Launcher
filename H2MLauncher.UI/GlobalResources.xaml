@@ -220,6 +220,12 @@
         </Setter>
     </Style>
 
+    <Style x:Key="TransparentButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource WindowButtonStyle}">
+        <Setter Property="Background" Value="#33000000" />
+        <Setter Property="BorderThickness" Value="0.5" />
+        <Setter Property="BorderBrush" Value="#44000000" />
+    </Style>
+
     <Style TargetType="{x:Type ToggleButton}">
         <Setter Property="Background" Value="#373737" />
         <Setter Property="Foreground" Value="White" />

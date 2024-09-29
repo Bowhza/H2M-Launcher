@@ -205,11 +205,36 @@
                     </StackPanel>
 
                     <!-- Text Filter -->
-                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <Grid Grid.Column="1" VerticalAlignment="Center">
                         <TextBox TabIndex="1" Text="{Binding AdvancedServerFilter.FilterText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
                                  TextChanged="TextBox_TextChanged" HorizontalAlignment="Stretch" Margin="10,0,10,0" 
-                                 VerticalAlignment="Center"/>
-                    </StackPanel>
+                                 VerticalAlignment="Center" x:Name="FilterTextBox"/>
+                        
+                        <!-- Hint -->
+                        <TextBlock IsHitTestVisible="False" Text="Enter keywords to filter servers"
+                                   VerticalAlignment="Center" HorizontalAlignment="Stretch" 
+                                   Padding="3,0,0,0" Margin="10,0,10,0" Foreground="DarkGray">
+                            <TextBlock.Style>
+                                <Style TargetType="{x:Type TextBlock}">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <!--<DataTrigger Binding="{Binding Text, ElementName=FilterTextBox}" Value="">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>-->
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding Text, ElementName=FilterTextBox}" Value=""/>
+                                                <Condition Binding="{Binding IsFocused, ElementName=FilterTextBox}" Value="False"/>
+                                            </MultiDataTrigger.Conditions>
+                                            <MultiDataTrigger.Setters>
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </MultiDataTrigger.Setters>
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Grid>
 
                     <!-- Main Buttons -->
                     <StackPanel Orientation="Horizontal" Grid.Column="2">
@@ -496,14 +521,14 @@
 
                                 <!-- Create Party Button -->
                                 <Button Height="23" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
-                                    Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                        Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
 
                                 <!-- Join Party Button -->
                                 <Button Height="23" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
-                                    Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                        Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
                             </StackPanel>
 
-                            <!-- Expand / collapse Party -->
+                            <!-- Expand / collapse -->
                             <ToggleButton Height="23" Width="20" Margin="0,0,2,0" Grid.Column="1"
                                           HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Show / hide party"
                                           Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow}"
@@ -515,10 +540,7 @@
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter Property="Content" Value="&#10095;"/>
                                             </Trigger>
-                                            <Trigger Property="IsMouseOver" Value="False">
-                                                <Setter Property="Background" Value="Transparent"/>
-                                            </Trigger>
-                                        </Style.Triggers>                                        
+                                        </Style.Triggers>
                                     </Style>
                                 </ToggleButton.Style>
                             </ToggleButton>
