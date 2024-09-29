@@ -14,6 +14,7 @@ namespace H2MLauncher.UI
 
         public void HandleError(string info)
         {
+            // Asynchronously open the dialog to return control and continue execution right away
             Application.Current.Dispatcher.InvokeAsync(() => _dialogService.OpenTextDialog("Error", info));
         }
 

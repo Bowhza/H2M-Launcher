@@ -10,6 +10,9 @@ using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.Core.OnlineServices;
 
+/// <summary>
+/// Manages connection to online services (such as party or matchmaking) with SignalR.
+/// </summary>
 public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
 {
     private readonly ILogger<OnlineServiceManager> _logger;
@@ -23,8 +26,8 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
     public HubConnection QueueingHubConnection { get; }
     public HubConnection PartyHubConnection { get; }
 
-    public bool IsPartyHubConnected => PartyHubConnection.State is HubConnectionState.Connected;
-    public bool IsQueueingHubConnected => QueueingHubConnection.State is HubConnectionState.Connected;
+    public bool IsPartyServiceConnected => PartyHubConnection.State is HubConnectionState.Connected;
+    public bool IsQueueingServiceConnected => QueueingHubConnection.State is HubConnectionState.Connected;
 
 
     private PlayerState _state = PlayerState.Disconnected;
@@ -72,8 +75,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
                 opts.AccessTokenProvider = GetAccessTokenAsync;
 
                 // add headers to identify app version
-                opts.Headers.Add("X-App-Name", "H2MLauncher");
-                opts.Headers.Add("X-App-Version", LauncherService.CurrentVersion);
+                AddAppHeaders(opts.Headers);
             })
             .Build();
 
@@ -82,9 +84,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
 
-                // add headers to identify app version
-                opts.Headers.Add("X-App-Name", "H2MLauncher");
-                opts.Headers.Add("X-App-Version", LauncherService.CurrentVersion);
+                AddAppHeaders(opts.Headers);
             })
             .WithAutomaticReconnect([TimeSpan.Zero, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10)])
             .Build();
@@ -94,20 +94,11 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         _hubConnections.ForEach(conn => conn.Connected += HubConnection_Connected);
     }
 
-    class PartyHubConnectionRetryPolicy : IRetryPolicy
+    private static void AddAppHeaders(IDictionary<string, string> headers)
     {
-        internal static TimeSpan?[] DEFAULT_RETRY_DELAYS =
-        [
-            TimeSpan.Zero,
-            TimeSpan.FromSeconds(2),
-            TimeSpan.FromSeconds(10),
-            TimeSpan.FromSeconds(30),
-        ];
-
-        public TimeSpan? NextRetryDelay(RetryContext retryContext)
-        {
-            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length)];
-        }
+        // add headers to identify app version
+        headers.Add("X-App-Name", "H2MLauncher");
+        headers.Add("X-App-Version", LauncherService.CurrentVersion);
     }
 
     private Task<string?> GetAccessTokenAsync()
@@ -181,6 +172,22 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         foreach (HubConnection connection in _hubConnections)
         {
             await connection.DisposeAsync();
+        }
+    }
+
+    class PartyHubConnectionRetryPolicy : IRetryPolicy
+    {
+        internal static TimeSpan?[] DEFAULT_RETRY_DELAYS =
+        [
+            TimeSpan.Zero,
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(10),
+            TimeSpan.FromSeconds(30),
+        ];
+
+        public TimeSpan? NextRetryDelay(RetryContext retryContext)
+        {
+            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length)];
         }
     }
 }

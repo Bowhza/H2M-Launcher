@@ -28,6 +28,7 @@ using H2MLauncher.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Xaml.Behaviors.Input;
 
 using Nogic.WritableOptions;
 
@@ -295,8 +296,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     {
         Application.Current.Dispatcher.Invoke(() =>
         {
+            // Automatically open the matchmaking dialog when the client state switches to matchmaking or queueing
+
             if (MatchmakingViewModel is not null)
             {
+                // already open
                 return;
             }
 
@@ -313,6 +317,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
                     CloseOnLeave = newState is PlayerState.Queued
                 };
 
+                // Fire and forget dialog to not block the event raising thread
                 _dialogService.ShowDialogAsync<QueueDialogView>(MatchmakingViewModel)
                    .ContinueWith(_ =>
                    {

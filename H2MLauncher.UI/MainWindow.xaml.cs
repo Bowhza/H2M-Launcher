@@ -19,17 +19,10 @@ namespace H2MLauncher.UI
         private readonly H2MCommunicationService _h2MCommunicationService;
         private bool _isFirstRender = true;
 
-        public ICommand ToggleOverlayCommand { get; }
-
-        // Expand when:
-        // - Party has > 1 player
-        // - 
-        // Prevent when
-        // - Party is inactive
-
         [ObservableProperty]
         private bool _isPartyExpanded;
-        
+
+        public ICommand ToggleOverlayCommand { get; }
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel, H2MCommunicationService h2MCommunicationService)
         {
@@ -55,11 +48,13 @@ namespace H2MLauncher.UI
 
             if (e.PropertyName == nameof(PartyViewModel.HasOtherMembers) && partyViewModel.HasOtherMembers)
             {
+                // Auto expand the party when >1 members are available.
                 IsPartyExpanded = true;
             }
 
             if (!partyViewModel.IsPartyActive)
             {
+                // Collapse the party when not active
                 IsPartyExpanded = false;
             }
         }

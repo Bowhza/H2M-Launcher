@@ -7,7 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace H2MLauncher.Core.Services
 {
-    public sealed class TcpUdpDynamicGameServerInfoService<TServer> : IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
+    /// <summary>
+    /// Implementation of <see cref="IGameServerInfoService{TServer}"/> that chooses UDP or TCP
+    /// strategy based on whether the server is cached in the HMW <see cref="IMasterServerService"/>.
+    /// </summary>
+    public sealed class TcpUdpDynamicGameServerInfoService<TServer> : IGameServerInfoService<TServer>
+        where TServer : IServerConnectionDetails
     {
         private readonly IMasterServerService _hmwMasterServerService;
         private readonly IGameServerInfoService<TServer> _tcpGameServerInfoService;

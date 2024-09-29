@@ -9,6 +9,10 @@ using Microsoft.Extensions.Options;
 
 namespace MatchmakingServer.Parties
 {
+    /// <summary>
+    /// Coordinates the matchmaking and queueing by integrating the party functionality.
+    /// Handles party queueing / matchmaking when the leader joins or leaves.
+    /// </summary>
     public sealed class PartyMatchmakingService : IDisposable
     {
         private readonly PartyService _partyService;

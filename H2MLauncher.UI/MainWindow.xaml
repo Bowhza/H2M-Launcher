@@ -495,17 +495,17 @@
                                 </Border>
 
                                 <!-- Create Party Button -->
-                                <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
+                                <Button Height="23" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
                                     Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
 
                                 <!-- Join Party Button -->
-                                <Button Height="25" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
+                                <Button Height="23" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
                                     Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                             </StackPanel>
 
                             <!-- Expand / collapse Party -->
-                            <ToggleButton Width="20" Height="25" Margin="0,0,2,0" Grid.Column="1" 
-                                          HorizontalAlignment="Right" VerticalAlignment="Center"
+                            <ToggleButton Height="23" Width="20" Margin="0,0,2,0" Grid.Column="1"
+                                          HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Show / hide party"
                                           Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow}"
                                           Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
                                 <ToggleButton.Style>
@@ -515,7 +515,10 @@
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter Property="Content" Value="&#10095;"/>
                                             </Trigger>
-                                        </Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="False">
+                                                <Setter Property="Background" Value="Transparent"/>
+                                            </Trigger>
+                                        </Style.Triggers>                                        
                                     </Style>
                                 </ToggleButton.Style>
                             </ToggleButton>
