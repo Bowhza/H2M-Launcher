@@ -164,6 +164,14 @@ namespace H2MLauncher.UI.ViewModels
         [RelayCommand]
         public async Task JoinParty(string? partyId)
         {
+            partyId ??= _dialogService.OpenInputDialog("Join Party", "Enter or paste the ID of the party to join:", 
+                acceptButtonText: "Join");
+
+            if (partyId is null)
+            {
+                return;
+            }
+
             if (!Guid.TryParse(partyId, out _))
             {
                 _errorHandlingService.HandleError("Invalid party id.");

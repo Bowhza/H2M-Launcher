@@ -19,6 +19,8 @@ namespace H2MLauncher.UI.Dialog
 
         public string CancelButtonText { get; init; } = "Cancel";
 
+        public virtual bool HasInput { get; } = false;
+
         public TextDialogViewModel(MessageBoxButton buttons = MessageBoxButton.OK)
         {
             AcceptCommand = new RelayCommand(() => CloseCommand.Execute(true), () => CloseCommand.CanExecute(true));

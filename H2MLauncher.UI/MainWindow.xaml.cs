@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
@@ -9,14 +10,27 @@ using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window, INotifyPropertyChanged
     {
         private readonly ServerBrowserViewModel _viewModel;
         private readonly OverlayHelper _overlayHelper;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private bool _isFirstRender = true;
+        private bool _isPartyExpanded = false;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
 
         public ICommand ToggleOverlayCommand { get; }
+
+        public bool IsExpanded
+        {
+            get => _isPartyExpanded; 
+            set
+            {
+                _isPartyExpanded = value;
+                PropertyChanged?.Invoke(this, new(nameof(IsExpanded)));
+            }
+        }
 
         public MainWindow(ServerBrowserViewModel serverBrowserViewModel, H2MCommunicationService h2MCommunicationService)
         {
@@ -26,7 +40,7 @@ namespace H2MLauncher.UI
             _overlayHelper = new OverlayHelper(this);
             _h2MCommunicationService = h2MCommunicationService;
 
-            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;            
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
         }

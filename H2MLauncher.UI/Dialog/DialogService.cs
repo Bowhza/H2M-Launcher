@@ -89,6 +89,28 @@ namespace H2MLauncher.UI.Dialog
                 });
         }
 
+        public string? OpenInputDialog(string title, string text, string? initialInput = null,
+            string acceptButtonText = "OK", string cancelButtonText = "Cancel")
+        {
+            MessageBoxButton buttons = string.IsNullOrEmpty(cancelButtonText) ? MessageBoxButton.OK : MessageBoxButton.OKCancel;
+            InputTextDialogViewModel viewModel = new(buttons)
+            {
+                Title = title,
+                Text = text,
+                Input = initialInput,
+                AcceptButtonText = acceptButtonText,
+                CancelButtonText = cancelButtonText
+            };
+
+            bool? result = OpenDialog<InputTextDialogView>(viewModel);
+            if (result == true)
+            {
+                return viewModel.Input;
+            }
+
+            return null;
+        }
+
         public bool? OpenDialog<TDialog>(IDialogViewModel viewModel) where TDialog : Control, new()
         {
             return Application.Current.Dispatcher.Invoke(() =>
