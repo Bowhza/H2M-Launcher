@@ -44,7 +44,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add .
           git commit -m "Bump version to ${{ github.ref_name }}"
-          git push origin "${{ env.BRANCH }}"
+          git push https://x-access-token:${{ secrets.ACTIONS_TOKEN }}@github.com/Bowhza/H2M-Launcher.git origin "${{ env.BRANCH }}
 
       - name: Force update the tag
         run: |
