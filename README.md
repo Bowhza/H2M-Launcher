@@ -48,12 +48,6 @@
 
 <img src="./Images/Matchmaking.png">
 
-### Game Detection
-
-- Detect whether the game is running.
-- Detect whether the player is in the menu or connected to a server.
-- Automatically set the game location if unset in settings and the game is detected.
-
 ### Server Queueing
 
 - Global player queues for full servers.
@@ -63,6 +57,23 @@
 - Join the queue while playing on another server and automatically connect when the slot is free.
 
 <img src="./Images/Queue.png">
+
+### Party System
+
+<img src="./Images/Party-Header.png">
+
+- Invite your friends to join the party by copying the party ID. 
+- The party leader controls the session for everyone.
+- Supports joining, [Queueing](#server-queueing) and [Matchmaking](#matchmaking).
+- Ability to kick members or promote someone to party leader.
+
+<img src="./Images/Party.png">
+
+### Game Detection
+
+- Detect whether the game is running.
+- Detect whether the player is in the menu or connected to a server.
+- Automatically set the game location if unset in settings and the game is detected.
 
 ### Settings & Other
 
