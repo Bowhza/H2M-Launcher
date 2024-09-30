@@ -6,16 +6,13 @@ using System.Text.RegularExpressions;
 
 namespace UpdateFileVersionOnTag
 {
-
-    public class Version
+    public partial class Version
     {
         public int Major { get; private set; }
         public int Minor { get; private set; }
         public int Build { get; private set; }
         public string? Label { get; private set; }
         public int? Revision { get; private set; }
-
-        private static readonly Regex versionRegex = new Regex(@"^H2M-v(?<major>\d+)\.(?<minor>\d+)\.(?<build>\d+)(?:-(?<label>[a-zA-Z]+)(?:\.(?<revision>\d+))?)?$");
 
         public Version(int major, int minor, int build, string? label, int? revision)
         {
@@ -33,7 +30,7 @@ namespace UpdateFileVersionOnTag
             //  H2M-v0.0.0-beta
             //  H2M-v0.0.0-beta.1
 
-            var match = versionRegex.Match(versionString);
+            var match = VersionRegex().Match(versionString);
             if (!match.Success)
             {
                 throw new FormatException("Version format is invalid.");
@@ -46,7 +43,6 @@ namespace UpdateFileVersionOnTag
                 match.Groups["label"].Success ? match.Groups["label"].Value : null,
                 match.Groups["revision"].Success ? int.Parse(match.Groups["revision"].Value) : null
             );
-
         }
 
         public override bool Equals(object? obj)
@@ -64,6 +60,9 @@ namespace UpdateFileVersionOnTag
         {
             return HashCode.Combine(Major, Minor, Build, Label, Revision);
         }
+
+        [GeneratedRegex(@"^H2M-v(?<major>\d+)\.(?<minor>\d+)\.(?<build>\d+)(?:-(?<label>[a-zA-Z]+)(?:\.(?<revision>\d+))?)?$")]
+        private static partial Regex VersionRegex();
     }
 
     internal class Program
@@ -86,21 +85,21 @@ namespace UpdateFileVersionOnTag
 
         static void ModifyAssemblyInfo(Version version)
         {
-            string h2mLauncherPath = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName;
+            string h2mLauncherPath = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)!.Parent!.Parent!.Parent!.Parent!.FullName;
             string assemblyInfoPath = Path.Combine(h2mLauncherPath, "H2MLauncher.UI", "Properties", "AssemblyInfo.cs");
 
-            var code = File.ReadAllText(assemblyInfoPath);
-            var tree = CSharpSyntaxTree.ParseText(code);
+            string code = File.ReadAllText(assemblyInfoPath);
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(code);
 
             string versionString = $"{version.Major}.{version.Minor}.{version.Build}." +
                                     (version.Revision is null ? "0" : $"{version.Revision}");
 
-            var root = tree.GetRoot();
-            var newRoot = root.ReplaceNodes(
+            SyntaxNode root = tree.GetRoot();
+            SyntaxNode newRoot = root.ReplaceNodes(
                 root.DescendantNodes().OfType<AttributeSyntax>(),
                 (oldNode, newNode) =>
                 {
-                    var attributeName = oldNode.Name.ToString();
+                    string? attributeName = oldNode.Name.ToString();
 
                     if (attributeName.Contains("AssemblyVersion") || attributeName.Contains("AssemblyFileVersion"))
                     {
@@ -119,12 +118,12 @@ namespace UpdateFileVersionOnTag
 
         static void ModifyLauncherService(Version version, string branchName)
         {
-            string h2mLauncherPath = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName;
+            string h2mLauncherPath = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)!.Parent!.Parent!.Parent!.Parent!.FullName;
             string launcherServicePath = Path.Combine(h2mLauncherPath, "H2MLauncher.Core", "Services", "LauncherService.cs");
 
-            var code = File.ReadAllText(launcherServicePath);
-            var tree = CSharpSyntaxTree.ParseText(code);
-            var root = tree.GetRoot();
+            string code = File.ReadAllText(launcherServicePath);
+            SyntaxTree tree = CSharpSyntaxTree.ParseText(code);
+            SyntaxNode root = tree.GetRoot();
 
             // Helper method to replace a variable's literal value
             void ReplaceVariableValue(string variableName, string newValue)
