@@ -1,21 +1,25 @@
+﻿using System.Security.Claims;
 using System.Text.Json.Serialization;
 
 using Flurl;
 
 using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.Networking;
+using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
-using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Authentication;
+using MatchmakingServer.Authentication.Player;
+using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.BearerToken;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 
@@ -67,18 +71,25 @@ builder.Services.AddHttpClient<HMWMasterService>()
 
 builder.Services.AddTransient<IErrorHandlingService, LoggingErrorHandlingService>();
 builder.Services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
+
+builder.Services.AddTransient<UdpGameServerCommunication>();
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
-builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) 
-    => sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
-builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerCommunicationService<GameServer>>("TCP");
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) => 
+    sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerInfoService<GameServer>>("TCP");
+builder.Services.AddTransient<IGameServerInfoService<GameServer>, TcpUdpDynamicGameServerInfoService<GameServer>>();
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
 
 builder.Services.AddSingleton<ServerStore>();
+builder.Services.AddSingleton<PlayerStore>();
 builder.Services.AddSingleton<QueueingService>();
-builder.Services.AddSingleton<MatchmakingServer.MatchmakingService>();
-builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingServer.MatchmakingService>());
+builder.Services.AddSingleton<Matchmaker>();
+builder.Services.AddSingleton<MatchmakingService>();
+builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingService>());
+builder.Services.AddSingleton<PartyService>();
+builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
 builder.Services.AddEndpointsApiExplorer();
@@ -120,6 +131,10 @@ builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
                         return requiresAuth ? ApiKeyDefaults.AuthenticationScheme : null;
                     };
                 });
+
+builder.Services.AddAuthentication(BearerTokenDefaults.AuthenticationScheme)
+        .AddScheme<AuthenticationSchemeOptions, ClientAuthenticationHandler>("client", null)
+        .AddBearerToken();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -168,10 +183,20 @@ app.UseAuthentication();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-//app.UseHttpsRedirection();
-
 app.MapHub<QueueingHub>("/Queue");
+app.MapHub<PartyHub>("/Party");
 
-app.Services.GetRequiredService<MatchmakingServer.MatchmakingService>();
+app.MapGet("/login", (string uid, string playerName) =>
+{
+    var claimsPrincipal = new ClaimsPrincipal(
+      new ClaimsIdentity(
+        [new Claim(ClaimTypes.Name, playerName),
+         new Claim(ClaimTypes.NameIdentifier, uid)],
+        BearerTokenDefaults.AuthenticationScheme
+      )
+    );
+
+    return Results.SignIn(claimsPrincipal);
+});
 
 app.Run();

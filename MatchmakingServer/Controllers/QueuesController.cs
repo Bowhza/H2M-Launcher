@@ -36,7 +36,7 @@ namespace MatchmakingServer.Controllers
                     {
                         return new
                         {
-                            p.ConnectionId,
+                            p.QueueingHubId,
                             p.Name,
                             p.State,
                             p.TimeInQueue,

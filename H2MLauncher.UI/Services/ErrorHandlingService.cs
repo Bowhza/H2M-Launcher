@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Services;
+﻿using System.Windows;
+
+using H2MLauncher.Core.Services;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Extensions.Logging;
@@ -12,7 +14,8 @@ namespace H2MLauncher.UI
 
         public void HandleError(string info)
         {
-            _dialogService.OpenTextDialog("Error", info);
+            // Asynchronously open the dialog to return control and continue execution right away
+            Application.Current.Dispatcher.InvokeAsync(() => _dialogService.OpenTextDialog("Error", info));
         }
 
         public void HandleException(Exception ex, string info = "")

@@ -16,7 +16,7 @@ namespace H2MLauncher.Core.Matchmaking.Models
 
         public List<string> MapPacks { get; init; } = [];
 
-        public List<string>? Servers { get; init; } = [];
+        public List<ServerConnectionDetails>? Servers { get; init; } = [];
 
         public int ServerCount
         {
@@ -25,18 +25,5 @@ namespace H2MLauncher.Core.Matchmaking.Models
         }
 
         public int CurrentPlayerCount { get; init; }
-
-        public List<ServerConnectionDetails> GetServerConnectionDetails()
-        {
-            return Servers?.Select(address =>
-            {
-                if (ServerConnectionDetails.TryParse(address, out ServerConnectionDetails connDetails))
-                {
-                    return connDetails;
-                }
-
-                return default;
-            }).Where(s => s.Ip is not null).ToList() ?? [];
-        }
     }
 }

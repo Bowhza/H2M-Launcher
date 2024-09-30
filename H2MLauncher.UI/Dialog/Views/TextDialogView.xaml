@@ -4,13 +4,16 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
+             xmlns:ui="clr-namespace:H2MLauncher.UI"
              mc:Ignorable="d" 
              xmlns:dia="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
              MaxWidth="300"
              MinHeight="150" MinWidth="300"
              Height="Auto"
              Width="300"
-             d:DataContext="{d:DesignInstance Type=dia:TextDialogViewModel}">
+             d:DataContext="{d:DesignInstance Type=dia:TextDialogViewModel}"
+             d:Foreground="White"
+             d:Background="Black">
     <Grid Width="260" Margin="0,15,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

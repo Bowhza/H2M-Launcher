@@ -21,22 +21,28 @@ namespace H2MLauncher.Core.Services
     public partial class GameServerCommunicationService<TServer> : IAsyncDisposable, IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, ConcurrentHashSet<Request>> _queuedRequests = [];
-        private GameServerCommunication? _gameServerCommunication;
+        private readonly UdpGameServerCommunication _gameServerCommunication;
         private readonly List<IDisposable> _registrations = [];
 
         private readonly IEndpointResolver _endpointResolver;
         private readonly ILogger<GameServerCommunicationService<TServer>> _logger;
 
         private const int MIN_REQUEST_DELAY = 1;
-        private const int MAX_PARALLEL_RESOLVE = 40;
         private const int REQUEST_TIMEOUT_IN_MS = 10000;
 
-        public GameServerCommunicationService(ILogger<GameServerCommunicationService<TServer>> logger, IEndpointResolver endpointResolver)
+        public bool AutoStartCommunication { get; } = true;
+
+        public GameServerCommunicationService(
+            ILogger<GameServerCommunicationService<TServer>> logger,
+            IEndpointResolver endpointResolver,
+            UdpGameServerCommunication gameServerCommunication)
         {
             _logger = logger;
             _endpointResolver = endpointResolver;
+            _gameServerCommunication = gameServerCommunication;
 
-            StartCommunication();
+            _registrations.Add(RegisterQueuedCommandHandler(GetInfoCommand.CommandName, GetInfoCommand.ResponseCommandName));
+            _registrations.Add(RegisterQueuedCommandHandler(GetStatusCommand.CommandName, GetStatusCommand.ResponseCommandName));
         }
 
         protected enum RequestState
@@ -143,18 +149,6 @@ namespace H2MLauncher.Core.Services
             public required string RawMessage { get; init; }
             public required DateTimeOffset Timestamp { get; init; }
             public required IPEndPoint RemoteEndPoint { get; init; }
-        }
-
-
-        /// <summary>
-        /// Start game server communication.
-        /// </summary>
-        public void StartCommunication()
-        {
-            _gameServerCommunication = new();
-
-            _registrations.Add(RegisterQueuedCommandHandler(GetInfoCommand.CommandName, GetInfoCommand.ResponseCommandName));
-            _registrations.Add(RegisterQueuedCommandHandler(GetStatusCommand.CommandName, GetStatusCommand.ResponseCommandName));
         }
 
         protected interface ICommand
@@ -278,6 +272,31 @@ namespace H2MLauncher.Core.Services
 
             [GeneratedRegex(@"(\d+) (\d+) ""(.*)""")]
             private static partial Regex PlayerStatusLineRegex();
+        }
+
+
+        /// <summary>
+        /// Start game server communication.
+        /// </summary>
+        public void StartCommunication()
+        {
+            _gameServerCommunication.StartCommunication();
+        }
+
+        protected void CheckCommunicationRunning()
+        {
+            if (_gameServerCommunication.IsStarted)
+            {
+                return;
+            }
+
+            if (AutoStartCommunication)
+            {
+                _gameServerCommunication.StartCommunication();
+                return;
+            }
+
+            throw new InvalidOperationException("Communication has not been started.");
         }
 
         protected IDisposable RegisterQueuedCommandHandler(string requestCommandName, string responseCommandName,
@@ -946,6 +965,8 @@ namespace H2MLauncher.Core.Services
         protected async Task<Response?> RequestAsync(
             TServer server, CommandMessage commandMessage, int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS, CancellationToken cancellationToken = default)
         {
+            CheckCommunicationRunning();
+
             // create an endpoint to send to and receive from
             IPEndPoint? endpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
             if (endpoint is null)
@@ -1007,6 +1028,8 @@ namespace H2MLauncher.Core.Services
             int requestTimeoutInMs = REQUEST_TIMEOUT_IN_MS,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            CheckCommunicationRunning();
+
             using HighResolutionTimer timer = new();
             timer.SetPeriod(MIN_REQUEST_DELAY);
             timer.Start();
@@ -1036,6 +1059,8 @@ namespace H2MLauncher.Core.Services
         /// <returns>True, if the request was sent successfully.</returns>
         protected async Task<Request?> SendRequestAsync(TServer server, CommandMessage commandMessage, CancellationToken cancellationToken)
         {
+            CheckCommunicationRunning();
+
             // create an endpoint to send to and receive from
             IPEndPoint? serverEndpoint = await _endpointResolver.GetEndpointAsync(server, cancellationToken);
             if (serverEndpoint is null)
@@ -1068,11 +1093,6 @@ namespace H2MLauncher.Core.Services
         /// <exception cref="InvalidOperationException"></exception>
         private async Task<bool> SendRequestInternalAsync(IPEndPoint serverEndpoint, Request request, CancellationToken cancellationToken)
         {
-            if (_gameServerCommunication is null)
-            {
-                throw new InvalidOperationException("Communication is not started.");
-            }
-
             AddToQueueCancelPreviousRequest(serverEndpoint, request);
 
             // register request cancellation

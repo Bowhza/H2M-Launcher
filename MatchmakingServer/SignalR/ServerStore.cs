@@ -20,17 +20,18 @@ namespace MatchmakingServer.SignalR
             _serverSettings = serverSettings;
         }
 
-        public GameServer? TryAddServer(string serverIp, int serverPort, string instanceId = "")
+        public GameServer? TryAddServer(string serverIp, int serverPort, string? serverName = null)
         {
             // get data for this server from the settings
             ServerData? data = _serverSettings.CurrentValue.ServerDataList.Find(s =>
                 s.Ip == serverIp && s.Port == serverPort);
 
             // server does not have a queue yet, create new
-            GameServer server = new(instanceId)
+            GameServer server = new()
             {
                 ServerIp = serverIp,
                 ServerPort = serverPort,
+                ServerName = serverName ?? "",
                 PrivilegedSlots = data?.PrivilegedSlots ?? 0,
             };
 
@@ -42,7 +43,7 @@ namespace MatchmakingServer.SignalR
             return null;
         }
 
-        public GameServer GetOrAddServer(string serverIp, int serverPort, string instanceId = "")
+        public GameServer GetOrAddServer(string serverIp, int serverPort, string? serverName = null)
         {
             return _servers.GetOrAdd((serverIp, serverPort), (_) =>
             {
@@ -51,10 +52,11 @@ namespace MatchmakingServer.SignalR
                     s.Ip == serverIp && s.Port == serverPort);
 
                 // server does not have a queue yet, create new
-                GameServer server = new(instanceId)
+                GameServer server = new()
                 {
                     ServerIp = serverIp,
                     ServerPort = serverPort,
+                    ServerName = serverName ?? "",
                     PrivilegedSlots = data?.PrivilegedSlots ?? 0,
                 };
 

@@ -4,7 +4,7 @@ using H2MLauncher.Core.Matchmaking.Models;
 
 namespace H2MLauncher.UI.ViewModels
 {
-    internal partial class MatchmakingPreferencesViewModel : ObservableObject
+    public partial class MatchmakingPreferencesViewModel : ObservableObject
     {
         [ObservableProperty]
         private int _maxPing = 999;

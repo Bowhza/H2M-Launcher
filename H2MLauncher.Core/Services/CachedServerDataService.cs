@@ -10,7 +10,7 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public sealed class CachedServerDataService
+    public sealed class CachedServerDataService : IPlaylistService
     {
         private readonly HttpClient _httpClient;
         private readonly IMemoryCache _memoryCache;
@@ -66,8 +66,13 @@ namespace H2MLauncher.Core.Services
             {
                 entry.AbsoluteExpiration = DateTimeOffset.Now.AddMinutes(2);
 
-                _logger.LogDebug("Fetching default playlist...");
+                _logger.LogDebug("Fetching all playlists...");
                 List<Playlist>? playlists = await _httpClient.GetFromJsonAsync<List<Playlist>>("playlists", cancellationToken);
+
+                if (playlists is not null)
+                {
+                    _logger.LogInformation("Fetched {numPlaylists} playlists", playlists.Count);
+                }
 
                 return playlists?.AsReadOnly();
             })!;
