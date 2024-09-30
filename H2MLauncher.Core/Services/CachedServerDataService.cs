@@ -32,7 +32,7 @@ namespace H2MLauncher.Core.Services
                 _logger.LogDebug("Fetching server data list...");
                 ServerData[]? serverData = await _httpClient.GetFromJsonAsync<ServerData[]>("servers/data", cancellationToken);
 
-                return serverData is null ? [] : serverData.AsReadOnly();
+                return serverData is null ? Array.Empty<ServerData>().AsReadOnly() : serverData.AsReadOnly();
             });
         }
 

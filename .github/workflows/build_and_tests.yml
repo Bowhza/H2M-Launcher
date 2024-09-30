@@ -1,0 +1,27 @@
+name: Build H2M-Launcher and run tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  build-and-tests:
+    name: Build and run tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Build project
+        run: dotnet build H2M-Launcher.sln --configuration Release
+
+      - name: Run tests
+        run: dotnet test H2M-Launcher.sln --configuration Release --no-build --verbosity normal

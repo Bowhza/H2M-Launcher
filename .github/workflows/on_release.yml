@@ -1,0 +1,69 @@
+name: Build H2M-Launcher and release it
+
+on:
+  release:
+    types:
+      - published
+
+jobs:
+  build-and-tests:
+    name: Build and release it
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Get the tags
+
+      # From: https://stackoverflow.com/a/63747076/15835974
+      - name: Get Branch
+        run: |
+          $branch = git branch -r --contains ${{ github.ref }} --format "%(refname:lstrip=3)"
+          echo "BRANCH=$branch" >> $env:GITHUB_ENV
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }} # Don't use the github.ref branch which correspond to the tag, because we will edit the env.BRANCH.
+          fetch-depth: 0 # Get the tags
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.x
+
+      - name: Modify AssemblyInfo.cs and LauncherService.cs
+        run: dotnet run --project UpdateFileVersionOnTag -- "${{ github.ref_name }}" "${{ env.BRANCH }}"
+
+      - name: Commit changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Bump version to ${{ github.ref_name }}"
+          git push origin "${{ env.BRANCH }}"
+
+      - name: Force update the tag
+        run: |
+          git tag -d "${{ github.ref_name }}" # Delete the old tag locally
+          git tag "${{ github.ref_name }}" # Recreate the tag on the latest commit
+          git push origin "${{ env.BRANCH }}" --force "${{ github.ref_name }}"
+
+      - name: Publish H2MLauncher.UI
+        run: |
+          dotnet publish H2MLauncher.UI `
+          --configuration Release `
+          --runtime win-x64 `
+          /p:PublishSingleFile=true `
+          /p:IncludeNativeLibrariesForSelfExtract=true `
+          --self-contained true `
+          --output H2MLauncher.UI\release_binary
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          fail_on_unmatched_files: true
+          files: H2MLauncher.UI/release_binary/H2MLauncher.UI.exe
