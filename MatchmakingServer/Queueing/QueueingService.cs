@@ -136,7 +136,7 @@ namespace MatchmakingServer.Queueing
                 JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort, server.LastServerInfo?.HostName ?? "");
                 
                 // notify client to join
-                var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
+                bool joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
                     .NotifyJoin(serverInfo, cancellation.Token);
 
                 if (joinTriggeredSuccessfully)

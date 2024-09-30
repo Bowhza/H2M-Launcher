@@ -183,8 +183,6 @@ app.UseAuthentication();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-//app.UseHttpsRedirection();
-
 app.MapHub<QueueingHub>("/Queue");
 app.MapHub<PartyHub>("/Party");
 

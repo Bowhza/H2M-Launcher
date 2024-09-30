@@ -87,11 +87,6 @@
                         Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5"
                      Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
-                <!--<TextBox x:Name="JoinIdTextBox" local:TextBoxPasteBehavior.PasteCommand="{Binding JoinPartyCommand}" Margin="5"
-                      Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
-                <!--<Button Height="25" Width="80" Content="Join" Click="Button_Click" Margin="5"
-                     Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}" />-->
-
                 <Button Height="25" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5"
                      Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
             </StackPanel>
