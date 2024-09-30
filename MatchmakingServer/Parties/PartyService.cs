@@ -17,6 +17,7 @@ namespace MatchmakingServer.Parties
         private readonly IHubContext<PartyHub, IPartyClient> _hubContext;
 
         private readonly ConcurrentDictionary<string, Party> _parties = [];
+        private readonly SemaphoreSlim _semaphore = new(1, 1);
 
         public event Action<Party>? PartyClosed;
         public event Action<Party, Player>? PlayerRemovedFromParty;
@@ -45,13 +46,11 @@ namespace MatchmakingServer.Parties
                 return null;
             }
 
-            Party party = new()
-            {
-                Leader = player
-            };
+            Party party = new(player);
 
             if (!_parties.TryAdd(party.Id, party))
             {
+                // somehow the id already exists?
                 return null;
             }
 
@@ -114,7 +113,7 @@ namespace MatchmakingServer.Parties
                         }
                     }
 
-                    OnRemovedFromParty(player, party);
+                    OnPartyClosed(party);
                 }
             }
             else
@@ -205,6 +204,43 @@ namespace MatchmakingServer.Parties
             await _hubContext.Groups.RemoveFromGroupAsync(memberToRemove.PartyHubId!, partyGroupName);
 
             OnRemovedFromParty(memberToRemove, party);
+
+            return true;
+        }
+
+        public async Task<bool> ChangeLeader(Player caller, string newLeaderId)
+        {
+            if (!caller.IsPartyLeader)
+            {
+                // only party leader can change leader
+                return false;
+            }
+
+            if (caller.Id == newLeaderId)
+            {
+                // cannot change leader to self
+                return false;
+            }
+
+            Party party = caller.Party;
+            string partyGroupName = GetPartyGroupName(party);
+
+            Player? newLeader = party.Members.FirstOrDefault(m => m.Id == newLeaderId);
+            if (newLeader is null)
+            {
+                // player not found
+                return false;
+            }
+
+            if (newLeader == party.Leader)
+            {
+                // same leader
+                return false;
+            }
+
+            Player oldLeader = party.ChangeLeader(newLeader);
+
+            await _hubContext.Clients.Group(partyGroupName).OnLeaderChanged(oldLeader.Id, newLeader.Id);
 
             return true;
         }

@@ -1,15 +1,22 @@
-﻿namespace MatchmakingServer.Parties;
+﻿using System.Numerics;
+
+namespace MatchmakingServer.Parties;
 
 public class Party
 {
+    private Player _leader;
     private readonly HashSet<Player> _members = [];
     private bool _isClosed;
 
     public string Id { get; init; } = Guid.NewGuid().ToString();
 
-    public required Player Leader { get; init; }
-
+    public Player Leader => _leader;
     public IReadOnlySet<Player> Members => _members;
+
+    public Party(Player leader)
+    {
+        _leader = leader;
+    }
 
     public void AddPlayer(Player player)
     {
@@ -80,5 +87,30 @@ public class Party
         }
 
         return removedPlayers;
+    }
+
+    public Player ChangeLeader(Player player)
+    {
+        ValidateClosed();
+
+        lock (_members)
+        {
+            ValidateClosed();
+
+            if (_leader == player)
+            {
+                throw new ArgumentException("Cannot change leader. Player is already the leader.", nameof(player));
+            }
+
+            if (!_members.Contains(player))
+            {
+                throw new ArgumentException("Cannot change leader. Player is not in the party.", nameof(player));
+            }
+
+            Player oldLeader = _leader;
+            _leader = player;
+
+            return oldLeader;
+        }
     }
 }

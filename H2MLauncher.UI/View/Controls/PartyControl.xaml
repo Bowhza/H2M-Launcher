@@ -21,49 +21,82 @@
             <StackPanel Grid.Row="1" x:Name="PartyPanel" Margin="6">
                 <TextBlock Text="{Binding Members.Count, StringFormat={}{0} Members}"
                            Margin="3,0" FontSize="13" Foreground="White" />
-                <ItemsControl ItemsSource="{Binding Members}" Margin="0,5" Padding="5" Background="#88000000"
+                <ItemsControl ItemsSource="{Binding Members}" Margin="0,5" Padding="0,5" Background="#88000000"
                               Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Grid Height="22" Margin="0">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15" 
+                            <Border x:Name="border" Padding="5,0">
+                                <Grid x:Name="grid" Height="22">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{Binding Name}" Foreground="White" FontSize="15" 
                                         VerticalAlignment="Center" Margin="0,0,0,0">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding IsSelf}" Value="True">
-                                                    <Setter Property="FontWeight" Value="Bold"/>
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" 
-                                        HorizontalAlignment="Right" Grid.Column="1"
-                                        VerticalAlignment="Center" Height="20">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding IsSelf}" Value="False"/>
-                                                        <Condition Binding="{Binding DataContext.IsPartyLeader, ElementName=PartyPanel}" Value="True"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <Setter Property="Visibility" Value="Visible"/>
-                                                </MultiDataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                </Button>
-                                <TextBlock Text="★" Foreground="Orange" FontSize="15" HorizontalAlignment="Center" Grid.Column="1"
-                                           VerticalAlignment="Center" ToolTip="Party Leader"
-                                           Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
-                            </Grid>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                    <StackPanel Orientation="Horizontal" Grid.Column="1">
+                                        <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" 
+                                                HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
+                                                VerticalAlignment="Center" Height="20"
+                                                ToolTip="Kick player from the party">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsSelf}" Value="False"/>
+                                                                <Condition Binding="{Binding DataContext.IsPartyLeader, ElementName=PartyPanel}" Value="True"/>
+                                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsMouseOver}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Content="★" Command="{Binding PromoteLeaderCommand}" Padding="5,0" 
+                                                HorizontalAlignment="Right" Grid.Column="0" FontSize="15"
+                                                VerticalAlignment="Center" Height="20"
+                                                ToolTip="Promote to leader">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsLeader}" Value="False"/>
+                                                                <Condition Binding="{Binding IsSelf}" Value="False"/>
+                                                                <Condition Binding="{Binding DataContext.IsPartyLeader, ElementName=PartyPanel}" Value="True"/>
+                                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsMouseOver}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        
+                                    </StackPanel>
+                                    <TextBlock Text="★" Foreground="Orange" FontSize="15" HorizontalAlignment="Center" Grid.Column="1"
+                                               VerticalAlignment="Center" ToolTip="Party Leader"
+                                               Visibility="{Binding IsLeader, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                </Grid>
+                            </Border>
+                            <DataTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <!--<Setter TargetName="border" Property="Background" Value="#11ffffff" />-->
+                                </Trigger>
+                            </DataTemplate.Triggers>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

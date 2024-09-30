@@ -10,6 +10,8 @@ public interface IPartyClient
     Task OnPartyClosed();
     Task OnKickedFromParty();
 
+    Task OnLeaderChanged(string oldLeaderId, string newLeaderId);
+
     /// <summary>
     /// Called when the party leader joined a server.
     /// </summary>

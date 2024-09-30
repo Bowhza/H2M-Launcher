@@ -78,6 +78,16 @@ public class PartyHub : Hub<IPartyClient>, IPartyHub
         return _partyService.LeaveOrCloseParty(player);
     }
 
+    public Task<bool> PromoteLeader(string id)
+    {
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        {
+            return Task.FromResult(false);
+        }
+
+        return _partyService.ChangeLeader(player, id);
+    }
+
     public Task UpdatePlayerName(string newName)
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
