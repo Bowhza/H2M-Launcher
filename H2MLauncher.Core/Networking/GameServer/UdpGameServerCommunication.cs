@@ -1,18 +1,22 @@
-﻿using System.Net;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 
 namespace H2MLauncher.Core.Networking.GameServer
 {
-    public class GameServerCommunication : IAsyncDisposable
+    public sealed class UdpGameServerCommunication : IAsyncDisposable
     {
         private readonly UdpClient _client;
         private readonly Dictionary<string, List<Action<ReceivedCommandMessage>>> _commandHandlers = [];
 
-        private readonly CancellationTokenSource _listeningCancellation;
-        private readonly Task _listeningTask;
+        private CancellationTokenSource _listeningCancellation = new();
+        private Task? _listeningTask;
         private readonly SynchronizationContext _synchronizationContext;
+
+        [MemberNotNullWhen(true, nameof(_listeningTask))]
+        public bool IsStarted => _listeningTask is not null && !_listeningTask.IsCompleted;
 
         const uint IOC_IN = 0x80000000U;
         const uint IOC_VENDOR = 0x18000000U;
@@ -22,7 +26,7 @@ namespace H2MLauncher.Core.Networking.GameServer
         /// </summary>
         const int SIO_UDP_CONNRESET = unchecked((int)(IOC_IN | IOC_VENDOR | 12));
 
-        public GameServerCommunication()
+        public UdpGameServerCommunication()
         {
             _client = new(AddressFamily.InterNetworkV6);
             _client.Client.DualMode = true; // enables both IPv4 and IPv6
@@ -37,10 +41,30 @@ namespace H2MLauncher.Core.Networking.GameServer
                 _client.Client.IOControl(SIO_UDP_CONNRESET, [0x00], null);
             }
 
+            _synchronizationContext = SynchronizationContext.Current ?? new();
+        }
+
+        public void StartCommunication()
+        {
+            if (IsStarted)
+            {
+                return;
+            }
+
             _listeningCancellation = new();
             _listeningTask = Task.Run(ReceiveLoop);
+        }
 
-            _synchronizationContext = SynchronizationContext.Current ?? new();
+        public void StopCommunication()
+        {
+            if (!IsStarted)
+            {
+                return;
+            }
+
+            _listeningCancellation.Cancel();
+            _listeningTask.Wait();
+            _listeningCancellation.Dispose();
         }
 
         private void HandleMessage(UdpReceiveResult result, DateTimeOffset timestamp)
@@ -185,7 +209,10 @@ namespace H2MLauncher.Core.Networking.GameServer
         {
             // stop receiving packets
             await _listeningCancellation.CancelAsync();
-            await _listeningTask;
+            if (_listeningTask is not null)
+            {
+                await _listeningTask;
+            }
 
             _client.Dispose();
         }

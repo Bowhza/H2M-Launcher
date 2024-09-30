@@ -18,7 +18,6 @@ namespace H2MLauncher.Core.Services
 
         public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
         {
-            Cache.Set(CacheKey, _servers, TimeSpan.FromMinutes(5));
             HttpResponseMessage response;
             HttpClient httpClient = _httpClientFactory.CreateClient(nameof(HMWMasterService));
             try
@@ -45,7 +44,7 @@ namespace H2MLauncher.Core.Services
                     }
                 }
 
-                Cache.Set(CACHE_KEY, _servers);
+                Cache.Set(CACHE_KEY, _servers, TimeSpan.FromMinutes(5));
 
                 return _servers;
             }

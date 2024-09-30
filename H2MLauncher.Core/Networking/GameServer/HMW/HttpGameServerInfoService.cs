@@ -12,12 +12,13 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Networking.GameServer.HMW
 {
-    public sealed class HttpGameServerCommunicationService<TServer> : IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
+    public sealed class HttpGameServerInfoService<TServer> : IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly HttpClient _httpClient;
-        private readonly ILogger<HttpGameServerCommunicationService<TServer>> _logger;
+        private readonly ILogger<HttpGameServerInfoService<TServer>> _logger;
+        private const int MAX_PARALLEL_REQUESTS = 15;
 
-        public HttpGameServerCommunicationService(ILogger<HttpGameServerCommunicationService<TServer>> logger, HttpClient httpClient)
+        public HttpGameServerInfoService(ILogger<HttpGameServerInfoService<TServer>> logger, HttpClient httpClient)
         {
             _logger = logger;
             _httpClient = httpClient;
@@ -46,40 +47,47 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             Channel<(TServer server, GameServerInfo? info)> channel = Channel.CreateUnbounded<(TServer, GameServerInfo?)>();
             ConcurrentBag<Task> continuations = [];
 
-            Task requestTask = Parallel.ForEachAsync(servers, new ParallelOptions() { CancellationToken = cancellationToken }, async (server, ct) =>
-            {
-                CancellationTokenSource timeoutCancellation = new(requestTimeoutInMs);
-                CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellation.Token, ct);
-                try
+            Task requestTask = Parallel.ForEachAsync(
+                servers,
+                new ParallelOptions()
                 {
-                    var task = await GetInfoCoreAsync(server, linkedCancellation.Token);
-                    continuations.Add(task.ContinueWith(
-                                t =>
-                                {
-                                    if (t.IsCompletedSuccessfully)
+                    MaxDegreeOfParallelism = MAX_PARALLEL_REQUESTS,
+                    CancellationToken = cancellationToken
+                },
+                async (server, ct) =>
+                {
+                    CancellationTokenSource timeoutCancellation = new(requestTimeoutInMs);
+                    CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellation.Token, ct);
+                    try
+                    {
+                        var task = await GetInfoCoreAsync(server, linkedCancellation.Token);
+                        continuations.Add(task.ContinueWith(
+                                    t =>
                                     {
-                                        channel.Writer.TryWrite((server, t.Result));
-                                    }
-                                },
-                                CancellationToken.None,
-                                TaskContinuationOptions.ExecuteSynchronously,
-                    TaskScheduler.Default));
-                }
-                catch (Exception ex)
+                                        if (t.IsCompletedSuccessfully)
+                                        {
+                                            channel.Writer.TryWrite((server, t.Result));
+                                        }
+                                    },
+                                    CancellationToken.None,
+                                    TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default));
+                    }
+                    catch (Exception ex)
+                    {
+                        // Propagate the error by completing the writer with it
+                        channel.Writer.TryComplete(ex);
+                    }
+                    finally
+                    {
+                        timeoutCancellation.Dispose();
+                        linkedCancellation.Dispose();
+                    }
+                }).ContinueWith((task) =>
                 {
-                    // Propagate the error by completing the writer with it
-                    channel.Writer.TryComplete(ex);
-                }
-                finally
-                {
-                    timeoutCancellation.Dispose();
-                    linkedCancellation.Dispose();
-                }
-            }).ContinueWith((task) =>
-            {
-                return Task.WhenAll(continuations)
-                           .ContinueWith(t => channel.Writer.TryComplete(t.Exception));
-            });
+                    return Task.WhenAll(continuations)
+                               .ContinueWith(t => channel.Writer.TryComplete(t.Exception));
+                });
 
             if (sendSynchronously)
             {
@@ -89,31 +97,46 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             return channel.Reader.ReadAllAsync(CancellationToken.None);
         }
 
-        public Task GetInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer, GameServerInfo>> onInfoResponse,
+        public async Task GetInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer, GameServerInfo>> onInfoResponse,
             int timeoutInMs = 10000, CancellationToken cancellationToken = default)
         {
-            return Parallel.ForEachAsync(servers, new ParallelOptions() { CancellationToken = cancellationToken }, async (server, ct) =>
+            using CancellationTokenSource timeoutCancellation = new(timeoutInMs);
+            using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellation.Token, cancellationToken);
+            try
             {
-                CancellationTokenSource timeoutCancellation = new(timeoutInMs);
-                CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellation.Token, ct);
-                try
-                {
-                    GameServerInfo? info = await GetInfoAsync(server, linkedCancellation.Token);
-                    if (info is not null)
+                await Parallel.ForEachAsync(
+                    servers,
+                    new ParallelOptions()
                     {
-                        onInfoResponse(new() { Server = server, ServerInfo = info });
-                    }
-                }
-                catch (OperationCanceledException)
-                {
-                    // canceled
-                }
-                finally
-                {
-                    timeoutCancellation.Dispose();
-                    linkedCancellation.Dispose();
-                }
-            });
+                        MaxDegreeOfParallelism = MAX_PARALLEL_REQUESTS,
+                        CancellationToken = linkedCancellation.Token
+                    },
+                    async (server, ct) =>
+                    {
+
+                        try
+                        {
+                            GameServerInfo? info = await GetInfoAsync(server, linkedCancellation.Token);
+                            if (info is not null)
+                            {
+                                onInfoResponse(new() { Server = server, ServerInfo = info });
+                            }
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            // canceled
+                        }
+                    }).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                // canceled
+            }
+            finally
+            {
+                timeoutCancellation.Dispose();
+                linkedCancellation.Dispose();
+            }
         }
 
         public Task<GameServerInfo?> GetInfoAsync(TServer server, CancellationToken cancellationToken)
@@ -125,7 +148,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             int timeoutInMs = 10000, CancellationToken cancellationToken = default)
         {
             (Task task, IDisposable disposable) = await SendGetInfoWithCallbackAsync(
-                servers, onInfoResponse, cancellationToken: cancellationToken).ConfigureAwait(false);
+                servers, onInfoResponse, timeoutInMs, cancellationToken).ConfigureAwait(false);
 
             return task;
         }

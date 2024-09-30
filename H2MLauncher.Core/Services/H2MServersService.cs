@@ -52,7 +52,7 @@ namespace H2MLauncher.Core.Services
                         _servers.Add(server);
                     }
 
-                    Cache.Set(CacheKey, _servers);
+                    Cache.Set(CacheKey, _servers, TimeSpan.FromMinutes(5));
                 }
             }
             catch (Exception ex)

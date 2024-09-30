@@ -7,7 +7,7 @@ using H2MLauncher.Core.Networking.GameServer;
 
 namespace H2MLauncher.UI.ViewModels
 {
-    public partial class ServerViewModel : ObservableObject, IServerConnectionDetails
+    public partial class ServerViewModel : ObservableObject, IServerConnectionDetails, IServerInfo
     {
         public required GameServerInfo GameServerInfo { get; init; }
 
@@ -99,6 +99,13 @@ namespace H2MLauncher.UI.ViewModels
         public string Occupation => $"{ClientNum}/{MaxClientNum:D2} {"[" + BotsNum + "]", 4}";
 
         public string SanitizedHostName => ColorCodeSequenceRegex().Replace(HostName, "");
+
+        int IServerInfo.MaxClients => GameServerInfo.MaxClients;
+        int IServerInfo.Clients => GameServerInfo.Clients;
+        int IServerInfo.Bots => GameServerInfo.Bots;
+        int IServerInfo.RealPlayerCount => GameServerInfo.RealPlayerCount;
+        string ISimpleServerInfo.ServerName => GameServerInfo.HostName;
+
 
         [GeneratedRegex(@"(\^\d)")]
         private static partial Regex ColorCodeSequenceRegex();

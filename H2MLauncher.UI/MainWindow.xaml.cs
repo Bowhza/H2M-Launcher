@@ -1,7 +1,9 @@
-﻿using System.Windows;
+﻿using System.ComponentModel;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Game;
@@ -9,12 +11,16 @@ using H2MLauncher.UI.ViewModels;
 
 namespace H2MLauncher.UI
 {
+    [ObservableObject]
     public partial class MainWindow : Window
     {
         private readonly ServerBrowserViewModel _viewModel;
         private readonly OverlayHelper _overlayHelper;
         private readonly H2MCommunicationService _h2MCommunicationService;
         private bool _isFirstRender = true;
+
+        [ObservableProperty]
+        private bool _isPartyExpanded;
 
         public ICommand ToggleOverlayCommand { get; }
 
@@ -26,9 +32,31 @@ namespace H2MLauncher.UI
             _overlayHelper = new OverlayHelper(this);
             _h2MCommunicationService = h2MCommunicationService;
 
-            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;            
+            serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
+
+            _viewModel.PartyViewModel.PropertyChanged += PartyViewModel_PropertyChanged;
+        }
+
+        private void PartyViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (sender is not PartyViewModel partyViewModel)
+            {
+                return;
+            }
+
+            if (e.PropertyName == nameof(PartyViewModel.HasOtherMembers) && partyViewModel.HasOtherMembers)
+            {
+                // Auto expand the party when >1 members are available.
+                IsPartyExpanded = true;
+            }
+
+            if (!partyViewModel.IsPartyActive)
+            {
+                // Collapse the party when not active
+                IsPartyExpanded = false;
+            }
         }
 
         protected override void OnContentRendered(EventArgs e)

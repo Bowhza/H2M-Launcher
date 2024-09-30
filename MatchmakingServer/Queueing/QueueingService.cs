@@ -1,4 +1,4 @@
-﻿using System.Threading;
+﻿using H2MLauncher.Core;
 
 using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking.Models;
@@ -17,9 +17,7 @@ namespace MatchmakingServer.Queueing
     {
         private readonly ServerStore _serverStore;
 
-        private readonly IMasterServerService _hmwMasterServerService;
-        private readonly IGameServerInfoService<GameServer> _tcpGameServerCommunicationService;
-        private readonly IGameServerInfoService<GameServer> _udpGameServerCommunicationService;
+        private readonly IGameServerInfoService<GameServer> _gameServerCommunicationService;
         private readonly IHubContext<QueueingHub, IClient> _ctx;
         private readonly ILogger<QueueingService> _logger;
         private readonly ServerInstanceCache _instanceCache;
@@ -48,25 +46,21 @@ namespace MatchmakingServer.Queueing
 
 
         public QueueingService(
-            [FromKeyedServices("UDP")] IGameServerInfoService<GameServer> udpGameServerCommunicationService,
-            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tpcGameServerCommunicationService,
+            IGameServerInfoService<GameServer> gameServerCommunicationService,
             IHubContext<QueueingHub, IClient> ctx,
             ILogger<QueueingService> logger,
             ServerInstanceCache instanceCache,
             IOptionsMonitor<ServerSettings> serverSettings,
             IOptionsMonitor<QueueingSettings> queueingSettings,
-            ServerStore serverStore,
-            [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService)
+            ServerStore serverStore)
         {
-            _udpGameServerCommunicationService = udpGameServerCommunicationService;
-            _tcpGameServerCommunicationService = tpcGameServerCommunicationService;
+            _gameServerCommunicationService = gameServerCommunicationService;
             _ctx = ctx;
             _logger = logger;
             _instanceCache = instanceCache;
             _serverSettings = serverSettings;
             _queueingSettings = queueingSettings;
             _serverStore = serverStore;
-            _hmwMasterServerService = hmwMasterServerService;
         }
 
 
@@ -135,17 +129,18 @@ namespace MatchmakingServer.Queueing
             CancellationTokenSource cancellation = new(JoinTimeout);
             try
             {
+                player.State = PlayerState.Joining;
                 player.JoinAttempts.Add(DateTimeOffset.Now);
+                server.JoiningPlayerCount++;
 
+                JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort, server.LastServerInfo?.HostName ?? "");
+                
                 // notify client to join
-                var joinTriggeredSuccessfully = await _ctx.Clients.Client(player.ConnectionId)
-                    .NotifyJoin(server.GetActualIpAddress(), server.ServerPort, cancellation.Token);
+                bool joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
+                    .NotifyJoin(serverInfo, cancellation.Token);
 
                 if (joinTriggeredSuccessfully)
                 {
-                    player.State = PlayerState.Joining;
-                    server.JoiningPlayerCount++;
-
                     _logger.LogDebug("Player {player} triggered join to {server} successfully.", player, server);
                 }
                 else
@@ -154,7 +149,7 @@ namespace MatchmakingServer.Queueing
                     DequeuePlayer(player, PlayerState.Connected, DequeueReason.JoinFailed, notifyPlayerDequeued: false);
                 }
             }
-            catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
+            catch (HubException) when (cancellation.IsCancellationRequested)
             {
                 // timeout
                 _logger.LogDebug("Timed out while waiting for player {player} to join", player);
@@ -264,23 +259,6 @@ namespace MatchmakingServer.Queueing
             }
         }
 
-        private async Task<IGameServerInfoService<GameServer>> SelectServerInfoServiceFor(GameServer server, CancellationToken cancellationToken)
-        {
-            IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(cancellationToken);
-            if (hmwServers.Contains((server.ServerIp, server.ServerPort)))
-            {
-                _logger.LogTrace("Selecting TCP server info service for {server}", server);
-
-                // hmw server
-                return _tcpGameServerCommunicationService;
-            }
-
-            _logger.LogTrace("Selecting UDP server info service for {server}", server);
-
-            // normal server
-            return _udpGameServerCommunicationService;
-        }
-
         private async Task<bool> FetchGameServerInfoAsync(GameServer server, CancellationToken cancellationToken)
         {
             CancellationTokenSource timeoutCts = new CancellationTokenSource(10000);
@@ -290,10 +268,8 @@ namespace MatchmakingServer.Queueing
             try
             {
                 _logger.LogTrace("Requesting game server info for {server}...", server);
-
-
-                IGameServerInfoService<GameServer> service = await SelectServerInfoServiceFor(server, cancellationToken);
-                GameServerInfo? gameServerInfo =  await service.GetInfoAsync(server, linkedCancellation.Token);
+                
+                GameServerInfo? gameServerInfo =  await _gameServerCommunicationService.GetInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {
                     // could not send request
@@ -374,7 +350,7 @@ namespace MatchmakingServer.Queueing
                 }
 
                 // now do the actual check for joining
-                await HandlePlayerJoinsAsync(server, cancellationToken);
+                HandlePlayerJoins(server, cancellationToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -457,7 +433,7 @@ namespace MatchmakingServer.Queueing
             }
         }
 
-        private async Task HandlePlayerJoinsAsync(GameServer server, CancellationToken cancellationToken)
+        private void HandlePlayerJoins(GameServer server, CancellationToken cancellationToken)
         {
             if (server.LastServerInfo is null)
             {
@@ -484,7 +460,7 @@ namespace MatchmakingServer.Queueing
             {
                 if (player.State is PlayerState.Queued && joinedPlayers < nonReservedFreeSlots)
                 {
-                    await TryJoinPlayer(player, server);
+                    _ = TryJoinPlayer(player, server);
                     joinedPlayers++;
                 }
                 else
@@ -741,37 +717,43 @@ namespace MatchmakingServer.Queueing
 
             _logger.LogDebug("Player {player} queued on {server}", player, server);
 
-            await NotifyPlayerQueuePositions(server);
+            Task notifyQueuedTask = NotifyPlayerQueued(player, new JoinServerInfo(server.ServerIp, server.ServerPort, server.ServerName));
+            Task notifyPositionTask = NotifyPlayerQueuePositions(server);
+
+            await notifyQueuedTask;
+            await notifyPositionTask;
 
             return true;
         }
 
-        public Task<bool> JoinQueue(string serverIp, int serverPort, Player player, string instanceId)
+        public Task<bool> JoinQueue(JoinServerInfo serverInfo, Player player)
         {
             if (player.State is PlayerState.Queued or PlayerState.Joining)
             {
                 _logger.LogWarning("Cannot join queue for {serverIp}:{serverPort}, player {player} already queued",
-                    serverIp, serverPort, player);
+                    serverInfo.Ip, serverInfo.Port, player);
                 return Task.FromResult(false);
             }
 
-            GameServer server = _serverStore.GetOrAddServer(serverIp, serverPort, instanceId);
+            GameServer server = _serverStore.GetOrAddServer(serverInfo.Ip, serverInfo.Port, serverInfo.ServerName);
 
             return JoinQueue(server, player);
         }
 
-        public void LeaveQueue(Player player, bool disconnected = false)
+        public void LeaveQueue(Player player, DequeueReason reason)
         {
+            _logger.LogDebug("Trying to dequeue {player} for reason {reason}", player, reason);
+
             DequeuePlayer(player,
-                disconnected ? PlayerState.Disconnected : PlayerState.Connected,
-                disconnected ? DequeueReason.UserLeave : DequeueReason.Disconnect);
+                reason is DequeueReason.Disconnect ? PlayerState.Disconnected : PlayerState.Connected,
+                reason);
         }
 
         private void DequeuePlayer(Player player, PlayerState newState, DequeueReason reason, bool notifyPlayerDequeued = true)
         {
             if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
             {
-                _logger.LogDebug("Cannot dequeue {player}: not in queue", player);
+                _logger.LogTrace("Cannot dequeue {player} to {newState}", player, newState);
                 return;
             }
 
@@ -814,7 +796,7 @@ namespace MatchmakingServer.Queueing
             {
                 try
                 {
-                    await _ctx.Clients.Client(player.ConnectionId).QueuePositionChanged(++queuePosition, queueLength);
+                    await _ctx.Clients.Client(player.QueueingHubId!).OnQueuePositionChanged(++queuePosition, queueLength);
                 }
                 catch (Exception ex)
                 {
@@ -823,11 +805,24 @@ namespace MatchmakingServer.Queueing
             }
         }
 
+        private async Task NotifyPlayerQueued(Player player, JoinServerInfo serverInfo)
+        {
+            try
+            {
+                await _ctx.Clients.Client(player.QueueingHubId!).OnAddedToQueue(serverInfo).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to notify player joined queue. {player}", player);
+            }
+            
+        }
+
         private async Task NotifyPlayerDequeued(Player player, DequeueReason reason)
         {
             try
             {
-                await _ctx.Clients.Client(player.ConnectionId).RemovedFromQueue(reason).ConfigureAwait(false);
+                await _ctx.Clients.Client(player.QueueingHubId!).OnRemovedFromQueue(reason).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

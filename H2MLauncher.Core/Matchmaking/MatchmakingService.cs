@@ -1,83 +1,48 @@
 ﻿using H2MLauncher.Core.Game;
-using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Utilities.SignalR;
 
 using Microsoft.AspNetCore.SignalR.Client;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
+using TypedSignalR.Client;
+
 namespace H2MLauncher.Core.Matchmaking;
 
-public sealed class MatchmakingService : IAsyncDisposable
+public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 {
-    private readonly HubConnection _connection;
-
-    private readonly H2MCommunicationService _h2MCommunicationService;
-    private readonly IGameCommunicationService _gameCommunicationService;
-    private readonly IGameDetectionService _gameDetectionService;
-    private readonly IPlayerNameProvider _playerNameProvider;
-    private readonly CachedServerDataService _serverDataService;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerInfoService;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _udpGameServerInfoService;
-    private readonly IMasterServerService _hmwMasterServerService;
-    private readonly IErrorHandlingService _errorHandlingService;
-    private readonly IMapsProvider _mapsProvider;
-
-    private readonly IOptionsMonitor<H2MLauncherSettings> _options;
     private readonly ILogger<MatchmakingService> _logger;
-
-    private record QueuedServer(string Ip, int Port)
-    {
-        public bool HasSeenConnecting { get; set; }
-
-        public string? PrivatePassword { get; set; }
-    }
-
-    private QueuedServer? _queuedServer = null;
-    private readonly Dictionary<ServerConnectionDetails, string> _privatePasswords = [];
-
-    public int SearchAttempts { get; private set; }
-    public int QueuePosition { get; private set; }
-    public int TotalPlayersInQueue { get; private set; }
-
-    private PlayerState _state = PlayerState.Disconnected;
-    public PlayerState State
-    {
-        get => _state;
-        set
-        {
-            if (_state == value)
-            {
-                return;
-            }
-
-            _logger.LogTrace("Set queueing state to {queueingState}", value);
-
-            PlayerState oldState = _state;
-            _state = value;
-
-            OnQueueingStateChanged(oldState, value);
-        }
-    }
+    private readonly IGameServerInfoService<ServerConnectionDetails> _gameServerInfoService;
+    private readonly IMapsProvider _mapsProvider;
+    private readonly IGameDetectionService _gameDetectionService;
+    private readonly IGameCommunicationService _gameCommunicationService;
+    private readonly IPlaylistService _playlistService;
+    private readonly IOptionsMonitor<H2MLauncherSettings> _options;
+    private readonly OnlineServiceManager _onlineServiceManager;
 
     private MatchmakingPreferences? _matchmakingPreferences = null;
-    private MatchSearchCriteria? _currentMatchSearchCriteria = null;
+    private MatchmakingMetadata _currentMetadata = default;
+
+    /// <summary>
+    /// Gets the currently applied match search criteria.
+    /// </summary>
     public MatchSearchCriteria? MatchSearchCriteria
     {
-        get => _currentMatchSearchCriteria;
-        set
+        get => _currentMetadata.SearchPreferences;
+        private set
         {
-            if (EqualityComparer<MatchSearchCriteria>.Default.Equals(_currentMatchSearchCriteria, value))
+            if (EqualityComparer<MatchSearchCriteria>.Default.Equals(_currentMetadata.SearchPreferences, value))
             {
                 return;
             }
 
-            MatchSearchCriteria? oldValue = _currentMatchSearchCriteria;
-            _currentMatchSearchCriteria = value;
+            MatchSearchCriteria? oldValue = _currentMetadata.SearchPreferences;
+            _currentMetadata = _currentMetadata with { SearchPreferences = value };
 
             if (value is not null)
             {
@@ -86,128 +51,296 @@ public sealed class MatchmakingService : IAsyncDisposable
         }
     }
 
-    public Playlist? Playlist { get; private set; }
+    /// <summary>
+    /// Gets the number of search passes since entering matchmaking.
+    /// </summary>
+    public int SearchAttempts { get; private set; }
 
-    public DateTimeOffset MatchSearchStarted { get; private set; }
+    /// <summary>
+    /// Gets the playlist currently searching a match in.
+    /// </summary>
+    public Playlist? Playlist => _currentMetadata.Playlist;
 
-    public bool IsConnected => _connection.State is HubConnectionState.Connected;
-    public bool IsConnecting => _connection.State is HubConnectionState.Connecting;
+    /// <summary>
+    /// Gets the time when entered matchmaking.
+    /// </summary>
+    public DateTimeOffset MatchSearchStartTime => _currentMetadata.JoinTime;
 
-    public event Action<PlayerState, PlayerState>? QueueingStateChanged;
-    public event Action<int, int>? QueuePositionChanged;
-    public event Action<ServerConnectionDetails>? Joining;
-    public event Action<ServerConnectionDetails>? Joined;
-    public event Action<ServerConnectionDetails>? JoinFailed;
+    public bool IsActiveSearcher => _currentMetadata.IsActiveSearcher;
+
+
     public event Action<(string hostname, SearchMatchResult match)>? MatchFound;
-    public event Action<MatchmakingError>? MatchmakingError;
+    public event Action<MatchmakingError>? RemovedFromMatchmaking;
     public event Action<IEnumerable<SearchMatchResult>>? Matches;
     public event Action<MatchSearchCriteria>? MatchSearchCriteriaChanged;
-    public event Action? ConnectionStateChanged;
 
     public MatchmakingService(
+        OnlineServiceManager onlineServiceManager,
         ILogger<MatchmakingService> logger,
-        H2MCommunicationService h2MCommunicationService,
-        IGameCommunicationService gameCommunicationService,
-        IOptions<MatchmakingSettings> matchmakingSettings,
-        IOptionsMonitor<H2MLauncherSettings> options,
-        IPlayerNameProvider playerNameProvider,
+        IGameServerInfoService<ServerConnectionDetails> gameServerInfoService,
         IMapsProvider mapsProvider,
-        CachedServerDataService serverDataService,
-        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerInfoService,
-        [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerInfoService,
-        [FromKeyedServices("HMW")] IMasterServerService hmwMasterServerService,
-        IErrorHandlingService errorHandlingService,
-        IGameDetectionService gameDetectionService)
+        IGameDetectionService gameDetectionService,
+        IGameCommunicationService gameCommunicationService,
+        IPlaylistService playlistService,
+        IOptionsMonitor<H2MLauncherSettings> options,
+        HubConnection connection) : base(connection)
     {
         _logger = logger;
-        _options = options;
-        _gameCommunicationService = gameCommunicationService;
-        _playerNameProvider = playerNameProvider;
+        _gameServerInfoService = gameServerInfoService;
         _mapsProvider = mapsProvider;
-
-        _connection = new HubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.QueueingHubUrl)
-            .Build();
-
-        _connection.On<string, int, bool>("NotifyJoin", OnNotifyJoin);
-        _connection.On<int, int>("QueuePositionChanged", OnQueuePositionChanged);
-        _connection.On<DequeueReason>("RemovedFromQueue", OnRemovedFromQueue);
-        _connection.On<IEnumerable<SearchMatchResult>>("SearchMatchUpdate", OnSearchMatchUpdate);
-        _connection.On<string, SearchMatchResult>("MatchFound", OnMatchFound);
-        _connection.On<MatchmakingError>("RemovedFromMatchmaking", OnRemovedFromMatchmaking);
-
-        _connection.Closed += Connection_Closed;
-
-        _h2MCommunicationService = h2MCommunicationService;
-        _serverDataService = serverDataService;
-        _tcpGameServerInfoService = tcpGameServerInfoService;
-        _udpGameServerInfoService = udpGameServerInfoService;
-        _hmwMasterServerService = hmwMasterServerService;
         _gameDetectionService = gameDetectionService;
-        _errorHandlingService = errorHandlingService;
+        _gameCommunicationService = gameCommunicationService;
+        _playlistService = playlistService;
+        _options = options;
+        _onlineServiceManager = onlineServiceManager;
 
-        gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
-        gameCommunicationService.Stopped += GameCommunicationService_Stopped;
+        connection.Register<IMatchmakingClient>(this);
     }
 
-    private void OnQueueingStateChanged(PlayerState oldState, PlayerState newState)
+    protected override IMatchmakingHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
     {
-        if (newState is PlayerState.Disconnected or PlayerState.Joined or PlayerState.Connected)
+        return hubConnection.CreateHubProxy<IMatchmakingHub>(hubCancellationToken);
+    }
+
+    protected override Task OnConnectionClosed(Exception? exception)
+    {
+        _currentMetadata = default;
+        SearchAttempts = 0;
+        MatchSearchCriteria = null;
+
+        return base.OnConnectionClosed(exception);
+    }
+
+    #region RPC handlers
+
+    Task IMatchmakingClient.OnMatchmakingEntered(MatchmakingMetadata metadata)
+    {
+        _logger.LogDebug("OnMatchmakingEntered(): Received matchmaking metadata {@matchmakingMetadata}", metadata);
+        _currentMetadata = metadata;
+        _onlineServiceManager.State = PlayerState.Matchmaking;
+
+        if (metadata.SearchPreferences is not null)
         {
-            _queuedServer = null;
-            _privatePasswords.Clear();
+            MatchSearchCriteriaChanged?.Invoke(metadata.SearchPreferences);
         }
 
-        QueueingStateChanged?.Invoke(oldState, newState);
+        return Task.CompletedTask;
     }
 
-
-    #region RPC Handlers
-    private async Task<bool> OnNotifyJoin(string ip, int port)
+    Task IMatchmakingClient.OnMetadataUpdate(MatchmakingMetadata metadata)
     {
-        _logger.LogInformation("Received 'NotifyJoin' with {ip} and {port}", ip, port);
+        _logger.LogDebug("OnMetadataUpdate(): Received matchmaking metadata {@matchmakingMetadata}", metadata);
+        _currentMetadata = metadata;
 
-        _queuedServer = new QueuedServer(ip, port);
-
-        Joining?.Invoke((ip, port));
-
-        if (await _h2MCommunicationService.JoinServer(ip, port.ToString(), _privatePasswords.GetValueOrDefault(new(ip, port))))
+        if (metadata.SearchPreferences is not null)
         {
-            State = PlayerState.Joining;
+            MatchSearchCriteriaChanged?.Invoke(metadata.SearchPreferences);
+        }
+
+        return Task.CompletedTask;
+    }
+
+    async Task IMatchmakingClient.OnSearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults)
+    {
+        _logger.LogInformation("Received match search results: {n}", searchMatchResults.Count());
+
+        Matches?.Invoke(searchMatchResults);
+
+        if (MatchSearchCriteria is null || _onlineServiceManager.State is not PlayerState.Matchmaking)
+        {
+            return;
+        }
+
+        if (!_currentMetadata.IsActiveSearcher)
+        {
+            // only passive, dont participate in the matchmaking algorithm
+            return;
+        }
+
+        try
+        {
+            // adjust the search criteria based on the possible matches
+            bool adjustPing = AdjustSearchCriteria(searchMatchResults);
+
+            // ping all servers and send updated data
+            List<ServerConnectionDetails> serverConnectionDetails = searchMatchResults
+                .Select(matchResult => new ServerConnectionDetails(matchResult.ServerIp, matchResult.ServerPort))
+                .ToList();
+
+            List<ServerPing> serverPings = await PingServersAndFilter(serverConnectionDetails);
+
+            _logger.LogDebug("Found {n}/{total} potential servers with ping <= {maxPing} ms",
+                serverPings.Count(x => x.Ping <= MatchSearchCriteria.MaxPing), serverPings.Count, MatchSearchCriteria.MaxPing);
+
+            if (adjustPing && MatchSearchCriteria.MaxPing > 0 &&
+                serverPings.Count > 0 &&
+                serverPings.All(p => p.Ping > MatchSearchCriteria.MaxPing))
+            {
+                // adjusting ping
+                MatchSearchCriteria = MatchSearchCriteria with
+                {
+                    MaxPing = (int)(serverPings.Min(p => p.Ping) + 5)
+                };
+            }
+
+            if (await Hub.UpdateSearchSession(MatchSearchCriteria, serverPings))
+            {
+                _logger.LogDebug("Updated search session: {@searchCriteria}", MatchSearchCriteria);
+            }
+            else
+            {
+                _logger.LogWarning("Could not update search session");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during matchmaking");
+        }
+    }
+
+    Task IMatchmakingClient.OnMatchFound(string hostName, SearchMatchResult matchResult)
+    {
+        _logger.LogInformation("Received match found result: {matchResult}", matchResult);
+
+        MatchFound?.Invoke((hostName, matchResult));
+
+        return Task.CompletedTask;
+    }
+
+    Task IMatchmakingClient.OnRemovedFromMatchmaking(MatchmakingError reason)
+    {
+        _logger.LogInformation("Removed from matchmaking. Reason: {reason}", reason);
+
+        _onlineServiceManager.State = PlayerState.Connected;
+        _currentMetadata = default;
+
+        RemovedFromMatchmaking?.Invoke(reason);
+
+        return Task.CompletedTask;
+    }
+
+    #endregion
+
+
+    public async Task<bool> EnterMatchmakingAsync(MatchmakingPreferences? searchPreferences = null)
+    {
+        try
+        {
+            Playlist? playlist = await _playlistService.GetDefaultPlaylist(CancellationToken.None);
+            if (playlist is null)
+            {
+                return false;
+            }
+
+            return await EnterMatchmakingAsync(playlist, searchPreferences).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while getting default playlist");
+            return false;
+        }
+    }
+
+    public async Task<bool> EnterMatchmakingAsync(Playlist playlist, MatchmakingPreferences? searchPreferences = null)
+    {
+        try
+        {
+#if DEBUG == false
+            if (!_options.CurrentValue.ServerQueueing ||
+                !_options.CurrentValue.GameMemoryCommunication ||
+                !_gameDetectionService.IsGameDetectionRunning ||
+                !_gameCommunicationService.IsGameCommunicationRunning)
+            {
+                return false;
+            }
+#endif
+
+            if (_onlineServiceManager.State is PlayerState.Queued or PlayerState.Joining or PlayerState.Matchmaking)
+            {
+                return false;
+            }
+
+            if (playlist.Servers is null || playlist.Servers.Count == 0)
+            {
+                return false;
+            }
+
+            _logger.LogDebug("Entering matchmaking...");
+
+            await StartConnection();
+
+            _matchmakingPreferences = searchPreferences ??= new MatchmakingPreferences()
+            {
+                SearchCriteria = new MatchSearchCriteria()
+                {
+                    MaxPing = 300,
+                    MinPlayers = 6,
+                }
+            };
+
+            MatchmakingPreferences pref = _matchmakingPreferences;
+            MatchSearchCriteria sc = _matchmakingPreferences.SearchCriteria;
+            MatchSearchCriteria initialSearchCriteria = new()
+            {
+                MinPlayers = Math.Max(sc.MinPlayers, 6),
+                MaxPing = GetMinWhenDefault(sc.MaxPing, 28),
+                MaxScore = pref.TryFreshGamesFirst ? GetMinWhenDefault(sc.MaxScore, 2000) : sc.MaxScore,
+                MaxPlayersOnServer = pref.TryFreshGamesFirst ? 0 : sc.MaxPlayersOnServer
+            };
+
+            SearchAttempts = 0;
+
+            bool success = await Hub.SearchMatch(initialSearchCriteria, playlist.Id);
+            if (!success)
+            {
+                _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}'", playlist.Id);
+                return false;
+            }
+
+            _currentMetadata = new()
+            {
+                IsActiveSearcher = true,
+                JoinTime = DateTime.Now,
+                Playlist = playlist,
+                SearchPreferences = initialSearchCriteria
+            };
+
+            _onlineServiceManager.State = PlayerState.Matchmaking;
+
+            MatchSearchCriteriaChanged?.Invoke(_currentMetadata.SearchPreferences);
+
+            _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}'", playlist.Id);
+
             return true;
         }
-
-        _logger.LogDebug("Could not join server, setting queueing state back to 'Connected'");
-        State = PlayerState.Connected;
-
-        JoinFailed?.Invoke((ip, port));
-        return false;
-    }
-
-    private void OnQueuePositionChanged(int position, int totalPlayersInQueue)
-    {
-        _logger.LogInformation("Received update queue position {queuePosition}/{queueLength}", position, totalPlayersInQueue);
-
-        QueuePosition = position;
-        TotalPlayersInQueue = totalPlayersInQueue;
-        State = PlayerState.Queued;
-
-        QueuePositionChanged?.Invoke(position, totalPlayersInQueue);
-    }
-
-    private void OnRemovedFromQueue(DequeueReason reason)
-    {
-        State = PlayerState.Connected;
-
-        _logger.LogInformation("Removed from queue. Reason: {reason}", reason);
-
-        if (reason is DequeueReason.Unknown)
+        catch (Exception ex)
         {
-            _errorHandlingService.HandleError("Removed from queue due to unknown reason.");
+            _logger.LogError(ex, "Error while entering matchmaking");
+            return false;
         }
-        else if (reason is DequeueReason.MaxJoinAttemptsReached)
+    }
+
+    public async Task LeaveQueueAsync()
+    {
+        try
         {
-            _errorHandlingService.HandleError("Removed from queue: Max join attempts reached.");
+            if (Connection.State is HubConnectionState.Connected)
+            {
+                _logger.LogDebug("Leaving server queue...");
+
+                await Hub.LeaveQueue();
+
+                _onlineServiceManager.State = PlayerState.Connected;
+                _currentMetadata = default;
+                MatchSearchCriteria = null;
+                SearchAttempts = 0;
+
+                _logger.LogInformation("Server queue left.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while leaving server queue");
         }
     }
 
@@ -258,376 +391,20 @@ public sealed class MatchmakingService : IAsyncDisposable
         return true;
     }
 
-    private async Task OnSearchMatchUpdate(IEnumerable<SearchMatchResult> searchMatchResults)
-    {
-        _logger.LogInformation("Received match search results: {n}", searchMatchResults.Count());
-
-        Matches?.Invoke(searchMatchResults);
-
-        if (MatchSearchCriteria is null || State is not PlayerState.Matchmaking)
-        {
-            return;
-        }
-
-        try
-        {
-            // adjust the search criteria based on the possible matches
-            bool adjustPing = AdjustSearchCriteria(searchMatchResults);
-
-            // ping all servers and send updated data
-            List<ServerConnectionDetails> serverConnectionDetails = searchMatchResults
-                .Select(matchResult => new ServerConnectionDetails(matchResult.ServerIp, matchResult.ServerPort))
-                .ToList();
-
-            List<ServerPing> serverPings = await PingServersAndFilter(serverConnectionDetails);
-
-            _logger.LogDebug("Found {n}/{total} potential servers with ping <= {maxPing} ms",
-                serverPings.Count(x => x.Ping <= MatchSearchCriteria.MaxPing), serverPings.Count, MatchSearchCriteria.MaxPing);
-
-            if (adjustPing && MatchSearchCriteria.MaxPing > 0 && 
-                serverPings.Count > 0 && 
-                serverPings.All(p => p.Ping > MatchSearchCriteria.MaxPing))
-            {
-                // adjusting ping
-                MatchSearchCriteria = MatchSearchCriteria with
-                {
-                    MaxPing = (int)(serverPings.Min(p => p.Ping) + 5)
-                };
-            }
-
-            if (await _connection.InvokeAsync<bool>("UpdateSearchSession", MatchSearchCriteria, serverPings))
-            {
-                _logger.LogDebug("Updated search session: {@searchCriteria}", MatchSearchCriteria);
-            }
-            else
-            {
-                _logger.LogWarning("Could not update search session");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during matchmaking");
-        }
-    }
-
     private async Task<List<ServerPing>> PingServersAndFilter(IReadOnlyList<ServerConnectionDetails> servers)
     {
         _logger.LogDebug("Pinging {n} servers...", servers.Count);
 
-        IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMasterServerService.GetServersAsync(CancellationToken.None);
-        var tcpResponses = await _tcpGameServerInfoService.GetInfoAsync(servers.Where(hmwServers.Contains), requestTimeoutInMs: 3000);
-        var udpResponses = await _udpGameServerInfoService.GetInfoAsync(servers.Where(s => !hmwServers.Contains(s)), requestTimeoutInMs: 3000);
+        var responses = await _gameServerInfoService.GetInfoAsync(servers, requestTimeoutInMs: 3000);
 
-        return await tcpResponses
-            .Concat(udpResponses)
+        return await responses
             .Where(res => res.info is not null && _mapsProvider.InstalledMaps.Contains(res.info.MapName)) // filter out servers with missing maps
             .Select(res => new ServerPing(res.server.Ip, res.server.Port, (uint)res.info!.Ping))
             .ToListAsync();
     }
 
-    private void OnMatchFound(string hostName, SearchMatchResult matchResult)
-    {
-        _logger.LogInformation("Received match found result: {matchResult}", matchResult);
-
-        MatchFound?.Invoke((hostName, matchResult));
-    }
-
-    private void OnRemovedFromMatchmaking(MatchmakingError reason)
-    {
-        State = PlayerState.Connected;
-        _logger.LogInformation("Removed from matchmaking. Reason: {reason}", reason);
-        MatchmakingError?.Invoke(reason);
-    }
-
-    #endregion
-
-    private async void GameCommunicationService_GameStateChanged(GameState gameState)
-    {
-        if (State is not (PlayerState.Joining or PlayerState.Queued))
-        {
-            // ignore events when not in queue
-            return;
-        }
-
-        if (gameState.IsConnected && gameState.Endpoint is not null)
-        {
-            // we are connected to something, check whether it has to do with us
-            QueuedServer? queuedServer = GetQueuedServer(gameState);
-            if (queuedServer is null)
-            {
-                // nope
-                return;
-            }
-
-            _logger.LogDebug("Game connected to {ip}, sending join ack...", queuedServer.Ip);
-
-            // send join confirmation to server
-            await AcknowledgeJoin(true);
-
-            // we are now joined :)
-            State = PlayerState.Joined;
-            Joined?.Invoke((queuedServer.Ip, queuedServer.Port));
-        }
-        else if (gameState.IsInMainMenu && _queuedServer?.HasSeenConnecting == true)
-        {
-            // something went wrong with joining, we have been connection and now are in the main menu again :(
-
-            if (State is PlayerState.Joining)
-            {
-                // we were joining, so that's probably the queued server.
-                // tell server we could not join, maybe the server got full in the meantime
-                // (only if we were actually joining from the queue, not force joining.
-                // Otherwise, we want to stay in the queue because the failed join attempt doesn't count)
-                _logger.LogInformation("Could not join server, sending failed join ack...");
-                await AcknowledgeJoin(false);
-
-                State = PlayerState.Queued;
-            }
-
-            // notify others that a join failed
-            JoinFailed?.Invoke((_queuedServer.Ip, _queuedServer.Port));
-        }
-        else if (gameState.IsConnecting && !gameState.IsPrivateMatch)
-        {
-            // connecting to something public
-            QueuedServer? queuedServer = GetQueuedServer(gameState);
-            if (queuedServer is not null)
-            {
-                // set this flag so we dont recognize a previous server connected to as the current server
-                queuedServer.HasSeenConnecting = true;
-            }
-        }
-    }
-
-    private async void GameCommunicationService_Stopped(Exception? obj)
-    {
-        if (State is PlayerState.Joining or PlayerState.Queued or PlayerState.Matchmaking)
-        {
-            await LeaveQueueAsync();
-        }
-    }
-
-    private QueuedServer? GetQueuedServer(GameState gameState)
-    {
-        if (gameState.Endpoint is null)
-        {
-            // game state has no connected endpoint
-            return null;
-        }
-
-        // (unfortunately we cannot use port because the game gives us the local UDP port)
-        string gameStateIp = gameState.Endpoint.Address.GetRealAddress().ToString();
-        if (_queuedServer?.Ip == gameStateIp)
-        {
-            // ip matches the queued server
-            return _queuedServer;
-        }
-
-        return null;
-    }
-
-    private Task Connection_Closed(Exception? arg)
-    {
-        State = PlayerState.Disconnected;
-        ConnectionStateChanged?.Invoke();
-
-        return Task.CompletedTask;
-    }
-
-    public async Task StartConnection(CancellationToken cancellationToken = default)
-    {
-        Task startConnectionTask = _connection.StartAsync(cancellationToken);
-        try
-        {
-            ConnectionStateChanged?.Invoke();
-            await startConnectionTask;
-            State = PlayerState.Connected;
-        }
-        finally
-        {
-            ConnectionStateChanged?.Invoke();
-        }
-    }
-
-    public async Task AcknowledgeJoin(bool joinSuccessful)
-    {
-        try
-        {
-            await _connection.SendAsync("JoinAck", joinSuccessful).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while sending join ack");
-        }
-    }
-
-    public async Task<bool> JoinQueueAsync(IServerConnectionDetails server, string? privatePassword)
-    {
-        try
-        {
-            if (!_options.CurrentValue.ServerQueueing || 
-                !_options.CurrentValue.GameMemoryCommunication || 
-                !_gameDetectionService.IsGameDetectionRunning)
-            {
-                return false;
-            }
-
-            _logger.LogDebug("Joining server queue...");
-            if (_connection.State is HubConnectionState.Disconnected)
-            {
-                await StartConnection();
-            }
-
-            string playerName = _playerNameProvider.PlayerName;
-
-            bool joinedSuccesfully = await _connection.InvokeAsync<bool>("JoinQueue", server.Ip, server.Port, "", playerName);
-            if (!joinedSuccesfully)
-            {
-                _logger.LogDebug("Could not join queue as '{playerName}' for {serverIp}:{serverPort}",
-                    playerName, server.Ip, server.Port);
-                return false;
-            }
-
-            _logger.LogInformation("Joined server queue as '{playerName}' for {serverIp}:{serverPort}",
-                playerName, server.Ip, server.Port);
-
-            if (privatePassword is not null)
-            {
-                _privatePasswords[new ServerConnectionDetails(server.Ip, server.Port)] = privatePassword;
-            };
-
-            _queuedServer = new QueuedServer(server.Ip, server.Port);
-            State = PlayerState.Queued;
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while joining server queue");
-            return false;
-        }
-    }
-
-    public async Task LeaveQueueAsync()
-    {
-        try
-        {
-            if (_connection.State is HubConnectionState.Connected)
-            {
-                await _connection.SendAsync("LeaveQueue");
-                State = PlayerState.Connected;
-                Playlist = null;
-                MatchSearchCriteria = null;
-                SearchAttempts = 0;
-                _logger.LogInformation("Server queue left.");
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while leaving server queue");
-        }
-    }
-
-    public async Task<bool> EnterMatchmakingAsync(MatchmakingPreferences? searchPreferences = null)
-    {
-        try
-        {
-            Playlist? playlist = await _serverDataService.GetDefaultPlaylist(CancellationToken.None);
-            if (playlist is null)
-            {
-                return false;
-            }
-
-            return await EnterMatchmakingAsync(playlist, searchPreferences).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while getting default playlist");
-            return false;
-        }
-    }
-
     private static int GetMinWhenDefault(int valueMaybeDefault, int value2, int defaultValue = -1)
     {
         return valueMaybeDefault == defaultValue ? value2 : Math.Min(valueMaybeDefault, value2);
-    }
-
-    public async Task<bool> EnterMatchmakingAsync(Playlist playlist, MatchmakingPreferences? searchPreferences = null)
-    {
-        try
-        {
-            if (!_options.CurrentValue.ServerQueueing ||
-                !_options.CurrentValue.GameMemoryCommunication ||
-                !_gameDetectionService.IsGameDetectionRunning ||
-                !_gameCommunicationService.IsGameCommunicationRunning)
-            {
-                return false;
-            }
-
-            if (State is PlayerState.Queued or PlayerState.Joining or PlayerState.Matchmaking)
-            {
-                return false;
-            }
-
-            if (playlist.Servers is null || playlist.Servers.Count == 0)
-            {
-                return false;
-            }
-
-            _logger.LogDebug("Entering matchmaking...");
-
-            if (_connection.State is HubConnectionState.Disconnected)
-            {
-                await StartConnection();
-            }
-
-            _matchmakingPreferences = searchPreferences ??= new MatchmakingPreferences()
-            {
-                SearchCriteria = new MatchSearchCriteria()
-                {
-                    MaxPing = 300,
-                    MinPlayers = 6,
-                }
-            };
-
-            MatchmakingPreferences pref = _matchmakingPreferences;
-            MatchSearchCriteria sc = _matchmakingPreferences.SearchCriteria;
-            MatchSearchCriteria initialSearchCriteria = new()
-            {
-                MinPlayers = Math.Max(sc.MinPlayers, 6),
-                MaxPing = GetMinWhenDefault(sc.MaxPing, 28),
-                MaxScore = pref.TryFreshGamesFirst ? GetMinWhenDefault(sc.MaxScore, 2000) : sc.MaxScore,
-                MaxPlayersOnServer = pref.TryFreshGamesFirst ? 0 : sc.MaxPlayersOnServer
-            };
-
-            SearchAttempts = 0;
-            Playlist = playlist;
-            MatchSearchCriteria = initialSearchCriteria;
-            string playerName = _playerNameProvider.PlayerName;
-
-            bool success = await _connection.InvokeAsync<bool>("SearchMatch", playerName, initialSearchCriteria, playlist.Servers);
-            if (!success)
-            {
-                _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}' as '{playerName}'", playlist.Id, playerName);
-                return false;
-            }
-
-            State = PlayerState.Matchmaking;
-            _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}' as '{playerName}' for ", playlist.Id, playerName);
-
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while entering matchmaking");
-            return false;
-        }
-    }
-
-    public ValueTask DisposeAsync()
-    {
-        _gameCommunicationService.GameStateChanged -= GameCommunicationService_GameStateChanged;
-        _connection.Closed -= Connection_Closed;
-        return _connection.DisposeAsync();
     }
 }
