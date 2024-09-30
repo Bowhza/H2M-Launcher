@@ -25,7 +25,7 @@ namespace H2MLauncher.Core.Services
 
         // IMPORTANT: Set this to the same pre-release label used in GitHub
         // (appended like '-beta') or empty when this is a normal release!
-        public static readonly string CurrentPreReleaseLabel = "";
+        public static readonly string CurrentPreReleaseLabel = "beta";
         public static string CurrentVersion
         {
             get
