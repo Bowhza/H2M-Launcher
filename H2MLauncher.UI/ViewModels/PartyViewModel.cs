@@ -22,9 +22,26 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private bool _isSelf;
 
-        public required string Id { get; init; }
+        public string Id { get; init; }
 
-        public required IAsyncRelayCommand KickCommand { get; init; }
+        public IAsyncRelayCommand KickCommand { get; }
+        public IAsyncRelayCommand PromoteLeaderCommand { get; }
+
+        public PartyMemberViewModel(PartyPlayerInfo member, PartyClient partyClient)
+        {
+            Id = member.Id;
+            Name = member.Name;
+            IsLeader = member.IsLeader;
+            IsSelf = partyClient.IsSelf(member);
+
+            KickCommand = new AsyncRelayCommand(
+                () => partyClient.KickMember(Id),
+                () => partyClient.IsPartyLeader && !IsSelf);
+
+            PromoteLeaderCommand = new AsyncRelayCommand(
+                () => partyClient.PromoteLeader(Id),
+                () => partyClient.IsPartyLeader && !IsSelf);
+        }
     }
 
     public sealed partial class PartyViewModel : ObservableObject, IDisposable
@@ -84,6 +101,7 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserChanged += PartyService_UserChanged;
             _partyClient.UserJoined += PartyService_UserJoined;
             _partyClient.UserLeft += PartyService_UserLeft;
+            _partyClient.LeaderChanged += PartyClient_LeaderChanged;
             _partyClient.ConnectionChanged += PartyService_ConnectionChanged;
         }
 
@@ -109,12 +127,12 @@ namespace H2MLauncher.UI.ViewModels
 
         private void PartyService_PartyClosed()
         {
-            _dialogService.OpenTextDialog("Party", "Party was closed!");
+            Application.Current.Dispatcher.InvokeAsync(() => _dialogService.OpenTextDialog("Party", "Party was closed!"));
         }
 
         private void PartyService_KickedFromParty()
         {
-            _dialogService.OpenTextDialog("Party", "You were kicked from the party!");
+            Application.Current.Dispatcher.Invoke(() => _dialogService.OpenTextDialog("Party", "You were kicked from the party!"));
         }
 
         private void PartyService_UserJoined(PartyPlayerInfo member)
@@ -152,6 +170,27 @@ namespace H2MLauncher.UI.ViewModels
                 {
                     memberViewModel.Name = member.Name;
                     memberViewModel.IsLeader = member.IsLeader;
+                    memberViewModel.IsSelf = _partyClient.IsSelf(member);
+                }
+            });
+        }
+
+        private void PartyClient_LeaderChanged(PartyPlayerInfo? oldLeader, PartyPlayerInfo newLeader)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (oldLeader is not null)
+                {
+                    PartyService_UserChanged(oldLeader);
+                }
+
+                PartyService_UserChanged(newLeader);
+                OnPropertyChanged(nameof(IsPartyLeader));
+
+                foreach (PartyMemberViewModel memberViewModel in Members)
+                {
+                    memberViewModel.KickCommand.NotifyCanExecuteChanged();
+                    memberViewModel.PromoteLeaderCommand.NotifyCanExecuteChanged();
                 }
             });
         }
@@ -233,23 +272,9 @@ namespace H2MLauncher.UI.ViewModels
             return _partyClient.LeaveParty();
         }
 
-        public Task KickPlayer(string id)
-        {
-            return _partyClient.KickMember(id);
-        }
-
         private void AddMember(PartyPlayerInfo member)
         {
-            PartyMemberViewModel memberViewModel = new()
-            {
-                Id = member.Id,
-                Name = member.Name,
-                IsLeader = member.IsLeader,
-                IsSelf = _partyClient.IsSelf(member),
-                KickCommand = new AsyncRelayCommand(
-                        () => KickPlayer(member.Id),
-                        () => _partyClient.IsPartyLeader && !_partyClient.IsSelf(member))
-            };
+            PartyMemberViewModel memberViewModel = new(member, _partyClient);
 
             if (memberViewModel.IsSelf)
             {
@@ -272,6 +297,7 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserChanged -= PartyService_UserChanged;
             _partyClient.UserJoined -= PartyService_UserJoined;
             _partyClient.UserLeft -= PartyService_UserLeft;
+            _partyClient.LeaderChanged -= PartyClient_LeaderChanged;
             _partyClient.ConnectionChanged -= PartyService_ConnectionChanged;
         }
     }

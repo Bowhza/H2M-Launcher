@@ -16,4 +16,6 @@ public interface IPartyHub
     Task UpdatePlayerName(string newName);
 
     Task<bool> KickPlayer(string id);
+
+    Task<bool> PromoteLeader(string id);
 }

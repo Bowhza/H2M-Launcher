@@ -42,7 +42,8 @@ namespace MatchmakingServer.Parties
         {
             if (_contextMap.TryGetValue(party, out PartyQueueingContext? context) &&
                 context.QueuedPlayers.Contains(oldLeader) &&
-                context.MatchmakingTicket is not null)
+                context.MatchmakingTicket is not null && 
+                !context.MatchmakingTicket.IsComplete)
             {
                 // change the active searcher to the new leader
                 _matchmakingService.UpdateTicketMetadata(context.MatchmakingTicket, new() { ActiveSearcher = newLeader });

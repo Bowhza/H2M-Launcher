@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.CodeAnalysis;
+﻿using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
@@ -45,6 +46,7 @@ namespace H2MLauncher.Core.Party
         public event Action? KickedFromParty;
         public event Action? PartyClosed;
         public event Action? PartyChanged;
+        public event Action<PartyPlayerInfo?, PartyPlayerInfo>? LeaderChanged;
         public event Action<PartyPlayerInfo>? UserJoined;
         public event Action<PartyPlayerInfo>? UserLeft;
         public event Action<PartyPlayerInfo>? UserChanged;
@@ -84,16 +86,9 @@ namespace H2MLauncher.Core.Party
 
                 if (IsPartyActive)
                 {
-                    int selfIndex = _currentParty.Members.FindIndex(m => m.Id == _clientId);
-                    if (selfIndex != -1)
+                    PartyPlayerInfo? newSelf = UpdateMember(_clientId, (self) => self with { Name = newName });
+                    if (newSelf is not null)
                     {
-                        PartyPlayerInfo self = _currentParty.Members[selfIndex];
-                        PartyPlayerInfo newSelf = self with
-                        {
-                            Name = newName
-                        };
-
-                        _currentParty.Members[selfIndex] = newSelf;
                         UserChanged?.Invoke(newSelf);
                     }
                 }
@@ -144,7 +139,7 @@ namespace H2MLauncher.Core.Party
         {
             await _joinCreateLock.WaitAsync();
             try
-            {                
+            {
                 if (!await StartConnection())
                 {
                     return null;
@@ -260,7 +255,7 @@ namespace H2MLauncher.Core.Party
 
         public async Task KickMember(string id)
         {
-            if (_currentParty is null)
+            if (_currentParty is null || !_isPartyLeader)
             {
                 return;
             }
@@ -279,6 +274,27 @@ namespace H2MLauncher.Core.Party
             // no update needed, OnUserLeftParty() will handle this
 
             _logger.LogInformation("Player {userId} was kicked from the party", id);
+        }
+
+        public async Task PromoteLeader(string id)
+        {
+            if (_currentParty is null || !_isPartyLeader)
+            {
+                return;
+            }
+
+            if (!await StartConnection())
+            {
+                return;
+            }
+
+            if (!await Hub.PromoteLeader(id))
+            {
+                _logger.LogDebug("Could not promote {userId} to leader", id);
+                return;
+            }
+
+            // no update needed, OnLeaderChanged() will handle this
         }
 
         public bool IsSelf(PartyPlayerInfo member)
@@ -387,6 +403,37 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
+        Task IPartyClient.OnLeaderChanged(string oldLeaderId, string newLeaderId)
+        {
+            _logger.LogDebug("Party leader changed ({oldLeaderId} -> {newLeaderId}", oldLeaderId, newLeaderId);
+
+            if (_currentParty is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            PartyPlayerInfo? newLeader = UpdateMember(newLeaderId, (member) => member with
+            {
+                IsLeader = true
+            });
+
+            if (newLeader is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            _isPartyLeader = IsSelf(newLeader);
+
+            PartyPlayerInfo? oldLeader = UpdateMember(oldLeaderId, (member) => member with
+            {
+                IsLeader = false
+            });
+
+            LeaderChanged?.Invoke(oldLeader, newLeader);
+
+            return Task.CompletedTask;
+        }
+
         Task IPartyClient.OnUserNameChanged(string id, string newPlayerName)
         {
             if (_currentParty is null)
@@ -405,13 +452,14 @@ namespace H2MLauncher.Core.Party
             }
 
             PartyPlayerInfo member = _currentParty.Members[memberIndex];
-
-            _currentParty.Members[memberIndex] = member with
+            PartyPlayerInfo updatedMember = member with
             {
                 Name = newPlayerName
             };
 
-            UserChanged?.Invoke(_currentParty.Members[memberIndex]);
+            _currentParty.Members[memberIndex] = updatedMember;
+
+            UserChanged?.Invoke(updatedMember);
 
             _logger.LogDebug("Party member {userId} changed name from {oldName} to {newName}", id, member.Name, newPlayerName);
 
@@ -419,6 +467,25 @@ namespace H2MLauncher.Core.Party
         }
 
         #endregion
+
+        private PartyPlayerInfo? UpdateMember(string id, Func<PartyPlayerInfo, PartyPlayerInfo> updateFunc)
+        {
+            ArgumentNullException.ThrowIfNull(_currentParty);
+
+            int memberIndex = _currentParty.Members.FindIndex(m => m.Id == id);
+            if (memberIndex == -1)
+            {
+                _logger.LogWarning("Cannot find party member with id {userId}", id);
+                return null;
+            }
+
+            PartyPlayerInfo member = _currentParty.Members[memberIndex];
+            PartyPlayerInfo updatedMember = updateFunc(member);
+
+            _currentParty.Members[memberIndex] = updatedMember;
+
+            return updatedMember;
+        }
 
         public Task OnClosed(Exception? exception)
         {
