@@ -27,6 +27,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
+          token: ${{ secrets.ACTIONS_TOKEN }}
           ref: ${{ env.BRANCH }} # Don't use the github.ref branch which correspond to the tag, because we will edit the env.BRANCH.
           fetch-depth: 0 # Get the tags
 
