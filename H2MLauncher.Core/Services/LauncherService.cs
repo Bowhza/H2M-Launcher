@@ -21,11 +21,11 @@ namespace H2MLauncher.Core.Services
 
 
         // IMPORTANT: Set this to the same branch name the tag is created on in GitHub
-        public static readonly string CurrentBranch = "main";
+        public static readonly string CurrentBranch = "Bowhza-patch-2";
 
         // IMPORTANT: Set this to the same pre-release label used in GitHub
         // (appended like '-beta') or empty when this is a normal release!
-        public static readonly string CurrentPreReleaseLabel = "beta";
+        public static readonly string CurrentPreReleaseLabel = "";
         public static string CurrentVersion
         {
             get
