@@ -18,7 +18,7 @@ namespace MatchmakingServer.Parties
 
         private readonly ConcurrentDictionary<string, Party> _parties = [];
 
-        public IReadOnlyCollection<IParty> Parties => new ReadOnlyCollectionWrapper<Party>(_parties.Values.ToList());
+        public IReadOnlyCollection<IParty> Parties => new ReadOnlyCollectionWrapper<Party>(_parties.Values);
 
         public event Action<Party>? PartyClosed;
         public event Action<Party, Player>? PlayerRemovedFromParty;
