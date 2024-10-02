@@ -1,5 +1,6 @@
-﻿using System.Security.Claims;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
+
+using FluentValidation;
 
 using Flurl;
 
@@ -11,17 +12,13 @@ using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
-using MatchmakingServer.Authentication;
-using MatchmakingServer.Authentication.Player;
+using MatchmakingServer.Api;
+using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.BearerToken;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
-using Microsoft.OpenApi.Models;
 
 using Serilog;
 
@@ -92,49 +89,10 @@ builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "MatchmakingServer", Version = "v1" });
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-    OpenApiSecurityScheme apiKeyScheme = new()
-    {
-        Reference = new OpenApiReference
-        {
-            Type = ReferenceType.SecurityScheme,
-            Id = ApiKeyDefaults.AuthenticationScheme,
-        },
-        In = ParameterLocation.Header,
-        Name = ApiKeyDefaults.RequestHeaderKey,
-        Type = SecuritySchemeType.ApiKey,
-    };
-
-    c.AddSecurityDefinition(ApiKeyDefaults.AuthenticationScheme, apiKeyScheme);
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement() {
-      {
-          apiKeyScheme, []
-      }
-    });
-});
-
-builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
-                .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, (options) =>
-                {
-                    options.ApiKey = builder.Configuration.GetValue<string>("ApiKey");
-                    options.ForwardDefaultSelector = context =>
-                    {
-                        Endpoint? endpoint = context.GetEndpoint();
-
-                        // Only forward the authentication if the endpoint has the [Authorize] attribute
-                        bool requiresAuth = endpoint?.Metadata?.GetMetadata<AuthorizeAttribute>() is not null;
-
-                        return requiresAuth ? ApiKeyDefaults.AuthenticationScheme : null;
-                    };
-                });
-
-builder.Services.AddAuthentication(BearerTokenDefaults.AuthenticationScheme)
-        .AddScheme<AuthenticationSchemeOptions, ClientAuthenticationHandler>("client", null)
-        .AddBearerToken();
+builder.AddSwagger();
+builder.AddAuthentication();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -154,66 +112,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseSerilogRequestLogging(options =>
-{
-    options.MessageTemplate = "HTTP {RequestMethod} {RequestPath} responded {StatusCode} in {Elapsed:0.0000} ms ({ClientAppName}/{ClientAppVersion})";
-    options.EnrichDiagnosticContext = (diagnosticContext, httpContext) =>
-    {
-        if (httpContext.Request.Headers.TryGetValue("X-App-Name", out var appNameValues) && appNameValues.Count != 0)
-        {
-            diagnosticContext.Set("ClientAppName", appNameValues.FirstOrDefault());
-        }
-        else
-        {
-            diagnosticContext.Set("ClientAppName", "Unknown");
-        }
-
-        if (httpContext.Request.Headers.TryGetValue("X-App-Version", out var appVersionValues) && appVersionValues.Count != 0)
-        {
-            diagnosticContext.Set("ClientAppVersion", appVersionValues.FirstOrDefault());
-        }
-        else
-        {
-            diagnosticContext.Set("ClientAppVersion", "?");
-        }
-    };
-});
-
+app.UseRequestLogging();
 app.UseAuthentication();
+
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-app.MapHub<QueueingHub>("/Queue");
-app.MapHub<PartyHub>("/Party");
-
-app.MapGet("/login", (string uid, string playerName) =>
-{
-    var claimsPrincipal = new ClaimsPrincipal(
-      new ClaimsIdentity(
-        [new Claim(ClaimTypes.Name, playerName),
-         new Claim(ClaimTypes.NameIdentifier, uid)],
-        BearerTokenDefaults.AuthenticationScheme
-      )
-    );
-
-    return Results.SignIn(claimsPrincipal);
-});
-
-app.MapGet("/stats", (PlayerStore playerStore, ServerStore serverStore, PartyService partyService, Matchmaker matchmaker) =>
-{
-    return new
-    {
-        ConnectedPlayers = playerStore.NumConnectedPlayers,
-        TotalPlayersSeen = playerStore.NumPlayersSeen,
-        TotalPlayersSeenToday = playerStore.NumPlayersSeenToday,
-        QueuedServers = serverStore.Servers.Where(s => s.Value.ProcessingState is QueueProcessingState.Running).Count(),
-        QueuedPlayers = serverStore.Servers.Values.Sum(s => s.PlayerQueue.Count),
-        MatchmakingTickets = matchmaker.Tickets.Count,
-        MatchmakingPlayers = matchmaker.Tickets.Sum(t => t.Players.Count),
-        MatchmakingServers = matchmaker.QueuedServers.Count,
-        Parties = partyService.Parties.Count,
-        PartyMembers = partyService.Parties.Sum(p => p.Members.Count)
-    };
-});
+app.MapHubs();
+app.MapEndpoints();
 
 app.Run();

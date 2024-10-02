@@ -1,4 +1,4 @@
-﻿namespace MatchmakingServer
+﻿namespace MatchmakingServer.Matchmaking.Models
 {
     public record struct MMMatch(GameServer Server, double MatchQuality, List<MMTicket> SelectedTickets)
     {

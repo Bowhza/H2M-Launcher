@@ -3,6 +3,8 @@
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 
+using MatchmakingServer.Matchmaking;
+using MatchmakingServer.Matchmaking.Models;
 using MatchmakingServer.Queueing;
 
 using Microsoft.Extensions.Options;

@@ -1,7 +1,7 @@
 ﻿using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 
-namespace MatchmakingServer
+namespace MatchmakingServer.Matchmaking.Models
 {
     public sealed class MMTicket : IMMTicket
     {
