@@ -2,6 +2,9 @@ using FluentAssertions;
 
 using H2MLauncher.Core.Matchmaking.Models;
 
+using MatchmakingServer.Matchmaking;
+using MatchmakingServer.Matchmaking.Models;
+
 namespace MatchmakingServer.Tests
 {
     public class MatchmakerTests

@@ -1,4 +1,6 @@
-﻿namespace MatchmakingServer.Parties
+﻿using MatchmakingServer.Matchmaking.Models;
+
+namespace MatchmakingServer.Parties
 {
     public sealed class PartyQueueingContext
     {

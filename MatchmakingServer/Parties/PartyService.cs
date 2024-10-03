@@ -17,7 +17,8 @@ namespace MatchmakingServer.Parties
         private readonly IHubContext<PartyHub, IPartyClient> _hubContext;
 
         private readonly ConcurrentDictionary<string, Party> _parties = [];
-        private readonly SemaphoreSlim _semaphore = new(1, 1);
+
+        public IReadOnlyCollection<IParty> Parties => new ReadOnlyCollectionWrapper<Party>(_parties.Values);
 
         public event Action<Party>? PartyClosed;
         public event Action<Party, Player>? PlayerRemovedFromParty;

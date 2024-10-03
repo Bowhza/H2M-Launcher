@@ -4,6 +4,7 @@ using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 
+using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
 

@@ -8,10 +8,15 @@ public class PlayerStore
     private readonly Dictionary<string, PlayerConnectionInfo> _connectedPlayers = [];
     private readonly SemaphoreSlim _semaphore = new(1, 1);
 
-    private readonly struct PlayerConnectionInfo(string userId, Player player)
-    {
-        public string UserId { get; } = userId;
+    // Maps user id to last connection time
+    private readonly Dictionary<string, DateTimeOffset> _lastConnections = [];
 
+    public int NumConnectedPlayers => _connectedPlayers.Count;
+    public int NumPlayersSeen => _lastConnections.Count;
+    public int NumPlayersSeenToday => _lastConnections.Values.Where(time => time.DayOfYear == DateTimeOffset.Now.DayOfYear).Count();
+
+    private readonly struct PlayerConnectionInfo(Player player)
+    {
         public Player Player { get; } = player;
 
         public HashSet<string> Connections { get; } = [];
@@ -25,6 +30,7 @@ public class PlayerStore
             if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo connectionInfo))
             {
                 connectionInfo.Connections.Add(connectionId);
+                _lastConnections[userId] = DateTimeOffset.Now;
                 return connectionInfo.Player;
             }
 
@@ -35,10 +41,11 @@ public class PlayerStore
                 State = PlayerState.Connected
             };
 
-            connectionInfo = new(userId, player);
+            connectionInfo = new(player);
             connectionInfo.Connections.Add(connectionId);
 
             _connectedPlayers.TryAdd(userId, connectionInfo);
+            _lastConnections[userId] = DateTimeOffset.Now;
 
             return player;
         }
@@ -66,6 +73,19 @@ public class PlayerStore
             }
 
             return connectionInfo.Player;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task<IList<Player>> GetAllPlayers()
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            return _connectedPlayers.Values.Select(connectionInfo => connectionInfo.Player).ToList();
         }
         finally
         {

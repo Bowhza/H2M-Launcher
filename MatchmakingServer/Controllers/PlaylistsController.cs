@@ -5,6 +5,7 @@ using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
 
+using MatchmakingServer.Matchmaking;
 using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.Mvc;

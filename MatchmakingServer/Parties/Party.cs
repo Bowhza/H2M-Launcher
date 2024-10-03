@@ -2,7 +2,7 @@
 
 namespace MatchmakingServer.Parties;
 
-public class Party
+public class Party : IParty
 {
     private Player _leader;
     private readonly HashSet<Player> _members = [];
