@@ -641,10 +641,6 @@
         </Setter>
     </Style>
 
-    <!--<Style x:Key="HostNameRunStyle" TargetType="Run">
-        <Setter Property="FontFamily" Value="Consolas"/>
-    </Style>-->
-
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
     <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
     <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
