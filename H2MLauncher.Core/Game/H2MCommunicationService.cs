@@ -16,7 +16,14 @@ namespace H2MLauncher.Core.Game
 {
     public sealed class H2MCommunicationService : IDisposable
     {
-        private const string GAME_WINDOW_TITLE = "H2M-Mod";
+        // Exact names of the actual game window
+        private static readonly string[] GAME_WINDOW_TITLES = ["H2M-Mod", "HorizonMW"];
+
+        // Mod executable file names (to automatically find game file in directory)
+        private static readonly string[] GAME_EXECUTABLE_NAMES = ["hmw-mod.exe", "h2m-mod.exe", "h2m-revived.exe"];
+
+        // Strings to match game / mod window titles
+        private static readonly string[] H2M_WINDOW_TITLE_STRINGS = ["h2m-mod", "HorizonMW"];
 
         //Windows API constants
         private const int WM_CHAR = 0x0102; // Message code for sending a character
@@ -128,13 +135,17 @@ namespace H2MLauncher.Core.Game
 
         private bool TryFindValidGameFile(out string fileName)
         {
-            const string exeFileName = "h2m-mod.exe";
-
             if (string.IsNullOrEmpty(_h2mLauncherSettings.CurrentValue.MWRLocation))
             {
-                // no location set, try relative path
-                fileName = Path.GetFullPath(exeFileName);
-                return File.Exists(fileName);
+                foreach (string exeFileName in GAME_EXECUTABLE_NAMES)
+                {
+                    // no location set, try relative path
+                    fileName = Path.GetFullPath(exeFileName);
+                    if (File.Exists(fileName))
+                    {
+                        return true;
+                    }
+                }
             }
 
             string userDefinedLocation = Path.GetFullPath(_h2mLauncherSettings.CurrentValue.MWRLocation);
@@ -149,9 +160,14 @@ namespace H2MLauncher.Core.Game
             if (File.GetAttributes(userDefinedLocation).HasFlag(FileAttributes.Directory))
             {
                 // is a directory, get full file name
-                fileName = Path.Combine(userDefinedLocation, exeFileName);
-
-                return File.Exists(fileName);
+                foreach (string exeFileName in GAME_EXECUTABLE_NAMES)
+                {
+                    fileName = Path.Combine(userDefinedLocation, exeFileName);
+                    if (File.Exists(fileName))
+                    {
+                        return true;
+                    }
+                }
             }
 
             // is a file?
@@ -166,11 +182,9 @@ namespace H2MLauncher.Core.Game
             try
             {
                 // Check if the process is already running
-                Process? runningProcess = Process.GetProcessesByName("h2m-mod").FirstOrDefault();
-
-                if (runningProcess != null)
+                if (GameDetection.DetectedGame is not null)
                 {
-                    _errorHandlingService.HandleError("h2m-mod.exe is already running.");
+                    _errorHandlingService.HandleError($"{Path.GetFileName(GameDetection.DetectedGame.FileName)} is already running.");
                     return;
                 }
 
@@ -188,8 +202,8 @@ namespace H2MLauncher.Core.Game
                 else
                 {
                     _errorHandlingService.HandleException(
-                        new FileNotFoundException("h2m-mod.exe was not found."),
-                        $"The h2m-mod.exe could not be found at {gameFileName}!");
+                        new FileNotFoundException("H2M executable was not found."),
+                            $"The H2M executable could not be found at '{gameFileName}'!");
                 }
             }
             catch (Exception ex)
@@ -280,11 +294,11 @@ namespace H2MLauncher.Core.Game
             foreach (var handle in EnumerateWindowHandles())
             {
                 string? title = GetWindowTitle(handle);
-                if (title != null && title.Contains("h2m-mod", StringComparison.OrdinalIgnoreCase))
+                if (title != null && H2M_WINDOW_TITLE_STRINGS.Any(str => title.Contains(str, StringComparison.OrdinalIgnoreCase)))
                 {
                     GetWindowThreadProcessId(handle, out var processId);
 
-                    if (title == GAME_WINDOW_TITLE)
+                    if (GAME_WINDOW_TITLES.Contains(title))
                     {
                         continue;
                     }
@@ -306,7 +320,7 @@ namespace H2MLauncher.Core.Game
         {
             // find processes with matching title
             var processesWithTitle = Process.GetProcesses().Where(p =>
-                p.MainWindowTitle.Contains("h2m-mod", StringComparison.OrdinalIgnoreCase)).ToList();
+                H2M_WINDOW_TITLE_STRINGS.Any(str => p.MainWindowTitle.Contains(str, StringComparison.OrdinalIgnoreCase))).ToList();
 
             // find process that loaded H1 MP binary
             var gameProc = processesWithTitle.FirstOrDefault(p =>
@@ -317,7 +331,7 @@ namespace H2MLauncher.Core.Game
 
         private static bool IsH2MModProcess(Process p)
         {
-            return p.MainWindowTitle.Contains("h2m-mod", StringComparison.OrdinalIgnoreCase) &&
+            return H2M_WINDOW_TITLE_STRINGS.Any(str => p.MainWindowTitle.Contains(str, StringComparison.OrdinalIgnoreCase)) &&
                 p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals(Constants.GAME_EXECUTABLE_NAME));
         }
 
@@ -327,7 +341,7 @@ namespace H2MLauncher.Core.Game
             foreach (nint hChild in EnumerateProcessWindowHandles(process.Id))
             {
                 string? title = GetWindowTitle(hChild);
-                if (title != null && title.Equals(GAME_WINDOW_TITLE))
+                if (title != null && GAME_WINDOW_TITLES.Contains(title))
                 {
                     return hChild;
                 }
