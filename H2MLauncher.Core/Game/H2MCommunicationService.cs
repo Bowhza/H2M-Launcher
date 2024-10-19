@@ -341,7 +341,7 @@ namespace H2MLauncher.Core.Game
             foreach (nint hChild in EnumerateProcessWindowHandles(process.Id))
             {
                 string? title = GetWindowTitle(hChild);
-                if (title != null && title.Equals(GAME_WINDOW_TITLES))
+                if (title != null && GAME_WINDOW_TITLES.Contains(title))
                 {
                     return hChild;
                 }
