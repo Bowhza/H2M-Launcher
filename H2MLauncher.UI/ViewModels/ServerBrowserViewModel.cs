@@ -206,14 +206,14 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             throw new Exception("Could not add all servers tab");
         }
 
-        if (!TryAddNewTab("H2M Servers", out ServerTabViewModel? h2mServersTab))
-        {
-            throw new Exception("Could not add H2M servers tab");
-        }
-
         if (!TryAddNewTab("HMW Servers", out ServerTabViewModel? hmwServersTab))
         {
             throw new Exception("Could not add HMW servers tab");
+        }
+
+        if (!TryAddNewTab("H2M Servers", out ServerTabViewModel? h2mServersTab))
+        {
+            throw new Exception("Could not add H2M servers tab");
         }
 
         if (!TryAddNewTab("Favourites", out ServerTabViewModel? favouritesTab))
@@ -237,7 +237,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         HMWServersTab = hmwServersTab;
         FavouritesTab = favouritesTab;
 
-        SelectedTab = ServerTabs.First();
+        SelectedTab = HMWServersTab;
 
         foreach (IW4MObjectMap oMap in resourceSettings.Value.MapPacks.SelectMany(mappack => mappack.Maps))
         {
@@ -254,7 +254,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                if (!oldSettings.IW4MMasterServerUrl.Equals(newSettings.IW4MMasterServerUrl))
+                if (!oldSettings.IW4MMasterServerUrl.Equals(newSettings.IW4MMasterServerUrl) ||
+                    !oldSettings.HMWMasterServerUrl.Equals(newSettings.HMWMasterServerUrl))
                 {
                     // refresh servers when master server url changes
                     RefreshServersCommand.Execute(null);
