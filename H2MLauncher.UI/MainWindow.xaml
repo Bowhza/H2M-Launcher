@@ -243,7 +243,7 @@
                         <Separator Opacity="0" Width="5" />
                         <Button TabIndex="4" Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
                         <Separator Opacity="0" Width="5" />
-                        <Button TabIndex="5" Content="Launch H2M" Width="80" Command="{Binding LaunchH2MCommand}"/>
+                        <Button TabIndex="5" Content="Launch 🚀" Width="80" Command="{Binding LaunchH2MCommand}"/>
                     </StackPanel>
                 </Grid>
 

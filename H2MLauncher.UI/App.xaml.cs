@@ -57,9 +57,6 @@ namespace H2MLauncher.UI
 
             ServiceProvider = serviceCollection.BuildServiceProvider();
 
-            MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
-            mainWindow.Show();
-
             // save options on startup to update user file with new settings            
             ServiceProvider.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
             {
@@ -69,11 +66,17 @@ namespace H2MLauncher.UI
                     IW4MMasterServerUrl = string.IsNullOrEmpty(settings.IW4MMasterServerUrl)
                         ? _defaultSettings.IW4MMasterServerUrl
                         : settings.IW4MMasterServerUrl,
-                    HMWMasterServerUrl = string.IsNullOrEmpty(settings.HMWMasterServerUrl)
-                        ? _defaultSettings.HMWMasterServerUrl
-                        : settings.HMWMasterServerUrl,
+
+                    // always override with the default url because there is only one master (and no option to change in the UI)
+                    HMWMasterServerUrl = _defaultSettings.HMWMasterServerUrl,
                 };
             });
+
+            // NOTE: this is really stupid but necessary to have the latest urls we just set above available
+            config.Reload();
+
+            MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
 
             base.OnStartup(e);
         }

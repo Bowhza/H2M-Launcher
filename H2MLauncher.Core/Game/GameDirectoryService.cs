@@ -17,7 +17,7 @@ namespace H2MLauncher.Core.Services
 
         private const string CONFIG_MP_FILENAME = "config_mp.cfg";
         private const string PLAYERS2_DIR = "players2";
-        private const string USERMAPS_DIR = "h2m-usermaps";
+        private const string USERMAPS_DIR = "hmw-usermaps";
 
         private FileSystemWatcher? _fileSystemWatcher;
         private readonly IOptionsMonitor<H2MLauncherSettings> _optionsMonitor;
