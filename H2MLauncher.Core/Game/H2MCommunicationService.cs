@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -16,9 +17,6 @@ namespace H2MLauncher.Core.Game
 {
     public sealed class H2MCommunicationService : IDisposable
     {
-        // Exact names of the actual game window
-        private static readonly string[] GAME_WINDOW_TITLES = ["H2M-Mod", "HorizonMW"];
-
         // Mod executable file names (to automatically find game file in directory)
         private static readonly string[] GAME_EXECUTABLE_NAMES = ["hmw-mod.exe", "h2m-mod.exe", "h2m-revived.exe"];
 
@@ -96,6 +94,18 @@ namespace H2MLauncher.Core.Game
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern uint GetWindowThreadProcessId(nint hWnd, out uint processId);
+
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool AttachConsole(uint dwProcessId);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool FreeConsole();
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr GetConsoleWindow();
 
 
         private delegate bool EnumWindowsProc(nint hWnd, nint lParam);
@@ -238,8 +248,8 @@ namespace H2MLauncher.Core.Game
                 _errorHandlingService.HandleError("Could not find the h2m-mod terminal window.");
                 return false;
             }
-
-            nint conHostHandle = FindH2MConHostProcess();
+            
+            nint conHostHandle = GetConsoleHandle(h2mModProcess);
 
             // Grab the handle of conhost or main window
             nint hWindow = conHostHandle == nint.Zero ? h2mModProcess.MainWindowHandle : conHostHandle;
@@ -289,33 +299,6 @@ namespace H2MLauncher.Core.Game
             return FindH2MModGameWindow(GameDetection.DetectedGame.Process);
         }
 
-        private static nint FindH2MConHostProcess()
-        {
-            foreach (var handle in EnumerateWindowHandles())
-            {
-                string? title = GetWindowTitle(handle);
-                if (title != null && H2M_WINDOW_TITLE_STRINGS.Any(str => title.Contains(str, StringComparison.OrdinalIgnoreCase)))
-                {
-                    GetWindowThreadProcessId(handle, out var processId);
-
-                    if (GAME_WINDOW_TITLES.Contains(title))
-                    {
-                        continue;
-                    }
-
-                    var associatedProcess = Process.GetProcessById((int)processId);
-                    if (associatedProcess is not null && IsH2MModProcess(associatedProcess))
-                    {
-                        // This window has the correct process but is not the game window,
-                        // so we assume it's the conhost because Widows terminal has the 'WindowsTerminal.exe' process
-                        return handle;
-                    }
-                }
-            }
-
-            return nint.Zero;
-        }
-
         public static Process? FindH2MModProcess()
         {
             // find processes with matching title
@@ -335,14 +318,33 @@ namespace H2MLauncher.Core.Game
                 p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals(Constants.GAME_EXECUTABLE_NAME));
         }
 
+        private static nint GetConsoleHandle(Process process)
+        {
+            // Now, check if this window handle is the console window for that process.
+            // A reliable way is to try attaching to the console. If it succeeds, it's a console.
+            if (AttachConsole((uint)process.Id))
+            {
+                try
+                {
+                    return GetConsoleWindow();
+                }
+                finally
+                {
+                    FreeConsole(); // Detach immediately
+                }
+            }
+
+            return nint.Zero;
+        }
+
         private static nint FindH2MModGameWindow(Process process)
         {
-            // find game window (title is exactly "H2M-Mod")
+            // find game window
             foreach (nint hChild in EnumerateProcessWindowHandles(process.Id))
             {
-                string? title = GetWindowTitle(hChild);
-                if (title != null && GAME_WINDOW_TITLES.Contains(title))
+                if (GetConsoleHandle(process) != hChild)
                 {
+                    // if its not the console, its probably the game window
                     return hChild;
                 }
             }
