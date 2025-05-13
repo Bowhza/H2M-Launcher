@@ -96,6 +96,8 @@ namespace H2MLauncher.Core.Game
         private static extern uint GetWindowThreadProcessId(nint hWnd, out uint processId);
 
 
+        #region Console Stuff
+
         [DllImport("kernel32.dll", SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         private static extern bool AttachConsole(uint dwProcessId);
@@ -106,6 +108,43 @@ namespace H2MLauncher.Core.Game
 
         [DllImport("kernel32.dll", SetLastError = true)]
         private static extern IntPtr GetConsoleWindow();
+
+
+        // These are to send keys to the attached console
+
+        const int STD_INPUT_HANDLE = -10;
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern IntPtr GetStdHandle(int nStdHandle);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool WriteConsoleInput(
+            IntPtr hConsoleInput,
+            INPUT_RECORD[] lpBuffer,
+            uint nLength,
+            out uint lpNumberOfEventsWritten);
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct INPUT_RECORD
+        {
+            public short EventType;
+            public KEY_EVENT_RECORD KeyEvent;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct KEY_EVENT_RECORD
+        {
+            public bool bKeyDown;
+            public short wRepeatCount;
+            public short wVirtualKeyCode;
+            public short wVirtualScanCode;
+            public char UnicodeChar;
+            public int dwControlKeyState;
+        }
+
+        const short KEY_EVENT = 0x0001;
+
+        #endregion
 
 
         private delegate bool EnumWindowsProc(nint hWnd, nint lParam);
@@ -119,28 +158,6 @@ namespace H2MLauncher.Core.Game
                     (hWnd, lParam) => { handles.Add(hWnd); return true; }, nint.Zero);
 
             return handles;
-        }
-
-        private static IEnumerable<nint> EnumerateWindowHandles()
-        {
-            var handles = new List<nint>();
-
-            EnumWindows((hWnd, lParam) => { handles.Add(hWnd); return true; }, nint.Zero);
-
-            return handles;
-        }
-
-        private static string? GetWindowTitle(nint hWnd)
-        {
-            const int length = 256;
-            StringBuilder sb = new(length);
-
-            if (GetWindowText(hWnd, sb, length) > 0)
-            {
-                return sb.ToString();
-            }
-
-            return null;
         }
 
         private bool TryFindValidGameFile(out string fileName)
@@ -248,45 +265,89 @@ namespace H2MLauncher.Core.Game
                 _errorHandlingService.HandleError("Could not find the h2m-mod terminal window.");
                 return false;
             }
-            
-            nint conHostHandle = GetConsoleHandle(h2mModProcess);
 
-            // Grab the handle of conhost or main window
-            nint hWindow = conHostHandle == nint.Zero ? h2mModProcess.MainWindowHandle : conHostHandle;
-
-            ReleaseCapture();
-
-            // Open In Game Terminal Window
-            SendMessage(hWindow, WM_KEYDOWN, 192, nint.Zero);
-
-            foreach (string command in commands)
+            nint conHostHandle = GetConsoleHandle(h2mModProcess, freeConsole: false);
+            try
             {
-                // Send the command to the terminal window
-                foreach (char c in command)
+                ReleaseCapture();
+
+                foreach (string command in commands)
                 {
-                    SendMessage(hWindow, WM_CHAR, c, nint.Zero);
+                    if (WriteToConsoleInput(command + "\r"))
+                    {
+                        _logger.LogWarning("Could not write command {command} to console input", command);
+                    }
+
+                    // Sleep for 1ms to allow the command to be processed
                     await Task.Delay(1);
                 }
 
-                // Sleep for 1ms to allow the command to be processed
-                await Task.Delay(1);
+                if (bringGameWindowToForeground)
+                {
+                    // Set H2M to foreground window
+                    var hGameWindow = FindH2MModGameWindow(h2mModProcess);
+                    SetForegroundWindow(hGameWindow);
+                }
 
-                // Simulate pressing the Enter key
-                SendMessage(hWindow, WM_KEYDOWN, 13, nint.Zero);
-                SendMessage(hWindow, WM_KEYUP, 13, nint.Zero);
+                return true;
             }
-
-            // Close Terminal Window
-            SendMessage(hWindow, WM_KEYDOWN, 192, nint.Zero);
-
-            if (bringGameWindowToForeground)
+            finally
             {
-                // Set H2M to foreground window
-                var hGameWindow = FindH2MModGameWindow(h2mModProcess);
-                SetForegroundWindow(hGameWindow);
+                if (conHostHandle != nint.Zero)
+                {
+                    FreeConsole();
+                }
+            }
+        }
+
+        private static IEnumerable<INPUT_RECORD> CreateKeyPressInput(char character)
+        {
+            short keyCode = 0;
+            short scanCode = 0;
+
+            if (character == '\r')
+            {
+                keyCode = 0x0D;       // VK_RETURN
+                scanCode = 0x1C;      // Scan code for Enter
             }
 
-            return true;
+            // Key down
+            yield return new()
+            {
+                EventType = KEY_EVENT,
+                KeyEvent = new KEY_EVENT_RECORD
+                {
+                    bKeyDown = true,
+                    wRepeatCount = 1,
+                    wVirtualKeyCode = keyCode,
+                    wVirtualScanCode = scanCode,
+                    UnicodeChar = character,
+                    dwControlKeyState = 0
+                }
+            };
+
+            // Key up
+            yield return new()
+            {
+                EventType = KEY_EVENT,
+                KeyEvent = new KEY_EVENT_RECORD
+                {
+                    bKeyDown = false,
+                    wRepeatCount = 1,
+                    wVirtualKeyCode = keyCode,
+                    wVirtualScanCode = scanCode,
+                    UnicodeChar = character,
+                    dwControlKeyState = 0
+                }
+            };
+        }
+
+        private static bool WriteToConsoleInput(string str)
+        {
+            IntPtr hInput = GetStdHandle(STD_INPUT_HANDLE);
+            var inputBuffer = str.SelectMany(CreateKeyPressInput).ToArray();
+
+            return WriteConsoleInput(hInput, inputBuffer, (uint)inputBuffer.Length, out _);
         }
 
         public nint GetGameWindowHandle()
@@ -318,7 +379,7 @@ namespace H2MLauncher.Core.Game
                 p.Modules.OfType<ProcessModule>().Any(m => m.ModuleName.Equals(Constants.GAME_EXECUTABLE_NAME));
         }
 
-        private static nint GetConsoleHandle(Process process)
+        private static nint GetConsoleHandle(Process process, bool freeConsole = true)
         {
             // Now, check if this window handle is the console window for that process.
             // A reliable way is to try attaching to the console. If it succeeds, it's a console.
@@ -330,7 +391,8 @@ namespace H2MLauncher.Core.Game
                 }
                 finally
                 {
-                    FreeConsole(); // Detach immediately
+                    if (freeConsole)
+                        FreeConsole(); // Detach immediately
                 }
             }
 
