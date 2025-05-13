@@ -29,6 +29,7 @@ namespace MatchmakingServer.SignalR
             // server does not have a queue yet, create new
             GameServer server = new()
             {
+                InstanceId = Guid.NewGuid().ToString(),
                 ServerIp = serverIp,
                 ServerPort = serverPort,
                 ServerName = serverName ?? "",
@@ -54,6 +55,7 @@ namespace MatchmakingServer.SignalR
                 // server does not have a queue yet, create new
                 GameServer server = new()
                 {
+                    InstanceId = Guid.NewGuid().ToString(),
                     ServerIp = serverIp,
                     ServerPort = serverPort,
                     ServerName = serverName ?? "",

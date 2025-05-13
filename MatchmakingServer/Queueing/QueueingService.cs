@@ -751,9 +751,9 @@ namespace MatchmakingServer.Queueing
 
         private void DequeuePlayer(Player player, PlayerState newState, DequeueReason reason, bool notifyPlayerDequeued = true)
         {
-            if (player.State is not (PlayerState.Queued or PlayerState.Joining) || player.Server is null)
+            if (player.Server is null)
             {
-                _logger.LogTrace("Cannot dequeue {player} to {newState}", player, newState);
+                _logger.LogTrace("Cannot dequeue {player} to {newState}: player not in queue", player, newState);
                 return;
             }
 
@@ -763,7 +763,7 @@ namespace MatchmakingServer.Queueing
             if (!player.Server.PlayerQueue.Remove(player))
             {
                 // invalid state, player expected in queue
-                _logger.LogWarning("Invalid state, expected player {player} with joining state to be in queue", player);
+                _logger.LogWarning("Invalid state, expected player {player} with state {state} to be in queue", player, player.State);
                 return;
             }
 
@@ -783,7 +783,10 @@ namespace MatchmakingServer.Queueing
                 return;
             }
 
-            _ = NotifyPlayerDequeued(player, reason);
+            if (player.State is not PlayerState.Disconnected)
+            {
+                _ = NotifyPlayerDequeued(player, reason);
+            }
         }
 
         private async Task NotifyPlayerQueuePositions(GameServer server)
@@ -794,6 +797,11 @@ namespace MatchmakingServer.Queueing
 
             foreach (Player player in server.PlayerQueue)
             {
+                if (player.State is PlayerState.Disconnected)
+                {
+                    _logger.LogWarning("Player {player} is already disconnected but still in queue", player);
+                }
+
                 try
                 {
                     await _ctx.Clients.Client(player.QueueingHubId!).OnQueuePositionChanged(++queuePosition, queueLength);

@@ -46,7 +46,7 @@ namespace MatchmakingServer
 
         public List<string> ActualPlayers { get; } = [];
 
-        public string InstanceId { get; } = "";
+        public string InstanceId { get; init; } = "";
 
         public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
 
