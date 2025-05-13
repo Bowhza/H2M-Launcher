@@ -25,6 +25,8 @@ namespace H2MLauncher.Core.Game
             _gameDirectoryService.UsermapsChanged += GameDirectoryService_UsermapsChanged;
             _gameDirectoryService.FastFileChanged += GameDirectoryService_FastFileChanged;
             _resourceSettings = resourceSettings;
+
+            UpdateInstalledMaps();
         }
 
         private void GameDirectoryService_FastFileChanged(string fileName, string mapName)
