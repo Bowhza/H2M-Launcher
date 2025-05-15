@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Generic;
+using System.Net;
 
 using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.IW4MAdmin.Models;
@@ -20,17 +21,13 @@ namespace H2MLauncher.Core.Services
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
         private readonly IEndpointResolver _endpointResolver = endpointResolver;
 
-        private readonly HashSet<ServerConnectionDetails> _servers = [];
-
         public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
         {
-            IReadOnlyList<IW4MServerInstance>? instances = null;
-
             IServiceScope scope = _serviceScopeFactory.CreateScope();
             try
             {
                 IIW4MAdminMasterService iw4mAdminMasterService = scope.ServiceProvider.GetRequiredService<IIW4MAdminMasterService>();
-                instances = await iw4mAdminMasterService.GetAllServerInstancesAsync(cancellationToken);
+                IReadOnlyList<IW4MServerInstance> instances = await iw4mAdminMasterService.GetAllServerInstancesAsync(cancellationToken);
 
                 if (instances is not null)
                 {
@@ -41,18 +38,15 @@ namespace H2MLauncher.Core.Services
                     IReadOnlyDictionary<IPEndPoint, IW4MServer> endpointMap = await _endpointResolver.CreateEndpointServerMap(
                         filteredServers, cancellationToken);
 
-                    IEnumerable<ServerConnectionDetails> ipv4Servers = endpointMap.Keys.Where(key =>
+                    HashSet<ServerConnectionDetails> ipv4Servers = endpointMap.Keys.Where(key =>
                                 key.AddressFamily is System.Net.Sockets.AddressFamily.InterNetwork ||
                                 key.Address.IsIPv4MappedToIPv6)
-                            .Select(ep => new ServerConnectionDetails(ep.Address.GetRealAddress().ToString(), ep.Port));
+                            .Select(ep => new ServerConnectionDetails(ep.Address.GetRealAddress().ToString(), ep.Port))
+                            .ToHashSet();
 
-                    _servers.Clear();
-                    foreach (ServerConnectionDetails server in ipv4Servers)
-                    {
-                        _servers.Add(server);
-                    }
+                    Cache.Set(CacheKey, ipv4Servers, TimeSpan.FromMinutes(5));
 
-                    Cache.Set(CacheKey, _servers, TimeSpan.FromMinutes(5));
+                    return ipv4Servers;
                 }
             }
             catch (Exception ex)
@@ -64,7 +58,7 @@ namespace H2MLauncher.Core.Services
                 scope.Dispose();
             }
 
-            return _servers;
+            return Cache.Get<IReadOnlySet<ServerConnectionDetails>>(CacheKey) ?? new HashSet<ServerConnectionDetails>();
         }
     }
 }
