@@ -14,6 +14,7 @@ services:
     volumes:
       - ./MatchmakingServer/appsettings.json:/app/appsettings.json
       - ${LOG_DIR:-./logs}:/app/logs
+      - ./MatchmakingServer/Data/:/app/Data/
     healthcheck:
       test: curl --silent --fail http://localhost:9000/health || exit 1
       interval: 15s

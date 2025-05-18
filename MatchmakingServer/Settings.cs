@@ -1,5 +1,6 @@
-﻿using H2MLauncher.Core.Matchmaking.Models;
-using H2MLauncher.Core.Models;
+﻿using H2MLauncher.Core.Models;
+
+using MatchmakingServer.Playlists;
 
 namespace MatchmakingServer;
 
@@ -14,7 +15,7 @@ public record ServerSettings
 {
     public List<ServerData> ServerDataList { get; init; } = [];
 
-    public List<Playlist> Playlists { get; init; } = [];
+    public List<PlaylistDbo> Playlists { get; init; } = [];
 
     public int PlayerCountCacheExpirationInS { get; init; } = 120;
 }

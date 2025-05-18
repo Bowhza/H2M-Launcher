@@ -5,6 +5,7 @@ using H2MLauncher.Core.Models;
 
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Matchmaking.Models;
+using MatchmakingServer.Playlists;
 using MatchmakingServer.Queueing;
 
 using Microsoft.Extensions.Options;
@@ -124,7 +125,7 @@ namespace MatchmakingServer.Parties
 
         public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, string playlistId)
         {
-            Playlist? playlist = _serverSettings.CurrentValue.Playlists.FirstOrDefault(p => p.Id.Equals(playlistId, StringComparison.OrdinalIgnoreCase));
+            PlaylistDbo? playlist = _serverSettings.CurrentValue.Playlists.FirstOrDefault(p => p.Id.Equals(playlistId, StringComparison.OrdinalIgnoreCase));
             if (playlist?.Servers is null)
             {
                 return false;
@@ -133,7 +134,7 @@ namespace MatchmakingServer.Parties
             return EnterMatchmaking(player, searchPreferences, playlist.Servers, playlist);
         }
 
-        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> preferredServers, Playlist? playlist = null)
+        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> preferredServers, PlaylistDbo? playlist = null)
         {
             // select players for the ticket
             HashSet<Player> players = GetEligiblePartyMembers(player);

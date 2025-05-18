@@ -1,13 +1,14 @@
-﻿using System.Diagnostics;
-
-using H2MLauncher.Core.Matchmaking.Models;
+﻿using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Networking.GameServer.HMW;
 using H2MLauncher.Core.Services;
 
+using MatchmakingServer.Authentication;
 using MatchmakingServer.Matchmaking;
+using MatchmakingServer.Playlists;
+using MatchmakingServer.Playlists.Dtos;
 using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
@@ -29,6 +30,8 @@ namespace MatchmakingServer.Controllers
         private readonly IGameServerInfoService<GameServer> _tcpGameServerCommunicationService;
         private readonly ILogger<PlaylistsController> _logger;
 
+        private readonly PlaylistStore _playlistStore;
+
         public PlaylistsController(
             IOptionsMonitor<ServerSettings> serverSettings,
             IWebHostEnvironment env,
@@ -37,7 +40,8 @@ namespace MatchmakingServer.Controllers
             IMemoryCache memoryCache,
             [FromKeyedServices("UDP")] IGameServerInfoService<GameServer> udpGameServerCommunicationService,
             [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tcpGameServerCommunicationService,
-            ILogger<PlaylistsController> logger)
+            ILogger<PlaylistsController> logger,
+            PlaylistStore playlistStore)
         {
             _serverSettings = serverSettings;
             _env = env;
@@ -47,12 +51,13 @@ namespace MatchmakingServer.Controllers
             _udpGameServerCommunicationService = udpGameServerCommunicationService;
             _tcpGameServerCommunicationService = tcpGameServerCommunicationService;
             _logger = logger;
+            _playlistStore = playlistStore;
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetPlaylistById(string id)
         {
-            Playlist? playlist = _serverSettings.CurrentValue.Playlists.FirstOrDefault(p => p.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
+            PlaylistDbo? playlist = await _playlistStore.GetPlaylist(id);
             if (playlist is null)
             {
                 return NotFound();
@@ -61,10 +66,51 @@ namespace MatchmakingServer.Controllers
             if (playlist.Servers is not null)
             {
                 int playerCount = await GetPlayerCountAsync(playlist);
-                return Ok(playlist with { CurrentPlayerCount = playerCount });
+                return Ok(playlist.ToPlaylistDto(playerCount));
             }
 
-            return Ok(playlist);
+            return Ok(playlist.ToPlaylistDto());
+        }
+
+        [HttpGet("{id}/servers")]
+        public async Task<IActionResult> GetPlaylistServersById(string id)
+        {
+            PlaylistDbo? playlist = await _playlistStore.GetPlaylist(id);
+            if (playlist is null)
+            {
+                return NotFound();
+            }
+
+            if (playlist.Servers is null)
+            {
+                return NoContent();
+            }
+
+            List<GameServer> serversToRequest = [];
+            foreach (ServerConnectionDetails connDetails in playlist.Servers)
+            {
+                GameServer server = _serverStore.GetOrAddServer(connDetails.Ip, connDetails.Port);
+
+                if (server.LastServerInfo is null ||
+                    DateTime.Now - server.LastSuccessfulPingTimestamp >= TimeSpan.FromMinutes(1))
+                {
+                    serversToRequest.Add(server);
+                }
+            }
+
+            await RefreshServerInfo(serversToRequest, CancellationToken.None);
+
+            return Ok(serversToRequest.Select(s =>
+            {
+                return new
+                {
+                    Address = $"{s.ServerIp}:{s.ServerPort}",
+                    s.LastServerInfo?.HostName,
+                    s.LastServerInfo?.Ping,
+                    s.LastServerInfo?.RealPlayerCount,
+                    s.LastServerInfo?.MaxClients,
+                };
+            }));
         }
 
         [HttpGet]
@@ -73,17 +119,17 @@ namespace MatchmakingServer.Controllers
             List<Playlist> result = [];
             List<Task> tasks = [];
 
-            foreach (Playlist playlist in _serverSettings.CurrentValue.Playlists)
+            foreach (PlaylistDbo playlist in await _playlistStore.GetAllPlaylists())
             {
                 tasks.Add(GetPlayerCountAsync(playlist).ContinueWith(t =>
                 {
                     if (t.IsCompletedSuccessfully)
                     {
-                        result.Add(playlist with { CurrentPlayerCount = t.Result });
+                        result.Add(playlist.ToPlaylistDto(playerCount: t.Result));
                     }
                     else
                     {
-                        result.Add(playlist);
+                        result.Add(playlist.ToPlaylistDto());
                     }
                 }));
             }
@@ -95,7 +141,7 @@ namespace MatchmakingServer.Controllers
             return Ok(result);
         }
 
-        private async Task<int> GetPlayerCountAsync(Playlist playlist)
+        private async Task<int> GetPlayerCountAsync(PlaylistDbo playlist)
         {
             try
             {
@@ -130,7 +176,7 @@ namespace MatchmakingServer.Controllers
                         }
 
                         // players in matchmaking
-                       playerCount += _matchmakingService.GetPlayersInServer(server).Count;
+                        playerCount += _matchmakingService.GetPlayersInServer(server).Count;
                     }
 
                     _logger.LogDebug("Requesting game server info for {numServers}", serverToRequest.Count);
@@ -174,6 +220,68 @@ namespace MatchmakingServer.Controllers
                 _logger.LogError(ex, "Error while getting player count for playlist {playlistId}", playlist.Id);
                 return -1;
             }
+        }
+
+        private async Task<List<GameServer>> RefreshServerInfo(IReadOnlyList<GameServer> servers, CancellationToken cancellationToken)
+        {
+            List<GameServer> respondingServers = new(servers.Count);
+            _logger.LogTrace("Requesting server info for {numServers} servers...", servers.Count);
+            try
+            {
+                // Request server info for all servers part of matchmaking rn
+                Task getInfoCompleted = await _tcpGameServerCommunicationService.SendGetInfoAsync(servers, (e) =>
+                {
+                    e.Server.LastServerInfo = e.ServerInfo;
+                    e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+
+                    respondingServers.Add(e.Server);
+                }, timeoutInMs: 2000, cancellationToken: cancellationToken);
+
+                // Wait for all to complete / time out
+                await getInfoCompleted;
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // expected timeout
+                return respondingServers;
+            }
+
+            _logger.LogDebug("Server info received from {numServers}", respondingServers.Count);
+
+            return respondingServers;
+        }
+
+
+        [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpsertPlaylist(string id, CreatePlaylistDto playlist)
+        {
+            var playlistToUpdate = new PlaylistDbo()
+            {
+                Id = id,
+                Name = playlist.Name,
+                Description = playlist.Description,
+                Servers = playlist.Servers ?? []
+            };
+
+            bool successful = await _playlistStore.UpsertPlaylist(playlistToUpdate);
+            if (successful)
+            {
+                var playerCount = await GetPlayerCountAsync(playlistToUpdate);
+
+                return Ok(playlistToUpdate.ToPlaylistDto(playerCount));
+            }
+
+            return StatusCode(500);
+        }
+
+        [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> RemovePlaylist(string id)
+        {
+            var successful = await _playlistStore.RemovePlaylist(id);
+
+            return successful ? NoContent() : NotFound();
         }
     }
 }

@@ -6,6 +6,7 @@ using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 
 using MatchmakingServer.Matchmaking.Models;
+using MatchmakingServer.Playlists;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
@@ -39,7 +40,7 @@ public class MatchmakingService : BackgroundService
     {
         public required Player ActiveSearcher { get; init; }
 
-        public Playlist? AssociatedPlaylist { get; init; }
+        public PlaylistDbo? AssociatedPlaylist { get; init; }
     }
 
     public MatchmakingService(
@@ -219,7 +220,7 @@ public class MatchmakingService : BackgroundService
                 QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
                 JoinTime = ticket.JoinTime,
                 SearchPreferences = ticket.SearchPreferences,
-                Playlist = ticketMetadata.AssociatedPlaylist
+                Playlist = ticketMetadata.AssociatedPlaylist?.ToPlaylistDto()
             };
 
             _ = NotifyPlayersMachmakingEntered(ticket.Players.Where(p => p != ticketMetadata.ActiveSearcher), metadata);
@@ -415,7 +416,7 @@ public class MatchmakingService : BackgroundService
                     TotalGroupSize = ticket.Players.Count,
                     QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
                     SearchPreferences = ticket.SearchPreferences,
-                    Playlist = ticketMetadata.AssociatedPlaylist
+                    Playlist = ticketMetadata.AssociatedPlaylist?.ToPlaylistDto()
                 });
         }
     }
@@ -467,7 +468,7 @@ public class MatchmakingService : BackgroundService
                     TotalGroupSize = ticket.Players.Count,
                     QueueType = ticket.Players.Count > 0 ? MatchmakingQueueType.Party : MatchmakingQueueType.Solo,
                     SearchPreferences = ticket.SearchPreferences,
-                    Playlist = ticketMetadata.AssociatedPlaylist
+                    Playlist = ticketMetadata.AssociatedPlaylist?.ToPlaylistDto()
                 });
 
         foreach ((string serverIp, int serverPort, uint ping) in serverPings)
