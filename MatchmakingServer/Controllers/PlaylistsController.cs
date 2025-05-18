@@ -256,7 +256,7 @@ namespace MatchmakingServer.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpsertPlaylist(string id, CreatePlaylistDto playlist)
         {
-            var playlistToUpdate = new PlaylistDbo()
+            PlaylistDbo playlistToUpdate = new()
             {
                 Id = id,
                 Name = playlist.Name,
@@ -267,7 +267,7 @@ namespace MatchmakingServer.Controllers
             bool successful = await _playlistStore.UpsertPlaylist(playlistToUpdate);
             if (successful)
             {
-                var playerCount = await GetPlayerCountAsync(playlistToUpdate);
+                int playerCount = await GetPlayerCountAsync(playlistToUpdate);
 
                 return Ok(playlistToUpdate.ToPlaylistDto(playerCount));
             }
@@ -279,7 +279,7 @@ namespace MatchmakingServer.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemovePlaylist(string id)
         {
-            var successful = await _playlistStore.RemovePlaylist(id);
+            bool successful = await _playlistStore.RemovePlaylist(id);
 
             return successful ? NoContent() : NotFound();
         }
