@@ -6,8 +6,14 @@ public sealed class PlaylistStore
 {
     private readonly DataStore _dataStore = new("./Data/playlists.json", keyProperty: "_id");
 
+    /// <summary>
+    /// Gets the number of playlists stored.
+    /// </summary>
     public int PlaylistsCount => GetCollection().Count;
 
+    /// <summary>
+    /// Gets all stored playlists.
+    /// </summary>
     public Task<ICollection<PlaylistDbo>> GetAllPlaylists()
     {
         return Task.FromResult<ICollection<PlaylistDbo>>(
@@ -17,6 +23,10 @@ public sealed class PlaylistStore
         );
     }
 
+    /// <summary>
+    /// Gets the playlist with the given <paramref name="id"/>, 
+    /// or <see langword="null"/> if no such playlist exists.
+    /// </summary>
     public Task<PlaylistDbo?> GetPlaylist(string id)
     {
         return Task.FromResult<PlaylistDbo?>(
@@ -41,12 +51,20 @@ public sealed class PlaylistStore
              );
     }
 
+    /// <summary>
+    /// Removes the playlist with the given <paramref name="id"/>.
+    /// </summary>
+    /// <returns>True, if the playlist was successfully removed; false otherwise.</returns>
     public Task<bool> RemovePlaylist(string id)
     {
         return GetCollection()
             .DeleteOneAsync(p => p.Id.Equals(id, StringComparison.InvariantCultureIgnoreCase));
     }
 
+    /// <summary>
+    /// Seeds the store with all the given <paramref name="playlists"/>.
+    /// </summary>
+    /// <returns>True, if the operation was successful.</returns>
     public Task<bool> SeedPlaylists(IEnumerable<PlaylistDbo> playlists)
     {
         return Task.FromResult(GetCollection().InsertMany(playlists));
