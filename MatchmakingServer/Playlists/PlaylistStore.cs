@@ -54,6 +54,6 @@ public sealed class PlaylistStore
 
     private IDocumentCollection<PlaylistDbo> GetCollection()
     {
-        return _dataStore.GetCollection<PlaylistDbo>();
+        return _dataStore.GetCollection<PlaylistDbo>("playlists");
     }
 }
