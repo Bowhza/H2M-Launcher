@@ -15,6 +15,7 @@ using MatchmakingServer;
 using MatchmakingServer.Api;
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
+using MatchmakingServer.Playlists;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
@@ -81,10 +82,12 @@ builder.Services.AddSingleton<ServerInstanceCache>();
 
 builder.Services.AddSingleton<ServerStore>();
 builder.Services.AddSingleton<PlayerStore>();
+builder.Services.AddSingleton<PlaylistStore>();
 builder.Services.AddSingleton<QueueingService>();
 builder.Services.AddSingleton<Matchmaker>();
 builder.Services.AddSingleton<MatchmakingService>();
 builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingService>());
+builder.Services.AddHostedService<PlaylistsSeedingService>();
 builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
