@@ -101,7 +101,7 @@ builder.Services.AddControllers()
         o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
     });
 
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(o => o.StatefulReconnectBufferSize = 10000);
 
 WebApplication app = builder.Build();
 

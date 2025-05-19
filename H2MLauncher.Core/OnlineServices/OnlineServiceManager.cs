@@ -83,9 +83,11 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .WithUrl(matchmakingSettings.Value.PartyHubUrl, (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
-
+                
                 AddAppHeaders(opts.Headers);
             })
+            .WithAutomaticReconnect()
+            .WithStatefulReconnect(bufferSize: 10000)
             .Build();
 
         _hubConnections = [(CustomHubConnection)QueueingHubConnection, (CustomHubConnection)PartyHubConnection];

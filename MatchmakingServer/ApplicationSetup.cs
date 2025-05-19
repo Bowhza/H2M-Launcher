@@ -37,6 +37,9 @@ public static class ApplicationSetup
     public static void MapHubs(this IEndpointRouteBuilder app)
     {
         app.MapHub<QueueingHub>("/Queue");
-        app.MapHub<PartyHub>("/Party");
+        app.MapHub<PartyHub>("/Party", options =>
+        {
+            options.AllowStatefulReconnects = true;
+        });
     }
 }
