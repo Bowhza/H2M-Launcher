@@ -12,6 +12,7 @@ using H2MLauncher.Core.Game.Memory;
 using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking;
 using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Networking.GameServer.HMW;
@@ -148,8 +149,20 @@ namespace H2MLauncher.UI
             // game server communication
             services.AddTransient<UdpGameServerCommunication>();
             services.AddKeyedTransient(typeof(IGameServerInfoService<>), "TCP", typeof(HttpGameServerInfoService<>));
-            services.AddKeyedTransient(typeof(IGameServerInfoService<>), "UDP", typeof(GameServerCommunicationService<>));
-            services.AddTransient(typeof(IGameServerInfoService<>), typeof(TcpUdpDynamicGameServerInfoService<>));
+
+            services.AddSingleton(typeof(GameServerCommunicationService<>));
+
+            services.AddKeyedSingleton<IGameServerInfoService<IServerConnectionDetails>>("UDP", (sp, key) =>
+                sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
+
+            services.AddKeyedSingleton<IGameServerStatusService<IServerConnectionDetails>>("UDP", (sp, key) =>
+                sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
+
+            services.AddKeyedSingleton<IGameServerService<IServerConnectionDetails>>("UDP", (sp, key) =>
+                sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
+
+            services.AddTransient<IGameServerInfoService<IServerConnectionDetails>, 
+                TcpUdpDynamicGameServerInfoService<IServerConnectionDetails>>();
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();

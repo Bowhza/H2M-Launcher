@@ -17,7 +17,7 @@ namespace H2MLauncher.Core.Matchmaking;
 public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 {
     private readonly ILogger<MatchmakingService> _logger;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _gameServerInfoService;
+    private readonly IGameServerInfoService<IServerConnectionDetails> _gameServerInfoService;
     private readonly IMapsProvider _mapsProvider;
     private readonly IGameDetectionService _gameDetectionService;
     private readonly IGameCommunicationService _gameCommunicationService;
@@ -77,7 +77,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     public MatchmakingService(
         OnlineServiceManager onlineServiceManager,
         ILogger<MatchmakingService> logger,
-        IGameServerInfoService<ServerConnectionDetails> gameServerInfoService,
+        IGameServerInfoService<IServerConnectionDetails> gameServerInfoService,
         IMapsProvider mapsProvider,
         IGameDetectionService gameDetectionService,
         IGameCommunicationService gameCommunicationService,

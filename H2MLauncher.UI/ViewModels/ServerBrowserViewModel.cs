@@ -36,7 +36,7 @@ namespace H2MLauncher.UI.ViewModels;
 public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
     private readonly IMasterServerService _hmwMaster;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerCommunicationService;
+    private readonly IGameServerInfoService<IServerConnectionDetails> _tcpGameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
     private readonly LauncherService _h2MLauncherService;
     private readonly IClipBoardService _clipBoardService;
@@ -137,7 +137,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public ServerBrowserViewModel(
         [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,
-        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerService,
+        [FromKeyedServices("TCP")] IGameServerInfoService<IServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
         LauncherService h2MLauncherService,
         IClipBoardService clipBoardService,
@@ -457,6 +457,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         tabViewModel = new ServerTabViewModel(tabName, JoinServer, AdvancedServerFilter.ApplyFilter)
         {
             ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite),
+            ShowServerDetailsCommand = new RelayCommand<ServerViewModel>(ShowServerDetails, s => s is not null),
         };
 
         ServerTabs.Add(tabViewModel);
@@ -718,11 +719,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     }
 
     private async Task GetServerInfo(
-        IGameServerInfoService<ServerConnectionDetails> service,
+        IGameServerInfoService<IServerConnectionDetails> service,
         IEnumerable<ServerConnectionDetails> servers,
         CancellationToken cancellationToken)
     {
-        IAsyncEnumerable<(ServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
+        IAsyncEnumerable<(IServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
             servers,
             sendSynchronously: false,
             cancellationToken: cancellationToken);
@@ -734,7 +735,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             try
             {
-                await foreach ((ServerConnectionDetails server, GameServerInfo? info) in responses.ConfigureAwait(false).WithCancellation(cancellationToken))
+                await foreach ((IServerConnectionDetails server, GameServerInfo? info) in responses.ConfigureAwait(false).WithCancellation(cancellationToken))
                 {
                     if (info is not null)
                     {
@@ -798,7 +799,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(ServerConnectionDetails server, GameServerInfo serverInfo)
+    private void OnGameServerInfoReceived(IServerConnectionDetails server, GameServerInfo serverInfo)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
