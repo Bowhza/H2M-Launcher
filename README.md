@@ -164,6 +164,11 @@ Go to your Windows Settings and search for Clear Clipboard.
 
 **Answer**: Delete the `launchersettings.json` file located at `C:\Users\<YourUserName>\AppData\Local\BetterH2MLauncher`. After deleting the json file, next time you launch the exe it should be created again.
 
+### 7. Game is not detected / "Error launching h2m-mod"
+
+**Answer**: The mod executable may require administrator privileges to start, so the launcher fails to start or detect it.
+Try to start the launcher with admin privileges too.
+
 > [!IMPORTANT]
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
 > 
