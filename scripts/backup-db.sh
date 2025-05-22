@@ -27,7 +27,7 @@ DOCKER_NETWORK="${2:-"h2m-launcher_default"}"
 # Create the backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
 
-# Run the Docker backup container
+# Run the Docker backup container (see https://github.com/prodrigestivill/docker-postgres-backup-local)
 docker run --rm \
   -v "${BACKUP_DIR}:/backups" \
   -e POSTGRES_HOST=postgres \

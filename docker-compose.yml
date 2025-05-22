@@ -4,10 +4,11 @@ services:
       context: .
       dockerfile: MatchmakingServer/Dockerfile
     environment:
-      - APIKEY=${API_KEY}
-      - Serilog__WriteTo__1__Name=File
-      - Serilog__WriteTo__1__Args__path=/app/logs/log-.txt
-      - Serilog__WriteTo__1__Args__rollingInterval=Day
+      APIKEY: ${API_KEY}
+      Serilog__WriteTo__1__Name: File
+      Serilog__WriteTo__1__Args__path: /app/logs/log-.txt
+      Serilog__WriteTo__1__Args__rollingInterval: Day
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=database;Username=${DB_USER:-username};Password=${DB_PASSWORD:-password}
     ports:
       - 9000:9000
       - 9001:9001
@@ -23,7 +24,8 @@ services:
       start_period: 8s
     restart: unless-stopped
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:15.4-alpine
@@ -36,6 +38,11 @@ services:
       POSTGRES_DB: database
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d database -U $${DB_USER:-username}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   adminer:
     image: adminer

@@ -13,12 +13,15 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Api;
+using MatchmakingServer.Database;
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Playlists;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using Serilog;
@@ -94,6 +97,10 @@ builder.Services.AddMemoryCache();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+// Database
+builder.Services.AddDbContextPool<DatabaseContext>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.AddSwagger();
 builder.AddAuthentication();
 
@@ -107,6 +114,13 @@ builder.Services.AddControllers()
 builder.Services.AddSignalR();
 
 WebApplication app = builder.Build();
+
+// Ensure database is created and migrations are applied
+using (var scope = app.Services.CreateScope())
+{
+    DatabaseContext db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+    db.Database.Migrate();
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
