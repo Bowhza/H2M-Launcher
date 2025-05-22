@@ -22,3 +22,30 @@ services:
       retries: 5
       start_period: 8s
     restart: unless-stopped
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15.4-alpine
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    environment:
+      POSTGRES_USER: ${DB_USER:-username}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+      POSTGRES_DB: database
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    environment: 
+      ADMINER_DEFAULT_SERVER: postgres
+      ADMINER_DEFAULT_DB_NAME: database
+      ADMINER_DEFAULT_DB_DRIVER: pgsql
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  postgres_data:
