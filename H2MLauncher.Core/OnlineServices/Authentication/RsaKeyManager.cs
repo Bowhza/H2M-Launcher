@@ -143,10 +143,10 @@ public sealed class RsaKeyManager
             throw new InvalidOperationException("RSA key is not loaded. Call LoadOrCreateKey() first.");
         }
 
-        var dataToSign = Encoding.UTF8.GetBytes(challenge);
-        var signature = _rsa.SignData(dataToSign, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        var challengeBytes = Encoding.UTF8.GetBytes(challenge);
+        var signatureBytes = _rsa.SignData(challengeBytes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
 
-        return Convert.ToBase64String(signature);
+        return Convert.ToBase64String(signatureBytes);
     }
 
     /// <summary>
@@ -165,7 +165,7 @@ public sealed class RsaKeyManager
             throw new InvalidOperationException("RSA key is not loaded. Call LoadOrCreateKey() first.");
         }
 
-        var publicKeyBytes = _rsa.ExportSubjectPublicKeyInfo();
+        byte[] publicKeyBytes = _rsa.ExportSubjectPublicKeyInfo();
         return Convert.ToBase64String(publicKeyBytes);
     }
 }

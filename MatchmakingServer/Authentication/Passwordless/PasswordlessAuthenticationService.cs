@@ -38,7 +38,7 @@ public class PasswordlessAuthenticationService
         return new() { ChallengeId = challengeId, Nonce = challengeNonce };
     }
 
-    public (ClaimsIdentity? Identity, AuthenticationError Error) Authenticate(AuthenticationRequest request)
+    public AuthenticationResult Authenticate(AuthenticationRequest request)
     {
         // 1. Retrieve the challenge from the cache
         if (!_cache.TryGetValue(request.ChallengeId, out string? challenge) || string.IsNullOrEmpty(challenge))

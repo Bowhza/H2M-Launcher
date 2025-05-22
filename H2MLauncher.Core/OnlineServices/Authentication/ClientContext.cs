@@ -15,12 +15,6 @@ public sealed class ClientContext : IDisposable
     private BearerToken? _token;
     private string? _clientId;
 
-    public ClientContext(IPlayerNameProvider playerNameProvider)
-    {
-        _playerNameProvider = playerNameProvider;
-        _playerNameProvider.PlayerNameChanged += OnPlayerNameChanged;
-    }
-
     public string PlayerName => _playerNameProvider.PlayerName;
 
     public string? ClientId => _clientId;
@@ -29,6 +23,12 @@ public sealed class ClientContext : IDisposable
     [MemberNotNullWhen(true, nameof(AccessToken))]
     [MemberNotNullWhen(true, nameof(ClientId))]
     public bool IsAuthenticated => _token is not null && _token.ExpirationDate > DateTimeOffset.Now;
+
+    public ClientContext(IPlayerNameProvider playerNameProvider)
+    {
+        _playerNameProvider = playerNameProvider;
+        _playerNameProvider.PlayerNameChanged += OnPlayerNameChanged;
+    }
 
     public void InvalidateToken()
     {
