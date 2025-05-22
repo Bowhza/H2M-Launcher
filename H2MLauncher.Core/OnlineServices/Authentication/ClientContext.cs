@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 using H2MLauncher.Core.Game;
 
@@ -11,6 +13,7 @@ public sealed class ClientContext : IDisposable
 {
     private readonly IPlayerNameProvider _playerNameProvider;
     private BearerToken? _token;
+    private string? _clientId;
 
     public ClientContext(IPlayerNameProvider playerNameProvider)
     {
@@ -18,13 +21,13 @@ public sealed class ClientContext : IDisposable
         _playerNameProvider.PlayerNameChanged += OnPlayerNameChanged;
     }
 
-    public string ClientId { get; init; } = Guid.NewGuid().ToString();
     public string PlayerName => _playerNameProvider.PlayerName;
-    
 
+    public string? ClientId => _clientId;
     public string? AccessToken => _token?.AccessToken;
 
     [MemberNotNullWhen(true, nameof(AccessToken))]
+    [MemberNotNullWhen(true, nameof(ClientId))]
     public bool IsAuthenticated => _token is not null && _token.ExpirationDate > DateTimeOffset.Now;
 
     public void InvalidateToken()
@@ -35,6 +38,21 @@ public sealed class ClientContext : IDisposable
     public void UpdateToken(BearerToken? token)
     {
         _token = token;
+        _clientId = null;
+
+        if (token is null)
+        {
+            return;
+        }
+
+        JwtSecurityTokenHandler handler = new();
+        JwtSecurityToken jwt = handler.ReadJwtToken(token.AccessToken);
+
+        Claim? userIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim is not null)
+        {
+            _clientId = userIdClaim.Value;
+        }
     }
 
     private void OnPlayerNameChanged(string oldName, string newName)

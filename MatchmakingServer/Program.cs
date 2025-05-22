@@ -13,6 +13,7 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Api;
+using MatchmakingServer.Authentication.Passwordless;
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Playlists;
@@ -28,6 +29,8 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder();
 // Add services to the container.
 
 Environment.SetEnvironmentVariable("BASEDIR", AppDomain.CurrentDomain.BaseDirectory);
+
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true);
 
 builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
 builder.Services.AddHealthChecks();
@@ -96,6 +99,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.AddSwagger();
 builder.AddAuthentication();
+builder.Services.AddAuthorization();
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -117,6 +121,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseRequestLogging();
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");

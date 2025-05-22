@@ -15,15 +15,18 @@ public sealed class AuthenticationService
     private readonly ILogger<AuthenticationService> _logger;
     private readonly HttpClient _httpClient;
     private readonly ClientContext _clientContext;
+    private readonly RsaKeyManager _rsaKeyManager;
 
     public AuthenticationService(
         HttpClient httpClient,
         ClientContext clientContext,
+        RsaKeyManager rsaKeyManager,
         IOptions<MatchmakingSettings> options,
         ILogger<AuthenticationService> logger)
     {
         _httpClient = httpClient;
         _clientContext = clientContext;
+        _rsaKeyManager = rsaKeyManager;
         _options = options;
         _logger = logger;
     }
@@ -36,17 +39,39 @@ public sealed class AuthenticationService
     {
         try
         {
-            string loginUrl = _options.Value.MatchmakingServerUrl
-                .AppendPathSegment("login")
-                .SetQueryParams(new
-                {
-                    uid = _clientContext.ClientId,
-                    playerName = _clientContext.PlayerName,
-                });
+            string challengeUrl = _options.Value.MatchmakingServerUrl
+                .AppendPathSegment("auth/challenge");
 
-            HttpResponseMessage response = await _httpClient.GetAsync(loginUrl);
+            ChallengeResponse? challengeResponse = await _httpClient.GetFromJsonAsync<ChallengeResponse>(challengeUrl);
 
-            _clientContext.UpdateToken(await response.Content.ReadFromJsonAsync<BearerToken>());
+            if (challengeResponse is null)
+            {
+                _logger.LogWarning("Could not request challenge from {challengeUrl}", challengeUrl);
+                return null;
+            }
+
+            if (!_rsaKeyManager.IsKeyLoaded)
+            {
+                _rsaKeyManager.LoadOrCreateKey();
+            }
+
+            string signature = _rsaKeyManager.SignChallenge(challengeResponse.Nonce);
+            string publicKey = _rsaKeyManager.GetPublicKeySpkiBase64();
+
+            var loginRespone = await _httpClient.PostAsync("auth/login", JsonContent.Create(new
+            {
+                PlayerName = _clientContext.PlayerName,
+                ChallengeId = challengeResponse.ChallengeId,
+                PublicKey = publicKey,
+                Signature = signature,
+            }));
+
+            if (!loginRespone.IsSuccessStatusCode)
+            {
+                _logger.LogError("Could not complete login: Server responded with {statusCode}", loginRespone.StatusCode);
+            }
+
+            _clientContext.UpdateToken(await loginRespone.Content.ReadFromJsonAsync<BearerToken>());
         }
         catch (Exception ex)
         {
