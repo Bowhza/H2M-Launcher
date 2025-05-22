@@ -2,7 +2,7 @@
 
 namespace MatchmakingServer.Authentication.Passwordless;
 
-internal record struct AuthenticationResult(ClaimsIdentity? Identity, AuthenticationError Error)
+public record struct AuthenticationResult(ClaimsIdentity? Identity, AuthenticationError Error)
 {
     public static implicit operator (ClaimsIdentity? Identity, AuthenticationError Error)(AuthenticationResult value)
     {
