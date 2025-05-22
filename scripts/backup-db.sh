@@ -27,9 +27,6 @@ DOCKER_NETWORK="${2:-"h2m-launcher_default"}"
 # Create the backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"
 
-echo "Loaded DB_USER: $DB_USER"
-echo "Loaded DB_PASSWORD: '${#DB_PASSWORD}' characters"
-
 # Run the Docker backup container
 docker run --rm \
   -v "${BACKUP_DIR}:/backups" \
