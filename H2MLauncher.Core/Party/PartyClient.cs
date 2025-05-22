@@ -308,6 +308,16 @@ namespace H2MLauncher.Core.Party
             return base.OnConnected(cancellationToken);
         }
 
+        protected override Task OnReconnected(string? connectionId)
+        {
+            if (_autoCreateParty)
+            {
+                _ = CreateParty();
+            }
+
+            return base.OnReconnected(connectionId);
+        }
+
         protected override Task OnConnectionClosed(Exception? exception)
         {
             _currentParty = null;

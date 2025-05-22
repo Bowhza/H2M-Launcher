@@ -112,16 +112,19 @@ namespace H2MLauncher.UI.ViewModels
         {
             if (!connected)
             {
-                Members.Clear();
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Members.Clear();
 
-                OnPropertyChanged(nameof(PartyId));
-                OnPropertyChanged(nameof(IsPartyLeader));
-                OnPropertyChanged(nameof(IsPartyActive));
-                OnPropertyChanged(nameof(IsPartyGuest));
-                OnPropertyChanged(nameof(HasOtherMembers));
-                OnPropertyChanged(nameof(Status));
+                    OnPropertyChanged(nameof(PartyId));
+                    OnPropertyChanged(nameof(IsPartyLeader));
+                    OnPropertyChanged(nameof(IsPartyActive));
+                    OnPropertyChanged(nameof(IsPartyGuest));
+                    OnPropertyChanged(nameof(HasOtherMembers));
+                    OnPropertyChanged(nameof(Status));
 
-                _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                    _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                });
             }
         }
 
