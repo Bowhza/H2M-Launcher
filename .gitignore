@@ -12,3 +12,6 @@ x64/
 .env
 .history/**
 logs/
+
+# Default postgres backup folder
+pgbackup/
