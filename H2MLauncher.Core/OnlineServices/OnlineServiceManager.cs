@@ -63,12 +63,6 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         _authenticationService = authenticationService;
         ClientContext = clientContext;
 
-        object queryParams = new
-        {
-            uid = ClientContext.ClientId,
-            playerName = ClientContext.PlayerName
-        };
-
         QueueingHubConnection = new CustomHubConnectionBuilder()
             .WithUrl(matchmakingSettings.Value.QueueingHubUrl, (opts) =>
             {

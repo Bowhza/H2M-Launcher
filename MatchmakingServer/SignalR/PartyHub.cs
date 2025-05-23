@@ -6,13 +6,13 @@ using H2MLauncher.Core.Party;
 using MatchmakingServer.Core.Party;
 using MatchmakingServer.Parties;
 
-using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR;
 
-[Authorize(AuthenticationSchemes = BearerTokenDefaults.AuthenticationScheme)]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class PartyHub : Hub<IPartyClient>, IPartyHub
 {
     private static readonly ConcurrentDictionary<string, Player> ConnectedPlayers = [];

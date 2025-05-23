@@ -8,13 +8,13 @@ using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Queueing;
 
-using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR
 {
-    [Authorize(AuthenticationSchemes = BearerTokenDefaults.AuthenticationScheme)]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     public class QueueingHub : Hub<IClient>, IMatchmakingHub
     {
         private readonly ILogger<QueueingHub> _logger;
