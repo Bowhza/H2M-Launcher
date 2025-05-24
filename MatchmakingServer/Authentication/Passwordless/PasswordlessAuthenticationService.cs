@@ -2,21 +2,88 @@
 using System.Security.Cryptography;
 using System.Text;
 
+using MatchmakingServer.Authentication.JWT;
+using MatchmakingServer.Database;
+using MatchmakingServer.Database.Entities;
+
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace MatchmakingServer.Authentication.Passwordless;
+
+public class UserManager
+{
+    private readonly DatabaseContext _dbContext;
+
+    public UserManager(DatabaseContext dbContext)
+    {
+        _dbContext = dbContext;
+    }
+
+    public Task<UserDbo?> FindByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Users.FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+    }
+
+    public Task<UserDbo?> FindByKeyAsync(string publicKey, CancellationToken cancellationToken)
+    {
+        return _dbContext.UserKeys
+            .Include(uk => uk.User)
+            .Where(uk => uk.IsActive && uk.PublicKeySPKI == publicKey)
+            .Select(uk => uk.User)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<UserDbo> RegisterNewUserAsync(string publicKey, string publicKeyHash, CancellationToken cancellationToken)
+    {
+        UserKeyDbo userKey = new()
+        {
+            PublicKeySPKI = publicKey,
+            PublicKeyHash = publicKeyHash,
+            IsActive = true,
+            LastUsedDate = DateTime.UtcNow,
+        };
+
+        UserDbo user = new()
+        {
+            Keys = [userKey]
+        };
+
+        await _dbContext.Users.AddAsync(user, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return user;
+    }
+
+    public Task UpdateKeyUsageTimestamp(string publicKey, CancellationToken cancellationToken)
+    {
+        return _dbContext.UserKeys
+            .Where(uk => uk.IsActive && uk.PublicKeySPKI == publicKey)
+            .ExecuteUpdateAsync(setters =>
+                setters.SetProperty(uk => uk.LastUsedDate, DateTime.UtcNow), cancellationToken
+            );
+    }
+}
 
 public class PasswordlessAuthenticationService
 {
     private static readonly TimeSpan ChallengeExpiration = TimeSpan.FromMinutes(5);
 
     private readonly IMemoryCache _cache;
+    private readonly UserManager _userManager;
+    private readonly TokenService _tokenService;
     private readonly ILogger<PasswordlessAuthenticationService> _logger;
 
-    public PasswordlessAuthenticationService(IMemoryCache cache, ILogger<PasswordlessAuthenticationService> logger)
+    public PasswordlessAuthenticationService(
+        IMemoryCache cache,
+        UserManager userManager,
+        TokenService tokenService,
+        ILogger<PasswordlessAuthenticationService> logger)
     {
         _cache = cache;
+        _userManager = userManager;
+        _tokenService = tokenService;
         _logger = logger;
     }
 
@@ -38,7 +105,7 @@ public class PasswordlessAuthenticationService
         return new() { ChallengeId = challengeId, Nonce = challengeNonce };
     }
 
-    public AuthenticationResult Authenticate(AuthenticationRequest request)
+    public async Task<AuthenticationResult> AuthenticateAsync(AuthenticationRequest request, CancellationToken cancellationToken)
     {
         // 1. Retrieve the challenge from the cache
         if (!_cache.TryGetValue(request.ChallengeId, out string? challenge) || string.IsNullOrEmpty(challenge))
@@ -97,14 +164,27 @@ public class PasswordlessAuthenticationService
         byte[] publicKeyHashBytes = SHA256.HashData(publicKeyBytes);
         string? publicKeyHash = WebEncoders.Base64UrlEncode(publicKeyHashBytes);
 
+        // 5. Find or register the user based on the public key
+        UserDbo? user = await _userManager.FindByKeyAsync(request.PublicKey, cancellationToken);
+
+        if (user is null)
+        {
+            // No user found -> create new user with public key
+            user = await _userManager.RegisterNewUserAsync(request.PublicKey, publicKeyHash, cancellationToken);
+        }
+        else
+        {
+            await _userManager.UpdateKeyUsageTimestamp(request.PublicKey, cancellationToken);
+        }
+
         Claim[] claims =
         [
-            new Claim(ClaimTypes.NameIdentifier, publicKeyHash), // Public key hash is the unique identifier
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, request.PlayerName),
         ];
 
-        ClaimsIdentity identity = new(claims, "RsaPasswordless");
+        TokenResponse tokenResponse = _tokenService.CreateToken(claims);
 
-        return (identity, AuthenticationError.Success);
+        return (tokenResponse, AuthenticationError.Success);
     }
 }

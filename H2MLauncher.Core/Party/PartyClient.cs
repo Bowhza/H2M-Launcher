@@ -87,7 +87,7 @@ namespace H2MLauncher.Core.Party
 
                 if (IsPartyActive)
                 {
-                    PartyPlayerInfo? newSelf = UpdateMember(_clientContext.ClientId!, (self) => self with { Name = newName });
+                    PartyPlayerInfo? newSelf = UpdateMember(_clientContext.UserId!, (self) => self with { Name = newName });
                     if (newSelf is not null)
                     {
                         UserChanged?.Invoke(newSelf);
@@ -300,7 +300,7 @@ namespace H2MLauncher.Core.Party
 
         public bool IsSelf(PartyPlayerInfo member)
         {
-            return member.Id == _clientContext.ClientId;
+            return member.Id == _clientContext.UserId;
         }
 
         protected override Task OnConnected(CancellationToken cancellationToken = default)

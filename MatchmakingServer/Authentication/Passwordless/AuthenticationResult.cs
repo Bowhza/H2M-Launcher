@@ -1,16 +1,16 @@
-﻿using System.Security.Claims;
+﻿using MatchmakingServer.Authentication.JWT;
 
 namespace MatchmakingServer.Authentication.Passwordless;
 
-public record struct AuthenticationResult(ClaimsIdentity? Identity, AuthenticationError Error)
+public record struct AuthenticationResult(TokenResponse? TokenResponse, AuthenticationError Error)
 {
-    public static implicit operator (ClaimsIdentity? Identity, AuthenticationError Error)(AuthenticationResult value)
+    public static implicit operator (TokenResponse? TokenResponse, AuthenticationError Error)(AuthenticationResult value)
     {
-        return (value.Identity, value.Error);
+        return (value.TokenResponse, value.Error);
     }
 
-    public static implicit operator AuthenticationResult((ClaimsIdentity? Identity, AuthenticationError Error) value)
+    public static implicit operator AuthenticationResult((TokenResponse? TokenResponse, AuthenticationError Error) value)
     {
-        return new AuthenticationResult(value.Identity, value.Error);
+        return new AuthenticationResult(value.TokenResponse, value.Error);
     }
 }
