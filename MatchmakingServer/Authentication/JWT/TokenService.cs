@@ -32,7 +32,7 @@ public class TokenService
         };
 
         string? jwtToken = tokenHandler.CreateToken(tokenDescriptor);
-        TimeSpan expiresIn = DateTime.UtcNow - tokenDescriptor.Expires.Value;
+        TimeSpan expiresIn = TimeSpan.FromMinutes(_jwtSettings.AccessTokenExpirationMinutes);
 
         return new TokenResponse
         {

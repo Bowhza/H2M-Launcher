@@ -1,6 +1,4 @@
-﻿using System.Security.Claims;
-
-using MatchmakingServer.Api;
+﻿using MatchmakingServer.Api;
 using MatchmakingServer.Authentication.JWT;
 using MatchmakingServer.Authentication.Passwordless;
 
@@ -33,22 +31,20 @@ public class PasswordlessAuthenticationEndpoint : IEndpoint
         return authService.GenerateChallenge();
     }
 
-    private static Results<Ok<TokenResponse>, BadRequest, NotFound, UnauthorizedHttpResult, StatusCodeHttpResult> HandleAuthenticate(
+    private static async Task<Results<Ok<TokenResponse>, BadRequest, NotFound, UnauthorizedHttpResult, StatusCodeHttpResult>> HandleAuthenticate(
         [FromBody] AuthenticationRequest request,
-        PasswordlessAuthenticationService authService,
-        TokenService tokenService)
+        [FromServices] PasswordlessAuthenticationService authService,
+        CancellationToken cancellationToken)
     {
-        (ClaimsIdentity? identity, AuthenticationError error) = authService.Authenticate(request);
+        AuthenticationResult result = await authService.AuthenticateAsync(request, cancellationToken);
 
-        return error switch
+        return result.Error switch
         {
-            AuthenticationError.Success when identity is not null =>
-                TypedResults.Ok(tokenService.CreateToken(identity.Claims)),
-
+            AuthenticationError.Success when result.TokenResponse is not null => TypedResults.Ok(result.TokenResponse),
             AuthenticationError.InvalidPublicKeyOrSignatureFormat => TypedResults.BadRequest(),
             AuthenticationError.ExpiredChallenge => TypedResults.NotFound(),
             AuthenticationError.VerificationFailed => TypedResults.Unauthorized(),
-            _ => TypedResults.StatusCode(500)
+            _  => TypedResults.StatusCode(500)
         };
     }
 }

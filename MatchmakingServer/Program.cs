@@ -98,6 +98,8 @@ builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
+builder.Services.AddTransient<UserManager>();
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 // Database

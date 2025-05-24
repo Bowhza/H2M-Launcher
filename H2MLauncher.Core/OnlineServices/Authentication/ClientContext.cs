@@ -13,15 +13,15 @@ public sealed class ClientContext : IDisposable
 {
     private readonly IPlayerNameProvider _playerNameProvider;
     private BearerToken? _token;
-    private string? _clientId;
+    private string? _userId;
 
     public string PlayerName => _playerNameProvider.PlayerName;
 
-    public string? ClientId => _clientId;
+    public string? UserId => _userId;
     public string? AccessToken => _token?.AccessToken;
 
     [MemberNotNullWhen(true, nameof(AccessToken))]
-    [MemberNotNullWhen(true, nameof(ClientId))]
+    [MemberNotNullWhen(true, nameof(UserId))]
     public bool IsAuthenticated => _token is not null && _token.ExpirationDate > DateTimeOffset.Now;
 
     public ClientContext(IPlayerNameProvider playerNameProvider)
@@ -38,7 +38,7 @@ public sealed class ClientContext : IDisposable
     public void UpdateToken(BearerToken? token)
     {
         _token = token;
-        _clientId = null;
+        _userId = null;
 
         if (token is null)
         {
@@ -51,7 +51,7 @@ public sealed class ClientContext : IDisposable
         Claim? userIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
         if (userIdClaim is not null)
         {
-            _clientId = userIdClaim.Value;
+            _userId = userIdClaim.Value;
         }
     }
 
