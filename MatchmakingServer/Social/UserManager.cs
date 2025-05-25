@@ -54,11 +54,14 @@ public class UserManager
 
     private static string GenerateUserName()
     {
-        return UniqueNamer.UniqueNamer.Generate(
+        int suffix = Random.Shared.Next(10, 100);
+
+        string name = UniqueNamer.UniqueNamer.Generate(
             Enum.GetValues<Categories>(),
-            suffixLength: 2,
             separator: "",
-            style: Style.TitleCase);
+            style: Style.TitleCase) + suffix;
+
+        return name;
     }
 
     public Task UpdateKeyUsageTimestamp(string publicKey, CancellationToken cancellationToken)
