@@ -7,7 +7,6 @@ public static class EndpointRouteBuilderExtensions
 {
     public static void MapEndpoints(this WebApplication app)
     {
-        app.MapEndpoint<AuthenticationEndpoint>();
         app.MapEndpoint<PasswordlessAuthenticationEndpoint>();
         app.MapEndpoint<StatsEndpoint>();
     }
