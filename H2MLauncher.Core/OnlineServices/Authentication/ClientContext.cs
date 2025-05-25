@@ -14,10 +14,14 @@ public sealed class ClientContext : IDisposable
     private readonly IPlayerNameProvider _playerNameProvider;
     private BearerToken? _token;
     private string? _userId;
+    private string? _userName;
 
     public string PlayerName => _playerNameProvider.PlayerName;
 
     public string? UserId => _userId;
+
+    public string? UserName => _userName;
+
     public string? AccessToken => _token?.AccessToken;
 
     [MemberNotNullWhen(true, nameof(AccessToken))]
@@ -39,6 +43,7 @@ public sealed class ClientContext : IDisposable
     {
         _token = token;
         _userId = null;
+        _userName = null;
 
         if (token is null)
         {
@@ -52,6 +57,12 @@ public sealed class ClientContext : IDisposable
         if (userIdClaim is not null)
         {
             _userId = userIdClaim.Value;
+        }
+
+        Claim? userNameClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+        if (userNameClaim is not null)
+        {
+            _userName = userNameClaim.Value;
         }
     }
 
