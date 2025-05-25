@@ -9,6 +9,10 @@ public class UserDbo
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public Guid Id { get; set; }
 
+    public required string Name { get; set; }
+
+    public string? LastPlayerName { get; set; }
+
     public DateTime CreationDate { get; set; } = DateTime.UtcNow;
 
     public List<UserKeyDbo>? Keys { get; set; }

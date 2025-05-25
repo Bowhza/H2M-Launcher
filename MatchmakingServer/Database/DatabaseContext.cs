@@ -13,12 +13,18 @@ public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbCont
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<UserDbo>()
-            .HasMany<UserKeyDbo>(u => u.Keys)
+        modelBuilder.Entity<UserDbo>(entity =>
+        {
+            entity.HasMany(u => u.Keys)
             .WithOne(k => k.User)
             .HasForeignKey(k => k.UserId)
             .IsRequired()
             .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(u => u.Name)
+                  .IsUnique();
+        });
+            
 
         modelBuilder.Entity<UserKeyDbo>()
             .HasIndex(k => k.PublicKeySPKI)

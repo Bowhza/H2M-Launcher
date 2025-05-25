@@ -60,7 +60,6 @@ public sealed class AuthenticationService
 
             var loginRespone = await _httpClient.PostAsync("auth/login", JsonContent.Create(new
             {
-                PlayerName = _clientContext.PlayerName,
                 ChallengeId = challengeResponse.ChallengeId,
                 PublicKey = publicKey,
                 Signature = signature,

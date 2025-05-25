@@ -8,5 +8,5 @@ public record AuthenticationRequest
 
     public required string Signature { get; init; }
 
-    public required string PlayerName { get; init; }
+    public string? UserName { get; init; }
 }
