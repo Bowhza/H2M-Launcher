@@ -2,13 +2,13 @@
 
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database.Entities;
-using MatchmakingServer.SignalR;
+using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
-namespace MatchmakingServer.Social;
+namespace MatchmakingServer.SignalR;
 
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class SocialHub : Hub<ISocialClient>, ISocialHub
@@ -20,11 +20,12 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
     private readonly PlayerStore _playerStore;
     private readonly ILogger<SocialHub> _logger;
 
-    public SocialHub(PlayerStore playerStore, ILogger<SocialHub> logger, UserManager userManager)
+    public SocialHub(PlayerStore playerStore, UserManager userManager, FriendshipsService friendshipsService, ILogger<SocialHub> logger)
     {
         _playerStore = playerStore;
-        _logger = logger;
         _userManager = userManager;
+        _friendshipsService = friendshipsService;
+        _logger = logger;
     }
 
     public async Task UpdateGameStatus(GameStatus gameStatus)

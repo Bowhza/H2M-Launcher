@@ -3,19 +3,25 @@
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
-using MatchmakingServer.Database.Migrations;
+using MatchmakingServer.SignalR;
+
+using Microsoft.AspNetCore.SignalR;
+
+using NSubstitute;
 
 namespace MatchmakingServer.Tests.IntegrationTests;
 
 public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLifetime
 {
     // This will hold the scoped DbContext for the current test
-    private DatabaseContext _dbContext = null!; 
+    private DatabaseContext _dbContext = null!;
+    private PlayerStore _playerStore = null!;
 
     public async Task InitializeAsync()
     {
         var scope = factory.Services.CreateScope();
         _dbContext = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+        _playerStore = scope.ServiceProvider.GetRequiredService<PlayerStore>();
 
         // Clean the database for this test
         await ResetUsersAndFriendships(_dbContext);
@@ -27,6 +33,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
         if (_dbContext != null)
         {
             await _dbContext.DisposeAsync();
+            await _playerStore.Clear();
         }
     }
 
@@ -43,14 +50,15 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
-        FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>($"/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
+        FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>(
+            $"/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
 
         // Assert
         friends.Should().BeEmpty();
     }
 
     [Fact]
-    public async Task GetFriends_ReturnsOnlyAcceptedFriendsForUser()
+    public async Task GetFriends_ReturnsOnlyAcceptedFriendsForUser_WithCurrentStatus()
     {
         // Arrange
         UserDbo user = CreateUser(lastPlayerName: "last-player-name");
@@ -83,7 +91,12 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
         _dbContext.UserFriendships.Add(notAFriendship);
 
         await _dbContext.SaveChangesAsync();
-
+        
+        // Create a social hub session for that player
+        Player friend2Player = await _playerStore.GetOrAdd(
+            friend2.Id.ToString(), friend2.Id.ToString(), "friend-2-current-player-name");
+        friend2Player.SocialHubId = "some-id";
+        friend2Player.GameStatus = GameStatus.InLobby;
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
@@ -103,9 +116,9 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
             new FriendDto(
                 friend2.Id.ToString(),
                 friend2.Name,
-                friend2.LastPlayerName,
-                OnlineStatus.Offline,
-                GameStatus.None,
+                "friend-2-current-player-name",
+                OnlineStatus.Online,
+                GameStatus.InLobby,
                 friendship2.UpdateDate
             )
         ]);
@@ -461,7 +474,6 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
             Status = FriendRequestStatus.PendingOutgoing,
         }, options => options.Excluding(r => r.Created));
         result!.Created.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(10));
-
     }
 
     [Fact]
@@ -497,6 +509,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
     }
 
     #endregion
+
 
     #region AcceptFriendRequest
 
@@ -658,6 +671,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
 
     #endregion
 
+
     #region RejectFriendRequest
 
     [Fact]
@@ -679,7 +693,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
     }
 
     [Fact]
-    public async Task ReejctFriendRequest_TargetUserDoesNotExist_ReturnsNotFound()
+    public async Task RejectFriendRequest_TargetUserDoesNotExist_ReturnsNotFound()
     {
         // Arrange
         UserDbo requestingUser = CreateUser();
@@ -807,6 +821,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
     }
 
     #endregion
+
 
     #region GetAllFriends
 

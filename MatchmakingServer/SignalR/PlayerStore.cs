@@ -1,5 +1,7 @@
 ﻿using H2MLauncher.Core.Matchmaking.Models;
 
+using MatchmakingServer.Database.Migrations;
+
 namespace MatchmakingServer.SignalR;
 
 public class PlayerStore
@@ -104,6 +106,19 @@ public class PlayerStore
             }
 
             return null;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task Clear()
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            _connectedPlayers.Clear();
         }
         finally
         {
