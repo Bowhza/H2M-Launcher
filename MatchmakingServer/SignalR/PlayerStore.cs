@@ -92,4 +92,22 @@ public class PlayerStore
             _semaphore.Release();
         }
     }
+
+    public async Task<Player?> TryGet(string userId)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo info))
+            {
+                return info.Player;
+            }
+
+            return null;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
 }

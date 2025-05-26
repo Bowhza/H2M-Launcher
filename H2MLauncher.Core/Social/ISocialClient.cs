@@ -1,0 +1,14 @@
+﻿namespace MatchmakingServer.Core.Social;
+
+public interface ISocialClient
+{
+    Task OnFriendOnline(string friendId);
+
+    Task OnFriendOffline(string friendId);
+
+    Task OnFriendStatusChanged(string friendId, string playerName, GameStatus status);
+
+    Task OnFriendRequestAccepted(FriendDto newFriend);
+
+    Task OnFriendRequestReceived(FriendRequestDto request);
+}

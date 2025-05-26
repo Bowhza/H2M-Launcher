@@ -99,7 +99,9 @@ builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
+// Social
 builder.Services.AddTransient<UserManager>();
+builder.Services.AddTransient<FriendshipsService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
