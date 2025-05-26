@@ -23,14 +23,14 @@ public sealed class FriendshipsService(
     private readonly IHubContext<SocialHub, ISocialClient> _socialHubContext = socialHubContext;
     private readonly ILogger<FriendshipsService> _logger = logger;
 
-    public Task<List<UserDbo>> GetFriendsAsync(string userId)
+    public Task<List<Guid>> GetFriendIdsAsync(Guid userId)
     {
         return _dbContext.UserFriendships
             .Include(r => r.FromUser)
             .Include(r => r.ToUser)
             .Where(r => r.Status == FriendshipStatus.Accepted &&
-                        (r.FromUserId.ToString() == userId || r.ToUserId.ToString() == userId))
-            .Select(r => r.ToUserId.ToString() == userId ? r.FromUser! : r.ToUser!)
+                        (r.FromUserId == userId || r.ToUserId == userId))
+            .Select(r => r.ToUserId == userId ? r.FromUserId : r.ToUserId)
             .ToListAsync();
     }
 
@@ -437,6 +437,35 @@ public sealed class FriendshipsService(
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error while accepting friend requests from {fromUserId} to {toUserId}", fromUserId, toUserId);
+            return Err<Unit, FriendshipError>(FriendshipError.UnknownError);
+        }
+
+    }
+
+    public async Task<Result<Unit, FriendshipError>> RemoveFriendAsync(
+        Guid userId, Guid friendId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            int numDeleted = await GetFriendshipQuery(userId, friendId)
+                .Where(r => r.Status == FriendshipStatus.Accepted)
+                .ExecuteDeleteAsync(cancellationToken);
+
+            if (numDeleted > 0)
+            {
+                // Notify the unfriended friend
+                await _socialHubContext.Clients
+                    .User(friendId.ToString())
+                    .OnUnfriended(userId.ToString());
+
+                return Ok<Unit, FriendshipError>(Unit());
+            }
+
+            return Err<Unit, FriendshipError>(FriendshipError.UserNotFound);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while deleting friend {friendId} of {userId}", friendId, userId);
             return Err<Unit, FriendshipError>(FriendshipError.UnknownError);
         }
     }

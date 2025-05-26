@@ -11,4 +11,6 @@ public interface ISocialClient
     Task OnFriendRequestAccepted(FriendDto newFriend);
 
     Task OnFriendRequestReceived(FriendRequestDto request);
+
+    Task OnUnfriended(string byFriendId);
 }

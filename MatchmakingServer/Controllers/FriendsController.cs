@@ -1,10 +1,7 @@
-﻿using System.Security.Claims;
-
-using FxKit;
+﻿using FxKit;
 
 using MatchmakingServer.Authorization;
 using MatchmakingServer.Core.Social;
-using MatchmakingServer.Database.Entities;
 using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.Authorization;
@@ -49,6 +46,23 @@ public class FriendsController : ControllerBase
 
         return result.Match<IActionResult>(
             Ok,
+            (error) => error switch
+            {
+                FriendshipError.UserNotFound => NotFound(new { error = "User or friend not found" }),
+                _ => StatusCode(500)
+            }
+        );
+    }
+
+    [HttpDelete("users/{userId}/friends/{friendId}")]
+    [Authorize(Policy = Policies.CanRemoveFriend)]
+    public async Task<IActionResult> Unfriend(Guid userId, Guid friendId, CancellationToken cancellationToken)
+    {
+        Result<Unit, FriendshipError> result =
+            await _friendshipsService.RemoveFriendAsync(userId, friendId, cancellationToken);
+
+        return result.Match<IActionResult>(
+            (_) => NoContent(),
             (error) => error switch
             {
                 FriendshipError.UserNotFound => NotFound(new { error = "User or friend not found" }),

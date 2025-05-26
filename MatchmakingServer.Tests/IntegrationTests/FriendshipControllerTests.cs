@@ -5,13 +5,9 @@ using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
 using MatchmakingServer.SignalR;
 
-using Microsoft.AspNetCore.SignalR;
-
-using NSubstitute;
-
 namespace MatchmakingServer.Tests.IntegrationTests;
 
-public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLifetime
+public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>, IAsyncLifetime
 {
     // This will hold the scoped DbContext for the current test
     private DatabaseContext _dbContext = null!;
@@ -91,7 +87,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
         _dbContext.UserFriendships.Add(notAFriendship);
 
         await _dbContext.SaveChangesAsync();
-        
+
         // Create a social hub session for that player
         Player friend2Player = await _playerStore.GetOrAdd(
             friend2.Id.ToString(), friend2.Id.ToString(), "friend-2-current-player-name");
@@ -492,7 +488,7 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
             $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
-        
+
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
 
@@ -651,6 +647,15 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
 
         await _dbContext.SaveChangesAsync();
 
+        FriendDto expectedFriendDto = new(
+            targetUser.Id.ToString(),
+            targetUser.Name,
+            targetUser.LastPlayerName,
+            OnlineStatus.Offline,
+            GameStatus.None,
+            DateTime.UtcNow
+        );
+
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
@@ -658,15 +663,13 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
-        acceptedFriend.Should().BeEquivalentTo(new FriendDto(
-                targetUser.Id.ToString(),
-                targetUser.Name,
-                targetUser.LastPlayerName,
-                OnlineStatus.Offline,
-                GameStatus.None,
-                DateTime.UtcNow
-            ), options => options.Excluding(f => f.FriendsSince));
+        acceptedFriend.Should().BeEquivalentTo(expectedFriendDto, options => options.Excluding(f => f.FriendsSince));
         acceptedFriend!.FriendsSince.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(10));
+
+        FriendDto? friend = await client.GetFromJsonAsync<FriendDto>(
+            $"/users/{requestingUser.Id}/friends/{targetUser.Id}", JsonSerialization.SerializerOptions);
+
+        friend.Should().BeEquivalentTo(expectedFriendDto, options => options.Excluding(f => f.FriendsSince));
     }
 
     #endregion
@@ -962,6 +965,89 @@ public class FriendshipTests(Factory factory) : IClassFixture<Factory>, IAsyncLi
 
     #endregion
 
+    #region Unfriend
+
+    [Fact]
+    public async Task Unfriend_RequestingUserDoesNotExist_ReturnsNotFound()
+    {
+        // Arrange
+        UserDbo requestingUser = CreateUser(); // This user ID will be in the URL but not in DB
+        UserDbo targetUser = CreateUser();
+
+        _dbContext.Users.Add(targetUser);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
+        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+
+        // Assert
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Unfriend_TargetUserDoesNotExist_ReturnsNotFound()
+    {
+        // Arrange
+        UserDbo requestingUser = CreateUser();
+        UserDbo targetUser = CreateUser(); // This user ID will be in the URL but not in DB
+
+        _dbContext.Users.Add(requestingUser);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
+        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+
+        // Assert
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Unfriend_NoFriendship_ReturnsNotFound()
+    {
+        // Arrange
+        UserDbo requestingUser = CreateUser();
+        UserDbo targetUser = CreateUser();
+
+        await _dbContext.Users.AddRangeAsync(requestingUser, targetUser);
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
+        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+
+        // Assert
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    public async Task Unfriend_ExistingFriendship_ReturnsNoContent()
+    {
+        // Arrange
+        UserDbo requestingUser = CreateUser();
+        UserDbo targetUser = CreateUser();
+
+        FriendshipDbo pendingFriendship = CreateAcceptedFriendship(targetUser, requestingUser);
+
+        _dbContext.Users.Add(requestingUser);
+        _dbContext.Users.Add(targetUser);
+        _dbContext.UserFriendships.Add(pendingFriendship);
+
+        await _dbContext.SaveChangesAsync();
+
+        // Act
+        HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
+        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+
+        // Assert
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
+
+        HttpResponseMessage friendResponse = await client.GetAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+        friendResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+    }
+
+    #endregion
 
     private static Task<int> ResetUsersAndFriendships(DatabaseContext dbContext)
     {
