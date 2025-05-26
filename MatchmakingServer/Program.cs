@@ -123,6 +123,10 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy(Policies.AccessFriendRequests, policy =>
     {
         policy.AddRequirements(new IsOwnerRequirement(ClaimTypes.NameIdentifier));
+    })
+    .AddPolicy(Policies.CanRemoveFriend, policy =>
+    {
+        policy.AddRequirements(new IsOwnerRequirement(ClaimTypes.NameIdentifier));
     });
 
 // Register custom authorization handlers

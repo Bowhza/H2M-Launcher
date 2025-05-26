@@ -108,6 +108,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public PartyViewModel PartyViewModel { get; }
 
+    public FriendsViewModel FriendsViewModel { get; }
+
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
     public bool IsMatchmakingEnabled =>
@@ -160,7 +162,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IMapsProvider mapsProvider,
         IServerJoinService serverJoinService,
         IOnlineServices onlineService,
-        PartyViewModel partyViewModel)
+        PartyViewModel partyViewModel,
+        FriendsViewModel friendsViewModel)
     {
         _h2mMaster = h2mMasterService;
         _hmwMaster = hmwMasterService;
@@ -198,6 +201,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking, () => IsMatchmakingEnabled);
 
         PartyViewModel = partyViewModel;
+        FriendsViewModel = friendsViewModel;
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();
 

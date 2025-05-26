@@ -76,7 +76,7 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         {
             // notify (online) friends of the change
             await Clients.Users(await GetOnlineFriendIds())
-            .OnFriendStatusChanged(userId, player.Name, player.GameStatus);
+                .OnFriendStatusChanged(userId, player.Name, player.GameStatus);
         }
         catch (Exception ex)
         {
@@ -91,10 +91,10 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         _logger.LogDebug("Querying online friends for {userId}", userId);
 
         List<Player> onlinePlayers = [];
-        List<UserDbo> friends = await _friendshipsService.GetFriendsAsync(userId).ConfigureAwait(false);
-        foreach (UserDbo friend in friends)
+        List<Guid> friendIds = await _friendshipsService.GetFriendIdsAsync(Guid.Parse(userId)).ConfigureAwait(false);
+        foreach (Guid friendId in friendIds)
         {
-            if (ConnectedPlayers.TryGetValue(friend.Id.ToString(), out Player? player))
+            if (ConnectedPlayers.TryGetValue(friendId.ToString(), out Player? player))
             {
                 onlinePlayers.Add(player);
             }
@@ -108,12 +108,12 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         userId ??= Context.UserIdentifier!;
 
         List<string> onlineIds = [];
-        List<UserDbo> friends = await _friendshipsService.GetFriendsAsync(userId).ConfigureAwait(false);
-        foreach (UserDbo friend in friends)
+        List<Guid> friendIds = await _friendshipsService.GetFriendIdsAsync(Guid.Parse(userId)).ConfigureAwait(false);
+        foreach (Guid friendId in friendIds)
         {
-            if (ConnectedPlayers.ContainsKey(friend.Id.ToString()))
+            if (ConnectedPlayers.ContainsKey(friendId.ToString()))
             {
-                onlineIds.Add(friend.Id.ToString());
+                onlineIds.Add(friendId.ToString());
             }
         }
 

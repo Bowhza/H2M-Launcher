@@ -4,21 +4,30 @@ using System.Net.Http.Headers;
 using System.Security.Claims;
 
 using MatchmakingServer.Authentication.JWT;
+using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
+using MatchmakingServer.SignalR;
 
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Internal;
-using Microsoft.Extensions.DependencyInjection;
+
+using NSubstitute;
 
 namespace MatchmakingServer.Tests;
 
 public class Factory : WebApplicationFactory<Program>
 {
+    public IHubContext<SocialHub, ISocialClient> SocialHubContextMock { get; }
+
+    public Factory()
+    {
+        SocialHubContextMock = Substitute.For<IHubContext<SocialHub, ISocialClient>>();
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
@@ -48,6 +57,8 @@ public class Factory : WebApplicationFactory<Program>
                 // see https://github.com/dotnet/efcore/issues/34431
                 options.ConfigureWarnings(warnings => warnings.Log(RelationalEventId.PendingModelChangesWarning));
             }, optionsLifetime: ServiceLifetime.Singleton);
+
+            services.AddSingleton(SocialHubContextMock);
 
 
             // Authentication
