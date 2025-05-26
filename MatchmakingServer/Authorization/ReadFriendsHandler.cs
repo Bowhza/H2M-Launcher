@@ -22,14 +22,14 @@ public class ReadFriendsHandler : AuthorizationHandler<ReadFriendsRequirement>
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, ReadFriendsRequirement requirement)
     {
         HttpContext? httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null)
+        if (httpContext is null)
         {
             context.Fail();
             return;
         }
 
         Claim? authenticatedUserIdClaim = context.User.FindFirst(requirement.UserIdClaimType);
-        if (authenticatedUserIdClaim == null)
+        if (authenticatedUserIdClaim is null)
         {
             context.Fail(); // User is not authenticated or lacks the ID claim
             return;

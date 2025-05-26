@@ -18,14 +18,14 @@ public class IsOwnerHandler : AuthorizationHandler<IsOwnerRequirement>
     protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, IsOwnerRequirement requirement)
     {
         HttpContext? httpContext = _httpContextAccessor.HttpContext;
-        if (httpContext == null)
+        if (httpContext is null)
         {
             context.Fail();
             return Task.CompletedTask;
         }
 
         Claim? authenticatedUserIdClaim = context.User.FindFirst(requirement.UserIdClaimType);
-        if (authenticatedUserIdClaim == null)
+        if (authenticatedUserIdClaim is null)
         {
             context.Fail(); // User is not authenticated or lacks the ID claim
             return Task.CompletedTask;

@@ -47,7 +47,7 @@ public class QueueingHub : Hub<IClient>, IMatchmakingHub
     /// <returns>The previously connected player.</returns>
     private Player? RemovePlayer(string connectionId)
     {
-        if (!ConnectedPlayers.TryRemove(connectionId, out var player))
+        if (!ConnectedPlayers.TryRemove(connectionId, out Player? player))
         {
             return null;
         }
@@ -65,7 +65,7 @@ public class QueueingHub : Hub<IClient>, IMatchmakingHub
 
     public Task JoinAck(bool successful)
     {
-        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
             // not found
             return Task.CompletedTask;
@@ -97,7 +97,7 @@ public class QueueingHub : Hub<IClient>, IMatchmakingHub
 
     public Task LeaveQueue()
     {
-        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
             // unknown player
             return Task.CompletedTask;
@@ -126,7 +126,7 @@ public class QueueingHub : Hub<IClient>, IMatchmakingHub
 
     public Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)
     {
-        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out var player))
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
         {
             // unknown player
             return Task.FromResult(false);
@@ -171,7 +171,7 @@ public class QueueingHub : Hub<IClient>, IMatchmakingHub
             player.QueueingHubId = null;
         }
 
-        if (RemovePlayer(Context.ConnectionId) != null)
+        if (RemovePlayer(Context.ConnectionId) is not null)
         {
             _logger.LogInformation("Removed player {player} from queueing hub", player);
         }
