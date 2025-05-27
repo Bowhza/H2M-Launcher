@@ -20,6 +20,7 @@ using MatchmakingServer.Parties;
 using MatchmakingServer.Playlists;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
+using MatchmakingServer.Social;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
