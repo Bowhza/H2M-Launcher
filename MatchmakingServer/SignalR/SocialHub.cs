@@ -34,7 +34,7 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         _logger.LogDebug("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
             userId, Context.ConnectionId, gameStatus);
 
-        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        if (!ConnectedPlayers.TryGetValue(userId, out Player? player))
         {
             _logger.LogWarning("No connected player found for connection id {socialHubConnectionId}", Context.ConnectionId);
             return;
@@ -59,7 +59,7 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         _logger.LogDebug("Updating player name for {userId} ({socialHubConnectionId}) to {newPlayerName}",
             userId, Context.ConnectionId, newPlayerName);
 
-        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        if (!ConnectedPlayers.TryGetValue(userId, out Player? player))
         {
             _logger.LogWarning("No connected player found for connection id {socialHubConnectionId}", Context.ConnectionId);
             return;
