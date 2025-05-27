@@ -2,7 +2,7 @@
 
 public interface ISocialClient
 {
-    Task OnFriendOnline(string friendId);
+    Task OnFriendOnline(string friendId, string playerName);
 
     Task OnFriendOffline(string friendId);
 
