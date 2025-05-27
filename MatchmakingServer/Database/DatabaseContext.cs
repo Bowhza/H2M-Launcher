@@ -24,9 +24,6 @@ public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbCont
 
             entity.HasIndex(u => u.Name)
                   .IsUnique();
-
-            entity.HasIndex(u => u.Name)
-                  .IsUnique();
         });
             
 
