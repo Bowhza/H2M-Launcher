@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Security.Claims;
+using System.Text.Json.Serialization;
 
 using FluentValidation;
 
@@ -13,7 +14,7 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Api;
-using MatchmakingServer.Authentication.Passwordless;
+using MatchmakingServer.Authorization;
 using MatchmakingServer.Database;
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
@@ -22,13 +23,13 @@ using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
 using MatchmakingServer.Social;
 
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 using Serilog;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder();
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
@@ -79,7 +80,7 @@ builder.Services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW"
 
 builder.Services.AddTransient<UdpGameServerCommunication>();
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
-builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) => 
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) =>
     sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
 builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerInfoService<GameServer>>("TCP");
 builder.Services.AddTransient<IGameServerInfoService<GameServer>, TcpUdpDynamicGameServerInfoService<GameServer>>();
@@ -99,7 +100,9 @@ builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
+// Social
 builder.Services.AddTransient<UserManager>();
+builder.Services.AddTransient<FriendshipsService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -109,7 +112,29 @@ builder.Services.AddDbContextPool<DatabaseContext>(opt =>
 
 builder.AddSwagger();
 builder.AddAuthentication();
-builder.Services.AddAuthorization();
+
+
+// Authorization
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.CanReadFriends, policy =>
+    {
+        policy.AddRequirements(new ReadFriendsRequirement(ClaimTypes.NameIdentifier));
+    })
+    .AddPolicy(Policies.AccessFriendRequests, policy =>
+    {
+        policy.AddRequirements(new IsOwnerRequirement(ClaimTypes.NameIdentifier));
+    })
+    .AddPolicy(Policies.CanRemoveFriend, policy =>
+    {
+        policy.AddRequirements(new IsOwnerRequirement(ClaimTypes.NameIdentifier));
+    });
+
+// Register custom authorization handlers
+builder.Services.AddScoped<IAuthorizationHandler, IsOwnerHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ReadFriendsHandler>();
+
+builder.Services.AddHttpContextAccessor();
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -147,3 +172,5 @@ app.MapHubs();
 app.MapEndpoints();
 
 app.Run();
+
+public partial class Program { }
