@@ -303,7 +303,9 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     {
         FriendDto? newFriend = UpdateFriend(friendId, (friend) => friend with
         {
-            Status = OnlineStatus.Offline
+            Status = OnlineStatus.Offline,
+            GameStatus = GameStatus.None,
+            PartyStatus = null
         });
 
         if (newFriend is not null)
