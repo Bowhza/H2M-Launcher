@@ -127,6 +127,7 @@ namespace H2MLauncher.UI.ViewModels
         public IAsyncRelayCommand RemoveFriendCommand { get; }
 
         public IRelayCommand CopyUserIdCommand { get; }
+        public IRelayCommand CopyUserNameCommand { get; }
 
         public FriendViewModel(string userId, PartyClient partyClient, SocialClient socialClient, DialogService dialogService)
         {
@@ -183,6 +184,7 @@ namespace H2MLauncher.UI.ViewModels
                 () => CanRemoveFriend);
 
             CopyUserIdCommand = new RelayCommand(() => Clipboard.SetText(Id));
+            CopyUserNameCommand = new RelayCommand(() => Clipboard.SetText(UserName), () => !string.IsNullOrEmpty(UserName));
         }
     }
 }

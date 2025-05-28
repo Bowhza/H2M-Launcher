@@ -414,11 +414,11 @@
                                             <StackPanel Margin="12">
                                                 <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
-                                                    <TextBox Text="{Binding UserName}" IsReadOnly="True">
+                                                    <TextBox Text="{Binding UserName, StringFormat={}@{0}}" IsReadOnly="True">
                                                         <i:Interaction.Triggers>
                                                             <i:EventTrigger EventName="MouseDoubleClick">
                                                                 <i:EventTrigger.Actions>
-                                                                    <i:InvokeCommandAction Command="{Binding CopyId}"/>
+                                                                    <i:InvokeCommandAction Command="{Binding CopyUserNameCommand}"/>
                                                                 </i:EventTrigger.Actions>
                                                             </i:EventTrigger>
                                                         </i:Interaction.Triggers>
@@ -430,20 +430,6 @@
                                                             </Style>
                                                         </TextBox.Style>
                                                     </TextBox>
-                                                    <!--<Button Grid.Column="1" Padding="4,0">
-                                                        <Button.Style>
-                                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource LinkButtonStyle}">
-                                                                <Setter Property="Content" Value="📋"/>
-                                                                <Setter Property="ToolTip" Value="Copy ID"/>
-                                                                <Setter Property="Visibility" Value="Visible"/>
-                                                                <Style.Triggers>
-                                                                    <DataTrigger Binding="{Binding UserName}" Value="">
-                                                                        <Setter Property="Visibility" Value="Collapsed"/>
-                                                                    </DataTrigger>
-                                                                </Style.Triggers>
-                                                            </Style>
-                                                        </Button.Style>
-                                                    </Button>-->
                                                 </StackPanel>
                                                 <Separator Margin="0,5" Visibility="{Binding IsInThirdParty, Converter={StaticResource booleanToVisibilityConverter}}" />
                                                 <!--<Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInviteToParty, Converter={StaticResource booleanToVisibilityConverter}}"/>-->
