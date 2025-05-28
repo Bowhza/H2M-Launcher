@@ -102,7 +102,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
 
                 AddAppHeaders(opts.Headers);
             })
-            .WithAutomaticReconnect()
+            .WithAutomaticReconnect(new PartyHubConnectionRetryPolicy())
             .Build();
 
         _hubConnections = [(CustomHubConnection)QueueingHubConnection, (CustomHubConnection)PartyHubConnection];
@@ -206,6 +206,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         [
             TimeSpan.Zero,
             TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(5),
             TimeSpan.FromSeconds(10),
             TimeSpan.FromSeconds(30),
         ];

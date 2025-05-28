@@ -261,7 +261,16 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     {
         _logger.LogInformation(exception, "Social client connection closed.");
 
-        _friends = [];
+        // set all friends to offline
+        for (int i = 0; i < _friends.Count; i++)
+        {
+            _friends[i] = _friends[i] with
+            {
+                Status = OnlineStatus.Offline,
+                GameStatus = GameStatus.None,
+                PartyStatus = null
+            };
+        }
         _playerNameProvider.PlayerNameChanged -= PlayerNameProvider_PlayerNameChanged;
         _gameCommunicationService.GameStateChanged -= GameCommunicationService_GameStateChanged;
         _gameCommunicationService.Stopped -= GameCommunicationService_Stopped;

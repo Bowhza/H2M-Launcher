@@ -23,6 +23,8 @@ namespace H2MLauncher.UI.ViewModels
         private readonly DialogService _dialogService;
         private readonly IErrorHandlingService _errorHandlingService;
 
+        private readonly HashSet<string> _addedUserIds = [];
+
         #region Bindings
 
         [ObservableProperty]
@@ -49,6 +51,36 @@ namespace H2MLauncher.UI.ViewModels
             }
         }
 
+        public string PartyStatus
+        {
+            get
+            {
+                if (!_partyClient.IsConnected)
+                {
+                    return "Disconnected";
+                }
+
+                if (_partyClient.IsConnecting)
+                {
+                    return "Connecting";
+                }
+
+                if (!IsPartyActive)
+                {
+                    return "Connected";
+                }
+
+                if (IsPartyGuest)
+                {
+                    return $"Joined ({_partyClient.Members?.Count})";
+                }
+
+                return _partyClient.Members is not null && _partyClient.Members.Count > 0
+                    ? $"Open ({_partyClient.Members?.Count})"
+                    : "Open";
+            }
+        }
+
         public string? UserId => _socialClient.Context.UserId;
         public string? UserName => _socialClient.Context.UserName;
 
@@ -71,7 +103,6 @@ namespace H2MLauncher.UI.ViewModels
             _errorHandlingService = errorHandlingService;
             _socialClient = socialClient;
             _socialClient.Context.UserChanged += ClientContext_UserChanged;
-            _socialClient.ConnectionChanged += SocialClient_ConnectionChanged;
             _socialClient.FriendsChanged += SocialClient_FriendsChanged;
             _socialClient.FriendChanged += SocialClient_FriendChanged;
 
@@ -83,7 +114,7 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserJoined += PartyService_UserJoined;
             _partyClient.UserLeft += PartyService_UserLeft;
             _partyClient.LeaderChanged += PartyClient_LeaderChanged;
-            //_partyClient.ConnectionChanged += PartyService_ConnectionChanged;
+            _partyClient.ConnectionChanged += PartyService_ConnectionChanged;
 
 
             // Populate with some dummy data for testing
@@ -111,7 +142,7 @@ namespace H2MLauncher.UI.ViewModels
             // Finally, group by the Status property
             FriendsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FriendViewModel.Group)));
 
-
+            // Immediately start the connection
             _socialClient.StartConnection()
                 .ContinueWith(t =>
                 {
@@ -133,6 +164,8 @@ namespace H2MLauncher.UI.ViewModels
                     }
                 });
 
+            OnPropertyChanged(nameof(Status));
+
             IsConnecting = _socialClient.IsConnecting;
         }
 
@@ -141,8 +174,6 @@ namespace H2MLauncher.UI.ViewModels
             OnPropertyChanged(nameof(UserId));
             OnPropertyChanged(nameof(UserName));
         }
-
-        private readonly HashSet<string> _addedUserIds = [];
 
         private void RefreshPeople()
         {
@@ -186,6 +217,33 @@ namespace H2MLauncher.UI.ViewModels
 
         #region Event handlers
 
+        private void PartyService_ConnectionChanged(bool connected)
+        {
+            if (!connected)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    RefreshPeople();
+
+                    OnPropertyChanged(nameof(PartyId));
+                    OnPropertyChanged(nameof(IsPartyLeader));
+                    OnPropertyChanged(nameof(IsPartyActive));
+                    OnPropertyChanged(nameof(IsPartyGuest));
+                    OnPropertyChanged(nameof(PartyStatus));
+
+                    _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                });
+            }
+            else
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    OnPropertyChanged(nameof(PartyStatus));
+                });
+            }
+            
+        }
+
         private void PartyService_PartyChanged()
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -205,6 +263,8 @@ namespace H2MLauncher.UI.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 RefreshPeople();
+
+                OnPropertyChanged(nameof(PartyStatus));
             });
         }
 
@@ -214,6 +274,8 @@ namespace H2MLauncher.UI.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 RefreshPeople();
+
+                OnPropertyChanged(nameof(PartyStatus));
             });
         }
 
@@ -222,6 +284,8 @@ namespace H2MLauncher.UI.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 RefreshPeople();
+
+                OnPropertyChanged(nameof(PartyStatus));
             });
         }
 
@@ -230,6 +294,8 @@ namespace H2MLauncher.UI.ViewModels
             Application.Current.Dispatcher.Invoke(() =>
             {
                 RefreshPeople();
+
+                OnPropertyChanged(nameof(PartyStatus));
             });
         }
 
@@ -244,6 +310,8 @@ namespace H2MLauncher.UI.ViewModels
                     viewModel.IsPartyLeader = member.IsLeader;
                     viewModel.IsSelf = _partyClient.IsSelf(member);
                 }
+
+                OnPropertyChanged(nameof(PartyStatus));
             });
         }
 
@@ -265,22 +333,6 @@ namespace H2MLauncher.UI.ViewModels
                     viewModel.PromoteLeaderCommand.NotifyCanExecuteChanged();
                 }
             });
-        }
-
-        private void SocialClient_ConnectionChanged(bool connected)
-        {
-            if (!connected)
-            {
-                Application.Current.Dispatcher.Invoke(() =>
-                {
-                    Friends.Clear();
-
-                    OnPropertyChanged(nameof(HasFriends));
-                    OnPropertyChanged(nameof(Status));
-
-                    _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
-                });
-            }
         }
 
         private void SocialClient_FriendsChanged()
@@ -458,7 +510,18 @@ namespace H2MLauncher.UI.ViewModels
 
         public void Dispose()
         {
-            _socialClient.ConnectionChanged -= SocialClient_ConnectionChanged;
+            _socialClient.Context.UserChanged -= ClientContext_UserChanged;
+            _socialClient.FriendsChanged -= SocialClient_FriendsChanged;
+            _socialClient.FriendChanged -= SocialClient_FriendChanged;
+
+            _partyClient.PartyChanged -= PartyService_PartyChanged;
+            _partyClient.PartyClosed -= PartyService_PartyClosed;
+            _partyClient.KickedFromParty -= PartyService_KickedFromParty;
+            _partyClient.UserChanged -= PartyService_UserChanged;
+            _partyClient.UserJoined -= PartyService_UserJoined;
+            _partyClient.UserLeft -= PartyService_UserLeft;
+            _partyClient.LeaderChanged -= PartyClient_LeaderChanged;
+            _partyClient.ConnectionChanged -= PartyService_ConnectionChanged;
         }
 
         public class FriendStatusGroupComparer : IComparer
