@@ -368,7 +368,7 @@ namespace H2MLauncher.Core.Party
 
         Task IPartyClient.OnServerChanged(SimpleServerInfo server)
         {
-            _logger.LogDebug("Party server changed: {server}, joining...", server);
+            _logger.LogDebug("Party server changed: {serverIp}:{serverPort}, joining...", server.ServerIp, server.ServerPort);
 
             return _serverJoinService.JoinServer(server, null, JoinKind.FromParty);
         }
