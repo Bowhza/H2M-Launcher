@@ -423,6 +423,16 @@ namespace H2MLauncher.UI.ViewModels
                     // start counting seconds from 0
                     StartTime = DateTime.Now;
                     _queueTimer.Start();
+
+                    // probably queued from the server, so add server info
+                    if (_queueingService.QueuedServer is not null)
+                    {
+                        ServerIp = _queueingService.QueuedServer.Ip;
+                        ServerPort = _queueingService.QueuedServer.Port;
+                        ServerHostName = string.IsNullOrEmpty(_queueingService.QueuedServer.ServerName)
+                            ? $"{ServerIp}:{ServerPort}"
+                            : _queueingService.QueuedServer.ServerName;
+                    }
                 }
 
                 if (state is PlayerState.Connected && _queueTimer.IsEnabled)
