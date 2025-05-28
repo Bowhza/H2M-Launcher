@@ -76,8 +76,8 @@ namespace H2MLauncher.UI.ViewModels
                 }
 
                 return _partyClient.Members is not null && _partyClient.Members.Count > 0
-                    ? $"Open ({_partyClient.Members?.Count})"
-                    : "Open";
+                    ? $"{PartyPrivacy} ({_partyClient.Members?.Count})"
+                    : PartyPrivacy.ToString();
             }
         }
 
@@ -88,6 +88,8 @@ namespace H2MLauncher.UI.ViewModels
         public bool IsPartyLeader => _partyClient.IsPartyLeader;
         public bool IsPartyGuest => IsPartyActive && !IsPartyLeader;
         public string? PartyId => _partyClient.PartyId;
+
+        public PartyPrivacy PartyPrivacy => _partyClient.PartyPrivacy;
 
         public bool HasFriends => Friends.Count > 0;
 
@@ -114,6 +116,7 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserJoined += PartyService_UserJoined;
             _partyClient.UserLeft += PartyService_UserLeft;
             _partyClient.LeaderChanged += PartyClient_LeaderChanged;
+            _partyClient.PartyPrivacyChanged += PartyClient_PartyPrivacyChanged;
             _partyClient.ConnectionChanged += PartyService_ConnectionChanged;
 
 
@@ -335,6 +338,15 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
+        private void PartyClient_PartyPrivacyChanged(PartyPrivacy newPartyPrivacy)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                OnPropertyChanged(nameof(PartyPrivacy));
+                OnPropertyChanged(nameof(PartyStatus));
+            });
+        }
+
         private void SocialClient_FriendsChanged()
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -463,6 +475,16 @@ namespace H2MLauncher.UI.ViewModels
         public Task LeaveParty()
         {
             return _partyClient.LeaveParty();
+        }
+
+        [RelayCommand]
+        public Task ChangePartyPrivacy()
+        {
+            PartyPrivacy[] enumValues = Enum.GetValues<PartyPrivacy>();
+            int currentIndex = Array.IndexOf(enumValues, PartyPrivacy);
+            int nextIndex = (currentIndex + 1) % enumValues.Length;
+
+            return _partyClient.ChangePrivacy(enumValues[nextIndex]);
         }
 
         private void AddFriend(FriendDto friend)

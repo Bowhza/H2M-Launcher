@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+﻿using H2MLauncher.Core.Party;
 
 namespace MatchmakingServer.Parties;
 
@@ -9,6 +9,8 @@ public class Party : IParty
     private bool _isClosed;
 
     public string Id { get; init; } = Guid.NewGuid().ToString();
+
+    public PartyPrivacy Privacy { get; set; } = PartyPrivacy.Friends;
 
     public Player Leader => _leader;
     public IReadOnlySet<Player> Members => _members;

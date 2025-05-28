@@ -1,3 +1,3 @@
 ﻿namespace H2MLauncher.Core.Party;
 
-public record PartyInfo(string PartyId, List<PartyPlayerInfo> Members);
+public record PartyInfo(string PartyId, PartyPrivacy PartyPrivacy, List<PartyPlayerInfo> Members);

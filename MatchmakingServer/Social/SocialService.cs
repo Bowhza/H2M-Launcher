@@ -2,6 +2,8 @@
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
+using H2MLauncher.Core.Party;
+
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Social;
@@ -37,6 +39,7 @@ public class SocialService
         _partyService.PartyCreated += PartyService_PartyCreated;
         _partyService.PlayerJoinedParty += PartyService_PlayerJoinedParty;
         _partyService.PlayerRemovedFromParty += PartyService_PlayerRemovedFromParty;
+        _partyService.PartyPrivacyChanged += PartyService_PartyPrivacyChanged;
 
         // We use a observable pipe to throttle fast subsequent player change notifications (such as leaving and immediately auto-creating a party)
         // so we can minimize noise and database calls.
@@ -161,7 +164,10 @@ public class SocialService
                     player.Name,
                     player.GameStatus,
                     player.Party is not null
-                        ? new PartyStatusDto(player.Party.Id, player.Party.Members.Count, true)
+                        ? new PartyStatusDto(
+                            player.Party.Id, 
+                            player.Party.Members.Count, 
+                            player.Party.Privacy is not PartyPrivacy.Closed)
                         : null
                 );
         }
@@ -221,5 +227,10 @@ public class SocialService
     private void PartyService_PartyClosed(Party party, IReadOnlyCollection<Player> removedPlayers)
     {
         _playerStatusChanges.OnNext(removedPlayers);
+    }
+
+    private void PartyService_PartyPrivacyChanged(Party party, H2MLauncher.Core.Party.PartyPrivacy partyPrivacy)
+    {
+        _playerStatusChanges.OnNext(party.Members.ToList());
     }
 }

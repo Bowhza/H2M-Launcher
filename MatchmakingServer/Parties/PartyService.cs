@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Numerics;
 
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
@@ -6,6 +7,7 @@ using H2MLauncher.Core.Party;
 
 using MatchmakingServer.Core.Party;
 using MatchmakingServer.SignalR;
+using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.SignalR;
 
@@ -15,6 +17,8 @@ namespace MatchmakingServer.Parties
     {
         private readonly ILogger<PartyService> _logger;
         private readonly IHubContext<PartyHub, IPartyClient> _hubContext;
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+
 
         private readonly ConcurrentDictionary<string, Party> _parties = [];
 
@@ -22,19 +26,21 @@ namespace MatchmakingServer.Parties
 
         public event Action<Party>? PartyCreated;
         public event Action<Party, IReadOnlyCollection<Player>>? PartyClosed;
+        public event Action<Party, PartyPrivacy>? PartyPrivacyChanged;
         public event Action<Party, Player>? PlayerRemovedFromParty;
         public event Action<Party, Player, Player>? PartyLeaderChanged;
         public event Action<Party, Player>? PlayerJoinedParty;
 
-        public PartyService(IHubContext<PartyHub, IPartyClient> hubContext, ILogger<PartyService> logger)
+        public PartyService(IHubContext<PartyHub, IPartyClient> hubContext, IServiceScopeFactory serviceScopeFactory, ILogger<PartyService> logger)
         {
             _hubContext = hubContext;
+            _serviceScopeFactory = serviceScopeFactory;
             _logger = logger;
         }
 
         private static PartyInfo CreatePartyInfo(Party party)
         {
-            return new(party.Id, party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList());
+            return new(party.Id, party.Privacy, party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList());
         }
 
         private static string GetPartyGroupName(Party party)
@@ -75,6 +81,26 @@ namespace MatchmakingServer.Parties
             if (!_parties.TryGetValue(partyId, out Party? party))
             {
                 return null;
+            }
+
+            if (party.Privacy is PartyPrivacy.Closed)
+            {
+                // TODO: invites
+                return null;
+            }
+            
+            if (party.Privacy is PartyPrivacy.Friends)
+            {
+                await using var scope = _serviceScopeFactory.CreateAsyncScope();
+                var friendshipsService = scope.ServiceProvider.GetRequiredService<FriendshipsService>();
+
+                // verify that the player is friends with the leader
+                if (!await friendshipsService.UsersAreFriends(Guid.Parse(player.Id), Guid.Parse(party.Leader.Id)))
+                {
+                    _logger.LogDebug("Player {player} tried to join friends only party {partyId} of stranger {leader}",
+                        player, partyId, party.Leader);
+                    return null;
+                }
             }
 
             // leave / close old party first
@@ -254,6 +280,32 @@ namespace MatchmakingServer.Parties
             return true;
         }
 
+        public async Task<bool> ChangePartyPrivacy(Player caller, PartyPrivacy newPartyPrivacy)
+        {
+            if (!caller.IsPartyLeader)
+            {
+                // only party leader can change privacy
+                return false;
+            }
+                        
+            Party party = caller.Party;
+            PartyPrivacy oldPartyPrivacy = party.Privacy;
+            if (oldPartyPrivacy == newPartyPrivacy)
+            {
+                // party privacy is already same
+                return true;
+            }
+
+            party.Privacy = newPartyPrivacy;
+
+            // notify others of changed privacy
+            await OthersInPartyGroup(caller).OnPartyPrivacyChanged(oldPartyPrivacy, newPartyPrivacy);
+
+            OnPartyPrivacyChanged(party, newPartyPrivacy);
+
+            return true;
+        }
+
         private IPartyClient OthersInPartyGroup(Player player, string? partyGroupName = null)
         {
             return _hubContext.Clients.GroupExcept(partyGroupName ?? GetPartyGroupName(player.Party!), player.PartyHubId!);
@@ -282,6 +334,11 @@ namespace MatchmakingServer.Parties
         private void OnPartyJoined(Party party, Player joinedPlayer)
         {
             PlayerJoinedParty?.Invoke(party, joinedPlayer);
+        }
+
+        private void OnPartyPrivacyChanged(Party party, PartyPrivacy partyPrivacy)
+        {
+            PartyPrivacyChanged?.Invoke(party, partyPrivacy);
         }
     }
 }

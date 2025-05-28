@@ -45,11 +45,13 @@ namespace H2MLauncher.Core.Party
         [MemberNotNullWhen(true, nameof(_currentParty))]
         public bool IsPartyActive => _currentParty is not null;
         public bool IsPartyLeader => _isPartyLeader;
+        public PartyPrivacy PartyPrivacy => _currentParty?.PartyPrivacy ?? PartyPrivacy.Closed;
 
 
         public event Action? KickedFromParty;
         public event Action? PartyClosed;
         public event Action? PartyChanged;
+        public event Action<PartyPrivacy>? PartyPrivacyChanged;
         public event Action<PartyPlayerInfo?, PartyPlayerInfo>? LeaderChanged;
         public event Action<PartyPlayerInfo>? UserJoined;
         public event Action<PartyPlayerInfo>? UserLeft;
@@ -304,6 +306,29 @@ namespace H2MLauncher.Core.Party
             // no update needed, OnLeaderChanged() will handle this
         }
 
+        public async Task ChangePrivacy(PartyPrivacy partyPrivacy)
+        {
+            if (_currentParty is null || !_isPartyLeader)
+            {
+                return;
+            }
+
+            if (!await StartConnection())
+            {
+                return;
+            }
+
+            if (!await Hub.ChangePartyPrivacy(partyPrivacy))
+            {
+                _logger.LogDebug("Could not change party privacy to {newPartyPrivacy}", partyPrivacy);
+                return;
+            }
+
+            _currentParty = _currentParty with { PartyPrivacy = partyPrivacy };
+
+            PartyPrivacyChanged?.Invoke(partyPrivacy);
+        }
+
         public bool IsSelf(PartyPlayerInfo member)
         {
             return member.Id == _clientContext.UserId;
@@ -479,6 +504,25 @@ namespace H2MLauncher.Core.Party
             UserChanged?.Invoke(updatedMember);
 
             _logger.LogDebug("Party member {userId} changed name from {oldName} to {newName}", id, member.Name, newPlayerName);
+
+            return Task.CompletedTask;
+        }
+
+        Task IPartyClient.OnPartyPrivacyChanged(PartyPrivacy oldPrivacy, PartyPrivacy newPrivacy)
+        {
+            if (_currentParty is null)
+            {
+                _logger.LogWarning("Received OnPartyPrivacyChanged but current party is null");
+                return Task.CompletedTask;
+            }
+
+            _logger.LogTrace("Received OnUserNameChanged({oldPrivacy}, {newPrivacy})", oldPrivacy, newPrivacy);
+
+            _currentParty = _currentParty with { PartyPrivacy = newPrivacy };
+
+            PartyPrivacyChanged?.Invoke(newPrivacy);
+
+            _logger.LogDebug("Party leader changed party privacy from {oldPrivacy} to {newPrivacy}", oldPrivacy, newPrivacy);
 
             return Task.CompletedTask;
         }

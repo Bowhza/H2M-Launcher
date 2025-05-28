@@ -7,7 +7,7 @@
              xmlns:local="clr-namespace:H2MLauncher.UI.View.Controls"
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-             MinWidth="150"
+             MinWidth="180"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:FriendsViewModel}">
     <UserControl.Resources>
@@ -25,7 +25,7 @@
                                       ContentTemplate="{TemplateBinding ContentTemplate}"
                                       VerticalAlignment="Center"
                                       Margin="5,0"/>
-                            
+
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True"/>
@@ -85,59 +85,138 @@
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Foreground="White" Opacity="0.8" FontSize="12">
-                                <TextBlock.Text>
-                                    <MultiBinding StringFormat="{} {0} — {1}">
-                                        <Binding Path="Name" />
-                                        <Binding Path="ItemCount" />
-                                    </MultiBinding>
-                                </TextBlock.Text>
-                            </TextBlock>
-                            <StackPanel Grid.Column="1" Orientation="Horizontal">
-                                <Button Grid.Column="1" Padding="5,1"
-                                        Command="{Binding DataContext.CopyPartyIdCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
-                                    <Button.Style>
-                                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
-                                            <Setter Property="Content" Value="📋"/>
-                                            <Setter Property="ToolTip" Value="Copy ID"/>
+                        <Border CornerRadius="5" Height="30" >
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Foreground="White" Opacity="0.8" FontSize="12"
+                                       VerticalAlignment="Center">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Name}" Value="Party">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                    <TextBlock.Text>
+                                        <MultiBinding StringFormat="{} {0} — {1}">
+                                            <Binding Path="Name" />
+                                            <Binding Path="ItemCount" />
+                                        </MultiBinding>
+                                    </TextBlock.Text>
+                                </TextBlock>
+
+                                <!-- Party Header (left) -->
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Foreground="White" Opacity="0.8" FontSize="12"
+                                               VerticalAlignment="Center">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{} {0} —">
+                                                <Binding Path="Name" />
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                    
+                                    <!-- Party Privacy Toggle -->
+                                    <Button Grid.Column="1" Padding="3,1" Margin="2,0" Height="22"
+                                            Command="{Binding DataContext.ChangePartyPrivacyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
+                                                <Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+                                                <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+                                                <Setter Property="Background" Value="Transparent"/>
+                                                <Setter Property="Opacity" Value="0.8"/>
+                                                <Setter Property="ToolTip" Value="Party privacy"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <!--<Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, StringFormat={}Privacy: {0}}"/>-->
+                                                        <Setter Property="Opacity" Value="1"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <!-- Party member count -->
+                                    <TextBlock Text="{Binding ItemCount, StringFormat={}({0})}" 
+                                               Foreground="White" Opacity="0.8" FontSize="12"
+                                               VerticalAlignment="Center"/>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Name}"
-                                                             Value="Party">
+                                                <DataTrigger Binding="{Binding Name}" Value="Party">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </Button.Style>
-                                </Button>
-                                <Button Grid.Column="1" Padding="5,1"
-                                        Command="{Binding DataContext.LeavePartyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
-                                    <Button.Style>
-                                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
-                                            <Setter Property="Content" Value="Leave"/>
-                                            <Setter Property="ToolTip" Value="Leave party"/>
+                                    </StackPanel.Style>
+                                </StackPanel>
+
+
+                                <!-- Party Actions Row (right) -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal" Height="22">
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DataContext.IsPartyLeader, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
-                                                             Value="True">
-                                                    <Setter Property="Content" Value="Close"/>
-                                                    <Setter Property="ToolTip" Value="Close party"/>
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Name}"
-                                                             Value="Party">
+                                                <DataTrigger Binding="{Binding Name}" Value="Party">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </Button.Style>
-                                </Button>
-                            </StackPanel>
-                        </Grid>
+                                    </StackPanel.Style>
+
+                                    <!-- Party Privacy Toggle -->
+                                    <!--<Button Grid.Column="1" Padding="5,1" Margin="2,0"
+                                            Command="{Binding DataContext.ChangePartyPrivacyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
+                                                <Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, StringFormat={}Privacy: {0}}"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>-->
+
+                                    <!-- Copy Party ID -->
+                                    <Button Grid.Column="1" Padding="5,1" Margin="2,0"
+                                            Command="{Binding DataContext.CopyPartyIdCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
+                                                <Setter Property="Content" Value="📋"/>
+                                                <Setter Property="ToolTip" Value="Copy ID"/>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+
+                                    <!-- Leave / Close Party -->
+                                    <Button Grid.Column="1" Padding="5,1" Margin="2,0"
+                                            Command="{Binding DataContext.LeavePartyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                        <Button.Style>
+                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
+                                                <Setter Property="Content" Value="Leave"/>
+                                                <Setter Property="ToolTip" Value="Leave party"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsPartyLeader, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                            Value="True">
+                                                        <Setter Property="Content" Value="❌"/>
+                                                        <Setter Property="ToolTip" Value="Close party"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
@@ -161,7 +240,7 @@
                                           Grid.Row="1" 
                                           Visibility="Collapsed" 
                                           Focusable="False" 
-                                          Margin="0,5,0,0"/>
+                                          Margin="10,5,0,0"/>
 
                             <!--<Border x:Name="EmptyPartyGroupContent" Grid.Row="1" 
                                 Visibility="Collapsed"
@@ -308,7 +387,7 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
-                                    </TextBlock>                                   
+                                    </TextBlock>
 
                                     <TextBlock Text="{Binding DetailedStatus}" Grid.Row="1"  
                                                Foreground="#BBB" FontSize="10"  FontWeight="SemiBold"
@@ -334,9 +413,11 @@
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding CanJoinParty}" Value="True">
                                                         <Setter Property="Text" Value="{Binding PartySize, StringFormat={}👫{0}}"/>
+                                                        <Setter Property="ToolTip" Value="Open Party (can join)"/>
                                                     </DataTrigger>
                                                     <DataTrigger Binding="{Binding CanJoinParty}" Value="False">
                                                         <Setter Property="Text" Value="{Binding PartySize, StringFormat={}🔒{0}}"/>
+                                                        <Setter Property="ToolTip" Value="Closed Party"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -456,7 +537,7 @@
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
 
-                <StackPanel>
+                <StackPanel Visibility="Visible">
                     <StackPanel.Resources>
                         <!-- Loading -->
                         <DataTemplate x:Key="LoadingTemplate" DataType="{x:Type vm:FriendsViewModel}">
@@ -491,12 +572,13 @@
                             </Style>
                         </ContentControl.Style>
                     </ContentControl>
-                </StackPanel>
 
-                <TextBox Text="{Binding UserId, Mode=OneWay}" IsReadOnly="True" Margin="10"/>
-                <TextBox Text="{Binding UserName, Mode=OneWay}" IsReadOnly="True" Margin="10,0,10,10"/>
-                <Button Content="Add friend..." Command="{Binding AddFriendCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,10"/>
-                <Button Content="Accept friend request..." Command="{Binding AcceptFriendRequestCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,0"/>
+
+                    <TextBox Text="{Binding UserId, Mode=OneWay}" IsReadOnly="True" Margin="10"/>
+                    <TextBox Text="{Binding UserName, Mode=OneWay}" IsReadOnly="True" Margin="10,0,10,10"/>
+                    <Button Content="Add friend..." Command="{Binding AddFriendCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,10"/>
+                    <Button Content="Accept friend request..." Command="{Binding AcceptFriendRequestCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,0"/>
+                </StackPanel>
             </StackPanel>
         </Grid>
     </Border>

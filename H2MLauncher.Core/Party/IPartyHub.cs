@@ -18,4 +18,6 @@ public interface IPartyHub
     Task<bool> KickPlayer(string id);
 
     Task<bool> PromoteLeader(string id);
+
+    Task<bool> ChangePartyPrivacy(PartyPrivacy newPartyPrivacy);
 }

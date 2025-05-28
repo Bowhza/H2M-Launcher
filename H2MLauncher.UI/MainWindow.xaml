@@ -538,7 +538,7 @@
                         </Grid>
                     </Border>
 
-                    <controls:FriendsControl DataContext="{Binding FriendsViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,0,5" MinWidth="180"
+                    <controls:FriendsControl DataContext="{Binding FriendsViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,0,5" MinWidth="220"
                                              Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 </Grid>
 

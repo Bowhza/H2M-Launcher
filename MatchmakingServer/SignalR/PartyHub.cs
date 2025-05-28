@@ -88,6 +88,16 @@ public class PartyHub : Hub<IPartyClient>, IPartyHub
         return _partyService.ChangeLeader(player, id);
     }
 
+    public Task<bool> ChangePartyPrivacy(PartyPrivacy newPartyPrivacy)
+    {
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        {
+            return Task.FromResult(false);
+        }
+
+        return _partyService.ChangePartyPrivacy(player, newPartyPrivacy);
+    }
+
     public Task UpdatePlayerName(string newName)
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))

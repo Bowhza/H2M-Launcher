@@ -1,5 +1,7 @@
 ﻿using FxKit;
 
+using H2MLauncher.Core.Party;
+
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
@@ -126,7 +128,12 @@ public sealed class FriendshipsService(
                 player.Name,
                 OnlineStatus.Online,
                 player.GameStatus,
-                player.Party is null ? null : new PartyStatusDto(player.Party.Id, player.Party.Members.Count, true),
+                player.Party is not null
+                        ? new PartyStatusDto(
+                            player.Party.Id,
+                            player.Party.Members.Count,
+                            player.Party.Privacy is not PartyPrivacy.Closed)
+                        : null,
                 friendsSince);
         }
     }
