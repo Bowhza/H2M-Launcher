@@ -452,7 +452,7 @@
 
                     <!-- Party Header -->
                     <Border Grid.Column="0" Height="35" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
-                            Margin="0,3,0,5" BorderThickness="0.5" DataContext="{Binding PartyViewModel}">
+                            Margin="0,3,0,5" BorderThickness="0.5" DataContext="{Binding FriendsViewModel}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -538,8 +538,8 @@
                         </Grid>
                     </Border>
 
-                    <controls:PartyControl DataContext="{Binding PartyViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,10,5" MinWidth="150"
-                                           Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                    <controls:FriendsControl DataContext="{Binding FriendsViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,0,5" MinWidth="180"
+                                             Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 </Grid>
 
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">

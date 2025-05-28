@@ -3,14 +3,12 @@
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
-using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace MatchmakingServer.Social;
-
 
 public sealed class FriendshipsService(
     DatabaseContext dbContext,
@@ -117,6 +115,7 @@ public sealed class FriendshipsService(
                 friend.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendsSince);
         }
         else
@@ -127,6 +126,7 @@ public sealed class FriendshipsService(
                 player.Name,
                 OnlineStatus.Online,
                 player.GameStatus,
+                player.Party is null ? null : new PartyStatusDto(player.Party.Id, player.Party.Members.Count, true),
                 friendsSince);
         }
     }

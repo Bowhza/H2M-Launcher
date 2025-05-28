@@ -93,6 +93,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
             friend2.Id.ToString(), friend2.Id.ToString(), "friend-2-current-player-name");
         friend2Player.SocialHubId = "some-id";
         friend2Player.GameStatus = GameStatus.InLobby;
+        friend2Player.Party = new(friend2Player);
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
@@ -107,6 +108,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 friend1.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendship1.UpdateDate
             ),
             new FriendDto(
@@ -115,6 +117,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 "friend-2-current-player-name",
                 OnlineStatus.Online,
                 GameStatus.InLobby,
+                new PartyStatusDto(friend2Player.Party.Id, 1, true),
                 friendship2.UpdateDate
             )
         ]);
@@ -174,6 +177,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 friend1.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendship1.UpdateDate
             ),
             new FriendDto(
@@ -182,6 +186,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 friend2.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendship2.UpdateDate
             )
         ]);
@@ -653,6 +658,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
             targetUser.LastPlayerName,
             OnlineStatus.Offline,
             GameStatus.None,
+            null,
             DateTime.UtcNow
         );
 

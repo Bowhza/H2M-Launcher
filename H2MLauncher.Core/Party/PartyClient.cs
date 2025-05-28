@@ -7,6 +7,7 @@ using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.Core.Utilities.SignalR;
 
@@ -14,6 +15,7 @@ using MatchmakingServer.Core.Party;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using TypedSignalR.Client;
 
@@ -29,6 +31,7 @@ namespace H2MLauncher.Core.Party
         private readonly MatchmakingService _matchmakingService;
         private readonly ILogger<PartyClient> _logger;
         private readonly ClientContext _clientContext;
+        private readonly IOptionsMonitor<H2MLauncherSettings> _settings;
 
         private readonly bool _autoCreateParty = true;
         private PartyInfo? _currentParty;
@@ -58,7 +61,8 @@ namespace H2MLauncher.Core.Party
             MatchmakingService matchmakingService,
             ILogger<PartyClient> logger,
             HubConnection hubConnection,
-            IOnlineServices onlineService) : base(hubConnection)
+            IOnlineServices onlineService,
+            IOptionsMonitor<H2MLauncherSettings> settings) : base(hubConnection)
         {
             _clientRegistration = hubConnection.Register<IPartyClient>(this);
 
@@ -69,6 +73,7 @@ namespace H2MLauncher.Core.Party
             _clientContext = onlineService.ClientContext;
 
             _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
+            _settings = settings;
         }
 
         protected override IPartyHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
@@ -80,7 +85,8 @@ namespace H2MLauncher.Core.Party
         {
             try
             {
-                if (Connection.State is HubConnectionState.Disconnected)
+                if (Connection.State is HubConnectionState.Disconnected ||
+                    !_settings.CurrentValue.PublicPlayerName)
                 {
                     return;
                 }

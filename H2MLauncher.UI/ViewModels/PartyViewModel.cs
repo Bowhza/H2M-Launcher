@@ -224,6 +224,7 @@ namespace H2MLauncher.UI.ViewModels
 
         #endregion
 
+
         [RelayCommand]
         public async Task CreateParty()
         {

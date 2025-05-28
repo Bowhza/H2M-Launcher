@@ -35,8 +35,6 @@ namespace H2MLauncher.UI
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
-
-            _viewModel.PartyViewModel.PropertyChanged += PartyViewModel_PropertyChanged;
         }
 
         private void PartyViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

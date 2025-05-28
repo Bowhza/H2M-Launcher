@@ -1,0 +1,517 @@
+﻿<UserControl x:Class="H2MLauncher.UI.View.Controls.FriendsControl"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:ui="clr-namespace:H2MLauncher.UI"
+             xmlns:local="clr-namespace:H2MLauncher.UI.View.Controls"
+             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             MinWidth="150"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:FriendsViewModel}">
+    <UserControl.Resources>
+        <Style x:Key="SleekExpanderHeaderStyleNoArrow" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0" 
+                                      Content="{TemplateBinding Content}" 
+                                      ContentTemplate="{TemplateBinding ContentTemplate}"
+                                      VerticalAlignment="Center"
+                                      Margin="5,0"/>
+                            
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True"/>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="TextElement.Foreground" Value="#CCCCCC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="SleekExpanderHeaderStyle" TargetType="{x:Type ToggleButton}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ToggleButton}">
+                        <Grid Background="Transparent">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <ContentPresenter Grid.Column="0" 
+                                              Content="{TemplateBinding Content}" 
+                                              ContentTemplate="{TemplateBinding ContentTemplate}"
+                                              VerticalAlignment="Center"
+                                              Margin="5,0"/>
+                            <Path x:Name="arrow" Grid.Column="1" 
+                                  HorizontalAlignment="Right" VerticalAlignment="Center" 
+                                  Margin="0,0,5,0"
+                                  Fill="White" 
+                                  Data="M0,0 L4,4 L8,0 Z">
+                                <Path.RenderTransform>
+                                    <RotateTransform CenterX="4" CenterY="2"/>
+                                </Path.RenderTransform>
+                                <Path.LayoutTransform>
+                                    <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
+                                </Path.LayoutTransform>
+                            </Path>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="arrow" Property="RenderTransform">
+                                    <Setter.Value>
+                                        <RotateTransform Angle="180" CenterX="4" CenterY="2"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="TextElement.Foreground" Value="#CCCCCC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SleekExpanderStyle" TargetType="{x:Type Expander}">
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Foreground="White" Opacity="0.8" FontSize="12">
+                                <TextBlock.Text>
+                                    <MultiBinding StringFormat="{} {0} — {1}">
+                                        <Binding Path="Name" />
+                                        <Binding Path="ItemCount" />
+                                    </MultiBinding>
+                                </TextBlock.Text>
+                            </TextBlock>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <Button Grid.Column="1" Padding="5,1"
+                                        Command="{Binding DataContext.CopyPartyIdCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                    <Button.Style>
+                                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
+                                            <Setter Property="Content" Value="📋"/>
+                                            <Setter Property="ToolTip" Value="Copy ID"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Name}"
+                                                             Value="Party">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                                <Button Grid.Column="1" Padding="5,1"
+                                        Command="{Binding DataContext.LeavePartyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                    <Button.Style>
+                                        <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
+                                            <Setter Property="Content" Value="Leave"/>
+                                            <Setter Property="ToolTip" Value="Leave party"/>
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding DataContext.IsPartyLeader, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                                             Value="True">
+                                                    <Setter Property="Content" Value="Close"/>
+                                                    <Setter Property="ToolTip" Value="Close party"/>
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding Name}"
+                                                             Value="Party">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Button.Style>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Expander}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <ToggleButton x:Name="HeaderSite" 
+                                      Grid.Row="0"
+                                      Content="{TemplateBinding Header}"
+                                      ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                      IsChecked="{Binding Path=IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                      Style="{StaticResource SleekExpanderHeaderStyle}"/>
+
+                            <ContentPresenter x:Name="ExpandSite" 
+                                          Grid.Row="1" 
+                                          Visibility="Collapsed" 
+                                          Focusable="False" 
+                                          Margin="0,5,0,0"/>
+
+                            <!--<Border x:Name="EmptyPartyGroupContent" Grid.Row="1" 
+                                Visibility="Collapsed"
+                                Margin="0,5,0,0" Padding="12,5,5,0">
+                                <StackPanel>
+                                    <TextBlock Text="No friends are offline right now." Foreground="#999" FontSize="12" TextAlignment="Center"/>
+                                    <TextBlock Text="Why not invite someone to play?" Foreground="#999" FontSize="10" TextAlignment="Center"/>
+                                </StackPanel>
+                            </Border>-->
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsExpanded" Value="True">
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <DataTrigger Binding="{Binding Name}" Value="Party">
+                                <Setter TargetName="HeaderSite" Property="Style" Value="{StaticResource SleekExpanderHeaderStyleNoArrow}"/>
+                            </DataTrigger>
+                            <!--<MultiDataTrigger>
+                                <MultiDataTrigger.Conditions>
+                                    <Condition Binding="{Binding ItemCount}" Value="0"/>
+                                    <Condition Binding="{Binding Name}" Value="Party"/>
+                                </MultiDataTrigger.Conditions>
+                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Collapsed"/>
+                                <Setter TargetName="EmptyPartyGroupContent" Property="Visibility" Value="Visible"/>
+                            </MultiDataTrigger>-->
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#66000000">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Text="Friends" Foreground="White" HorizontalAlignment="Center" Margin="10,5" 
+                       FontSize="15" FontWeight="Bold" />
+            <StackPanel Grid.Row="1" x:Name="FriendsPanel" Margin="6">
+                <!--<TextBlock Text="{Binding Friends.Count, StringFormat={}{0} Friends}"
+                           Margin="3,0" FontSize="13" Foreground="White" />-->
+                <ItemsControl ItemsSource="{Binding Friends, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="#88000000"
+                         Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}"
+                         BorderBrush="#444"
+                         KeyboardNavigation.DirectionalNavigation="Contained">
+                    <ItemsControl.GroupStyle>
+                        <GroupStyle>
+                            <GroupStyle.ContainerStyle>
+                                <Style TargetType="{x:Type GroupItem}">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="{x:Type GroupItem}">
+                                                <Expander IsExpanded="True"
+                                                          Header="{Binding}"
+                                                          Background="Transparent" 
+                                                          Foreground="White" 
+                                                          BorderBrush="#33FFFFFF" BorderThickness="0,0,0,1" Margin="0,5,0,3"
+                                                          Style="{StaticResource SleekExpanderStyle}">
+                                                    <ItemsPresenter/>
+                                                </Expander>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </GroupStyle.ContainerStyle>
+                        </GroupStyle>
+                    </ItemsControl.GroupStyle>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <ToggleButton x:Name="border" Padding="12,5,5,0" Foreground="White">
+                                <!-- Deselect item when popup closes -->
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="Closed">
+                                        <i:ChangePropertyAction TargetObject="{Binding RelativeSource={RelativeSource AncestorType=ToggleButton}}"
+                                                                PropertyName="IsChecked" Value="False" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+
+                                <ToggleButton.Style>
+                                    <Style TargetType="{x:Type ToggleButton}">
+                                        <Setter Property="Template">
+                                            <Setter.Value>
+                                                <ControlTemplate TargetType="ToggleButton">
+                                                    <Border Name="Bd"
+                                                            Padding="{TemplateBinding Padding}"
+                                                            TextBlock.Foreground="{TemplateBinding Foreground}"
+                                                            TextElement.Foreground="{TemplateBinding Foreground}">
+                                                        <ContentPresenter />
+                                                    </Border>
+                                                    <ControlTemplate.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="#11FFFFFF"/>
+                                                        </Trigger>
+
+                                                        <Trigger Property="IsChecked" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                                                        </Trigger>
+                                                        <Trigger Property="IsPressed" Value="True">
+                                                            <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
+                                                        </Trigger>
+                                                    </ControlTemplate.Triggers>
+                                                </ControlTemplate>
+                                            </Setter.Value>
+                                        </Setter>
+
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="True">
+                                                <Setter Property="Background" Value="#33FFFFFF" />
+                                            </DataTrigger>
+
+                                            <!--<MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType={x:Type ListBoxItem}}, Path=IsMouseOver}" Value="True"/>
+                                                    <Condition Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="False"/>
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="Background" Value="#11FFFFFF" />
+                                            </MultiDataTrigger>-->
+                                        </Style.Triggers>
+                                    </Style>
+                                </ToggleButton.Style>
+
+                                <Grid x:Name="grid" Height="35" >
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition/>
+                                        <RowDefinition/>
+                                    </Grid.RowDefinitions>
+                                    <TextBlock ui:TextBlockExtensions.BindableInlines="{Binding Name, Converter={StaticResource HostNameColorConverter}}" 
+                                               Foreground="White" FontSize="15"
+                                               VerticalAlignment="Center" Margin="0,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>                                   
+
+                                    <TextBlock Text="{Binding DetailedStatus}" Grid.Row="1"  
+                                               Foreground="#BBB" FontSize="10"  FontWeight="SemiBold"
+                                               VerticalAlignment="Center" Margin="0,2,0,2">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Column="1">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Visibility" Value="Hidden"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsInThirdParty}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding CanJoinParty}" Value="True">
+                                                        <Setter Property="Text" Value="{Binding PartySize, StringFormat={}👫{0}}"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding CanJoinParty}" Value="False">
+                                                        <Setter Property="Text" Value="{Binding PartySize, StringFormat={}🔒{0}}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+
+                                    <StackPanel Orientation="Horizontal" Grid.Column="1">
+                                        <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" 
+                                                HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
+                                                VerticalAlignment="Center" Height="20"
+                                                ToolTip="Kick player from the party">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsInParty}" Value="True"/>
+                                                                <Condition Binding="{Binding IsSelf}" Value="False"/>
+                                                                <Condition Binding="{Binding DataContext.IsPartyLeader, ElementName=FriendsPanel}" Value="True"/>
+                                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsMouseOver}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                        <Button Content="★" Command="{Binding PromoteLeaderCommand}" Padding="5,0" 
+                                                HorizontalAlignment="Right" Grid.Column="0" FontSize="15"
+                                                VerticalAlignment="Center" Height="20"
+                                                ToolTip="Promote to leader">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsInParty}" Value="True"/>
+                                                                <Condition Binding="{Binding IsPartyLeader}" Value="False"/>
+                                                                <Condition Binding="{Binding IsSelf}" Value="False"/>
+                                                                <Condition Binding="{Binding DataContext.IsPartyLeader, ElementName=FriendsPanel}" Value="True"/>
+                                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=TemplatedParent}, Path=IsMouseOver}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+
+                                    </StackPanel>
+                                    <TextBlock Text="★" Foreground="Orange" FontSize="15" HorizontalAlignment="Center" Grid.Column="1"
+                                               VerticalAlignment="Center" ToolTip="Party Leader"
+                                               Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}">
+                                    </TextBlock>
+
+                                    <Popup x:Name="DetailsPopup"
+                                           IsOpen="{Binding RelativeSource={RelativeSource AncestorType=ToggleButton}, Path=IsChecked}"
+                                           AllowsTransparency="True"
+                                           PlacementTarget="{Binding ElementName=border}"
+                                           Placement="Left"
+                                           PlacementRectangle="-10,0,0,0"
+                                           HorizontalOffset="5" 
+                                           VerticalOffset="0"
+                                           StaysOpen="False" 
+                                           PopupAnimation="Fade"
+                                           Opened="DetailsPopup_Opened"
+                                           MouseDown="DetailsPopup_MouseDown"
+                                           Width="200">
+                                        <Border Focusable="True" Background="#111" 
+                                                BorderBrush="GhostWhite" BorderThickness="1" CornerRadius="7"
+                                                Opacity="1">
+                                            <StackPanel Margin="12">
+                                                <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                    <TextBox Text="{Binding UserName}" IsReadOnly="True">
+                                                        <i:Interaction.Triggers>
+                                                            <i:EventTrigger EventName="MouseDoubleClick">
+                                                                <i:EventTrigger.Actions>
+                                                                    <i:InvokeCommandAction Command="{Binding CopyId}"/>
+                                                                </i:EventTrigger.Actions>
+                                                            </i:EventTrigger>
+                                                        </i:Interaction.Triggers>
+                                                        <TextBox.Style>
+                                                            <Style TargetType="TextBox">
+                                                                <Setter Property="Foreground" Value="White"/>
+                                                                <Setter Property="Background" Value="Transparent"/>
+                                                                <Setter Property="BorderThickness" Value="0"/>
+                                                            </Style>
+                                                        </TextBox.Style>
+                                                    </TextBox>
+                                                    <!--<Button Grid.Column="1" Padding="4,0">
+                                                        <Button.Style>
+                                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource LinkButtonStyle}">
+                                                                <Setter Property="Content" Value="📋"/>
+                                                                <Setter Property="ToolTip" Value="Copy ID"/>
+                                                                <Setter Property="Visibility" Value="Visible"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding UserName}" Value="">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>-->
+                                                </StackPanel>
+                                                <Separator Margin="0,5" Visibility="{Binding IsInThirdParty, Converter={StaticResource booleanToVisibilityConverter}}" />
+                                                <!--<Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInviteToParty, Converter={StaticResource booleanToVisibilityConverter}}"/>-->
+                                                <Button Content="Join Party" Command="{Binding JoinPartyCommand}" Visibility="{Binding CanJoinParty, Converter={StaticResource booleanToVisibilityConverter}}"
+                                                        Padding="5" Margin="0,5"/>
+                                                <!--<Button Content="Join Game" Command="{Binding JoinGameCommand}" Visibility="{Binding CanJoinGame, Converter={StaticResource booleanToVisibilityConverter}}"/>-->
+                                                <Separator Margin="0,5" Visibility="{Binding IsSelf, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
+                                                <Button Content="Add Friend" Command="{Binding AddFriendCommand}" Visibility="{Binding CanAddFriend, Converter={StaticResource booleanToVisibilityConverter}}"
+                                                        Padding="5" Margin="0,5"/>
+                                                <Button Content="Unfriend" Command="{Binding RemoveFriendCommand}" Visibility="{Binding CanRemoveFriend, Converter={StaticResource booleanToVisibilityConverter}}" 
+                                                        Foreground="DarkRed"
+                                                        Padding="5" Margin="0,5"/>
+                                                <Separator Margin="0,5" />
+                                                <Button Content="Copy User ID" Command="{Binding CopyUserIdCommand}" 
+                                                        Padding="5" Margin="0,5,0,0" />
+
+                                            </StackPanel>
+                                        </Border>
+                                    </Popup>
+
+                                </Grid>
+                            </ToggleButton>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <StackPanel>
+                    <StackPanel.Resources>
+                        <!-- Loading -->
+                        <DataTemplate x:Key="LoadingTemplate" DataType="{x:Type vm:FriendsViewModel}">
+                            <ProgressBar IsIndeterminate="True" Foreground="LimeGreen" />
+                        </DataTemplate>
+
+                        <!-- Error -->
+                        <DataTemplate x:Key="ErrorTemplate" DataType="{x:Type vm:FriendsViewModel}">
+                            <TextBlock Text="{Binding ErrorText}" HorizontalAlignment="Center"/>
+                        </DataTemplate>
+                    </StackPanel.Resources>
+                    <ContentControl Content="{Binding }">
+                        <ContentControl.Style>
+                            <Style TargetType="{x:Type ContentControl}">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate>
+                                            <TextBlock>
+                                                Connected
+                                            </TextBlock>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsError}" Value="True">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource ErrorTemplate}" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsConnecting}" Value="True">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource LoadingTemplate}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </ContentControl.Style>
+                    </ContentControl>
+                </StackPanel>
+
+                <TextBox Text="{Binding UserId, Mode=OneWay}" IsReadOnly="True" Margin="10"/>
+                <TextBox Text="{Binding UserName, Mode=OneWay}" IsReadOnly="True" Margin="10,0,10,10"/>
+                <Button Content="Add friend..." Command="{Binding AddFriendCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,10"/>
+                <Button Content="Accept friend request..." Command="{Binding AcceptFriendRequestCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,0"/>
+            </StackPanel>
+        </Grid>
+    </Border>
+</UserControl>

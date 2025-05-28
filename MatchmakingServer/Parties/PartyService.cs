@@ -20,9 +20,11 @@ namespace MatchmakingServer.Parties
 
         public IReadOnlyCollection<IParty> Parties => new ReadOnlyCollectionWrapper<Party>(_parties.Values);
 
-        public event Action<Party>? PartyClosed;
+        public event Action<Party>? PartyCreated;
+        public event Action<Party, IReadOnlyCollection<Player>>? PartyClosed;
         public event Action<Party, Player>? PlayerRemovedFromParty;
         public event Action<Party, Player, Player>? PartyLeaderChanged;
+        public event Action<Party, Player>? PlayerJoinedParty;
 
         public PartyService(IHubContext<PartyHub, IPartyClient> hubContext, ILogger<PartyService> logger)
         {
@@ -58,6 +60,8 @@ namespace MatchmakingServer.Parties
             party.AddPlayer(player);
             await _hubContext.Groups.AddToGroupAsync(player.PartyHubId!, GetPartyGroupName(party));
 
+            OnPartyCreated(party);
+
             return CreatePartyInfo(party);
         }
 
@@ -82,6 +86,8 @@ namespace MatchmakingServer.Parties
 
             // notify others of join
             await OthersInPartyGroup(player).OnUserJoinedParty(player.Id, player.Name);
+
+            OnPartyJoined(party, player);
 
             return CreatePartyInfo(party);
         }
@@ -114,7 +120,7 @@ namespace MatchmakingServer.Parties
                         }
                     }
 
-                    OnPartyClosed(party);
+                    OnPartyClosed(party, removedPlayers);
                 }
             }
             else
@@ -243,6 +249,8 @@ namespace MatchmakingServer.Parties
 
             await _hubContext.Clients.Group(partyGroupName).OnLeaderChanged(oldLeader.Id, newLeader.Id);
 
+            OnPartyLeaderChanged(party, oldLeader, newLeader);
+
             return true;
         }
 
@@ -251,14 +259,29 @@ namespace MatchmakingServer.Parties
             return _hubContext.Clients.GroupExcept(partyGroupName ?? GetPartyGroupName(player.Party!), player.PartyHubId!);
         }
 
+        private void OnPartyLeaderChanged(Party party, Player oldLeader, Player newLeader)
+        {
+            PartyLeaderChanged?.Invoke(party, oldLeader, newLeader);
+        }
+
         private void OnRemovedFromParty(Player removedPlayer, Party party)
         {
             PlayerRemovedFromParty?.Invoke(party, removedPlayer);
         }
 
-        private void OnPartyClosed(Party party)
+        private void OnPartyCreated(Party party)
         {
-            PartyClosed?.Invoke(party);
+            PartyCreated?.Invoke(party);
+        }
+
+        private void OnPartyClosed(Party party, IReadOnlyCollection<Player> removedPlayers)
+        {
+            PartyClosed?.Invoke(party, removedPlayers);
+        }
+
+        private void OnPartyJoined(Party party, Player joinedPlayer)
+        {
+            PlayerJoinedParty?.Invoke(party, joinedPlayer);
         }
     }
 }

@@ -1,0 +1,489 @@
+﻿using System.Collections;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Data;
+
+using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
+
+using H2MLauncher.Core.Party;
+using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Social;
+using H2MLauncher.UI.Dialog;
+
+using MatchmakingServer.Core.Social;
+
+namespace H2MLauncher.UI.ViewModels
+{
+    public sealed partial class FriendsViewModel : ObservableObject, IDisposable
+    {
+        private readonly SocialClient _socialClient;
+        private readonly PartyClient _partyClient;
+        private readonly DialogService _dialogService;
+        private readonly IErrorHandlingService _errorHandlingService;
+
+        #region Bindings
+
+        [ObservableProperty]
+        private bool _isConnecting = false;
+
+        [ObservableProperty]
+        private bool _isConnected = true;
+
+        public string Status
+        {
+            get
+            {
+                if (!_socialClient.IsConnected)
+                {
+                    return "Disconnected";
+                }
+
+                if (_socialClient.IsConnecting)
+                {
+                    return "Connecting";
+                }
+
+                return "Connected";
+            }
+        }
+
+        public string? UserId => _socialClient.Context.UserId;
+        public string? UserName => _socialClient.Context.UserName;
+
+        public bool IsPartyActive => _partyClient.IsPartyActive;
+        public bool IsPartyLeader => _partyClient.IsPartyLeader;
+        public bool IsPartyGuest => IsPartyActive && !IsPartyLeader;
+        public string? PartyId => _partyClient.PartyId;
+
+        public bool HasFriends => Friends.Count > 0;
+
+        public ObservableCollection<FriendViewModel> Friends { get; } = [];
+
+        public ICollectionView FriendsGrouped { get; private set; }
+
+        #endregion
+
+        public FriendsViewModel(SocialClient socialClient, PartyClient partyClient, DialogService dialogService, IErrorHandlingService errorHandlingService)
+        {
+            _dialogService = dialogService;
+            _errorHandlingService = errorHandlingService;
+            _socialClient = socialClient;
+            _socialClient.Context.UserChanged += ClientContext_UserChanged;
+            _socialClient.ConnectionChanged += SocialClient_ConnectionChanged;
+            _socialClient.FriendsChanged += SocialClient_FriendsChanged;
+            _socialClient.FriendChanged += SocialClient_FriendChanged;
+
+            _partyClient = partyClient;
+            _partyClient.PartyChanged += PartyService_PartyChanged;
+            _partyClient.PartyClosed += PartyService_PartyClosed;
+            _partyClient.KickedFromParty += PartyService_KickedFromParty;
+            _partyClient.UserChanged += PartyService_UserChanged;
+            _partyClient.UserJoined += PartyService_UserJoined;
+            _partyClient.UserLeft += PartyService_UserLeft;
+            _partyClient.LeaderChanged += PartyClient_LeaderChanged;
+            //_partyClient.ConnectionChanged += PartyService_ConnectionChanged;
+
+
+            // Populate with some dummy data for testing
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "John", Status = OnlineStatus.Online });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Mike", Status = OnlineStatus.Offline });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Alice", Status = OnlineStatus.InGame, GameStatus = GameStatus.InMatch });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Jane", Status = OnlineStatus.InGame, PartySize = 3, GameStatus = GameStatus.InMainMenu });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Lucas", Status = OnlineStatus.InGame, PartySize = 1 });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Bob", Status = OnlineStatus.Online });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Charlie", Status = OnlineStatus.Offline });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString()) { Name = "Anton", Status = OnlineStatus.Online, PartyPlayer = new("", "Anton", true) });
+            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString()) { Name = "Tobi", Status = OnlineStatus.Online, PartyPlayer = new("", "Tobi", false) });
+
+            FriendsGrouped = CollectionViewSource.GetDefaultView(Friends);
+
+            FriendsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendViewModel.Group), ListSortDirection.Ascending));
+
+            // Display self always on top
+            FriendsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendViewModel.IsSelf), ListSortDirection.Descending));
+
+            // Then, optionally sort items within each group (e.g., alphabetically by name)
+            FriendsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendViewModel.Name), ListSortDirection.Ascending));
+
+
+            // Finally, group by the Status property
+            FriendsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FriendViewModel.Group)));
+
+
+            _socialClient.StartConnection()
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            IsConnecting = false;
+                            IsConnected = false;
+                        });
+                    }
+                    else
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            IsConnecting = false;
+                            IsConnected = t.Result;
+                        });
+                    }
+                });
+
+            IsConnecting = _socialClient.IsConnecting;
+        }
+
+        private void ClientContext_UserChanged()
+        {
+            OnPropertyChanged(nameof(UserId));
+            OnPropertyChanged(nameof(UserName));
+        }
+
+        private readonly HashSet<string> _addedUserIds = [];
+
+        private void RefreshPeople()
+        {
+            Friends.Clear();
+
+            // Keep track of people already added to avoid duplicates
+            _addedUserIds.Clear();
+
+            if (_partyClient.IsPartyActive)
+            {
+                HashSet<string> partyMembersById = new(_partyClient.Members.Select(m => m.Id));
+
+                // Add Party Members not already in Friends list
+                foreach (PartyPlayerInfo partyMember in _partyClient.Members)
+                {
+                    if (_addedUserIds.Add(partyMember.Id))
+                    {
+                        AddPartyMember(partyMember);
+                    }
+                }
+            }
+
+            if (_socialClient.Friends.Count > 0)
+            {
+                // Use a HashSet for efficient lookups
+                HashSet<string> friendsById = new(_socialClient.Friends.Select(f => f.Id));
+
+                // Add Friends
+                foreach (FriendDto friend in _socialClient.Friends)
+                {
+                    if (_addedUserIds.Add(friend.Id)) // Only add if not already processed (e.g., if also in party list)
+                    {
+                        AddFriend(friend);
+                    }
+                }
+            }
+
+            OnPropertyChanged(nameof(HasFriends));
+            OnPropertyChanged(nameof(Status));
+        }
+
+        #region Event handlers
+
+        private void PartyService_PartyChanged()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RefreshPeople();
+
+                OnPropertyChanged(nameof(PartyId));
+                OnPropertyChanged(nameof(IsPartyLeader));
+                OnPropertyChanged(nameof(IsPartyActive));
+                OnPropertyChanged(nameof(IsPartyGuest));
+            });
+        }
+
+        private void PartyService_PartyClosed()
+        {
+            Application.Current.Dispatcher.InvokeAsync(() => _dialogService.OpenTextDialog("Party", "Party was closed!"));
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RefreshPeople();
+            });
+        }
+
+        private void PartyService_KickedFromParty()
+        {
+            Application.Current.Dispatcher.Invoke(() => _dialogService.OpenTextDialog("Party", "You were kicked from the party!"));
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RefreshPeople();
+            });
+        }
+
+        private void PartyService_UserJoined(PartyPlayerInfo member)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RefreshPeople();
+            });
+        }
+
+        private void PartyService_UserLeft(PartyPlayerInfo member)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RefreshPeople();
+            });
+        }
+
+        private void PartyService_UserChanged(PartyPlayerInfo member)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                FriendViewModel? viewModel = Friends.FirstOrDefault(m => m.Id == member.Id);
+                if (viewModel is not null)
+                {
+                    //viewModel.Name = member.Name;
+                    viewModel.IsPartyLeader = member.IsLeader;
+                    viewModel.IsSelf = _partyClient.IsSelf(member);
+                }
+            });
+        }
+
+        private void PartyClient_LeaderChanged(PartyPlayerInfo? oldLeader, PartyPlayerInfo newLeader)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                if (oldLeader is not null)
+                {
+                    PartyService_UserChanged(oldLeader);
+                }
+
+                PartyService_UserChanged(newLeader);
+                OnPropertyChanged(nameof(IsPartyLeader));
+
+                foreach (FriendViewModel viewModel in Friends)
+                {
+                    viewModel.KickCommand.NotifyCanExecuteChanged();
+                    viewModel.PromoteLeaderCommand.NotifyCanExecuteChanged();
+                }
+            });
+        }
+
+        private void SocialClient_ConnectionChanged(bool connected)
+        {
+            if (!connected)
+            {
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    Friends.Clear();
+
+                    OnPropertyChanged(nameof(HasFriends));
+                    OnPropertyChanged(nameof(Status));
+
+                    _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                });
+            }
+        }
+
+        private void SocialClient_FriendsChanged()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                RefreshPeople();
+            });
+        }
+
+        private void SocialClient_FriendChanged(FriendDto friend)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                FriendViewModel? friendViewModel = Friends.FirstOrDefault(m => m.Id == friend.Id);
+                if (friendViewModel is not null)
+                {
+                    friendViewModel.Name = friend.PlayerName ?? friend.UserName;
+                    friendViewModel.UserName = friend.UserName;
+                    friendViewModel.Status = friend.Status;
+                    friendViewModel.GameStatus = friend.GameStatus;
+                    friendViewModel.IsFriend = true;
+                    friendViewModel.PartySize = friend.PartyStatus?.Size ?? 0;
+                    friendViewModel.PartyId = friend.PartyStatus?.PartyId;
+                    friendViewModel.CanJoinParty = !friendViewModel.IsInParty && friend.PartyStatus?.CanJoin == true;
+                }
+            });
+        }
+
+        #endregion
+
+        [RelayCommand]
+        public async Task AddFriend(string? friendId)
+        {
+            friendId ??= _dialogService.OpenInputDialog(
+                title: "Add Friend",
+                text: "Enter or paste the ID of the friend to add:",
+                acceptButtonText: "Send");
+
+            if (friendId is null)
+            {
+                return;
+            }
+
+            if (!Guid.TryParse(friendId, out _))
+            {
+                _errorHandlingService.HandleError("Invalid friend id.");
+                return;
+            }
+
+            if (!await _socialClient.AddFriendAsync(friendId))
+            {
+                _errorHandlingService.HandleError("Could not add friend.");
+            }
+        }
+
+        [RelayCommand]
+        public async Task AcceptFriendRequest(string? friendId)
+        {
+            friendId ??= _dialogService.OpenInputDialog(
+                title: "Accept Friend Request",
+                text: "Enter or paste the ID of the friend to acceot:",
+                acceptButtonText: "Accept");
+
+            if (friendId is null)
+            {
+                return;
+            }
+
+            if (!Guid.TryParse(friendId, out _))
+            {
+                _errorHandlingService.HandleError("Invalid friend id.");
+                return;
+            }
+
+            if (!await _socialClient.AcceptFriendAsync(friendId))
+            {
+                _errorHandlingService.HandleError("Could not accept friend request.");
+            }
+        }
+
+        [RelayCommand]
+        public async Task CreateParty()
+        {
+            if (_partyClient.IsPartyActive)
+            {
+                return;
+            }
+
+            if (await _partyClient.CreateParty() is null)
+            {
+                _errorHandlingService.HandleError("Could not create party.");
+            }
+        }
+
+        [RelayCommand]
+        public async Task JoinParty(string? partyId)
+        {
+            partyId ??= _dialogService.OpenInputDialog("Join Party", "Enter or paste the ID of the party to join:",
+                acceptButtonText: "Join");
+
+            if (partyId is null)
+            {
+                return;
+            }
+
+            if (!Guid.TryParse(partyId, out _))
+            {
+                _errorHandlingService.HandleError("Invalid party id.");
+                return;
+            }
+
+            if (!await _partyClient.JoinParty(partyId))
+            {
+                _errorHandlingService.HandleError("Could not join party.");
+            }
+        }
+
+        [RelayCommand]
+        public void CopyPartyId()
+        {
+            if (PartyId is null) return;
+
+            Clipboard.SetText(PartyId);
+        }
+
+        [RelayCommand]
+        public Task LeaveParty()
+        {
+            return _partyClient.LeaveParty();
+        }
+
+        private void AddFriend(FriendDto friend)
+        {
+            PartyPlayerInfo? partyPlayer = _partyClient.Members?.FirstOrDefault(m => m.Id == friend.Id);
+            FriendViewModel friendViewModel = new(friend.Id, _partyClient, _socialClient, _dialogService)
+            {
+                Name = friend.PlayerName ?? friend.UserName,
+                UserName = friend.UserName,
+                Status = friend.Status,
+                GameStatus = friend.GameStatus,
+                IsFriend = true,
+                IsInParty = partyPlayer is not null,
+                IsPartyLeader = partyPlayer?.IsLeader ?? false,
+                IsSelf = partyPlayer is not null && _partyClient.IsSelf(partyPlayer),
+                PartySize = friend.PartyStatus?.Size ?? 0,
+                PartyId = friend.PartyStatus?.PartyId,
+                CanJoinParty = partyPlayer is null && friend.PartyStatus?.CanJoin == true
+            };
+
+            Friends.Add(friendViewModel);
+        }
+
+        private void AddPartyMember(PartyPlayerInfo member)
+        {
+            bool isSelf = _partyClient.IsSelf(member);
+            FriendDto? friend = _socialClient.Friends?.FirstOrDefault(f => f.Id == member.Id);
+            FriendViewModel friendViewModel = new(member.Id, _partyClient, _socialClient, _dialogService)
+            {
+                Name = member.Name,
+                UserName = friend?.UserName ?? (isSelf ? _socialClient.Context.UserName ?? "" : ""),
+                Status = friend?.Status ?? OnlineStatus.Online,
+                GameStatus = friend?.GameStatus ?? GameStatus.None,
+                IsFriend = friend is not null,
+                IsInParty = true,
+                IsPartyLeader = member.IsLeader,
+                IsSelf = isSelf,
+                PartySize = _partyClient.Members?.Count ?? 0,
+                PartyId = friend?.PartyStatus?.PartyId,
+                CanJoinParty = false
+            };
+
+            Friends.Add(friendViewModel);
+        }
+
+        public void Dispose()
+        {
+            _socialClient.ConnectionChanged -= SocialClient_ConnectionChanged;
+        }
+
+        public class FriendStatusGroupComparer : IComparer
+        {
+            private static readonly Dictionary<FriendStatus, int> StatusOrder = new()
+            {
+                { FriendStatus.Party, 0 },
+                { FriendStatus.Online, 1 },
+                { FriendStatus.Offline, 2 }
+            };
+
+            public int Compare(object? x, object? y)
+            {
+                if (x is FriendViewModel groupX && y is FriendViewModel groupY)
+                {
+                    int orderX, orderY = int.MaxValue;
+
+                    StatusOrder.TryGetValue(groupX.Group, out orderX);
+                    StatusOrder.TryGetValue(groupY.Group, out orderY);
+
+                    return orderX.CompareTo(orderY);
+                }
+
+                return 0;
+            }
+        }
+    }
+}
