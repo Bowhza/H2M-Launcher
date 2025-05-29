@@ -16,6 +16,7 @@ using MatchmakingServer.Core.Social;
 
 namespace H2MLauncher.UI.ViewModels
 {
+
     public sealed partial class FriendsViewModel : ObservableObject, IDisposable
     {
         private readonly SocialClient _socialClient;
@@ -247,7 +248,7 @@ namespace H2MLauncher.UI.ViewModels
                     OnPropertyChanged(nameof(PartyStatus));
                 });
             }
-            
+
         }
 
         private void PartyService_PartyChanged()
@@ -408,31 +409,6 @@ namespace H2MLauncher.UI.ViewModels
         }
 
         #endregion
-
-        [RelayCommand]
-        public async Task AddFriend(string? friendId)
-        {
-            friendId ??= _dialogService.OpenInputDialog(
-                title: "Add Friend",
-                text: "Enter or paste the ID of the friend to add:",
-                acceptButtonText: "Send");
-
-            if (friendId is null)
-            {
-                return;
-            }
-
-            if (!Guid.TryParse(friendId, out _))
-            {
-                _errorHandlingService.HandleError("Invalid friend id.");
-                return;
-            }
-
-            if (!await _socialClient.AddFriendAsync(friendId))
-            {
-                _errorHandlingService.HandleError("Could not add friend.");
-            }
-        }
 
         [RelayCommand]
         public async Task AcceptFriendRequest(string? friendId)

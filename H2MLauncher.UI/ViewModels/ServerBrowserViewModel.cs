@@ -106,7 +106,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private MatchmakingViewModel? _matchmakingViewModel;
 
-    public FriendsViewModel FriendsViewModel { get; }
+    public SocialOverviewViewModel SocialOverviewViewModel { get; }
 
     public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
 
@@ -160,7 +160,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IMapsProvider mapsProvider,
         IServerJoinService serverJoinService,
         IOnlineServices onlineService,
-        FriendsViewModel friendsViewModel)
+        SocialOverviewViewModel socialOverviewViewModel)
     {
         _h2mMaster = h2mMasterService;
         _hmwMaster = hmwMasterService;
@@ -197,7 +197,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         DisconnectCommand = new AsyncRelayCommand(DisconnectServer);
         EnterMatchmakingCommand = new AsyncRelayCommand(EnterMatchmaking, () => IsMatchmakingEnabled);
 
-        FriendsViewModel = friendsViewModel;
+        SocialOverviewViewModel = socialOverviewViewModel;
         AdvancedServerFilter = new(_resourceSettings.Value, _defaultSettings.ServerFilter);
         Shortcuts = new();
 
@@ -290,7 +290,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
         _onlineService.StateChanged += OnlineService_StateChanged;
 
-        friendsViewModel.CreatePartyCommand.Execute(null);
+        socialOverviewViewModel.Friends.CreatePartyCommand.Execute(null);
     }
 
     private void OnlineService_StateChanged(PlayerState oldState, PlayerState newState)

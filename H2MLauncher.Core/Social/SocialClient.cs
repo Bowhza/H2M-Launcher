@@ -1,4 +1,5 @@
 ﻿using System.Net;
+using System.Runtime.CompilerServices;
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
@@ -46,12 +47,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     public event Action? FriendsChanged;
     public event Action? FriendRequestsChanged;
+    public event Action<FriendRequestDto>? FriendRequestReceived;
     public event Action<FriendDto>? FriendChanged;
 
     /// <summary>
     /// Raised when the <see cref="GameStatus"/> or <see cref="OnlineStatus"/> has changed.
     /// </summary>
     public event Action? StatusChanged;
+
+    public event Action? ConnectionIssue;
 
     public SocialClient(
         IPlayerNameProvider playerNameProvider,
@@ -227,8 +231,31 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             FriendsChanged?.Invoke();
             FriendRequestsChanged?.Invoke();
 
-            // TODO: events
+            return true;
+        }
+        else if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Conflict)
+        {
+            // friend request was probably invalid, so remove
+            _friendRequests.RemoveAll(fr => fr.UserId.ToString() == friendId);
 
+            FriendRequestsChanged?.Invoke();
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public async Task<bool> RejectFriendAsync(string friendId)
+    {
+        var response = await _friendshipApiClient.RejectFriendRequestAsync(_clientContext.UserId!, friendId);
+        if (response.IsSuccessful)
+        {
+            _logger.LogDebug("Rejected incoming friend request of {friendId}", friendId);
+
+            _friendRequests.RemoveAll(fr => fr.UserId.ToString() == friendId);            
+
+            FriendsChanged?.Invoke();
             return true;
         }
         else if (response.StatusCode is HttpStatusCode.NotFound or HttpStatusCode.Conflict)
@@ -261,6 +288,19 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         await base.OnConnected(cancellationToken);
     }
 
+    protected override Task OnReconnecting(Exception? exception)
+    {
+        _logger.LogDebug(exception, "Social client reconnecting {state}", Connection.State);
+
+        // The connection has been lost, so we set everything to offline
+        SetOffline();
+
+        // Notify that we are experiencing connection problems
+        ConnectionIssue?.Invoke();
+
+        return base.OnReconnecting(exception);
+    }
+
     protected override async Task OnReconnected(string? connectionId)
     {
         _logger.LogInformation("Social client reconnected.");
@@ -273,10 +313,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         await base.OnReconnected(connectionId);
     }
 
-    protected override Task OnConnectionClosed(Exception? exception)
+    private void SetOffline()
     {
-        _logger.LogInformation(exception, "Social client connection closed.");
-
         // set self to offline
         OnlineStatus = OnlineStatus.Online;
         GameStatus = GameStatus.None;
@@ -293,6 +331,14 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
                 PartyStatus = null
             };
         }
+    }
+
+    protected override Task OnConnectionClosed(Exception? exception)
+    {
+        _logger.LogInformation(exception, "Social client connection closed.");
+
+        SetOffline();
+
         _playerNameProvider.PlayerNameChanged -= PlayerNameProvider_PlayerNameChanged;
         _gameCommunicationService.GameStateChanged -= GameCommunicationService_GameStateChanged;
         _gameCommunicationService.Stopped -= GameCommunicationService_Stopped;
@@ -359,18 +405,19 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         _friendRequests.RemoveAll(fr => fr.UserId.ToString() == newFriend.Id);
         _friends.Add(newFriend);
 
+        FriendRequestsChanged?.Invoke();
         FriendsChanged?.Invoke();
-
-        // TODO: event
 
         return Task.CompletedTask;
     }
 
     Task ISocialClient.OnFriendRequestReceived(FriendRequestDto request)
     {
-        _friendRequests.Add(request);
+        _logger.LogDebug("Received friend request from {friendId}", request.UserId);
 
-        // TODO: event
+        _friendRequests.Add(request);
+        FriendRequestReceived?.Invoke(request);
+        FriendRequestsChanged?.Invoke();
 
         return Task.CompletedTask;
     }
