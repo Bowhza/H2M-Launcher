@@ -1,5 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Numerics;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
@@ -19,8 +21,11 @@ namespace MatchmakingServer.Parties
         private readonly IHubContext<PartyHub, IPartyClient> _hubContext;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
-
         private readonly ConcurrentDictionary<string, Party> _parties = [];
+        private readonly TimeSpan _inviteValidityDuration = TimeSpan.FromMinutes(2);
+
+        // subject for pushing invite expiration notifications
+        private readonly Subject<(string PartyId, string PlayerId)> _inviteExpiredSubject = new();
 
         public IReadOnlyCollection<IParty> Parties => new ReadOnlyCollectionWrapper<Party>(_parties.Values);
 
@@ -36,11 +41,37 @@ namespace MatchmakingServer.Parties
             _hubContext = hubContext;
             _serviceScopeFactory = serviceScopeFactory;
             _logger = logger;
+
+            // Subscribe to invite expirations and handle notifications
+            _inviteExpiredSubject
+                .GroupBy(notification => notification.PlayerId)
+                .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(1))) // Throttle to avoid too many rapid notifications
+                .Subscribe(async notification =>
+                {
+                    try
+                    {
+                        await NotifyInviteExpired(notification.PartyId, notification.PlayerId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error while notify user {playerId} of expired party invite to party {partyId}",
+                            notification.PlayerId, notification.PartyId);
+                    }
+                });
         }
 
         private static PartyInfo CreatePartyInfo(Party party)
         {
-            return new(party.Id, party.Privacy, party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList());
+            // Only include currently valid invites in the DTO
+            List<InviteInfo> validInvites = party.Invites
+                                    .Where(kv => DateTime.UtcNow < kv.Value)
+                                    .Select(kv => new InviteInfo(kv.Key, kv.Value))
+                                    .ToList();
+            return new(
+                party.Id,
+                party.Privacy,
+                party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList(),
+                validInvites);
         }
 
         private static string GetPartyGroupName(Party party)
@@ -83,13 +114,13 @@ namespace MatchmakingServer.Parties
                 return null;
             }
 
-            if (party.Privacy is PartyPrivacy.Closed)
+            if (party.Privacy is PartyPrivacy.Closed && !IsValidInvite(party, player.Id))
             {
-                // TODO: invites
+                _logger.LogDebug("Player {player} tried to join closed party {partyId} without a valid invite", player, partyId);
                 return null;
             }
-            
-            if (party.Privacy is PartyPrivacy.Friends)
+
+            if (party.Privacy is PartyPrivacy.Friends && !IsValidInvite(party, player.Id))
             {
                 await using var scope = _serviceScopeFactory.CreateAsyncScope();
                 var friendshipsService = scope.ServiceProvider.GetRequiredService<FriendshipsService>();
@@ -287,7 +318,7 @@ namespace MatchmakingServer.Parties
                 // only party leader can change privacy
                 return false;
             }
-                        
+
             Party party = caller.Party;
             PartyPrivacy oldPartyPrivacy = party.Privacy;
             if (oldPartyPrivacy == newPartyPrivacy)
@@ -304,6 +335,94 @@ namespace MatchmakingServer.Parties
             OnPartyPrivacyChanged(party, newPartyPrivacy);
 
             return true;
+        }
+
+        public async Task<InviteInfo?> CreateInvite(Player caller, Player invitedPlayer)
+        {
+            if (caller.Party is not Party party)
+            {
+                return null;
+            }
+
+            if (!caller.IsPartyLeader)
+            {
+                // only party leader can create invites (for now)
+                _logger.LogWarning("Player {leaderId} tried to create invite for party {partyId} but is not the leader", caller.Id, party.Id);
+                return null;
+            }
+
+            // Ensure the invited player is not already in the party
+            if (party.Members.Any(m => m.Id == invitedPlayer.Id))
+            {
+                _logger.LogWarning("Cannot invite. Player {invitedPlayerId} is already in party {partyId}.", invitedPlayer.Id, party.Id);
+                return null;
+            }
+
+            DateTime expirationTime = DateTime.UtcNow.Add(_inviteValidityDuration);
+
+            // Add invite to the party session
+            party.AddInvite(invitedPlayer, expirationTime);
+
+            _logger.LogInformation("Invite created for player {invitedPlayerId} to party {partyId}, expires at {expirationTime}",
+                invitedPlayer.Id, party.Id, expirationTime);
+
+            // Notify the invited player of the invite
+            await _hubContext.Clients.Client(invitedPlayer.PartyHubId!)
+                .OnPartyInviteReceived(new PartyInvite()
+                {
+                    PartyId = party.Id,
+                    SenderId = caller.Id,
+                    SenderName = caller.Name,
+                    ExpirationTime = expirationTime
+                });
+
+            // Schedule the invite expiration notification
+            // The .Where ensures we only process if the invite still exists and matches the expected expiration
+            // (i.e., hasn't been accepted or removed by other means)
+            Observable.Timer(expirationTime - DateTime.UtcNow)
+                      .Where(_ => IsInviteStillActive(party.Id, invitedPlayer.Id, expirationTime))
+                      .Subscribe(_ => _inviteExpiredSubject.OnNext((party.Id, invitedPlayer.Id)));
+
+            return new InviteInfo(invitedPlayer.Id, expirationTime);
+        }
+
+        private static bool IsValidInvite(Party party, string playerId)
+        {
+            if (party.Invites.TryGetValue(playerId, out DateTime expirationTime))
+            {
+                return DateTime.UtcNow < expirationTime;
+            }
+            return false;
+        }
+
+        // Helper for Rx.NET to check if invite is still active before notifying expiration
+        private bool IsInviteStillActive(string partyId, string playerId, DateTime scheduledExpirationTime)
+        {
+            if (!_parties.TryGetValue(partyId, out Party? party)) return false;
+
+            if (party.IsClosed) return false;
+
+            if (party.Invites.TryGetValue(playerId, out DateTime currentExpirationTime))
+            {
+                // Ensure it's the exact same invite we scheduled (prevents issues if a new invite was sent)
+                return currentExpirationTime == scheduledExpirationTime;
+            }
+
+            return false;
+        }
+
+        private async Task NotifyInviteExpired(string partyId, string playerId)
+        {
+            _logger.LogInformation("Invite for player {playerId} to party {partyId} has expired.", playerId, partyId);
+
+            // Ensure the invite is removed from the party's internal state
+            if (_parties.TryGetValue(partyId, out Party? party))
+            {
+                party.RemoveInvite(playerId);
+            }
+
+            // Notify the client
+            await _hubContext.Clients.User(playerId).OnPartyInviteExpired(partyId);
         }
 
         private IPartyClient OthersInPartyGroup(Player player, string? partyGroupName = null)

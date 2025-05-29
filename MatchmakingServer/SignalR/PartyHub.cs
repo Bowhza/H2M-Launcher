@@ -108,6 +108,23 @@ public class PartyHub : Hub<IPartyClient>, IPartyHub
         return _partyService.UpdatePlayerName(player, newName);
     }
 
+    public async Task<InviteInfo?> CreateInvite(string playerId)
+    {
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        {
+            return null;
+        }
+
+        Player? invitedPlayer = await _playerStore.TryGet(playerId).ConfigureAwait(false);
+        if (invitedPlayer is null)
+        {
+            // invited player not found
+            return null;
+        }
+
+        return await _partyService.CreateInvite(player, invitedPlayer).ConfigureAwait(false);
+    }
+
     public override async Task OnConnectedAsync()
     {
         string uniqueId = Context.UserIdentifier!;

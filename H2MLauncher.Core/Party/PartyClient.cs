@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Game;
@@ -56,6 +57,10 @@ namespace H2MLauncher.Core.Party
         public event Action<PartyPlayerInfo>? UserJoined;
         public event Action<PartyPlayerInfo>? UserLeft;
         public event Action<PartyPlayerInfo>? UserChanged;
+
+        public event Action<InviteInfo>? UserInvited;
+        public event Action<PartyInvite>? InviteReceived;
+        public event Action<string>? InviteExpired;
 
         public PartyClient(
             IPlayerNameProvider playerNameProvider,
@@ -329,6 +334,30 @@ namespace H2MLauncher.Core.Party
             PartyPrivacyChanged?.Invoke(partyPrivacy);
         }
 
+        public async Task InviteToParty(string id)
+        {
+            if (_currentParty is null || !_isPartyLeader)
+            {
+                return;
+            }
+
+            if (!await StartConnection())
+            {
+                return;
+            }
+
+            InviteInfo? invite = await Hub.CreateInvite(id);
+            if (invite is null)
+            {
+                _logger.LogDebug("Could not invite {playerId} to party", id);
+                return;
+            }
+
+            _currentParty.Invites.Add(invite);
+
+            UserInvited?.Invoke(invite);
+        }
+
         public bool IsSelf(PartyPlayerInfo member)
         {
             return member.Id == _clientContext.UserId;
@@ -524,6 +553,18 @@ namespace H2MLauncher.Core.Party
 
             _logger.LogDebug("Party leader changed party privacy from {oldPrivacy} to {newPrivacy}", oldPrivacy, newPrivacy);
 
+            return Task.CompletedTask;
+        }
+
+        Task IPartyClient.OnPartyInviteReceived(PartyInvite invite)
+        {
+            InviteReceived?.Invoke(invite);
+            return Task.CompletedTask;
+        }
+
+        Task IPartyClient.OnPartyInviteExpired(string partyId)
+        {
+            InviteExpired?.Invoke(partyId);
             return Task.CompletedTask;
         }
 

@@ -117,6 +117,8 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserLeft += PartyService_UserLeft;
             _partyClient.LeaderChanged += PartyClient_LeaderChanged;
             _partyClient.PartyPrivacyChanged += PartyClient_PartyPrivacyChanged;
+            _partyClient.InviteReceived += PartyClient_InviteReceived;
+            _partyClient.InviteExpired += PartyClient_InviteExpired;
             _partyClient.ConnectionChanged += PartyService_ConnectionChanged;
 
 
@@ -347,6 +349,34 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
+        private void PartyClient_InviteExpired(string partyId)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                FriendViewModel? viewModel = Friends.FirstOrDefault(m => m.PartyId == partyId);
+                if (viewModel is not null)
+                {
+                    viewModel.HasInvited = false;
+                }
+            });
+        }
+
+        private void PartyClient_InviteReceived(MatchmakingServer.Core.Party.PartyInvite partyInvite)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                FriendViewModel? viewModel = Friends.FirstOrDefault(m => m.Id == partyInvite.SenderId);
+                if (viewModel is not null)
+                {
+                    viewModel.HasInvited = true;
+                }
+                else
+                {
+                    // TODO: show somewhere else??
+                }
+            });
+        }
+
         private void SocialClient_FriendsChanged()
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -369,7 +399,10 @@ namespace H2MLauncher.UI.ViewModels
                     friendViewModel.IsFriend = true;
                     friendViewModel.PartySize = friend.PartyStatus?.Size ?? 0;
                     friendViewModel.PartyId = friend.PartyStatus?.PartyId;
-                    friendViewModel.CanJoinParty = !friendViewModel.IsInParty && friend.PartyStatus?.CanJoin == true;
+                    friendViewModel.IsPartyOpen = friend.PartyStatus?.IsOpen == true;
+                    friendViewModel.HasInvited = UserId is not null && 
+                                                 friend.PartyStatus is not null && 
+                                                 friend.PartyStatus.Invites.Contains(UserId);
                 }
             });
         }
@@ -502,7 +535,10 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelf = partyPlayer is not null && _partyClient.IsSelf(partyPlayer),
                 PartySize = friend.PartyStatus?.Size ?? 0,
                 PartyId = friend.PartyStatus?.PartyId,
-                CanJoinParty = partyPlayer is null && friend.PartyStatus?.CanJoin == true
+                IsPartyOpen = friend.PartyStatus?.IsOpen == true,
+                HasInvited = UserId is not null &&
+                             friend.PartyStatus is not null &&
+                             friend.PartyStatus.Invites.Contains(UserId)
             };
 
             Friends.Add(friendViewModel);
@@ -523,8 +559,7 @@ namespace H2MLauncher.UI.ViewModels
                 IsPartyLeader = member.IsLeader,
                 IsSelf = isSelf,
                 PartySize = _partyClient.Members?.Count ?? 0,
-                PartyId = friend?.PartyStatus?.PartyId,
-                CanJoinParty = false
+                PartyId = friend?.PartyStatus?.PartyId
             };
 
             Friends.Add(friendViewModel);

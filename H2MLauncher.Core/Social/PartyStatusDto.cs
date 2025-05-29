@@ -1,3 +1,3 @@
 ﻿namespace MatchmakingServer.Core.Social;
 
-public record PartyStatusDto(string PartyId, int Size, bool CanJoin);
+public record PartyStatusDto(string PartyId, int Size, bool IsOpen, List<string> Invites);

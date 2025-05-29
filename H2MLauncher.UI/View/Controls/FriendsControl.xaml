@@ -5,12 +5,58 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:ui="clr-namespace:H2MLauncher.UI"
              xmlns:local="clr-namespace:H2MLauncher.UI.View.Controls"
+             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters"
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              MinWidth="180"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:FriendsViewModel}">
     <UserControl.Resources>
+        <converters:PartySizeIconConverter x:Key="PartySizeIconConverter"/>
+        
+        <!-- Smooth Easing -->
+        <SineEase x:Key="EaseOut" EasingMode="EaseOut"/>
+        
+        <Style x:Key="PartySizeTextBlockStyle" TargetType="TextBlock">
+            <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
+            <Setter Property="RenderTransform">
+                <Setter.Value>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Visibility" Value="Hidden"/>
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding IsInThirdParty}" Value="True">
+                    <Setter Property="Visibility" Value="Visible"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding CanJoinParty}" Value="True">
+                    <Setter Property="Text" Value="{Binding PartySize, Converter={StaticResource PartySizeIconConverter}, ConverterParameter=👫}"/>
+                    <Setter Property="ToolTip" Value="Open Party (can join)"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding CanJoinParty}" Value="False">
+                    <Setter Property="Text" Value="{Binding PartySize, Converter={StaticResource PartySizeIconConverter}, ConverterParameter=🔒}"/>
+                    <Setter Property="ToolTip" Value="Closed Party"/>
+                </DataTrigger>
+                <DataTrigger Binding="{Binding HasInvited}" Value="True">
+                    <Setter Property="Text" Value="{Binding PartySize, Converter={StaticResource PartySizeIconConverter}, ConverterParameter=✉️}"/>
+                    <Setter Property="ToolTip" Value="Accept invite"/>
+                    <DataTrigger.EnterActions>
+                        <BeginStoryboard Name="PulseStoryboard" >
+                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleX)"
+                                                 From="1.0" To="1.2" Duration="0:0:0.5"/>
+                                <DoubleAnimation Storyboard.TargetProperty="RenderTransform.(ScaleTransform.ScaleY)"
+                                                 From="1.0" To="1.2" Duration="0:0:0.5"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </DataTrigger.EnterActions>
+                    <DataTrigger.ExitActions>
+                        <StopStoryboard BeginStoryboardName="PulseStoryboard"/>
+                    </DataTrigger.ExitActions>
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="SleekExpanderHeaderStyleNoArrow" TargetType="{x:Type ToggleButton}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -37,6 +83,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        
         <Style x:Key="SleekExpanderHeaderStyle" TargetType="{x:Type ToggleButton}">
             <Setter Property="Template">
                 <Setter.Value>
@@ -51,26 +98,39 @@
                                               ContentTemplate="{TemplateBinding ContentTemplate}"
                                               VerticalAlignment="Center"
                                               Margin="5,0"/>
-                            <Path x:Name="arrow" Grid.Column="1" 
-                                  HorizontalAlignment="Right" VerticalAlignment="Center" 
-                                  Margin="0,0,5,0"
-                                  Fill="White" 
-                                  Data="M0,0 L4,4 L8,0 Z">
+                            <Path x:Name="arrow" Data="M 0 0 L 6 6 L 12 0"
+                                  Stroke="White" Opacity="0.8" Margin="12,0"
+                                  StrokeThickness="1.8"
+                                  HorizontalAlignment="Right"
+                                  VerticalAlignment="Center"
+                                  RenderTransformOrigin="0.5,0.5">
                                 <Path.RenderTransform>
-                                    <RotateTransform CenterX="4" CenterY="2"/>
+                                    <RotateTransform x:Name="ArrowRotate" Angle="0"/>
                                 </Path.RenderTransform>
-                                <Path.LayoutTransform>
-                                    <ScaleTransform ScaleX="0.8" ScaleY="0.8"/>
-                                </Path.LayoutTransform>
                             </Path>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="arrow" Property="RenderTransform">
-                                    <Setter.Value>
-                                        <RotateTransform Angle="180" CenterX="4" CenterY="2"/>
-                                    </Setter.Value>
-                                </Setter>
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate"
+                                                             Storyboard.TargetProperty="Angle"
+                                                             To="0" Duration="0:0:0.2"
+                                                             EasingFunction="{StaticResource EaseOut}"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                                <Trigger.ExitActions>
+                                    <BeginStoryboard>
+                                        <Storyboard>
+                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate"
+                                                             Storyboard.TargetProperty="Angle"
+                                                             To="180" Duration="0:0:0.2"
+                                                             EasingFunction="{StaticResource EaseOut}"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.ExitActions>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="TextElement.Foreground" Value="#CCCCCC"/>
@@ -85,7 +145,7 @@
             <Setter Property="HeaderTemplate">
                 <Setter.Value>
                     <DataTemplate>
-                        <Border CornerRadius="5" Height="30" >
+                        <Border CornerRadius="5" Height="25">
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -120,7 +180,7 @@
                                             </MultiBinding>
                                         </TextBlock.Text>
                                     </TextBlock>
-                                    
+
                                     <!-- Party Privacy Toggle -->
                                     <Button Grid.Column="1" Padding="3,1" Margin="2,0" Height="22"
                                             Command="{Binding DataContext.ChangePartyPrivacyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
@@ -171,21 +231,6 @@
                                         </Style>
                                     </StackPanel.Style>
 
-                                    <!-- Party Privacy Toggle -->
-                                    <!--<Button Grid.Column="1" Padding="5,1" Margin="2,0"
-                                            Command="{Binding DataContext.ChangePartyPrivacyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
-                                        <Button.Style>
-                                            <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
-                                                <Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, StringFormat={}Privacy: {0}}"/>
-                                                    </Trigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>-->
-
                                     <!-- Copy Party ID -->
                                     <Button Grid.Column="1" Padding="5,1" Margin="2,0"
                                             Command="{Binding DataContext.CopyPartyIdCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
@@ -198,7 +243,7 @@
                                     </Button>
 
                                     <!-- Leave / Close Party -->
-                                    <Button Grid.Column="1" Padding="5,1" Margin="2,0"
+                                    <Button Grid.Column="1" Padding="5,1" Margin="2,0,0,0"
                                             Command="{Binding DataContext.LeavePartyCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
                                         <Button.Style>
                                             <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
@@ -237,7 +282,7 @@
                                       Style="{StaticResource SleekExpanderHeaderStyle}"/>
 
                             <ContentPresenter x:Name="ExpandSite" 
-                                          Grid.Row="1" 
+                                          Grid.Row="1"
                                           Visibility="Collapsed" 
                                           Focusable="False" 
                                           Margin="10,5,0,0"/>
@@ -258,14 +303,6 @@
                             <DataTrigger Binding="{Binding Name}" Value="Party">
                                 <Setter TargetName="HeaderSite" Property="Style" Value="{StaticResource SleekExpanderHeaderStyleNoArrow}"/>
                             </DataTrigger>
-                            <!--<MultiDataTrigger>
-                                <MultiDataTrigger.Conditions>
-                                    <Condition Binding="{Binding ItemCount}" Value="0"/>
-                                    <Condition Binding="{Binding Name}" Value="Party"/>
-                                </MultiDataTrigger.Conditions>
-                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Collapsed"/>
-                                <Setter TargetName="EmptyPartyGroupContent" Property="Visibility" Value="Visible"/>
-                            </MultiDataTrigger>-->
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -313,7 +350,7 @@
                     </ItemsControl.GroupStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ToggleButton x:Name="border" Padding="12,5,5,0" Foreground="White">
+                            <ToggleButton x:Name="border" Padding="7,5,10,0" Foreground="White">
                                 <!-- Deselect item when popup closes -->
                                 <i:Interaction.Triggers>
                                     <i:EventTrigger EventName="Closed">
@@ -403,26 +440,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
-                                    <TextBlock Grid.Column="1">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Visibility" Value="Hidden"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding IsInThirdParty}" Value="True">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CanJoinParty}" Value="True">
-                                                        <Setter Property="Text" Value="{Binding PartySize, StringFormat={}👫{0}}"/>
-                                                        <Setter Property="ToolTip" Value="Open Party (can join)"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding CanJoinParty}" Value="False">
-                                                        <Setter Property="Text" Value="{Binding PartySize, StringFormat={}🔒{0}}"/>
-                                                        <Setter Property="ToolTip" Value="Closed Party"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                    <TextBlock Grid.Column="1" Style="{StaticResource PartySizeTextBlockStyle}" />
 
 
                                     <StackPanel Orientation="Horizontal" Grid.Column="1">
@@ -513,7 +531,8 @@
                                                     </TextBox>
                                                 </StackPanel>
                                                 <Separator Margin="0,5" Visibility="{Binding IsInThirdParty, Converter={StaticResource booleanToVisibilityConverter}}" />
-                                                <!--<Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInviteToParty, Converter={StaticResource booleanToVisibilityConverter}}"/>-->
+                                                <Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
+                                                        Padding="5" Margin="0,5"/>
                                                 <Button Content="Join Party" Command="{Binding JoinPartyCommand}" Visibility="{Binding CanJoinParty, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
                                                 <!--<Button Content="Join Game" Command="{Binding JoinGameCommand}" Visibility="{Binding CanJoinGame, Converter={StaticResource booleanToVisibilityConverter}}"/>-->

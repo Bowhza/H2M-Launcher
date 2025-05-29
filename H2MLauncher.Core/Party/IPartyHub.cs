@@ -20,4 +20,6 @@ public interface IPartyHub
     Task<bool> PromoteLeader(string id);
 
     Task<bool> ChangePartyPrivacy(PartyPrivacy newPartyPrivacy);
+
+    Task<InviteInfo?> CreateInvite(string playerId);
 }

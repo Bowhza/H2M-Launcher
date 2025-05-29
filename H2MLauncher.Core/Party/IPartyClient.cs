@@ -15,6 +15,9 @@ public interface IPartyClient
 
     Task OnPartyPrivacyChanged(PartyPrivacy oldPrivacy, PartyPrivacy newPrivacy);
 
+    Task OnPartyInviteReceived(PartyInvite invite);
+    Task OnPartyInviteExpired(string partyId);
+
     /// <summary>
     /// Called when the party leader joined a server.
     /// </summary>

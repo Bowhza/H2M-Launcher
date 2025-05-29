@@ -167,7 +167,8 @@ public class SocialService
                         ? new PartyStatusDto(
                             player.Party.Id, 
                             player.Party.Members.Count, 
-                            player.Party.Privacy is not PartyPrivacy.Closed)
+                            player.Party.Privacy is not PartyPrivacy.Closed,
+                            player.Party.ValidInvites.ToList())
                         : null
                 );
         }
