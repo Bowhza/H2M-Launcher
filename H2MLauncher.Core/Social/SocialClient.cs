@@ -34,6 +34,9 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     public ClientContext Context => _clientContext;
 
+    public GameStatus GameStatus { get; private set; }
+    public OnlineStatus OnlineStatus { get; private set; }
+
 
     private List<FriendDto> _friends = [];
     private readonly List<FriendRequestDto> _friendRequests = [];
@@ -44,6 +47,11 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     public event Action? FriendsChanged;
     public event Action? FriendRequestsChanged;
     public event Action<FriendDto>? FriendChanged;
+
+    /// <summary>
+    /// Raised when the <see cref="GameStatus"/> or <see cref="OnlineStatus"/> has changed.
+    /// </summary>
+    public event Action? StatusChanged;
 
     public SocialClient(
         IPlayerNameProvider playerNameProvider,
@@ -83,7 +91,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     private async void GameCommunicationService_GameStateChanged(GameState state)
     {
-        GameStatus gameStatus = GameStatus.None;
         try
         {
             if (Connection.State is HubConnectionState.Disconnected)
@@ -91,13 +98,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
                 return;
             }
 
-            gameStatus = CreateGameStatus(state);
+            GameStatus = CreateGameStatus(state);
 
-            await Hub.UpdateGameStatus(gameStatus);
+            await Hub.UpdateGameStatus(GameStatus);
+
+            StatusChanged?.Invoke();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while updating game status to {newGameStatus}.", gameStatus);
+            _logger.LogError(ex, "Error while updating game status to {newGameStatus}.", GameStatus);
         }
     }
 
@@ -110,7 +119,11 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
                 return;
             }
 
+            GameStatus = GameStatus.None;
+
             await Hub.UpdateGameStatus(GameStatus.None);
+
+            StatusChanged?.Invoke();
         }
         catch (Exception ex)
         {
@@ -138,22 +151,21 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     private async Task SendCurrentGameStatus()
     {
-        GameStatus gameStatus = GameStatus.None;
         try
         {
             if (_gameCommunicationService.GameProcess is not null)
             {
                 // send initial game status
-                gameStatus = CreateGameStatus(_gameCommunicationService.CurrentGameState);
-                if (gameStatus is not GameStatus.None)
-                {
-                    await Hub.UpdateGameStatus(gameStatus);
-                }
+                GameStatus = CreateGameStatus(_gameCommunicationService.CurrentGameState);
+
+                await Hub.UpdateGameStatus(GameStatus);
+
+                StatusChanged?.Invoke();
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while updating game status to {newGameStatus}.", gameStatus);
+            _logger.LogError(ex, "Error while updating game status to {newGameStatus}.", GameStatus);
         }
     }
 
@@ -241,6 +253,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         _gameCommunicationService.GameStateChanged += GameCommunicationService_GameStateChanged;
         _gameCommunicationService.Stopped += GameCommunicationService_Stopped;
 
+        OnlineStatus = OnlineStatus.Online;
+
         await SendCurrentGameStatus();
         await FetchFriendsAsync();
 
@@ -251,6 +265,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     {
         _logger.LogInformation("Social client reconnected.");
 
+        OnlineStatus = OnlineStatus.Online;
+
         await SendCurrentGameStatus();
         await FetchFriendsAsync();
 
@@ -260,6 +276,12 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     protected override Task OnConnectionClosed(Exception? exception)
     {
         _logger.LogInformation(exception, "Social client connection closed.");
+
+        // set self to offline
+        OnlineStatus = OnlineStatus.Online;
+        GameStatus = GameStatus.None;
+
+        StatusChanged?.Invoke();
 
         // set all friends to offline
         for (int i = 0; i < _friends.Count; i++)

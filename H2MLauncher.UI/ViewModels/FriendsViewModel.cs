@@ -107,6 +107,7 @@ namespace H2MLauncher.UI.ViewModels
             _socialClient.Context.UserChanged += ClientContext_UserChanged;
             _socialClient.FriendsChanged += SocialClient_FriendsChanged;
             _socialClient.FriendChanged += SocialClient_FriendChanged;
+            _socialClient.StatusChanged += SocialClient_StatusChanged;
 
             _partyClient = partyClient;
             _partyClient.PartyChanged += PartyService_PartyChanged;
@@ -311,7 +312,7 @@ namespace H2MLauncher.UI.ViewModels
                 FriendViewModel? viewModel = Friends.FirstOrDefault(m => m.Id == member.Id);
                 if (viewModel is not null)
                 {
-                    //viewModel.Name = member.Name;
+                    viewModel.Name = member.Name;
                     viewModel.IsPartyLeader = member.IsLeader;
                     viewModel.IsSelf = _partyClient.IsSelf(member);
                 }
@@ -377,6 +378,19 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
+        private void SocialClient_StatusChanged()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                FriendViewModel? selfViewModel = Friends.FirstOrDefault(m => m.Id == _socialClient.Context.UserId);
+                if (selfViewModel is not null)
+                {
+                    selfViewModel.Status = _socialClient.OnlineStatus;
+                    selfViewModel.GameStatus = _socialClient.GameStatus;
+                }
+            });
+        }
+
         private void SocialClient_FriendsChanged()
         {
             Application.Current.Dispatcher.Invoke(() =>
@@ -389,21 +403,7 @@ namespace H2MLauncher.UI.ViewModels
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
-                FriendViewModel? friendViewModel = Friends.FirstOrDefault(m => m.Id == friend.Id);
-                if (friendViewModel is not null)
-                {
-                    friendViewModel.Name = friend.PlayerName ?? friend.UserName;
-                    friendViewModel.UserName = friend.UserName;
-                    friendViewModel.Status = friend.Status;
-                    friendViewModel.GameStatus = friend.GameStatus;
-                    friendViewModel.IsFriend = true;
-                    friendViewModel.PartySize = friend.PartyStatus?.Size ?? 0;
-                    friendViewModel.PartyId = friend.PartyStatus?.PartyId;
-                    friendViewModel.IsPartyOpen = friend.PartyStatus?.IsOpen == true;
-                    friendViewModel.HasInvited = UserId is not null && 
-                                                 friend.PartyStatus is not null && 
-                                                 friend.PartyStatus.Invites.Contains(UserId);
-                }
+                UpdateFriend(friend);
             });
         }
 
@@ -553,7 +553,7 @@ namespace H2MLauncher.UI.ViewModels
                 Name = member.Name,
                 UserName = friend?.UserName ?? (isSelf ? _socialClient.Context.UserName ?? "" : ""),
                 Status = friend?.Status ?? OnlineStatus.Online,
-                GameStatus = friend?.GameStatus ?? GameStatus.None,
+                GameStatus = friend?.GameStatus ?? (isSelf ? _socialClient.GameStatus : GameStatus.None),
                 IsFriend = friend is not null,
                 IsInParty = true,
                 IsPartyLeader = member.IsLeader,
@@ -563,6 +563,25 @@ namespace H2MLauncher.UI.ViewModels
             };
 
             Friends.Add(friendViewModel);
+        }
+
+        private void UpdateFriend(FriendDto friend)
+        {
+            FriendViewModel? friendViewModel = Friends.FirstOrDefault(m => m.Id == friend.Id);
+            if (friendViewModel is not null)
+            {
+                friendViewModel.Name = friend.PlayerName ?? friend.UserName;
+                friendViewModel.UserName = friend.UserName;
+                friendViewModel.Status = friend.Status;
+                friendViewModel.GameStatus = friend.GameStatus;
+                friendViewModel.IsFriend = true;
+                friendViewModel.PartySize = friend.PartyStatus?.Size ?? 0;
+                friendViewModel.PartyId = friend.PartyStatus?.PartyId;
+                friendViewModel.IsPartyOpen = friend.PartyStatus?.IsOpen == true;
+                friendViewModel.HasInvited = UserId is not null &&
+                                             friend.PartyStatus is not null &&
+                                             friend.PartyStatus.Invites.Contains(UserId);
+            }
         }
 
         public void Dispose()

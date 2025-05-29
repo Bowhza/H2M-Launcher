@@ -33,6 +33,7 @@ namespace H2MLauncher.UI.ViewModels
         /// Whether this is the user itself.
         /// </summary>
         [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(Group))]
         [NotifyPropertyChangedFor(nameof(CanAddFriend))]
         [NotifyPropertyChangedFor(nameof(CanInvite))]
         private bool _isSelf;
@@ -123,7 +124,7 @@ namespace H2MLauncher.UI.ViewModels
         /// <summary>
         /// The group this person is sorted into.
         /// </summary>
-        public FriendStatus Group => Status switch
+        public FriendStatus Group => IsSelf && IsInParty ? FriendStatus.Party : Status switch
         {
             OnlineStatus.Online when IsInParty => FriendStatus.Party,
             OnlineStatus.Online => FriendStatus.Online,
