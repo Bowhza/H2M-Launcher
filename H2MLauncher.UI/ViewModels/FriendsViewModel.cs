@@ -34,6 +34,9 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private bool _isConnected = true;
 
+        [ObservableProperty]
+        private bool _isConnectionError = false;
+
         public string Status
         {
             get
@@ -106,9 +109,12 @@ namespace H2MLauncher.UI.ViewModels
             _errorHandlingService = errorHandlingService;
             _socialClient = socialClient;
             _socialClient.Context.UserChanged += ClientContext_UserChanged;
+            
             _socialClient.FriendsChanged += SocialClient_FriendsChanged;
             _socialClient.FriendChanged += SocialClient_FriendChanged;
             _socialClient.StatusChanged += SocialClient_StatusChanged;
+            _socialClient.ConnectionIssue += SocialClient_ConnectionIssue;
+            _socialClient.ConnectionChanged += SocialClient_ConnectionChanged;
 
             _partyClient = partyClient;
             _partyClient.PartyChanged += PartyService_PartyChanged;
@@ -174,6 +180,30 @@ namespace H2MLauncher.UI.ViewModels
             OnPropertyChanged(nameof(Status));
 
             IsConnecting = _socialClient.IsConnecting;
+        }
+
+        private void SocialClient_ConnectionChanged(bool isConnected)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsConnecting = _socialClient.IsConnecting;
+                IsConnected = isConnected;
+
+                if (isConnected)
+                {
+                    IsConnectionError = false;
+                }
+
+                OnPropertyChanged(nameof(Status));
+            });
+        }
+
+        private void SocialClient_ConnectionIssue()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsConnectionError = true;
+            });
         }
 
         private void ClientContext_UserChanged()

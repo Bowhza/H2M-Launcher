@@ -9,9 +9,6 @@ namespace H2MLauncher.UI.ViewModels
         public FriendsViewModel Friends { get; }
         public FriendRequestsViewModel FriendRequests { get; }
 
-        [ObservableProperty]
-        private string _text = "Text";
-
         public ObservableCollection<ObservableObject> Tabs { get; }
 
         public SocialOverviewViewModel(FriendsViewModel friendsViewModel, FriendRequestsViewModel friendRequestsViewModel)
@@ -19,8 +16,6 @@ namespace H2MLauncher.UI.ViewModels
             Friends = friendsViewModel;
             FriendRequests = friendRequestsViewModel;
             Tabs = [Friends, FriendRequests];
-
-            OnPropertyChanged("");
         }
     }
 }

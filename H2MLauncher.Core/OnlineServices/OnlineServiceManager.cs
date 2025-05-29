@@ -99,7 +99,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .WithUrl(matchmakingSettings.Value.SocialHubUrl.SetQueryParams(queryParams), (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
-
+                
                 AddAppHeaders(opts.Headers);
             })
             .WithAutomaticReconnect(new PartyHubConnectionRetryPolicy())
@@ -213,7 +213,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
 
         public TimeSpan? NextRetryDelay(RetryContext retryContext)
         {
-            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length)];
+            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length - 1)];
         }
     }
 }

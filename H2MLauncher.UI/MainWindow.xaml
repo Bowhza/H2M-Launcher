@@ -452,7 +452,7 @@
 
                     <!-- Party Header -->
                     <Border Grid.Column="0" Height="35" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
-                            Margin="0,3,0,5" BorderThickness="0.5" DataContext="{Binding FriendsViewModel}">
+                            Margin="0,3,0,5" BorderThickness="0.5" DataContext="{Binding SocialOverviewViewModel.Friends}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -466,7 +466,7 @@
                                 <TextBlock Text="{Binding PartyStatus, StringFormat={}Party: {0}}" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <!--<Setter Property="Visibility" Value="Collapsed"/>-->
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False">
                                                     <Setter Property="Visibility" Value="Visible"/>
@@ -510,13 +510,13 @@
                                     </StackPanel>
                                 </Border>
 
-                                <!-- Create Party Button -->
+                                <!-- Create Party Button --><!--
                                 <Button Height="23" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
                                         Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
 
-                                <!-- Join Party Button -->
+                                --><!-- Join Party Button --><!--
                                 <Button Height="23" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
-                                        Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                                        Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>-->
                             </StackPanel>
 
                             <!-- Expand / collapse -->
@@ -537,8 +537,8 @@
                         </Grid>
                     </Border>
 
-                    <controls:SocialOverviewControl DataContext="{Binding SocialOverviewViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,0,5" MinWidth="290"
-                                                   Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                    <controls:SocialOverviewControl DataContext="{Binding SocialOverviewViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,0,5" Width="290"
+                                                    Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 </Grid>
 
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">

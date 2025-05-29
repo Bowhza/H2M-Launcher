@@ -12,7 +12,7 @@
              mc:Ignorable="d"
              d:Background="#242"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:SocialOverviewViewModel}">
-    <Border BorderThickness="1" BorderBrush="#FF97A0A5" CornerRadius="0" Background="#33000000">
+    <Border BorderThickness="0" BorderBrush="#FF97A0A5" CornerRadius="5,5,0,0" Background="#33000000">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -20,12 +20,12 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <!--<TextBlock Text="Friends" Foreground="White" HorizontalAlignment="Center" Margin="10,5" 
+            <!--<TextBlock Text="Social" Foreground="White" HorizontalAlignment="Center" Margin="10,5" 
                        FontSize="15" FontWeight="Bold" />-->
             
             <TabControl ItemsSource="{Binding Tabs}"
-                        Background="#33000000" Grid.Row="1" VerticalAlignment="Stretch" Margin="0,2,0,0"
-                        BorderThickness="0,1,0,0">
+                        Background="#66000000" Grid.Row="1" VerticalAlignment="Stretch" Margin="0,5,0,0"
+                        BorderThickness="1">
                 <TabControl.Resources>
                     <Style TargetType="{x:Type TabPanel}">
                         <Setter Property="HorizontalAlignment" Value="Center" />

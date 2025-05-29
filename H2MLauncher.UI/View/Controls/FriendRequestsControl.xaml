@@ -169,7 +169,8 @@
             </Setter>
         </Style>
     </UserControl.Resources>
-    <StackPanel Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="White" VerticalAlignment="Stretch">
+    <StackPanel Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="White" VerticalAlignment="Stretch"
+                TextBlock.FontFamily="Consolas">
 
         <!-- No friend requests -->
         <Border Visibility="{Binding HasRequests, Converter={StaticResource InverseBoolToVisibilityConverter}}" 
