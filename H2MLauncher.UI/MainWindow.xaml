@@ -237,13 +237,9 @@
                     <StackPanel Orientation="Horizontal" Grid.Column="2">
                         <Button TabIndex="3" Content="Filter" Width="80" Command="{Binding ShowServerFilterCommand}" />
                         <Separator Opacity="0" Width="5" />
-                        <Button TabIndex="3" Content="Matchmaking" Width="80" Command="{Binding EnterMatchmakingCommand}" />
+                        <Button TabIndex="3" Content="Matchmaking" Width="115" Command="{Binding EnterMatchmakingCommand}" />
                         <Separator Opacity="0" Width="5" />
-                        <Button TabIndex="3" Content="Join" Width="80" Command="{Binding SelectedTab.JoinServerCommand}" />
-                        <Separator Opacity="0" Width="5" />
-                        <Button TabIndex="4" Content="Refresh" Width="80" Command="{Binding RefreshServersCommand}"/>
-                        <Separator Opacity="0" Width="5" />
-                        <Button TabIndex="5" Content="Launch 🚀" Width="80" Command="{Binding LaunchH2MCommand}"/>
+                        <Button TabIndex="5" Content="Launch Game 🚀" Width="120" Command="{Binding LaunchH2MCommand}"/>
                     </StackPanel>
                 </Grid>
 
@@ -449,10 +445,11 @@
                             </DataTemplate>
                         </TabControl.ContentTemplate>
                     </TabControl>
+                    
 
                     <!-- Party Header -->
                     <Border Grid.Column="0" Height="35" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
-                            Margin="0,3,0,5" BorderThickness="0.5" DataContext="{Binding SocialOverviewViewModel.Friends}">
+                            Margin="0,3,0,5" BorderThickness="0.5" >
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -463,10 +460,12 @@
                                         Margin="1,0,5,0" Orientation="Horizontal" >
 
                                 <!-- Party Status -->
-                                <TextBlock Text="{Binding PartyStatus, StringFormat={}Party: {0}}" Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
+                                <TextBlock DataContext="{Binding SocialOverviewViewModel.Friends}" 
+                                           Text="{Binding PartyStatus, StringFormat={}Party: {0}}" 
+                                           Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <!--<Setter Property="Visibility" Value="Collapsed"/>-->
+                                            <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False">
                                                     <Setter Property="Visibility" Value="Visible"/>
@@ -479,8 +478,8 @@
                                     </TextBlock.Style>
                                 </TextBlock>
 
-                                <!-- Party ID | Copy -->
-                                <Border BorderBrush="DarkGray"
+                                <!-- Party ID | Copy --><!--
+                                <Border BorderBrush="DarkGray" DataContext="{Binding SocialOverviewViewModel.Friends}" 
                                         BorderThickness="1" Margin="5,0"
                                         CornerRadius="0,4,4,0" Height="25">
                                     <Border.Style>
@@ -489,7 +488,7 @@
                                             <Style.Triggers>
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
-                                                        <!-- Show only when hosting party & collapsed -->
+                                                         --><!--Show only when hosting party & collapsed--><!-- 
                                                         <Condition Binding="{Binding IsPartyLeader}" Value="True"/>
                                                         <Condition Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False"/>
                                                     </MultiDataTrigger.Conditions>
@@ -508,7 +507,7 @@
                                         <Button Height="Auto" Width="65" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="0" 
                                                 Background="DarkOrange" Foreground="Black" Style="{StaticResource TextBoxButtonStyle}"/>
                                     </StackPanel>
-                                </Border>
+                                </Border>-->
 
                                 <!-- Create Party Button --><!--
                                 <Button Height="23" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
@@ -517,6 +516,12 @@
                                 --><!-- Join Party Button --><!--
                                 <Button Height="23" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
                                         Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>-->
+
+
+                                <Separator Opacity="0" Width="5" />
+                                <Button TabIndex="3" Content="Join" Width="80" Height="23" Command="{Binding SelectedTab.JoinServerCommand}" />
+                                <Separator Opacity="0" Width="5" />
+                                <Button TabIndex="4" Content="Refresh" Width="80" Height="23" Command="{Binding RefreshServersCommand}"/>
                             </StackPanel>
 
                             <!-- Expand / collapse -->
@@ -537,7 +542,7 @@
                         </Grid>
                     </Border>
 
-                    <controls:SocialOverviewControl DataContext="{Binding SocialOverviewViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,10,0,5" Width="290"
+                    <controls:SocialOverviewControl DataContext="{Binding SocialOverviewViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,9,0,5" Width="290"
                                                     Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 </Grid>
 
