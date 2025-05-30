@@ -5,6 +5,9 @@ services:
       dockerfile: MatchmakingServer/Dockerfile
     environment:
       APIKEY: ${API_KEY}
+      JWT__Issuer: ${JWT_ISSUER}
+      JWT__Audience: ${JWT_ISSUER}
+      JWT__Secret: ${JWT_SECRET}
       Serilog__WriteTo__1__Name: File
       Serilog__WriteTo__1__Args__path: /app/logs/log-.txt
       Serilog__WriteTo__1__Args__rollingInterval: Day

@@ -1,4 +1,8 @@
-﻿using FxKit;
+﻿using System;
+
+using FxKit;
+
+using H2MLauncher.Core.Party;
 
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
@@ -6,11 +10,13 @@ using MatchmakingServer.Database.Entities;
 using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchmakingServer.Social;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
+namespace MatchmakingServer.Social;
 
 public sealed class FriendshipsService(
     DatabaseContext dbContext,
@@ -117,6 +123,7 @@ public sealed class FriendshipsService(
                 friend.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendsSince);
         }
         else
@@ -127,6 +134,13 @@ public sealed class FriendshipsService(
                 player.Name,
                 OnlineStatus.Online,
                 player.GameStatus,
+                player.Party is not null
+                        ? new PartyStatusDto(
+                            player.Party.Id,
+                            player.Party.Members.Count,
+                            player.Party.Privacy is not PartyPrivacy.Closed,
+                            player.Party.ValidInvites.ToList())
+                        : null,
                 friendsSince);
         }
     }
@@ -261,12 +275,12 @@ public sealed class FriendshipsService(
                 return Err<FriendRequestDto, FriendshipError>(FriendshipError.RequestToYourself);
             }
 
-            string? fromUserName = await _dbContext.Users
+            var fromUser = await _dbContext.Users
                 .Where(u => u.Id == fromUserId)
-                .Select(u => u.Name)
+                .Select(u => new { u.Name, u.LastPlayerName })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (fromUserName is null)
+            if (fromUser is null)
             {
                 return Err<FriendRequestDto, FriendshipError>(FriendshipError.UserNotFound);
             }
@@ -331,7 +345,8 @@ public sealed class FriendshipsService(
                 .OnFriendRequestReceived(new FriendRequestDto()
                 {
                     UserId = fromUserId,
-                    UserName = fromUserName,
+                    UserName = fromUser.Name,
+                    PlayerName = fromUser.LastPlayerName,
                     Status = FriendRequestStatus.PendingIncoming,
                     Created = relationship.CreationDate
                 });
@@ -467,6 +482,45 @@ public sealed class FriendshipsService(
         {
             _logger.LogError(ex, "Error while deleting friend {friendId} of {userId}", friendId, userId);
             return Err<Unit, FriendshipError>(FriendshipError.UnknownError);
+        }
+    }
+
+    public async Task<Result<IEnumerable<UserSearchResultDto>, FriendshipError>> SearchUsersAsync(string query)
+    {
+        try
+        {
+            // Normalize the query for case-insensitive search
+            string normalizedQuery = query.Trim().ToLower();
+
+            IQueryable<UserDbo> usersQuery = _dbContext.Users.AsQueryable();
+
+            // Attempt to parse the query as a GUID
+            if (Guid.TryParse(query, out Guid searchGuid))
+            {
+                // If the query is a valid GUID, search directly by id
+                usersQuery = usersQuery.Where(u => u.Id == searchGuid);
+            }
+            else
+            {
+                // If not a GUID, search by username (case-insensitive)
+                usersQuery = usersQuery.Where(u => u.Name.ToLower().Contains(normalizedQuery));
+            }
+
+            List<UserSearchResultDto> users = await usersQuery
+                .Select(u => new UserSearchResultDto
+                {
+                    Id = u.Id.ToString(),
+                    UserName = u.Name,
+                    PlayerName = u.LastPlayerName,
+                })
+                .ToListAsync();
+
+            return Ok<IEnumerable<UserSearchResultDto>, FriendshipError>(users);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while searching for users with search term {query}", query);
+            return Err<IEnumerable<UserSearchResultDto>, FriendshipError>(FriendshipError.UnknownError);
         }
     }
 }

@@ -1,15 +1,35 @@
 ﻿using System.IO;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
 
 using Flurl;
 
 using H2MLauncher.Core;
-using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Game;
+using H2MLauncher.Core.Game.Memory;
+using H2MLauncher.Core.IW4MAdmin;
+using H2MLauncher.Core.Joining;
+using H2MLauncher.Core.Matchmaking;
+using H2MLauncher.Core.Networking;
+using H2MLauncher.Core.Networking.GameServer;
+using H2MLauncher.Core.Networking.GameServer.HMW;
+using H2MLauncher.Core.OnlineServices;
+using H2MLauncher.Core.OnlineServices.Authentication;
+using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Utilities;
+using H2MLauncher.Core.Utilities.Http;
+using H2MLauncher.Core.Utilities.SignalR;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Services;
 using H2MLauncher.UI.ViewModels;
+
+using MatchmakingServer.Core.Party;
+using MatchmakingServer.Core.Social;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -19,24 +39,9 @@ using Microsoft.Extensions.Options;
 
 using Nogic.WritableOptions;
 
+using Refit;
+
 using Serilog;
-using H2MLauncher.Core.Utilities;
-using H2MLauncher.Core.Networking;
-using H2MLauncher.Core.IW4MAdmin.Models;
-using H2MLauncher.Core.IW4MAdmin;
-using H2MLauncher.Core.Game;
-using H2MLauncher.UI.Services;
-using H2MLauncher.Core.Game.Memory;
-using H2MLauncher.Core.Matchmaking;
-using H2MLauncher.Core.Networking.GameServer.HMW;
-using H2MLauncher.Core.Joining;
-using H2MLauncher.Core.Party;
-using MatchmakingServer.Core.Party;
-using H2MLauncher.Core.OnlineServices;
-using H2MLauncher.Core.Utilities.Http;
-using H2MLauncher.Core.Utilities.SignalR;
-using H2MLauncher.Core.OnlineServices.Authentication;
-using H2MLauncher.Core.Networking.GameServer;
 
 namespace H2MLauncher.UI
 {
@@ -160,11 +165,37 @@ namespace H2MLauncher.UI
             services.AddSingleton<IServerJoinService, ServerJoinService>();
             services.AddTransient<ServerBrowserViewModel>();
             services.AddTransient<PartyViewModel>();
+            services.AddTransient<FriendsViewModel>();
+            services.AddTransient<FriendRequestsViewModel>();
+            services.AddTransient<SocialOverviewViewModel>();
 
             // online services
             services.AddSingleton<OnlineServiceManager>();
             services.AddSingleton<IOnlineServices, OnlineServiceManager>(sp => sp.GetRequiredService<OnlineServiceManager>());
             services.AddSingleton<ClientContext>();
+
+            // social
+            services.AddRefitClient<IFriendshipApiClient>(sp =>
+                new RefitSettings()
+                {
+                    AuthorizationHeaderValueGetter = async (req, ct) =>
+                    {
+                        ClientContext clientContext = sp.GetRequiredService<ClientContext>();
+                        if (clientContext.IsAuthenticated)
+                        {
+                            return clientContext.AccessToken;
+                        }
+
+                        AuthenticationService authenticationService = sp.GetRequiredService<AuthenticationService>();
+                        return await authenticationService.LoginAsync().ConfigureAwait(false) ?? "";
+                    },
+                    ContentSerializer = new SystemTextJsonContentSerializer(
+                        new JsonSerializerOptions(JsonSerializerDefaults.Web)
+                        {
+                            Converters = { new JsonStringEnumConverter() }
+                        })
+                })
+                .ConfigureMatchmakingClient();
 
             // authentication
             services.AddTransient<AuthenticationService>();
@@ -192,6 +223,7 @@ namespace H2MLauncher.UI
             services.AddHubClient<QueueingService, IMatchmakingHub>((sp, manager) => manager.QueueingHubConnection);
             services.AddHubClient<MatchmakingService, IMatchmakingHub>((sp, manager) => manager.QueueingHubConnection);
             services.AddHubClient<PartyClient, IPartyHub>((sp, manager) => manager.PartyHubConnection);
+            services.AddHubClient<SocialClient, ISocialHub>((sp, manager) => manager.SocialHubConnection);
 
 
             services.AddTransient<MainWindow>();

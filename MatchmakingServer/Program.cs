@@ -98,6 +98,7 @@ builder.Services.AddHostedService(p => p.GetRequiredService<MatchmakingService>(
 builder.Services.AddHostedService<PlaylistsSeedingService>();
 builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
+builder.Services.AddSingleton<SocialService>();
 builder.Services.AddMemoryCache();
 
 // Social

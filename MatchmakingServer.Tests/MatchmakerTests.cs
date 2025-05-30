@@ -5,6 +5,8 @@ using H2MLauncher.Core.Matchmaking.Models;
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Matchmaking.Models;
 
+using UniqueNamer;
+
 namespace MatchmakingServer.Tests
 {
     public class MatchmakerTests
@@ -13,19 +15,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_HappyCase()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 6 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMTicket ticket3 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Charlie" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMTicket ticket4 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "David" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "David" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -37,16 +39,16 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_HappyCaseChunked()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" },
-                 new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" },
+                 new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 6 });
             MMTicket ticket3 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Charlie" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMTicket ticket4 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "David" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "David" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -58,19 +60,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldRespectFreeSlots()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 6 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMTicket ticket3 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Charlie" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMTicket ticket4 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "David" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "David" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -82,15 +84,15 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleExactMatchForFreeSlots()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 5 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
             MMTicket ticket3 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Charlie" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
 
@@ -102,11 +104,11 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldNotSelectWhenThresholdCannotBeMet()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 10 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 8 });
 
@@ -118,11 +120,11 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldNotSelectWhenThresholdCannotBeMetByOne()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
 
@@ -134,19 +136,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleHighThresholdWhenEnoughPlayersAvailable()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 8 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMTicket ticket3 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Charlie" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 5 });
             MMTicket ticket4 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "David" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "David" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
 
@@ -158,19 +160,19 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleExcessPlayers()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
             MMTicket ticket2 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Bob" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Bob" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 3 });
             MMTicket ticket3 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Charlie" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Charlie" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 2 });
             MMTicket ticket4 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "David" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "David" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 1 });
 
@@ -182,7 +184,7 @@ namespace MatchmakingServer.Tests
         public void SelectMaxPlayersForMatchDesc_ShouldHandleNoFreeSlots()
         {
             MMTicket ticket1 = new(
-                [new Player() { Id = Guid.NewGuid().ToString(), Name = "Alice" }],
+                [new Player() { Id = Guid.NewGuid().ToString(), UserName = UniqueNamer.UniqueNamer.Generate([Categories.General]), Name = "Alice" }],
                 [],
                 new MatchSearchCriteria() { MinPlayers = 4 });
 
