@@ -20,7 +20,7 @@ namespace H2MLauncher.UI
         private bool _isFirstRender = true;
 
         [ObservableProperty]
-        private bool _isPartyExpanded;
+        private bool _isPartyExpanded = true;
 
         public ICommand ToggleOverlayCommand { get; }
 

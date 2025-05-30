@@ -13,7 +13,7 @@ public class Party : IParty
 
     public string Id { get; init; } = Guid.NewGuid().ToString();
 
-    public PartyPrivacy Privacy { get; set; } = PartyPrivacy.Friends;
+    public PartyPrivacy Privacy { get; set; } = PartyPrivacy.Open;
 
     public bool IsClosed => _isClosed;
     public Player Leader => _leader;

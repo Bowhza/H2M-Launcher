@@ -22,7 +22,7 @@
 
             <TabControl ItemsSource="{Binding Tabs}"
                         Background="#66000000" Grid.Row="1" VerticalAlignment="Stretch" Margin="0,5,0,0"
-                        BorderThickness="1">
+                        BorderThickness="1" SelectedIndex="0">
                 <TabControl.Resources>
                     <Style TargetType="{x:Type TabPanel}">
                         <Setter Property="HorizontalAlignment" Value="Center" />
