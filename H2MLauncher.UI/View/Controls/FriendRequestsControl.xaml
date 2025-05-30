@@ -256,7 +256,7 @@
                                     </TextBlock>
 
                                     <!-- User name -->
-                                    <TextBlock Text="{Binding UserName}" Grid.Row="1"  
+                                    <TextBlock Text="{Binding UserName, StringFormat={}@{0}}" Grid.Row="1"  
                                                Foreground="#BBB" FontSize="10" FontWeight="SemiBold"
                                                VerticalAlignment="Top" Margin="0,2,0,2">
                                     </TextBlock>
@@ -365,18 +365,9 @@
                             </TextBlock>
 
                             <!-- User name -->
-                            <TextBlock Text="{Binding UserName}" Grid.Row="1"  
+                            <TextBlock Text="{Binding UserName, StringFormat={}@{0}}" Grid.Row="1"  
                                    Foreground="#BBB" FontSize="10" FontWeight="SemiBold"
                                    VerticalAlignment="Top" Margin="0,2,0,2">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsSelf}" Value="True">
-                                                <Setter Property="FontWeight" Value="Bold"/>
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
                             </TextBlock>
 
                             <!-- Accept / Decline -->
