@@ -5,7 +5,7 @@ namespace MatchmakingServer.Core.Party;
 
 public interface IPartyClient
 {
-    Task OnUserJoinedParty(string id, string playerName);
+    Task OnUserJoinedParty(string id, string userName, string playerName);
     Task OnUserLeftParty(string id);
     Task OnUserNameChanged(string id, string newPlayerName);
     Task OnPartyClosed();

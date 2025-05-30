@@ -70,7 +70,7 @@ namespace MatchmakingServer.Parties
             return new(
                 party.Id,
                 party.Privacy,
-                party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.IsPartyLeader)).ToList(),
+                party.Members.Select(m => new PartyPlayerInfo(m.Id, m.Name, m.UserName, m.IsPartyLeader)).ToList(),
                 validInvites);
         }
 
@@ -142,7 +142,7 @@ namespace MatchmakingServer.Parties
             await _hubContext.Groups.AddToGroupAsync(player.PartyHubId!, GetPartyGroupName(party));
 
             // notify others of join
-            await OthersInPartyGroup(player).OnUserJoinedParty(player.Id, player.Name);
+            await OthersInPartyGroup(player).OnUserJoinedParty(player.Id, player.UserName, player.Name);
 
             OnPartyJoined(party, player);
 

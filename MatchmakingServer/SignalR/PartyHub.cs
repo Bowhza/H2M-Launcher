@@ -131,7 +131,7 @@ public class PartyHub : Hub<IPartyClient>, IPartyHub
         string userName = Context.User!.Identity!.Name!;
         string? playerName = Context.GetHttpContext()?.Request.Query["playerName"].SingleOrDefault();
 
-        Player player = await _playerStore.GetOrAdd(uniqueId, Context.ConnectionId, playerName ?? userName);
+        Player player = await _playerStore.GetOrAdd(uniqueId, userName, Context.ConnectionId, playerName ?? userName);
 
         if (player.PartyHubId is not null)
         {

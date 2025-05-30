@@ -46,7 +46,7 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         string userName = Context.User!.Identity!.Name!;
         string? playerName = Context.GetHttpContext()?.Request.Query["playerName"].SingleOrDefault();
 
-        Player player = await _playerStore.GetOrAdd(userId, Context.ConnectionId, playerName ?? userName);
+        Player player = await _playerStore.GetOrAdd(userId, userName, Context.ConnectionId, playerName ?? userName);
 
         if (player.SocialHubId is not null)
         {

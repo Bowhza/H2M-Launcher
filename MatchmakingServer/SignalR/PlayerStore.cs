@@ -24,7 +24,7 @@ public class PlayerStore
         public HashSet<string> Connections { get; } = [];
     }
 
-    public async Task<Player> GetOrAdd(string userId, string connectionId, string playerName)
+    public async Task<Player> GetOrAdd(string userId, string userName, string connectionId, string playerName)
     {
         await _semaphore.WaitAsync();
         try
@@ -39,6 +39,7 @@ public class PlayerStore
             Player player = new()
             {
                 Id = userId,
+                UserName = userName,
                 Name = playerName,
                 State = PlayerState.Connected
             };

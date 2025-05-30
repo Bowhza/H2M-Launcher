@@ -5,7 +5,6 @@ using System.Reactive.Subjects;
 using H2MLauncher.Core.Party;
 
 using MatchmakingServer.Core.Social;
-using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Social;
 
@@ -237,7 +236,7 @@ public class SocialService
         _playerStatusChanges.OnNext(removedPlayers);
     }
 
-    private void PartyService_PartyPrivacyChanged(Party party, H2MLauncher.Core.Party.PartyPrivacy partyPrivacy)
+    private void PartyService_PartyPrivacyChanged(Party party, PartyPrivacy partyPrivacy)
     {
         _playerStatusChanges.OnNext(party.Members.ToList());
     }

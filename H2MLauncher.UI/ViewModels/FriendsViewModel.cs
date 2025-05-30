@@ -562,7 +562,7 @@ namespace H2MLauncher.UI.ViewModels
             FriendViewModel friendViewModel = new(member.Id, _partyClient, _socialClient, _dialogService)
             {
                 Name = member.Name,
-                UserName = friend?.UserName ?? (isSelf ? _socialClient.Context.UserName ?? "" : ""),
+                UserName = friend?.UserName ?? (isSelf ? _socialClient.Context.UserName ?? "" : member.UserName),
                 Status = friend?.Status ?? OnlineStatus.Online,
                 GameStatus = friend?.GameStatus ?? (isSelf ? _socialClient.GameStatus : GameStatus.None),
                 IsFriend = friend is not null,

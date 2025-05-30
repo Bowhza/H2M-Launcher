@@ -435,13 +435,13 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
-        Task IPartyClient.OnUserJoinedParty(string id, string playerName)
+        Task IPartyClient.OnUserJoinedParty(string id, string userName, string playerName)
         {
             _logger.LogDebug("Player {playerName} ({playerId}) joined the party", playerName, id);
 
             if (_currentParty is not null)
             {
-                PartyPlayerInfo newUser = new(id, playerName, IsLeader: false);
+                PartyPlayerInfo newUser = new(id, playerName, userName, IsLeader: false);
 
                 _currentParty.Members.Add(newUser);
 

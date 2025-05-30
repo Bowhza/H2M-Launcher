@@ -11,6 +11,7 @@ namespace MatchmakingServer
     {
         public required string Id { get; init; }
         public required string Name { get; set; }
+        public required string UserName { get; init; }
 
         /// <summary>
         /// Gets the connection id for the queueing hub.
