@@ -172,17 +172,124 @@
     <StackPanel Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="White" VerticalAlignment="Stretch"
                 TextBlock.FontFamily="Consolas">
 
+        <StackPanel Visibility="Visible" Background="#66000000" Margin="0,5" x:Name="SearchFriendsPanel">
+            <!-- Search Query -->
+            <Grid Grid.Column="1" VerticalAlignment="Center" Margin="0,10,0,0">
+                <TextBox TabIndex="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
+                         HorizontalAlignment="Stretch" Margin="10,0,10,0" 
+                         VerticalAlignment="Center" x:Name="SearchTextBox"/>
+
+                <!-- Reset Button -->
+                <Button Style="{StaticResource LinkButtonStyle}" Click="ResetSearchTextButton_Click" FontSize="10"
+                         Content="❌" Foreground="#a333" HorizontalAlignment="Right" Margin="0,0,12,0" ToolTip="Close"/>
+
+                <!-- Hint -->
+                <TextBlock IsHitTestVisible="False" Text="Find users by ID or name"
+                           VerticalAlignment="Center" HorizontalAlignment="Stretch" 
+                           Padding="3,0,0,0" Margin="10,0,10,0" Foreground="DarkGray">
+                    <TextBlock.Style>
+                        <Style TargetType="{x:Type TextBlock}">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding Text, ElementName=SearchTextBox}" Value=""/>
+                                    </MultiDataTrigger.Conditions>
+                                    <MultiDataTrigger.Setters>
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </MultiDataTrigger.Setters>
+                                </MultiDataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+
+                <ItemsControl ItemsSource="{Binding SearchResults}" Margin="0,5" Padding="0,5"
+                              Grid.Row="1" ui:ScrollToTopBehavior.ScrollToTop="True"
+                              KeyboardNavigation.DirectionalNavigation="Contained">
+                    <ItemsControl.Template>
+                        <ControlTemplate TargetType="ItemsControl">
+                            <ScrollViewer MaxHeight="300" VerticalScrollBarVisibility="Hidden">
+                                <ItemsPresenter/>
+                            </ScrollViewer>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border x:Name="border" Padding="7,5,5,5" Margin="10,0">
+                                <Border.Style>
+                                    <Style TargetType="{x:Type Border}">
+                                        <Setter Property="Background" Value="Transparent"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#11FFFFFF"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+
+                                <Grid Height="Auto">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Player name -->
+                                    <TextBlock Foreground="White" FontSize="13"
+                                               VerticalAlignment="Center" Margin="0,0,0,0">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                                <Setter Property="ui:TextBlockExtensions.BindableInlines" Value="{Binding PlayerName, Converter={StaticResource HostNameColorConverter}}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding PlayerName}" Value="{x:Null}">
+                                                        <Setter Property="ui:TextBlockExtensions.BindableInlines" Value="{Binding UserName, Converter={StaticResource HostNameColorConverter}}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <!-- User name -->
+                                    <TextBlock Text="{Binding UserName}" Grid.Row="1"  
+                                               Foreground="#BBB" FontSize="10" FontWeight="SemiBold"
+                                               VerticalAlignment="Top" Margin="0,2,0,2">
+                                    </TextBlock>
+
+                                    <!-- Add friend -->
+                                    <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.RowSpan="2">
+                                        <Button Content="Add friend" Command="{Binding DataContext.AddFriendCommand, ElementName=SearchFriendsPanel}" 
+                                                CommandParameter="{Binding Id}" Padding="10,0" 
+                                                HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
+                                                VerticalAlignment="Center" Height="25" FontWeight="ExtraLight"
+                                                ToolTip="Send the user a friend request" Background="#33ffffff">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource AcceptButtonStyle}"/>
+                                            </Button.Style>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+        </StackPanel>
+
         <!-- No friend requests -->
         <Border Visibility="{Binding HasRequests, Converter={StaticResource InverseBoolToVisibilityConverter}}" 
-            BorderBrush="#444" Background="#88000000" VerticalAlignment="Stretch" Margin="0,5">
-            <TextBlock Margin="0,5"  Padding="0,5" Text="No pending friend requests." HorizontalAlignment="Center">
-            </TextBlock>
+                BorderBrush="#444" Background="#88000000" VerticalAlignment="Stretch" Margin="0,5">
+            <TextBlock Margin="0,5"  Padding="0,5" Text="No pending friend requests." HorizontalAlignment="Center"/>
         </Border>
 
         <!-- Friend Requests list -->
-        <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="#88000000"
-                  BorderBrush="#444" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
-                  KeyboardNavigation.DirectionalNavigation="Contained">
+        <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="#66000000"
+                      BorderBrush="#444" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
+                      KeyboardNavigation.DirectionalNavigation="Contained">
             <ItemsControl.GroupStyle>
                 <GroupStyle>
                     <GroupStyle.ContainerStyle>
@@ -210,6 +317,7 @@
                     <ToggleButton x:Name="border" Padding="7,5,10,0" Foreground="White">
                         <ToggleButton.Style>
                             <Style TargetType="{x:Type ToggleButton}">
+                                <Setter Property="Background" Value="Transparent"/>
                                 <Setter Property="Template">
                                     <Setter.Value>
                                         <ControlTemplate TargetType="ToggleButton">
@@ -222,13 +330,6 @@
                                             <ControlTemplate.Triggers>
                                                 <Trigger Property="IsMouseOver" Value="True">
                                                     <Setter TargetName="Bd" Property="Background" Value="#11FFFFFF"/>
-                                                </Trigger>
-
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
-                                                </Trigger>
-                                                <Trigger Property="IsPressed" Value="True">
-                                                    <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
                                                 </Trigger>
                                             </ControlTemplate.Triggers>
                                         </ControlTemplate>
@@ -246,7 +347,7 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="*"/>
                             </Grid.RowDefinitions>
-                            
+
                             <!-- Player name -->
                             <TextBlock ui:TextBlockExtensions.BindableInlines="{Binding Name, Converter={StaticResource HostNameColorConverter}}" 
                                    Foreground="White" FontSize="15"
@@ -263,7 +364,7 @@
                                 </TextBlock.Style>
                             </TextBlock>
 
-                            <!-- User name -->                            
+                            <!-- User name -->
                             <TextBlock Text="{Binding UserName}" Grid.Row="1"  
                                    Foreground="#BBB" FontSize="10" FontWeight="SemiBold"
                                    VerticalAlignment="Top" Margin="0,2,0,2">
@@ -300,7 +401,7 @@
                                 </Button>
                                 <StackPanel.Style>
                                     <Style TargetType="StackPanel">
-                                        
+
                                         <!-- Only show for incoming requests -->
                                         <Setter Property="Visibility" Value="Collapsed"/>
                                         <Style.Triggers>
@@ -322,9 +423,5 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
-
-        <StackPanel Visibility="Visible">
-            <Button Content="Add friend..." Command="{Binding AddFriendCommand}" HorizontalAlignment="Center" Padding="10,5" Margin="10,0,10,10"/>
-        </StackPanel>
     </StackPanel>
 </UserControl>

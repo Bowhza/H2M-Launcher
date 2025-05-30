@@ -156,55 +156,9 @@ namespace H2MLauncher.UI.ViewModels
             FriendsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FriendViewModel.Group)));
 
             // Immediately start the connection
-            _socialClient.StartConnection()
-                .ContinueWith(t =>
-                {
-                    if (t.IsFaulted)
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            IsConnecting = false;
-                            IsConnected = false;
-
-                            // Since we don't yet have a initial retry mechanism, we show the error when disconnected.
-                            IsConnectionError = true;
-                        });
-                    }
-                    else
-                    {
-                        Application.Current.Dispatcher.Invoke(() =>
-                        {
-                            IsConnecting = false;
-                            IsConnected = t.Result;
-                        });
-                    }
-                });
+            ConnectToHubCommand.Execute(null);
 
             OnPropertyChanged(nameof(Status));
-
-            IsConnecting = _socialClient.IsConnecting;
-        }
-
-        private void SocialClient_ConnectionChanged(bool isConnected)
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                IsConnecting = _socialClient.IsConnecting;
-                IsConnected = isConnected;
-
-                // Since we don't yet have a initial retry mechanism, we show the error when disconnected.
-                IsConnectionError = !isConnected; 
-
-                OnPropertyChanged(nameof(Status));
-            });
-        }
-
-        private void SocialClient_ConnectionIssue()
-        {
-            Application.Current.Dispatcher.Invoke(() =>
-            {
-                IsConnectionError = true;
-            });
         }
 
         private void ClientContext_UserChanged()
@@ -439,9 +393,59 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
+        private void SocialClient_ConnectionChanged(bool isConnected)
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsConnecting = _socialClient.IsConnecting;
+                IsConnected = isConnected;
+
+                // Since we don't yet have a initial retry mechanism, we show the error when disconnected.
+                IsConnectionError = !isConnected;
+
+                OnPropertyChanged(nameof(Status));
+            });
+        }
+
+        private void SocialClient_ConnectionIssue()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                IsConnectionError = true;
+            });
+        }
+
         #endregion
 
+
         [RelayCommand]
+        public async Task ConnectToHub()
+        {
+            Task connectionTask = _socialClient.StartConnection()
+                .ContinueWith(t =>
+                {
+                    if (t.IsFaulted)
+                    {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            IsConnecting = false;
+                            IsConnected = false;
+
+                            // Since we don't yet have a initial retry mechanism, we show the error when disconnected.
+                            IsConnectionError = true;
+                        });
+                    }
+                });
+
+            if (!connectionTask.IsCompleted)
+            {
+                IsConnecting = true;
+            }
+
+            await connectionTask;
+        }
+
+            [RelayCommand]
         public async Task AcceptFriendRequest(string? friendId)
         {
             friendId ??= _dialogService.OpenInputDialog(

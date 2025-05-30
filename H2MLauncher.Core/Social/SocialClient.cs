@@ -1,5 +1,4 @@
 ﻿using System.Net;
-using System.Runtime.CompilerServices;
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
@@ -34,6 +33,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     private readonly ClientContext _clientContext;
 
     public ClientContext Context => _clientContext;
+    public IFriendshipApiClient FriendshipApi => _friendshipApiClient;
 
     public GameStatus GameStatus { get; private set; }
     public OnlineStatus OnlineStatus { get; private set; }

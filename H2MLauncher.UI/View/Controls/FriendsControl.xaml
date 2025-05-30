@@ -314,6 +314,11 @@
             <TextBlock Text="We're having trouble connecting to the socials system. Some features may not work right now."
                        TextWrapping="WrapWithOverflow" HorizontalAlignment="Center" TextAlignment="Center" 
                        Foreground="White" Margin="10" FontFamily="Consolas" />
+
+            <Button Content="Try again" Width="90" Margin="0,0,3,10" Padding="5" 
+                    Style="{StaticResource TransparentButtonStyle}" Background="#1fff"
+                    IsEnabled="{Binding IsConnecting, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                    Command="{Binding ConnectToHubCommand}"/>
         </StackPanel>
 
         <!-- Connecting -->
@@ -380,7 +385,7 @@
             <!-- No party -->
             <Border Background="#66000000" Grid.Row="1" Margin="0,5" BorderThickness="0">
                 <Grid TextBlock.Foreground="White" VerticalAlignment="Center"
-                            Margin="11.5,2,10,0" HorizontalAlignment="Stretch">
+                      Margin="11.5,2,10,0" HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition/>
@@ -454,6 +459,7 @@
 
                             <ToggleButton.Style>
                                 <Style TargetType="{x:Type ToggleButton}">
+                                    <Setter Property="Background" Value="Transparent"/>
                                     <Setter Property="Template">
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ToggleButton">

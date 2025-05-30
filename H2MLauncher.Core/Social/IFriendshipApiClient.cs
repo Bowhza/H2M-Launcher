@@ -34,4 +34,8 @@ public interface IFriendshipApiClient
 
     [Delete("/users/{userId}/friends/{friendId}")]
     Task<IApiResponse> UnfriendAsync(string userId, string friendId, CancellationToken cancellationToken = default);
+
+
+    [Get("/friends/search")]
+    Task<IApiResponse<List<UserSearchResultDto>>> SearchFriendsAsync(string query, CancellationToken cancellationToken = default);
 }

@@ -1,14 +1,20 @@
-﻿using FxKit;
+﻿using System;
+
+using FxKit;
 
 using H2MLauncher.Core.Party;
 
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
+using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.SignalR;
 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MatchmakingServer.Social;
 
@@ -475,6 +481,44 @@ public sealed class FriendshipsService(
         {
             _logger.LogError(ex, "Error while deleting friend {friendId} of {userId}", friendId, userId);
             return Err<Unit, FriendshipError>(FriendshipError.UnknownError);
+        }
+    }
+
+    public async Task<Result<IEnumerable<UserSearchResultDto>, FriendshipError>> SearchUsersAsync(string query)
+    {
+        try
+        {
+            // Normalize the query for case-insensitive search
+            string normalizedQuery = query.Trim().ToLower();
+
+            IQueryable<UserDbo> usersQuery = _dbContext.Users.AsQueryable();
+
+            // Attempt to parse the query as a GUID
+            if (Guid.TryParse(query, out Guid searchGuid))
+            {
+                // If the query is a valid GUID, search directly by id
+                usersQuery = usersQuery.Where(u => u.Id == searchGuid);
+            }
+            else
+            {
+                // If not a GUID, search by username (case-insensitive)
+                usersQuery = usersQuery.Where(u => u.Name.ToLower().Contains(normalizedQuery));
+            }
+
+            List<UserSearchResultDto> users = await usersQuery
+                .Select(u => new UserSearchResultDto
+                {
+                    Id = u.Id.ToString(),
+                    UserName = u.Name
+                })
+                .ToListAsync();
+
+            return Ok<IEnumerable<UserSearchResultDto>, FriendshipError>(users);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while searching for users with search term {query}", query);
+            return Err<IEnumerable<UserSearchResultDto>, FriendshipError>(FriendshipError.UnknownError);
         }
     }
 }

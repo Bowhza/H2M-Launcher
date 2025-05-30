@@ -1,7 +1,11 @@
-﻿using FxKit;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Threading;
+
+using FxKit;
 
 using MatchmakingServer.Authorization;
 using MatchmakingServer.Core.Social;
+using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.Authorization;
@@ -24,7 +28,7 @@ public class FriendsController : ControllerBase
     [Authorize(Policy = Policies.CanReadFriends)]
     public async Task<IActionResult> GetAllFriends(Guid userId, CancellationToken cancellationToken)
     {
-        Result<List<FriendDto>, FriendshipError> result = 
+        Result<List<FriendDto>, FriendshipError> result =
             await _friendshipsService.GetFriendsWithStatusAsync(userId, cancellationToken);
 
         return result.Match<IActionResult>(
@@ -41,7 +45,7 @@ public class FriendsController : ControllerBase
     [Authorize(Policy = Policies.CanReadFriends)]
     public async Task<IActionResult> GetFriend(Guid userId, Guid friendId, CancellationToken cancellationToken)
     {
-        Result<FriendDto, FriendshipError> result = 
+        Result<FriendDto, FriendshipError> result =
             await _friendshipsService.GetFriendWithStatusAsync(userId, friendId, cancellationToken);
 
         return result.Match<IActionResult>(
@@ -87,7 +91,7 @@ public class FriendsController : ControllerBase
     [Authorize(Policy = Policies.AccessFriendRequests)]
     public async Task<IActionResult> GetFriendRequests(Guid userId, CancellationToken cancellationToken)
     {
-        Result<List<FriendRequestDto>, FriendshipError> result = 
+        Result<List<FriendRequestDto>, FriendshipError> result =
             await _friendshipsService.GetFriendRequests(userId, cancellationToken);
 
         return result.Match<IActionResult>(
@@ -154,6 +158,26 @@ public class FriendsController : ControllerBase
                 FriendshipError.AlreadyRejected => Conflict(new { error = "Already rejected" }),
                 _ => StatusCode(500)
             }
+        );
+    }
+
+    /// <summary>
+    /// Searches for users by ID (GUID) or user name.
+    /// </summary>
+    /// <param name="query">The search term (GUID string or user name).</param>
+    /// <returns>A list of matching users.</returns>
+    [HttpGet("friends/search")]
+    public async Task<ActionResult<IEnumerable<UserSearchResultDto>>> SearchUsers(
+        [FromQuery]
+        [Required]
+        [MinLength(3)]
+        string query)
+    {
+        Result<IEnumerable<UserSearchResultDto>, FriendshipError> result = await _friendshipsService.SearchUsersAsync(query);
+
+        return result.Match<ActionResult<IEnumerable<UserSearchResultDto>>>(
+            (results) => Ok(results),
+            (error) => StatusCode(500)
         );
     }
 }
