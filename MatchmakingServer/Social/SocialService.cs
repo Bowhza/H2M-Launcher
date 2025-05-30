@@ -5,6 +5,7 @@ using System.Reactive.Subjects;
 using H2MLauncher.Core.Party;
 
 using MatchmakingServer.Core.Social;
+using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Social;
 
@@ -134,6 +135,12 @@ public class SocialService
         await _hubContext.Clients
             .Users(await GetOnlineFriendIds(friendshipsService, player.Id))
             .OnFriendOnline(player.Id, player.Name);
+
+        UserManager userManager = scope.ServiceProvider.GetRequiredService<UserManager>();
+
+        // update player name in database
+        await userManager.UpdatePlayerNameAsync(
+            Guid.Parse(player.Id), player.Name, CancellationToken.None);
     }
 
     public async Task OnPlayerOffline(string userId)

@@ -275,12 +275,12 @@ public sealed class FriendshipsService(
                 return Err<FriendRequestDto, FriendshipError>(FriendshipError.RequestToYourself);
             }
 
-            string? fromUserName = await _dbContext.Users
+            var fromUser = await _dbContext.Users
                 .Where(u => u.Id == fromUserId)
-                .Select(u => u.Name)
+                .Select(u => new { u.Name, u.LastPlayerName })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (fromUserName is null)
+            if (fromUser is null)
             {
                 return Err<FriendRequestDto, FriendshipError>(FriendshipError.UserNotFound);
             }
@@ -345,7 +345,8 @@ public sealed class FriendshipsService(
                 .OnFriendRequestReceived(new FriendRequestDto()
                 {
                     UserId = fromUserId,
-                    UserName = fromUserName,
+                    UserName = fromUser.Name,
+                    PlayerName = fromUser.LastPlayerName,
                     Status = FriendRequestStatus.PendingIncoming,
                     Created = relationship.CreationDate
                 });
@@ -509,7 +510,8 @@ public sealed class FriendshipsService(
                 .Select(u => new UserSearchResultDto
                 {
                     Id = u.Id.ToString(),
-                    UserName = u.Name
+                    UserName = u.Name,
+                    PlayerName = u.LastPlayerName,
                 })
                 .ToListAsync();
 
