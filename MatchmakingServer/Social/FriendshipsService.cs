@@ -441,7 +441,7 @@ public sealed class FriendshipsService(
 
             if (existingRelationship.Status is FriendshipStatus.Pending)
             {
-                existingRelationship.Status = FriendshipStatus.Accepted;
+                existingRelationship.Status = FriendshipStatus.Rejected;
                 existingRelationship.UpdateDate = DateTime.UtcNow;
             }
 
