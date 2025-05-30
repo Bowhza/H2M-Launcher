@@ -1,4 +1,5 @@
 ﻿@page "/counter"
+@using System.Collections.ObjectModel
 @rendermode InteractiveServer
 
 <PageTitle>Counter</PageTitle>
@@ -9,11 +10,41 @@
 
 <button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
 
+    <div class="card-body">
+        @if (_list is null)
+        {
+            <p><em>Loading the killfeed...</em></p>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var playerKillEvent in _list)
+                {
+                     <p>@playerKillEvent</p>
+                }
+            </ul>
+        }
+    </div>
+
 @code {
     private int currentCount = 0;
+    private ObservableCollection<string> _list = ["initial"];
 
     private void IncrementCount()
     {
         currentCount++;
+        _list.Add("added");
+    }
+
+    protected override Task OnInitializedAsync() 
+    {
+        _ = Task.Run(async () => {
+            while (true) {
+                await Task.Delay(5000);
+                _list.Add(Guid.NewGuid().ToString());
+            }
+        });
+
+        return Task.CompletedTask;
     }
 }

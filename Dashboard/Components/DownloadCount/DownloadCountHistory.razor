@@ -1,0 +1,100 @@
+﻿@inject DownloadCountService DownloadCountService
+@inject IEventBus EventBus;
+@implements IDisposable;
+@using System.Linq
+@using Dashboard.Database
+@using Dashboard.Database.Entities
+@using MediatR;
+
+<div class="tag-download-history">
+    <h3>Download History by Tag</h3>
+
+    @if (_groupedHistory != null && _groupedHistory.Any())
+    {
+        @foreach (var tagGroup in _groupedHistory.OrderByDescending(dc => dc.Value.ReleaseDate))
+        {
+            <div class="tag-section">
+                <h4>Tag: @tagGroup.Key</h4>
+                <div class="chart-and-table-container">
+                    <div class="chart-column">
+                        <DownloadCountChart 
+                            Tag="@tagGroup.Key" LatestDownloadCount="@tagGroup.Value.LatestDownloadCount" 
+                            DownloadHistory="@tagGroup.Value.DownloadCounts" />
+                    </div>
+                    <div class="table-column">
+                        <table class="download-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Download Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in tagGroup.Value.DownloadCounts.OrderByDescending(h => h.Timestamp).Take(10))
+                                {
+                                    <tr>
+                                        <td>@item.Timestamp.ToLocalTime()</td>
+                                        <td>@item.Count</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else if (isLoading)
+    {
+        <p class="loading">Loading grouped download history...</p>
+    }
+    else
+    {
+        <p>No grouped download history available.</p>
+    }
+</div>
+
+@code {
+    private Dictionary<string, LauncherRelease> _groupedHistory = [];
+    private bool isLoading = true;
+    private IDisposable? _downloadCountNotificationSubscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadGroupedHistory();
+
+        // Keep this if DownloadCountService.OnDataUpdated signifies an update to ALL grouped data
+        _downloadCountNotificationSubscription = EventBus.Subscribe<DownloadCountAddedNotification>(async notification =>
+        {
+            if (_groupedHistory.TryGetValue(notification.NewDownloadCount.Tag, out var downloadCounts))
+            {
+                downloadCounts.DownloadCounts.Add(notification.NewDownloadCount);
+            }
+            else
+            {
+                _groupedHistory.Add(notification.NewDownloadCount.Tag, new LauncherRelease()
+                {
+                    Tag = notification.NewDownloadCount.Tag,
+                    DownloadCounts = [notification.NewDownloadCount],
+                    ReleaseDate = notification.NewDownloadCount.ReleaseDate,
+                });
+            }
+
+            await InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task LoadGroupedHistory()
+    {
+        isLoading = true;
+        var history = await DownloadCountService.GetHistoryAsync(CancellationToken.None);
+        _groupedHistory = history.ToDictionary(x => x.Tag);
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _downloadCountNotificationSubscription?.Dispose();
+    }
+}
