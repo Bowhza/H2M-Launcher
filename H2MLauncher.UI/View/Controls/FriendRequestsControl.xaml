@@ -177,7 +177,7 @@
             <Grid Grid.Column="1" VerticalAlignment="Center" Margin="0,10,0,0">
                 <TextBox TabIndex="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
                          HorizontalAlignment="Stretch" Margin="10,0,10,0" 
-                         VerticalAlignment="Center" x:Name="SearchTextBox"/>
+                         VerticalAlignment="Center" x:Name="SearchTextBox" Padding="0,0,20,0"/>
 
                 <!-- Reset Button -->
                 <Button Style="{StaticResource LinkButtonStyle}" Click="ResetSearchTextButton_Click" FontSize="10"

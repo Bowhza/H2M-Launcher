@@ -170,7 +170,7 @@ public class FriendsController : ControllerBase
     public async Task<ActionResult<IEnumerable<UserSearchResultDto>>> SearchUsers(
         [FromQuery]
         [Required]
-        [MinLength(3)]
+        [MinLength(5)]
         string query)
     {
         Result<IEnumerable<UserSearchResultDto>, FriendshipError> result = await _friendshipsService.SearchUsersAsync(query);
