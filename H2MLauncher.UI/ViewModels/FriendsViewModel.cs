@@ -32,7 +32,7 @@ namespace H2MLauncher.UI.ViewModels
         private bool _isConnecting = false;
 
         [ObservableProperty]
-        private bool _isConnected = true;
+        private bool _isConnected = false;
 
         [ObservableProperty]
         private bool _isConnectionError = false;
@@ -165,6 +165,9 @@ namespace H2MLauncher.UI.ViewModels
                         {
                             IsConnecting = false;
                             IsConnected = false;
+
+                            // Since we don't yet have a initial retry mechanism, we show the error when disconnected.
+                            IsConnectionError = true;
                         });
                     }
                     else
@@ -189,10 +192,8 @@ namespace H2MLauncher.UI.ViewModels
                 IsConnecting = _socialClient.IsConnecting;
                 IsConnected = isConnected;
 
-                if (isConnected)
-                {
-                    IsConnectionError = false;
-                }
+                // Since we don't yet have a initial retry mechanism, we show the error when disconnected.
+                IsConnectionError = !isConnected; 
 
                 OnPropertyChanged(nameof(Status));
             });
