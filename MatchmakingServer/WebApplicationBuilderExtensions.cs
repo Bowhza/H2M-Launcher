@@ -1,9 +1,13 @@
 ﻿using MatchmakingServer.Authentication;
+using MatchmakingServer.Authentication.JWT;
+using MatchmakingServer.Authentication.Passwordless;
 using MatchmakingServer.Authentication.Player;
 
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 namespace MatchmakingServer;
@@ -12,7 +16,14 @@ public static class WebApplicationBuilderExtensions
 {
     public static void AddAuthentication(this WebApplicationBuilder builder)
     {
-        builder.Services.AddAuthentication(BearerTokenDefaults.AuthenticationScheme)
+        builder.Services.AddOptions<JwtSettings>()
+                        .BindConfiguration("JWT")
+                        .ValidateDataAnnotations();
+
+        builder.Services.AddTransient<TokenService>();
+        builder.Services.AddTransient<PasswordlessAuthenticationService>();
+
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
             // api key
             .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, (options) =>
@@ -31,7 +42,28 @@ public static class WebApplicationBuilderExtensions
 
             // player client (query params)
             .AddScheme<AuthenticationSchemeOptions, ClientAuthenticationHandler>("client", null)
-            .AddBearerToken();
+
+            // JWT (default)
+            .AddJwtBearer();
+
+        // Configure JWT bearer
+        builder.Services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
+            .Configure<IOptions<JwtSettings>>((options, jwtSettings) =>
+            {
+                options.SaveToken = true;
+                options.TokenValidationParameters = new()
+                {
+                    ValidateIssuer = true,
+                    ValidIssuer = jwtSettings.Value.Issuer,
+                    ValidateAudience = false,
+                    ValidAudience = jwtSettings.Value.Audience,
+                    ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        System.Text.Encoding.UTF8.GetBytes(jwtSettings.Value.Secret)
+                    )
+                };
+            });
     }
 
     public static void AddSwagger(this WebApplicationBuilder builder)

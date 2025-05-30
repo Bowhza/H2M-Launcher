@@ -164,24 +164,23 @@ namespace H2MLauncher.UI
             // online services
             services.AddSingleton<OnlineServiceManager>();
             services.AddSingleton<IOnlineServices, OnlineServiceManager>(sp => sp.GetRequiredService<OnlineServiceManager>());
-            services.AddSingleton<ClientContext>(sp =>
-            {
-                var playerNameProvider = sp.GetRequiredService<IPlayerNameProvider>();
-                var matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>();
-                var userSettings = sp.GetRequiredService<IOptions<H2MLauncherSettings>>();
-
-                return matchmakingSettings.Value.UseRandomCliendId
-                    ? new ClientContext(playerNameProvider)
-                    : new ClientContext(playerNameProvider)
-                    {
-                        ClientId = userSettings.Value.ClientId.ToString()
-                    };
-            });
+            services.AddSingleton<ClientContext>();
 
             // authentication
             services.AddTransient<AuthenticationService>();
             services.AddHttpClient<AuthenticationService>()
                 .ConfigureMatchmakingClient();
+
+            services.AddSingleton(sp =>
+            {
+                var matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>();
+                var logger = sp.GetRequiredService<ILogger<RsaKeyManager>>();
+
+                // Use random client id by not enabling persistence so a new key is generated in memory
+                string? keyFilePath = matchmakingSettings.Value.UseRandomCliendId ? null : Constants.KeyFilePath;
+
+                return new RsaKeyManager(keyFilePath, logger);
+            });
 
             // server data / playlists
             services.AddTransient<CachedServerDataService>();

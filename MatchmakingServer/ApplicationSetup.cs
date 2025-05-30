@@ -38,5 +38,6 @@ public static class ApplicationSetup
     {
         app.MapHub<QueueingHub>("/Queue");
         app.MapHub<PartyHub>("/Party");
+        app.MapHub<SocialHub>("/Social");
     }
 }

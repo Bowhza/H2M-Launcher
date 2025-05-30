@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Security.Claims;
+using System.Text.Json.Serialization;
 
 using FluentValidation;
 
@@ -13,21 +14,28 @@ using H2MLauncher.Core.Utilities;
 
 using MatchmakingServer;
 using MatchmakingServer.Api;
+using MatchmakingServer.Authorization;
+using MatchmakingServer.Database;
 using MatchmakingServer.Matchmaking;
 using MatchmakingServer.Parties;
 using MatchmakingServer.Playlists;
 using MatchmakingServer.Queueing;
 using MatchmakingServer.SignalR;
+using MatchmakingServer.Social;
 
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 using Serilog;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder();
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
 Environment.SetEnvironmentVariable("BASEDIR", AppDomain.CurrentDomain.BaseDirectory);
+
+builder.Configuration.AddJsonFile("appsettings.local.json", optional: true);
 
 builder.Host.UseSerilog((context, logger) => logger.ReadFrom.Configuration(context.Configuration));
 builder.Services.AddHealthChecks();
@@ -72,7 +80,7 @@ builder.Services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW"
 
 builder.Services.AddTransient<UdpGameServerCommunication>();
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
-builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) => 
+builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) =>
     sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
 builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerInfoService<GameServer>>("TCP");
 builder.Services.AddTransient<IGameServerInfoService<GameServer>, TcpUdpDynamicGameServerInfoService<GameServer>>();
@@ -92,10 +100,41 @@ builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddMemoryCache();
 
+// Social
+builder.Services.AddTransient<UserManager>();
+builder.Services.AddTransient<FriendshipsService>();
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+// Database
+builder.Services.AddDbContextPool<DatabaseContext>(opt =>
+    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.AddSwagger();
 builder.AddAuthentication();
+
+
+// Authorization
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(Policies.CanReadFriends, policy =>
+    {
+        policy.AddRequirements(new ReadFriendsRequirement(ClaimTypes.NameIdentifier));
+    })
+    .AddPolicy(Policies.AccessFriendRequests, policy =>
+    {
+        policy.AddRequirements(new IsOwnerRequirement(ClaimTypes.NameIdentifier));
+    })
+    .AddPolicy(Policies.CanRemoveFriend, policy =>
+    {
+        policy.AddRequirements(new IsOwnerRequirement(ClaimTypes.NameIdentifier));
+    });
+
+// Register custom authorization handlers
+builder.Services.AddScoped<IAuthorizationHandler, IsOwnerHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, ReadFriendsHandler>();
+
+builder.Services.AddHttpContextAccessor();
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(o =>
@@ -108,6 +147,13 @@ builder.Services.AddSignalR();
 
 WebApplication app = builder.Build();
 
+// Ensure database is created and migrations are applied
+using (var scope = app.Services.CreateScope())
+{
+    DatabaseContext db = scope.ServiceProvider.GetRequiredService<DatabaseContext>();
+    db.Database.Migrate();
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -117,6 +163,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseRequestLogging();
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
@@ -125,3 +172,5 @@ app.MapHubs();
 app.MapEndpoints();
 
 app.Run();
+
+public partial class Program { }

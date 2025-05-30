@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Matchmaking.Models;
+﻿using Flurl;
+
+using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
@@ -65,12 +67,11 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
 
         object queryParams = new
         {
-            uid = ClientContext.ClientId,
             playerName = ClientContext.PlayerName
         };
 
         QueueingHubConnection = new CustomHubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.QueueingHubUrl, (opts) =>
+            .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams), (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
 
@@ -80,10 +81,10 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .Build();
 
         PartyHubConnection = new CustomHubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.PartyHubUrl, (opts) =>
+            .WithUrl(matchmakingSettings.Value.PartyHubUrl.SetQueryParams(queryParams), (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
-                
+
                 AddAppHeaders(opts.Headers);
             })
             .WithAutomaticReconnect()

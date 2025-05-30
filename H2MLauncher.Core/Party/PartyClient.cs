@@ -6,6 +6,7 @@ using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
+using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.Core.Utilities.SignalR;
 
@@ -27,11 +28,11 @@ namespace H2MLauncher.Core.Party
         private readonly IPlayerNameProvider _playerNameProvider;
         private readonly MatchmakingService _matchmakingService;
         private readonly ILogger<PartyClient> _logger;
+        private readonly ClientContext _clientContext;
 
         private readonly bool _autoCreateParty = true;
         private PartyInfo? _currentParty;
         private bool _isPartyLeader;
-        private readonly string _clientId;
 
         public string? PartyId => _currentParty?.PartyId;
         public IReadOnlyList<PartyPlayerInfo>? Members => _currentParty?.Members.AsReadOnly();
@@ -59,13 +60,13 @@ namespace H2MLauncher.Core.Party
             HubConnection hubConnection,
             IOnlineServices onlineService) : base(hubConnection)
         {
-            _clientId = onlineService.ClientContext.ClientId;
             _clientRegistration = hubConnection.Register<IPartyClient>(this);
 
             _serverJoinService = serverJoinService;
             _matchmakingService = matchmakingService;
             _playerNameProvider = playerNameProvider;
             _logger = logger;
+            _clientContext = onlineService.ClientContext;
 
             _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
         }
@@ -86,7 +87,7 @@ namespace H2MLauncher.Core.Party
 
                 if (IsPartyActive)
                 {
-                    PartyPlayerInfo? newSelf = UpdateMember(_clientId, (self) => self with { Name = newName });
+                    PartyPlayerInfo? newSelf = UpdateMember(_clientContext.UserId!, (self) => self with { Name = newName });
                     if (newSelf is not null)
                     {
                         UserChanged?.Invoke(newSelf);
@@ -299,7 +300,7 @@ namespace H2MLauncher.Core.Party
 
         public bool IsSelf(PartyPlayerInfo member)
         {
-            return member.Id == _clientId;
+            return member.Id == _clientContext.UserId;
         }
 
         protected override Task OnConnected(CancellationToken cancellationToken = default)

@@ -1,4 +1,6 @@
 ﻿using System.Diagnostics.CodeAnalysis;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 using H2MLauncher.Core.Game;
 
@@ -11,21 +13,26 @@ public sealed class ClientContext : IDisposable
 {
     private readonly IPlayerNameProvider _playerNameProvider;
     private BearerToken? _token;
+    private string? _userId;
+    private string? _userName;
+
+    public string PlayerName => _playerNameProvider.PlayerName;
+
+    public string? UserId => _userId;
+
+    public string? UserName => _userName;
+
+    public string? AccessToken => _token?.AccessToken;
+
+    [MemberNotNullWhen(true, nameof(AccessToken))]
+    [MemberNotNullWhen(true, nameof(UserId))]
+    public bool IsAuthenticated => _token is not null && _token.ExpirationDate > DateTimeOffset.Now;
 
     public ClientContext(IPlayerNameProvider playerNameProvider)
     {
         _playerNameProvider = playerNameProvider;
         _playerNameProvider.PlayerNameChanged += OnPlayerNameChanged;
     }
-
-    public string ClientId { get; init; } = Guid.NewGuid().ToString();
-    public string PlayerName => _playerNameProvider.PlayerName;
-    
-
-    public string? AccessToken => _token?.AccessToken;
-
-    [MemberNotNullWhen(true, nameof(AccessToken))]
-    public bool IsAuthenticated => _token is not null && _token.ExpirationDate > DateTimeOffset.Now;
 
     public void InvalidateToken()
     {
@@ -35,6 +42,28 @@ public sealed class ClientContext : IDisposable
     public void UpdateToken(BearerToken? token)
     {
         _token = token;
+        _userId = null;
+        _userName = null;
+
+        if (token is null)
+        {
+            return;
+        }
+
+        JwtSecurityTokenHandler handler = new();
+        JwtSecurityToken jwt = handler.ReadJwtToken(token.AccessToken);
+
+        Claim? userIdClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier);
+        if (userIdClaim is not null)
+        {
+            _userId = userIdClaim.Value;
+        }
+
+        Claim? userNameClaim = jwt.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Name);
+        if (userNameClaim is not null)
+        {
+            _userName = userNameClaim.Value;
+        }
     }
 
     private void OnPlayerNameChanged(string oldName, string newName)

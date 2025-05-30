@@ -1,5 +1,7 @@
 ﻿using H2MLauncher.Core.Matchmaking.Models;
 
+using MatchmakingServer.Database.Migrations;
+
 namespace MatchmakingServer.SignalR;
 
 public class PlayerStore
@@ -86,6 +88,37 @@ public class PlayerStore
         try
         {
             return _connectedPlayers.Values.Select(connectionInfo => connectionInfo.Player).ToList();
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task<Player?> TryGet(string userId)
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo info))
+            {
+                return info.Player;
+            }
+
+            return null;
+        }
+        finally
+        {
+            _semaphore.Release();
+        }
+    }
+
+    public async Task Clear()
+    {
+        await _semaphore.WaitAsync();
+        try
+        {
+            _connectedPlayers.Clear();
         }
         finally
         {

@@ -6,13 +6,13 @@ using H2MLauncher.Core.Party;
 using MatchmakingServer.Core.Party;
 using MatchmakingServer.Parties;
 
-using Microsoft.AspNetCore.Authentication.BearerToken;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace MatchmakingServer.SignalR;
 
-[Authorize(AuthenticationSchemes = BearerTokenDefaults.AuthenticationScheme)]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class PartyHub : Hub<IPartyClient>, IPartyHub
 {
     private static readonly ConcurrentDictionary<string, Player> ConnectedPlayers = [];
@@ -101,9 +101,10 @@ public class PartyHub : Hub<IPartyClient>, IPartyHub
     public override async Task OnConnectedAsync()
     {
         string uniqueId = Context.UserIdentifier!;
-        string playerName = Context.User!.Identity!.Name!;
+        string userName = Context.User!.Identity!.Name!;
+        string? playerName = Context.GetHttpContext()?.Request.Query["playerName"].SingleOrDefault();
 
-        Player player = await _playerStore.GetOrAdd(uniqueId, Context.ConnectionId, playerName);
+        Player player = await _playerStore.GetOrAdd(uniqueId, Context.ConnectionId, playerName ?? userName);
 
         if (player.PartyHubId is not null)
         {
@@ -114,8 +115,12 @@ public class PartyHub : Hub<IPartyClient>, IPartyHub
         }
 
         player.PartyHubId = Context.ConnectionId;
-
         ConnectedPlayers[Context.ConnectionId] = player;
+
+        if (!string.IsNullOrEmpty(playerName))
+        {
+            player.Name = playerName;
+        }
 
         await base.OnConnectedAsync();
     }

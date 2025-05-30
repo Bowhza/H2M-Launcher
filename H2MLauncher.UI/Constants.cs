@@ -13,6 +13,8 @@ namespace H2MLauncher.UI
 
         public static readonly string LauncherSettingsFilePath = Path.Combine(LocalDir, LauncherSettingsFileName);
 
+        public static readonly string KeyFilePath = Path.Combine(LocalDir, "userkey");
+
         /// <summary>
         /// The key of the <see cref="Core.Settings.H2MLauncherSettings"/> section in the configuration.
         /// </summary>
