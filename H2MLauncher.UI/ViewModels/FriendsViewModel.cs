@@ -129,20 +129,7 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.InviteExpired += PartyClient_InviteExpired;
             _partyClient.ConnectionChanged += PartyService_ConnectionChanged;
 
-
-            // Populate with some dummy data for testing
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "John", Status = OnlineStatus.Online });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Mike", Status = OnlineStatus.Offline });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Alice", Status = OnlineStatus.InGame, GameStatus = GameStatus.InMatch });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Jane", Status = OnlineStatus.InGame, PartySize = 3, GameStatus = GameStatus.InMainMenu });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Lucas", Status = OnlineStatus.InGame, PartySize = 1 });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Bob", Status = OnlineStatus.Online });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString(), _partyClient) { Name = "Charlie", Status = OnlineStatus.Offline });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString()) { Name = "Anton", Status = OnlineStatus.Online, PartyPlayer = new("", "Anton", true) });
-            //Friends.Add(new FriendViewModel(Guid.NewGuid().ToString()) { Name = "Tobi", Status = OnlineStatus.Online, PartyPlayer = new("", "Tobi", false) });
-
             FriendsGrouped = CollectionViewSource.GetDefaultView(Friends);
-
             FriendsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendViewModel.Group), ListSortDirection.Ascending));
 
             // Display self always on top
