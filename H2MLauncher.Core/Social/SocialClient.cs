@@ -362,8 +362,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             FriendsChanged?.Invoke();
         }
 
-        // TODO: event
-
         return Task.CompletedTask;
     }
 
@@ -380,8 +378,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         {
             FriendsChanged?.Invoke();
         }
-
-        // TODO: event
 
         return Task.CompletedTask;
     }
@@ -435,8 +431,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         {
             FriendsChanged?.Invoke();
         }
-
-        // TODO: event
 
         return Task.CompletedTask;
     }
