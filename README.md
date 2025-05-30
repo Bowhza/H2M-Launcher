@@ -16,6 +16,8 @@
 
 ## Features
 
+**Table of Contents**
+
 - [Server Browser](#server-browser)
 - [Matchmaking](#matchmaking)
 - [Server Queueing](#server-queueing)
@@ -85,7 +87,7 @@
 
 ### Add Friends
 
-Each user gets assigned a randomly generated user name when first connection to the hub. The user is tied to a key stored locally. Create a party to find out your user name or id and share it with your friends:
+Each user gets assigned a randomly generated user name on first connection to the hub. The user is tied to a key stored locally. Create a party to find out your user name or id and share it with your friends:
 
 ![](./Images/UserInfo.png)
 
