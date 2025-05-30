@@ -92,13 +92,13 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
 
         // Create a social hub session for that player
-        Player friend2Player = await _playerStore.GetOrAdd(friend2.Name,
-            friend2.Id.ToString(), friend2.Id.ToString(), "friend-2-current-player-name");
+        Player friend2Player = await _playerStore.GetOrAdd(
+            friend2.Id.ToString(), friend2.Name, friend2.Id.ToString(), "friend-2-current-player-name");
         friend2Player.SocialHubId = "some-id";
         friend2Player.GameStatus = GameStatus.InLobby;
 
-        Player notAFriendPlayer = await _playerStore.GetOrAdd(notAFriend.Name,
-            notAFriend.Id.ToString(), notAFriend.Id.ToString(), "not-a-friend-current-player-name");
+        Player notAFriendPlayer = await _playerStore.GetOrAdd(
+            notAFriend.Id.ToString(), notAFriend.Name, notAFriend.Id.ToString(), "not-a-friend-current-player-name");
 
         Party friend2Party = new(friend2Player);
         friend2Party.AddPlayer(friend2Player);
