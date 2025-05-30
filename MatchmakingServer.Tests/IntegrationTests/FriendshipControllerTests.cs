@@ -1089,8 +1089,8 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
             FromUser = fromUser,
             ToUser = toUser,
             Status = status,
-            UpdateDate = new DateTime((updateDate ?? DateTime.UtcNow).Ticks / 10),
-            CreationDate = new DateTime(DateTime.UtcNow.Ticks / 10),
+            UpdateDate = new DateTime(((updateDate ?? DateTime.UtcNow).Ticks / 100) * 100),
+            CreationDate = new DateTime((DateTime.UtcNow.Ticks / 100) * 100),
         };
     }
 
