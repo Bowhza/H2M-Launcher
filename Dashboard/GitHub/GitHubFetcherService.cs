@@ -1,5 +1,6 @@
 ﻿using Dashboard.Database;
 using Dashboard.Database.Entities;
+using Dashboard.Downloads;
 
 namespace Dashboard.GitHub;
 
