@@ -28,7 +28,7 @@ public interface IFriendshipApiClient
     [Put("/users/{userId}/friends/{friendId}")]
     Task<IApiResponse<FriendDto>> AcceptFriendRequestAsync(string userId, string friendId, CancellationToken cancellationToken = default);
 
-    [Delete("/users/{userId}/friend-request/{friendId}")]
+    [Delete("/users/{userId}/friend-requests/{friendId}")]
     Task<IApiResponse> RejectFriendRequestAsync(string userId, string friendId, CancellationToken cancellationToken = default);
 
 
