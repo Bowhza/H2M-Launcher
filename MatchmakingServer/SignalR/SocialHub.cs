@@ -1,7 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-using MatchmakingServer.Core.Social;
-using MatchmakingServer.Social;
+﻿using MatchmakingServer.Core.Social;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -12,123 +9,35 @@ namespace MatchmakingServer.SignalR;
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 public class SocialHub : Hub<ISocialClient>, ISocialHub
 {
-    private static readonly ConcurrentDictionary<string, Player> ConnectedPlayers = [];
-
-    private readonly FriendshipsService _friendshipsService;
-    private readonly UserManager _userManager;
     private readonly PlayerStore _playerStore;
+    private readonly SocialService _socialService;
     private readonly ILogger<SocialHub> _logger;
 
-    public SocialHub(PlayerStore playerStore, UserManager userManager, FriendshipsService friendshipsService, ILogger<SocialHub> logger)
+    public SocialHub(ILogger<SocialHub> logger, PlayerStore playerStore, SocialService socialService)
     {
-        _playerStore = playerStore;
-        _userManager = userManager;
-        _friendshipsService = friendshipsService;
         _logger = logger;
+        _playerStore = playerStore;
+        _socialService = socialService;
     }
 
-    public async Task UpdateGameStatus(GameStatus gameStatus)
+    public Task UpdateGameStatus(GameStatus gameStatus)
     {
-        string userId = Context.UserIdentifier!;
-
-        _logger.LogDebug("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
-            userId, Context.ConnectionId, gameStatus);
-
-        if (!ConnectedPlayers.TryGetValue(userId, out Player? player))
+        if (string.IsNullOrEmpty(Context.UserIdentifier))
         {
-            _logger.LogWarning("No connected player found for connection id {socialHubConnectionId}", Context.ConnectionId);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (player.GameStatus == gameStatus)
-        {
-            // no change
-            return;
-        }
-
-        // update game status in session
-        player.GameStatus = gameStatus;
-
-        await TryNotifyOnlineFriendsOfStatusChange(userId, player);
+        return _socialService.UpdateGameStatus(Context.UserIdentifier, Context.ConnectionId, gameStatus);
     }
 
-    public async Task UpdatePlayerName(string newPlayerName)
+    public Task UpdatePlayerName(string newPlayerName)
     {
-        string userId = Context.UserIdentifier!;
-
-        _logger.LogDebug("Updating player name for {userId} ({socialHubConnectionId}) to {newPlayerName}",
-            userId, Context.ConnectionId, newPlayerName);
-
-        if (!ConnectedPlayers.TryGetValue(userId, out Player? player))
+        if (string.IsNullOrEmpty(Context.UserIdentifier))
         {
-            _logger.LogWarning("No connected player found for connection id {socialHubConnectionId}", Context.ConnectionId);
-            return;
+            return Task.CompletedTask;
         }
 
-        if (player.Name == newPlayerName)
-        {
-            // no change
-            return;
-        }
-
-        // update name in session
-        player.Name = newPlayerName;
-
-        // update name in database
-        await _userManager.UpdatePlayerNameAsync(
-            Guid.Parse(userId), newPlayerName, CancellationToken.None);
-
-        await TryNotifyOnlineFriendsOfStatusChange(userId, player);
-    }
-
-    private async Task TryNotifyOnlineFriendsOfStatusChange(string userId, Player player)
-    {
-        try
-        {
-            // notify (online) friends of the change
-            await Clients.Users(await GetOnlineFriendIds())
-                .OnFriendStatusChanged(userId, player.Name, player.GameStatus);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error while notifying friends of {userId} of status change", userId);
-        }
-    }
-
-    private async Task<List<Player>> GetOnlineFriends(string? userId = null)
-    {
-        userId ??= Context.UserIdentifier!;
-
-        _logger.LogDebug("Querying online friends for {userId}", userId);
-
-        List<Player> onlinePlayers = [];
-        List<Guid> friendIds = await _friendshipsService.GetFriendIdsAsync(Guid.Parse(userId)).ConfigureAwait(false);
-        foreach (Guid friendId in friendIds)
-        {
-            if (ConnectedPlayers.TryGetValue(friendId.ToString(), out Player? player))
-            {
-                onlinePlayers.Add(player);
-            }
-        }
-
-        return onlinePlayers;
-    }
-
-    private async Task<List<string>> GetOnlineFriendIds(string? userId = null)
-    {
-        userId ??= Context.UserIdentifier!;
-
-        List<string> onlineIds = [];
-        List<Guid> friendIds = await _friendshipsService.GetFriendIdsAsync(Guid.Parse(userId)).ConfigureAwait(false);
-        foreach (Guid friendId in friendIds)
-        {
-            if (ConnectedPlayers.ContainsKey(friendId.ToString()))
-            {
-                onlineIds.Add(friendId.ToString());
-            }
-        }
-
-        return onlineIds;
+        return _socialService.UpdatePlayerName(Context.UserIdentifier, Context.ConnectionId, newPlayerName);
     }
 
     public override async Task OnConnectedAsync()
@@ -137,7 +46,7 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         string userName = Context.User!.Identity!.Name!;
         string? playerName = Context.GetHttpContext()?.Request.Query["playerName"].SingleOrDefault();
 
-        Player player = await _playerStore.GetOrAdd(userId, Context.ConnectionId, playerName ?? userName);
+        Player player = await _playerStore.GetOrAdd(userId, userName, Context.ConnectionId, playerName ?? userName);
 
         if (player.SocialHubId is not null)
         {
@@ -148,15 +57,12 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         }
         player.SocialHubId = Context.ConnectionId;
 
-        ConnectedPlayers[userId] = player;
-
         if (!string.IsNullOrEmpty(playerName))
         {
             player.Name = playerName;
         }
 
-        await Clients.Users(await GetOnlineFriendIds())
-            .OnFriendOnline(userId, player.Name);
+        await _socialService.OnPlayerOnline(player);
 
         await base.OnConnectedAsync();
     }
@@ -165,16 +71,13 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
     {
         string userId = Context.UserIdentifier!;
 
-        Player? player = await _playerStore.TryRemove(Context.UserIdentifier!, Context.ConnectionId);
+        Player? player = await _playerStore.TryRemove(userId, Context.ConnectionId);
         if (player is not null)
         {
-            player.GameStatus = GameStatus.None;
+            player.SocialHubId = null;
         }
 
-        ConnectedPlayers.TryRemove(Context.UserIdentifier!, out _);
-
-        await Clients.Users(await GetOnlineFriendIds())
-            .OnFriendOffline(userId);
+        await _socialService.OnPlayerOffline(userId);
 
         await base.OnDisconnectedAsync(exception);
     }

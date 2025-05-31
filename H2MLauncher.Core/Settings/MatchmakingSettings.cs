@@ -15,6 +15,9 @@ namespace H2MLauncher.Core.Settings
         public string PartyHubUrl => Url.Combine(MatchmakingServerUrl, "Party");
 
         [JsonIgnore]
+        public string SocialHubUrl => Url.Combine(MatchmakingServerUrl, "Social");
+
+        [JsonIgnore]
         public string ServerDataUrl => Url.Combine(MatchmakingServerUrl, "servers/data");
 
         public bool UseRandomCliendId { get; init; } = false;

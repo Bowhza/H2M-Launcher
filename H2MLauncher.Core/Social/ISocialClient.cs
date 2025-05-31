@@ -6,7 +6,7 @@ public interface ISocialClient
 
     Task OnFriendOffline(string friendId);
 
-    Task OnFriendStatusChanged(string friendId, string playerName, GameStatus status);
+    Task OnFriendStatusChanged(string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus);
 
     Task OnFriendRequestAccepted(FriendDto newFriend);
 

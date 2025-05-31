@@ -1,0 +1,180 @@
+﻿@inject DownloadCountService DownloadCountService
+@inject IEventBus EventBus;
+@implements IDisposable;
+@using System.Linq
+@using Dashboard.Database
+@using Dashboard.Database.Entities
+@using Dashboard.Downloads
+@using MediatR;
+@rendermode InteractiveServer
+
+<div class="container my-4">
+    <h3 class="mb-4 text-center">Download History by Tag</h3>
+
+    @* Dashboard Cards Section *@
+    <div class="row mb-4 g-3">
+        <div class="col-md-4">
+            <div class="card text-white bg-primary mb-3 shadow">
+                <div class="card-header">Latest Release Downloads</div>
+                <div class="card-body">
+                    <h5 class="card-title display-4 text-center">@_dashboardStats.LatestReleaseDownloadCount.ToString("N0")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-success mb-3 shadow">
+                <div class="card-header">Total Downloads</div>
+                <div class="card-body">
+                    <h5 class="card-title display-4 text-center">@_dashboardStats.TotalDownloadCount.ToString("N0")</h5>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-white bg-info mb-3 shadow">
+                <div class="card-header">Downloads Today</div>
+                <div class="card-body">
+                    <h5 class="card-title display-4 text-center">@_dashboardStats.TotalDownloadsToday.ToString("N0")</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Existing Download History by Tag Section *@
+    @if (_groupedHistory != null && _groupedHistory.Any())
+    {
+        @foreach (var tagGroup in _groupedHistory.OrderByDescending(dc => dc.Value.ReleaseDate))
+        {
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">Tag: @tagGroup.Key</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        @* g-4 adds gutter space between columns *@
+                        <div class="col-lg-6 col-md-12">
+                            @* Chart takes full width on small/medium, half on large *@
+                            <div class="card h-100">
+                                @* h-100 makes card take full height of its parent *@
+                                <div class="card-body">
+                                    <h5 class="card-title">Download Chart</h5>
+                                    <DownloadCountChart Tag="@tagGroup.Key"
+                                                        LatestDownloadCount="@tagGroup.Value.LatestDownloadCount"
+                                                        DownloadHistory="@tagGroup.Value.DownloadCounts" />
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-6 col-md-12">
+                            @* Table takes full width on small/medium, half on large *@
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <h5 class="card-title">Latest Downloads</h5>
+                                    <div class="table-responsive">
+                                        @* Makes table scroll horizontally on small screens *@
+                                        <table class="table table-striped table-hover table-bordered">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Timestamp</th>
+                                                    <th>Download Count</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach (var item in tagGroup.Value.DownloadCounts.OrderByDescending(h => h.Timestamp).Take(10))
+                                                {
+                                                    <tr>
+                                                        <td>@item.Timestamp.ToLocalTime().ToString("g")</td> @* Formats datetime nicely *@
+                                                        <td>@item.Count</td>
+                                                    </tr>
+                                                }
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else if (isLoading)
+    {
+        <div class="alert alert-info text-center" role="alert">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Loading grouped download history...
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center" role="alert">
+            No grouped download history available.
+        </div>
+    }
+</div>
+
+@code {
+    private Dictionary<string, LauncherRelease> _groupedHistory = [];
+    private DashboardStats _dashboardStats = new DashboardStats();
+    private bool isLoading = true;
+    private IDisposable? _downloadCountNotificationSubscription;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await LoadGroupedHistory();
+        await LoadDashboardStats();
+        isLoading = false; // Now set isLoading to false after all data is loaded
+
+        // Keep this if DownloadCountService.OnDataUpdated signifies an update to ALL grouped data
+        _downloadCountNotificationSubscription = EventBus.Subscribe<DownloadCountAddedNotification>(async notification =>
+        {
+            if (_groupedHistory.TryGetValue(notification.NewDownloadCount.Tag, out var downloadCounts))
+            {
+                downloadCounts.DownloadCounts.Add(notification.NewDownloadCount);
+            }
+            else
+            {
+                _groupedHistory.Add(notification.NewDownloadCount.Tag, new LauncherRelease()
+                {
+                    Tag = notification.NewDownloadCount.Tag,
+                    DownloadCounts = [notification.NewDownloadCount],
+                    ReleaseDate = notification.NewDownloadCount.ReleaseDate,
+                });
+            }
+
+            isLoading = true;
+            // Re-load dashboard stats on new download to keep them up-to-date
+            await LoadDashboardStats(); 
+            await InvokeAsync(StateHasChanged);
+            isLoading = false;
+        });
+    }
+
+    private async Task UploadFile(InputFileChangeEventArgs e)
+    {
+        var filePath = Path.GetTempFileName();        
+
+        await using FileStream fs = new(filePath, FileMode.Create);
+        await e.File.OpenReadStream().CopyToAsync(fs);
+    }
+
+    private async Task LoadGroupedHistory()
+    {        
+        var history = await DownloadCountService.GetHistoryAsync(CancellationToken.None);
+        _groupedHistory = history.ToDictionary(x => x.Tag);        
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private async Task LoadDashboardStats()
+    {
+        // Recalculate dashboard stats from the updated _groupedHistory
+        _dashboardStats = DownloadStatsCalculator.CalculateStats(_groupedHistory.Values);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        _downloadCountNotificationSubscription?.Dispose();
+    }
+}

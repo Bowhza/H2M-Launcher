@@ -5,13 +5,16 @@ services:
       dockerfile: MatchmakingServer/Dockerfile
     environment:
       APIKEY: ${API_KEY}
+      JWT__Issuer: ${JWT_ISSUER}
+      JWT__Audience: ${JWT_ISSUER}
+      JWT__Secret: ${JWT_SECRET}
       Serilog__WriteTo__1__Name: File
       Serilog__WriteTo__1__Args__path: /app/logs/log-.txt
       Serilog__WriteTo__1__Args__rollingInterval: Day
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=database;Username=${DB_USER:-username};Password=${DB_PASSWORD:-password}
     ports:
-      - 9000:9000
-      - 9001:9001
+      - 9100:9000
+      - 9101:9001
     volumes:
       - ./MatchmakingServer/appsettings.json:/app/appsettings.json
       - ${LOG_DIR:-./logs}:/app/logs

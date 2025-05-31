@@ -11,6 +11,7 @@ namespace MatchmakingServer
     {
         public required string Id { get; init; }
         public required string Name { get; set; }
+        public required string UserName { get; init; }
 
         /// <summary>
         /// Gets the connection id for the queueing hub.
@@ -40,13 +41,25 @@ namespace MatchmakingServer
         /// </summary>
         public GameServer? Server { get; set; }
 
+        private Party? _party = null;
+
         /// <summary>
         /// The party the player is currently in;
         /// </summary>
-        public Party? Party { get; set; }
+        public Party? Party
+        {
+            get => _party;
+            set
+            {
+                _party = value;
+                PartyChanged?.Invoke(this, value);
+            }
+        }
 
         [MemberNotNullWhen(true, nameof(Party))]
         public bool IsPartyLeader => Party?.Leader.Id == Id;
+
+        public event Action<Player, Party?>? PartyChanged;
 
 
         #region Social

@@ -24,6 +24,8 @@ namespace H2MLauncher.Core.Settings
 
         public bool ServerQueueing { get; init; } = false;
 
+        public bool PublicPlayerName { get; init; } = true;
+
         public Dictionary<string, string> KeyBindings { get; init; } = [];
     }
 }

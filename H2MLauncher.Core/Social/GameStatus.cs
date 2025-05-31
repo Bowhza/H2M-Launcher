@@ -6,4 +6,5 @@ public enum GameStatus
     InMainMenu,
     InLobby,
     InMatch,
+    InPrivateMatch
 }

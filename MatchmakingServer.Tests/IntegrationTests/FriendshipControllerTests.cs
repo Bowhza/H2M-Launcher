@@ -3,6 +3,7 @@
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
+using MatchmakingServer.Parties;
 using MatchmakingServer.SignalR;
 
 namespace MatchmakingServer.Tests.IntegrationTests;
@@ -88,11 +89,20 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         await _dbContext.SaveChangesAsync();
 
+
+
         // Create a social hub session for that player
         Player friend2Player = await _playerStore.GetOrAdd(
-            friend2.Id.ToString(), friend2.Id.ToString(), "friend-2-current-player-name");
+            friend2.Id.ToString(), friend2.Name, friend2.Id.ToString(), "friend-2-current-player-name");
         friend2Player.SocialHubId = "some-id";
         friend2Player.GameStatus = GameStatus.InLobby;
+
+        Player notAFriendPlayer = await _playerStore.GetOrAdd(
+            notAFriend.Id.ToString(), notAFriend.Name, notAFriend.Id.ToString(), "not-a-friend-current-player-name");
+
+        Party friend2Party = new(friend2Player);
+        friend2Party.AddPlayer(friend2Player);
+        friend2Party.AddInvite(notAFriendPlayer, DateTime.UtcNow.AddMinutes(10));
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
@@ -100,13 +110,14 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Assert
         friends.Should().HaveCount(2);
-        friends.Should().Contain([
+        friends.Should().BeEquivalentTo([
             new FriendDto(
                 friend1.Id.ToString(),
                 friend1.Name,
                 friend1.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendship1.UpdateDate
             ),
             new FriendDto(
@@ -115,9 +126,10 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 "friend-2-current-player-name",
                 OnlineStatus.Online,
                 GameStatus.InLobby,
+                new PartyStatusDto(friend2Party.Id, 1, true, [notAFriend.Id.ToString()]),
                 friendship2.UpdateDate
             )
-        ]);
+        ], options => options.WithoutStrictOrdering());
     }
 
     #endregion
@@ -174,6 +186,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 friend1.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendship1.UpdateDate
             ),
             new FriendDto(
@@ -182,6 +195,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 friend2.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 friendship2.UpdateDate
             )
         ]);
@@ -653,6 +667,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
             targetUser.LastPlayerName,
             OnlineStatus.Offline,
             GameStatus.None,
+            null,
             DateTime.UtcNow
         );
 
@@ -1074,8 +1089,8 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
             FromUser = fromUser,
             ToUser = toUser,
             Status = status,
-            UpdateDate = new DateTime((updateDate ?? DateTime.UtcNow).Ticks / 10),
-            CreationDate = new DateTime(DateTime.UtcNow.Ticks / 10),
+            UpdateDate = new DateTime(((updateDate ?? DateTime.UtcNow).Ticks / 100) * 100),
+            CreationDate = new DateTime((DateTime.UtcNow.Ticks / 100) * 100),
         };
     }
 

@@ -5,5 +5,6 @@ public record FriendDto(
     string UserName,
     string? PlayerName,
     OnlineStatus Status, 
-    GameStatus GameStatus, 
+    GameStatus GameStatus,
+    PartyStatusDto? PartyStatus,
     DateTimeOffset FriendsSince);

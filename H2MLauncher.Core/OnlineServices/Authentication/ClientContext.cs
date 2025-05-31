@@ -28,6 +28,8 @@ public sealed class ClientContext : IDisposable
     [MemberNotNullWhen(true, nameof(UserId))]
     public bool IsAuthenticated => _token is not null && _token.ExpirationDate > DateTimeOffset.Now;
 
+    public event Action? UserChanged;
+
     public ClientContext(IPlayerNameProvider playerNameProvider)
     {
         _playerNameProvider = playerNameProvider;
@@ -47,6 +49,7 @@ public sealed class ClientContext : IDisposable
 
         if (token is null)
         {
+            UserChanged?.Invoke();
             return;
         }
 
@@ -64,6 +67,8 @@ public sealed class ClientContext : IDisposable
         {
             _userName = userNameClaim.Value;
         }
+
+        UserChanged?.Invoke();
     }
 
     private void OnPlayerNameChanged(string oldName, string newName)
