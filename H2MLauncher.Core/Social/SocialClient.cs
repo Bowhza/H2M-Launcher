@@ -40,7 +40,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
 
     private List<FriendDto> _friends = [];
-    private readonly List<FriendRequestDto> _friendRequests = [];
+    private List<FriendRequestDto> _friendRequests = [];
 
     public IReadOnlyList<FriendDto> Friends => _friends.AsReadOnly();
     public IReadOnlyList<FriendRequestDto> FriendRequests => _friendRequests.AsReadOnly();
@@ -183,6 +183,31 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             _friends = response.Content;
 
             FriendsChanged?.Invoke();
+
+            _logger.LogInformation("Successfully fetched {numFriends} friends", response.Content.Count);
+        }
+        else
+        {
+            _logger.LogError(response.Error, "Failed to fetch friends");
+        }
+    }
+
+    private async Task FetchFriendRequestsAsync()
+    {
+        _logger.LogDebug("Fetching friend requests");
+
+        IApiResponse<List<FriendRequestDto>> response = await _friendshipApiClient.GetFriendRequestsAsync(_clientContext.UserId!);
+        if (response.IsSuccessful)
+        {
+            _friendRequests = response.Content;
+
+            FriendRequestsChanged?.Invoke();
+
+            _logger.LogInformation("Successfully fetched {numFriendRequests} friend requests", response.Content.Count);
+        }
+        else
+        {
+            _logger.LogError(response.Error, "Failed to fetch friend requests");
         }
     }
 
@@ -193,12 +218,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
         if (response.IsSuccessful)
         {
+            _logger.LogDebug("Successfully requested friends to {friendId}", friendId);
+
             _friendRequests.Add(response.Content);
             FriendRequestsChanged?.Invoke();
 
             return true;
         }
 
+        _logger.LogError(response.Error, "Error requested friends to {friendId}", friendId);
         return false;
     }
 
@@ -209,12 +237,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
         if (response.IsSuccessful)
         {
+            _logger.LogDebug("Successfully unfriended {friendId}", friendId);
+
             _friends.RemoveAll(f => f.Id == friendId);
             FriendsChanged?.Invoke();
 
             return true;
         }
 
+        _logger.LogError(response.Error, "Error unfriending {friendId}", friendId);
         return false;
     }
 
@@ -243,6 +274,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             return true;
         }
 
+        _logger.LogError(response.Error, "Error accepting friend {friendId}", friendId);
         return false;
     }
 
@@ -268,6 +300,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             return true;
         }
 
+        _logger.LogError(response.Error, "Error rejecting friend {friendId}", friendId);
         return false;
     }
 
@@ -284,6 +317,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
         await SendCurrentGameStatus();
         await FetchFriendsAsync();
+        await FetchFriendRequestsAsync();
 
         await base.OnConnected(cancellationToken);
     }
@@ -309,6 +343,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
         await SendCurrentGameStatus();
         await FetchFriendsAsync();
+        await FetchFriendRequestsAsync();
 
         await base.OnReconnected(connectionId);
     }
