@@ -1,0 +1,164 @@
+﻿@using Dashboard.GitHub
+@inject ILogger<CsvImport> Logger
+@inject DownloadCountService DownloadCountService
+@inject IGitHubApiClient GithubApiClient
+
+<div class="container my-4">
+
+    <h3 class="mb-4">Import Download Counts CSV</h3>
+
+    <div class="mb-3">
+        <label for="tagName" class="form-label">Tag Name (e.g., v1.0.0):</label>
+        <input type="text" class="form-control" id="tagName" @bind="TagName" required />
+        <div class="form-text">This tag name will be assigned to all imported entries.</div>
+    </div>
+
+    <div class="mb-3">
+        <label for="csvFile" class="form-label">Select CSV File (Timestamp,Count only):</label>
+        <InputFile OnChange="HandleFileSelection" id="csvFile" class="form-control" accept=".csv" />
+        <div class="form-text">CSV should only contain 'Timestamp' and 'Count' columns.</div>
+    </div>
+
+    <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="hasHeader" @bind="HasHeader">
+        <label class="form-check-label" for="hasHeader">CSV has a header row</label>
+    </div>
+
+    @if (IsLoading)
+    {
+        <div class="alert alert-info" role="alert">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Importing data... This may take a moment for large files.
+        </div>
+    }
+    else
+    {
+        @if (!string.IsNullOrEmpty(Message))
+        {
+            <div class="alert @(IsSuccess ? "alert-success" : "alert-danger")" role="alert">
+                @Message
+            </div>
+        }
+    }
+
+    <button class="btn btn-primary mt-3" @onclick="ProcessCsvImport" disabled="@(SelectedFile == null || IsLoading || string.IsNullOrWhiteSpace(TagName))">
+        <i class="bi bi-cloud-arrow-up-fill"></i> Upload and Import
+    </button>
+</div>
+
+@code {
+    private IBrowserFile? SelectedFile;
+    private string Message = string.Empty;
+    private bool IsSuccess = false;
+    private bool IsLoading = false;
+
+    // Configurable parameters from UI
+    private string TagName = string.Empty;
+
+    // Default import parameters
+    private bool HasHeader = true;
+    private char Delimiter = ',';
+    private int BatchSize = 100; // Passed to CsvImporter
+
+    private void HandleFileSelection(InputFileChangeEventArgs e)
+    {
+        SelectedFile = e.File;
+        Message = string.Empty; // Clear previous messages
+        IsSuccess = false;
+        Logger.LogInformation("File selected: {FileName}, Size: {FileSize} bytes", SelectedFile.Name, SelectedFile.Size);
+    }
+
+    private async Task ProcessCsvImport()
+    {
+        if (SelectedFile == null)
+        {
+            Message = "Please select a CSV file to upload.";
+            IsSuccess = false;
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(TagName))
+        {
+            Message = "Please enter a tag name.";
+            IsSuccess = false;
+            return;
+        }
+
+        IsLoading = true;
+        Message = "Fetching release date and importing data...";
+        IsSuccess = false;
+
+        DateTime releaseDate;
+        try
+        {
+            // Fetch release date from GitHub API
+            var fetchedRelease = await GithubApiClient.GetReleaseByTagNameAsync("Bowhza", "H2M-Launcher", TagName);
+
+            if (fetchedRelease is null)
+            {
+                Message = $"Could not find a release date for tag '{TagName}'. Please check the tag name and repository.";
+                IsSuccess = false;
+                IsLoading = false;
+                return; // Exit if release date not found
+            }
+            releaseDate = fetchedRelease.CreatedAt;
+            Logger.LogInformation("Fetched ReleaseDate for tag '{TagName}' from GitHub: {ReleaseDate}", TagName, releaseDate);
+        }
+        catch (Exception ex)
+        {
+            Message = $"Error fetching release date from GitHub: {ex.Message}";
+            IsSuccess = false;
+            IsLoading = false;
+            Logger.LogError(ex, "Error fetching release date from GitHub API for tag '{TagName}'", TagName);
+            return; // Exit on error
+        }
+
+        try
+        {
+            // Open the stream for the uploaded file
+            // IMPORTANT: Limit the size of the stream to prevent denial of service or out-of-memory issues
+            const long maxFileSize = 50 * 1024 * 1024; // 50 MB
+            if (SelectedFile.Size > maxFileSize)
+            {
+                throw new InvalidOperationException($"File size ({SelectedFile.Size / (1024 * 1024)} MB) exceeds limit of {maxFileSize / (1024 * 1024)} MB.");
+            }
+
+            // Directly pass the file stream to the CsvImporter method
+            await using var stream = SelectedFile.OpenReadStream(maxFileSize);
+
+            await DownloadCountService.ImportDownloadCountsFromCsvAsync(
+                TagName,
+                releaseDate,
+                stream,
+                HasHeader,
+                Delimiter,
+                BatchSize);
+
+            Message = $"CSV data imported successfully for tag '{TagName}' (ReleaseDate: {releaseDate:yyyy-MM-dd}).";
+            IsSuccess = true;
+            SelectedFile = null; // Clear the selected file input
+            Logger.LogInformation("CSV import completed successfully directly in Blazor Server for tag '{TagName}'.", TagName);
+        }
+        catch (InvalidOperationException ex)
+        {
+            Message = $"Import error: {ex.Message}";
+            IsSuccess = false;
+            Logger.LogError(ex, "Invalid operation during CSV import for tag '{TagName}'.", TagName);
+        }
+        catch (FormatException ex)
+        {
+            Message = $"CSV parsing error: {ex.Message}";
+            IsSuccess = false;
+            Logger.LogError(ex, "CSV parsing error during import for tag '{TagName}'.", TagName);
+        }
+        catch (Exception ex)
+        {
+            Message = $"An unexpected error occurred during import: {ex.Message}";
+            IsSuccess = false;
+            Logger.LogError(ex, "General error during Blazor Server CSV import for tag '{TagName}'.", TagName);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

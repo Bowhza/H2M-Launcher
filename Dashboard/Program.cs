@@ -1,6 +1,7 @@
 using Dashboard;
 using Dashboard.Components;
 using Dashboard.Database;
+using Dashboard.DownloadCount;
 using Dashboard.GitHub;
 
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +34,6 @@ builder.Services.AddHostedService<GitHubFetcherService>();
 builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 builder.Services.AddTransient<DownloadCountService>();
 
-builder.Services.AddBlazorBootstrap();
 
 var app = builder.Build();
 
@@ -60,7 +60,5 @@ app.UseAntiforgery();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-
-app.MapBlazorHub();
 
 app.Run();

@@ -1,21 +1,24 @@
-﻿@using ChartJs.Blazor
-@using ChartJs.Blazor.Common
-@using ChartJs.Blazor.Common.Axes
-@using ChartJs.Blazor.Common.Enums
-@using ChartJs.Blazor.Common.Time
-@using ChartJs.Blazor.LineChart
-@using Dashboard.Database.Entities;
+﻿@using Dashboard.Database.Entities;
+@rendermode InteractiveServer
 
 <div class="tag-download-chart">
-    <h4>Latest Download Count: @LatestDownloadCOunt</h4>
+    <h4>Latest Download Count: @LatestDownloadCount</h4>
 
-    @if (DownloadHistory != null && DownloadHistory.Any()) // Use the passed parameter
+    @if (DownloadHistory != null && DownloadHistory.Any())
     {
         <div class="chart-container">
-            <Chart Config="_chartConfig" @ref="_chart" />
-        </div>
+            <ApexChart TItem="DownloadCount"
+                       Title="Download Count"
+                       Options="_options">
 
-        <button @onclick="UpdateChart"></button>
+                <ApexPointSeries TItem="DownloadCount"
+                                 Items="DownloadHistory"
+                                 Name="Downloads"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="e => e.Timestamp"
+                                 YValue="e => e.Count" />
+            </ApexChart>
+        </div>
     }
     else
     {
@@ -28,113 +31,36 @@
     public required string Tag { get; set; }
 
     [Parameter]
-    public required int LatestDownloadCOunt { get; set; }
+    public required int LatestDownloadCount { get; set; }
 
     [Parameter]
     public List<DownloadCount> DownloadHistory { get; set; } = [];
 
-    private LineConfig _chartConfig;
-    private Chart _chart;
-    private List<DownloadCount> _lastProcessedDownloadHistory;
 
-
-    // No need for DownloadCountService injection or isLoading here if data is passed
+    private ApexChartOptions<DownloadCount> _options = null!;
 
     protected override void OnInitialized()
     {
-        // Initialize chart configuration
-        _chartConfig = new LineConfig
+        _options = new ApexChartOptions<DownloadCount>();
+        _options.Xaxis = new XAxis
         {
-            Options = new LineOptions
-            {
-                Responsive = true,
-                Title = new OptionsTitle { Display = true, Text = $"Download Counts for '{Tag}'" },
-                Scales = new Scales
-                {
-                    XAxes = new List<CartesianAxis> { new TimeAxis { Time = new TimeOptions { Unit = TimeMeasurement.Hour } } },
-                    YAxes = new List<CartesianAxis> { new LinearCartesianAxis { ScaleLabel = new ScaleLabel { Display = true, LabelString = "Downloads" } } }
-                }
-            }
+            // Labels = new XAxisLabels
+            // {
+            //     Formatter = @"function (value) {
+            //         if (value === undefined) {return '';}
+            //         return moment(value).format('DD-MM-YYYY');}"
+            // },
+            Type = XAxisType.Datetime,
         };
 
-        _chartConfig.Data.Datasets.Add(new LineDataset<TimePoint>(GenerateSampleDownloadHistory(TimeSpan.FromDays(10), 30))
+        _options.Tooltip = new ApexCharts.Tooltip
         {
-            Label = $"{Tag} Downloads",
-            BorderColor = "#007bff",
-            BackgroundColor = "#007bff80",
-            Fill = false
-        });
-    }
-
-    private void UpdateChart()
-    {
-        _chart.Update();
-    }
-
-    // protected override async Task OnAfterRenderAsync(bool firstRender)
-    // {
-    //     // Only update the chart if the data has changed or it's the first render
-    //     // and data is available.
-    //     if (DownloadHistory != null && DownloadHistory.Any() &&
-    //         (_lastProcessedDownloadHistory == null || !DownloadHistory.SequenceEqual(_lastProcessedDownloadHistory)))
-    //     {
-    //         // Clear existing datasets to prevent duplication
-    //         _chartConfig.Data.Datasets.Clear();
-
-    //         _chartConfig.Data.Datasets.Add(new LineDataset<TimePoint>(GenerateSampleDownloadHistory(TimeSpan.FromDays(10), 30))
-    //         {
-    //             Label = $"{Tag} Downloads",
-    //             BorderColor = "#007bff",
-    //             BackgroundColor = "#007bff80",
-    //             Fill = false
-    //         });
-
-    //         // Update the last processed history to prevent re-adding on subsequent renders
-    //         _lastProcessedDownloadHistory = new List<DownloadCount>(DownloadHistory);
-
-    //         if (_chart != null)
-    //         {
-    //             await _chart.Update();
-    //         }
-    //     }
-    //     else if ((DownloadHistory == null || !DownloadHistory.Any()) && _chartConfig.Data.Datasets.Any())
-    //     {
-    //         // If data becomes null/empty and chart still has datasets, clear them
-    //         _chartConfig.Data.Datasets.Clear();
-    //         _lastProcessedDownloadHistory = null; // Reset the flag
-    //         if (_chart != null)
-    //         {
-    //             await _chart.Update();
-    //         }
-    //     }
-    // }
-
-    /// <summary>
-    /// Generates a list of synthetic download counts for testing.
-    /// </summary>
-    /// <param name="duration">The total time span for the data (e.g., 24 hours, 7 days).</param>
-    /// <param name="maxDownloadsPerHour">The approximate maximum downloads per hour for random generation.</param>
-    /// <param name="interval">The time interval between data points (e.g., 1 hour, 30 minutes).</param>
-    /// <returns>A list of DownloadCount objects.</returns>
-    private List<TimePoint> GenerateSampleDownloadHistory(
-        TimeSpan duration,
-        int maxDownloadsPerHour,
-        TimeSpan? interval = null)
-    {
-        var history = new List<TimePoint>();
-        var random = new Random();
-        var now = DateTime.UtcNow; // Use UTC for consistency
-
-        // Default to hourly intervals if not specified
-        TimeSpan actualInterval = interval ?? TimeSpan.FromHours(1);
-
-        for (DateTime time = now.Subtract(duration); time <= now; time = time.Add(actualInterval))
-        {
-            // Simulate some fluctuation in downloads
-            int count = random.Next(10, maxDownloadsPerHour + 1); // Random downloads between 10 and maxDownloadsPerHour
-            history.Add(new TimePoint(time, count));
-        }
-
-        return history;
+            X = new TooltipX
+            {
+                Formatter = @"function(value, opts) {
+                    if (value === undefined) {return '';}
+                    return  moment(value).format('DD-MM-YYYY hh:mm');}"
+            }
+        };
     }
 }
