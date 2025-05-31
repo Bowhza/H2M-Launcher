@@ -20,7 +20,7 @@ namespace H2MLauncher.UI
         private bool _isFirstRender = true;
 
         [ObservableProperty]
-        private bool _isPartyExpanded;
+        private bool _isPartyExpanded = true;
 
         public ICommand ToggleOverlayCommand { get; }
 
@@ -35,8 +35,6 @@ namespace H2MLauncher.UI
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
-
-            _viewModel.PartyViewModel.PropertyChanged += PartyViewModel_PropertyChanged;
         }
 
         private void PartyViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)

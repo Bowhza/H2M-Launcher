@@ -105,11 +105,13 @@ public abstract class HubClient<THub> : IDisposable
 
     protected virtual Task OnReconnecting(Exception? exception)
     {
+        ConnectionChanged?.Invoke(false);
         return Task.CompletedTask;
     }
 
     protected virtual Task OnReconnected(string? connectionId)
     {
+        ConnectionChanged?.Invoke(true);
         return Task.CompletedTask;
     }
 

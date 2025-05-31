@@ -1,6 +1,6 @@
 # H2M Launcher
 
-**The H2M in-game server browser has a few bugs where it does not display the whole server list or does not join the correct server. The launcher aims to address these issues and provide more features.**
+**This launcher aims to provide features like server queueing, friends and party system to HorizonMW. The project originally started out to address some issues of the in-game server browser in the legacy H2M.**
 
 [<img src="https://img.shields.io/github/v/release/Bowhza/H2M-Launcher">](https://github.com/Bowhza/H2M-Launcher/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Bowhza/H2M-Launcher/total)
@@ -16,12 +16,21 @@
 
 ## Features
 
+**Table of Contents**
+
+- [Server Browser](#server-browser)
+- [Matchmaking](#matchmaking)
+- [Server Queueing](#server-queueing)
+- [Party System](#party-system)
+- [Add Friends](#add-friends)
+- [Game Detection](#game-detection)
+- [Settings & Other](#settings--other)
+
 ### Server Browser
 
-- Launch H2M-Mod.
+- Launch HorizonMW.
 - Displays the server count and the total players.
 - Join other servers without having to disconnect first.
-- Utilizes the **[IW4MAdmin API](https://master.iw4.zip/instance/)** to get accurate and up to date server information.
 - Sort servers by **name, map, mode, player count, and ping**.
 - **Additional filter options:**
   - View empty, full, or private servers.
@@ -33,7 +42,6 @@
   - Filter out any keywords from the hostname, for instance, "trickshot" to filter out trickshot servers.
 - Add servers to favourites and view recently played servers.
 - Support for private servers, you can enter the password from the launcher.
-- Filters out dead/zombie servers that do not respond to UDP packets being sent.
 - Reconnect to last server shortcut (see [Shortcuts](#shortcuts)).
 - Game overlay (see [Shortcuts](#shortcuts)).
 
@@ -55,19 +63,46 @@
 - Takes privileged slots into account (Currently manually configured, request more servers to be supported!)
 - Ability to force join without leaving the queue if it fails.
 - Join the queue while playing on another server and automatically connect when the slot is free.
+- Queue together
 
 <img src="./Images/Queue.png">
 
 ### Party System
 
-<img src="./Images/Party-Header.png">
-
-- Invite your friends to join the party by copying the party ID. 
+- Invite your friends to join the party by copying the party ID or sending them an invite. 
 - The party leader controls the session for everyone.
-- Supports joining, [Queueing](#server-queueing) and [Matchmaking](#matchmaking).
+- Supports Joining, [Queueing](#server-queueing) and [Matchmaking](#matchmaking).
 - Ability to kick members or promote someone to party leader.
+- Change the **Party Privacy** to control who can join your party:
+
+    <img src="./Images/Party-Privacy.png">
+
+  - **Open**: Everyone who has the id can join
+  - **Friends**: Only friends can join
+  - **Closed**: Only users that are invitied can join
+
 
 <img src="./Images/Party.png">
+
+
+### Add Friends
+
+Each user gets assigned a randomly generated user name on first connection to the hub. The user is tied to a key stored locally. Create a party to find out your user name or id and share it with your friends:
+
+![](./Images/UserInfo.png)
+
+There are two ways to add friends to your friends list:
+- You can add friends from the party
+
+  ![](./Images/Party-Add-Friend.png)
+
+- Or you can search for their user name or ID
+  > **NOTE**: *You can not find users by their player name, only by their randomly generated user name.*
+
+  ![](./Images/Search-Friends.png)
+
+Pending friend requests will appear in the **Requests** tab and can be accepted or rejected.
+> **NOTE:** *After rejecting a friend request they can not send you further requests. So if you accidentally rejected someone, you'll have to send them a friend request.*
 
 ### Game Detection
 
@@ -92,14 +127,14 @@
 
 <img src="./Images/Directory.png">
 
-- **If you want to store the launcher elsewhere**, you can set the path to the `h2m-mod.exe` in the settings.
+- **If you want to store the launcher elsewhere**, you can set the path to the `hmw-mod.exe` in the settings or start the game so it can be detected.
 - Click the settings icon in the bottom right corner of the launcher, and you should see the `Game Location` option that you can change.
 
 <img src="./Images/Settings-Modal.png">
 
-3. Before using the server browser make sure H2M is running. You can press `Launch H2M` to run the game.
+1. Before using the server browser make sure HMW is running. You can press `Launch Game` to run the game.
 
-4. Find a server you want to play on, select it, and press the join button. The H2M window should automatically be set as the foreground window.
+2. Find a server you want to play on, select it, and press the join button. The HMW window should automatically be set as the foreground window.
 
 ## Shortcuts
 

@@ -20,6 +20,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
     private readonly ILogger<OnlineServiceManager> _logger;
     private readonly IOptions<MatchmakingSettings> _options;
     private readonly AuthenticationService _authenticationService;
+    private readonly SemaphoreSlim _authenticationLock = new(1, 1);
 
     private readonly List<CustomHubConnection> _hubConnections = [];
 
@@ -28,8 +29,11 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
     public HubConnection QueueingHubConnection { get; }
     public HubConnection PartyHubConnection { get; }
 
+    public HubConnection SocialHubConnection { get; }
+
     public bool IsPartyServiceConnected => PartyHubConnection.State is HubConnectionState.Connected;
     public bool IsQueueingServiceConnected => QueueingHubConnection.State is HubConnectionState.Connected;
+    public bool IsSocialServiceConnected => QueueingHubConnection.State is HubConnectionState.Connected;
 
 
     private PlayerState _state = PlayerState.Disconnected;
@@ -57,6 +61,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
     public OnlineServiceManager(
         ILogger<OnlineServiceManager> logger,
         IOptions<MatchmakingSettings> matchmakingSettings,
+        IOptions<H2MLauncherSettings> settings,
         AuthenticationService authenticationService,
         ClientContext clientContext)
     {
@@ -65,10 +70,10 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         _authenticationService = authenticationService;
         ClientContext = clientContext;
 
-        object queryParams = new
+        object queryParams = settings.Value.PublicPlayerName ? new
         {
             playerName = ClientContext.PlayerName
-        };
+        } : new { };
 
         QueueingHubConnection = new CustomHubConnectionBuilder()
             .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams), (opts) =>
@@ -90,6 +95,16 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .WithAutomaticReconnect()
             .Build();
 
+        SocialHubConnection = new CustomHubConnectionBuilder()
+            .WithUrl(matchmakingSettings.Value.SocialHubUrl.SetQueryParams(queryParams), (opts) =>
+            {
+                opts.AccessTokenProvider = GetAccessTokenAsync;
+                
+                AddAppHeaders(opts.Headers);
+            })
+            .WithAutomaticReconnect(new PartyHubConnectionRetryPolicy())
+            .Build();
+
         _hubConnections = [(CustomHubConnection)QueueingHubConnection, (CustomHubConnection)PartyHubConnection];
         _hubConnections.ForEach(conn => conn.Closed += HubConnection_Closed);
         _hubConnections.ForEach(conn => conn.Connected += HubConnection_Connected);
@@ -102,15 +117,24 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         headers.Add("X-App-Version", LauncherService.CurrentVersion);
     }
 
-    private Task<string?> GetAccessTokenAsync()
+    private async Task<string?> GetAccessTokenAsync()
     {
-        if (ClientContext.IsAuthenticated)
+        // Use a lock to prevent multiple hubs from logging in at the same time, leading to errors
+        await _authenticationLock.WaitAsync();
+        try
         {
-            // stored token still valid
-            return Task.FromResult<string?>(ClientContext.AccessToken);
-        }
+            if (ClientContext.IsAuthenticated)
+            {
+                // stored token still valid
+                return ClientContext.AccessToken;
+            }
 
-        return _authenticationService.LoginAsync();
+            return await _authenticationService.LoginAsync();
+        }
+        finally
+        {
+            _authenticationLock.Release();
+        }
     }
 
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
@@ -182,13 +206,14 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         [
             TimeSpan.Zero,
             TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(5),
             TimeSpan.FromSeconds(10),
             TimeSpan.FromSeconds(30),
         ];
 
         public TimeSpan? NextRetryDelay(RetryContext retryContext)
         {
-            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length)];
+            return DEFAULT_RETRY_DELAYS[Math.Min(retryContext.PreviousRetryCount, DEFAULT_RETRY_DELAYS.Length - 1)];
         }
     }
 }

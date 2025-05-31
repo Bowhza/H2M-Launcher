@@ -39,6 +39,8 @@ public sealed class AuthenticationService
     {
         try
         {
+            _logger.LogDebug("Authenticating with passwordless auth...");
+
             string challengeUrl = _options.Value.MatchmakingServerUrl
                 .AppendPathSegment("auth/challenge");
 
@@ -68,6 +70,7 @@ public sealed class AuthenticationService
             if (!loginRespone.IsSuccessStatusCode)
             {
                 _logger.LogError("Could not complete login: Server responded with {statusCode}", loginRespone.StatusCode);
+                return null;
             }
 
             _clientContext.UpdateToken(await loginRespone.Content.ReadFromJsonAsync<BearerToken>());

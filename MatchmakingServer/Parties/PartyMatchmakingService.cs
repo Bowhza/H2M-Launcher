@@ -80,7 +80,7 @@ namespace MatchmakingServer.Parties
             }
         }
 
-        private void OnPartyClosed(Party party)
+        private void OnPartyClosed(Party party, IReadOnlyCollection<Player> removedPlayers)
         {
             if (!_contextMap.TryRemove(party, out PartyQueueingContext? context))
             {

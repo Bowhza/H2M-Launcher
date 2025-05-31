@@ -1,4 +1,5 @@
 ﻿using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Game;
@@ -7,6 +8,7 @@ using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.Core.Utilities.SignalR;
 
@@ -14,6 +16,7 @@ using MatchmakingServer.Core.Party;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 using TypedSignalR.Client;
 
@@ -29,6 +32,7 @@ namespace H2MLauncher.Core.Party
         private readonly MatchmakingService _matchmakingService;
         private readonly ILogger<PartyClient> _logger;
         private readonly ClientContext _clientContext;
+        private readonly IOptionsMonitor<H2MLauncherSettings> _settings;
 
         private readonly bool _autoCreateParty = true;
         private PartyInfo? _currentParty;
@@ -42,15 +46,21 @@ namespace H2MLauncher.Core.Party
         [MemberNotNullWhen(true, nameof(_currentParty))]
         public bool IsPartyActive => _currentParty is not null;
         public bool IsPartyLeader => _isPartyLeader;
+        public PartyPrivacy PartyPrivacy => _currentParty?.PartyPrivacy ?? PartyPrivacy.Closed;
 
 
         public event Action? KickedFromParty;
         public event Action? PartyClosed;
         public event Action? PartyChanged;
+        public event Action<PartyPrivacy>? PartyPrivacyChanged;
         public event Action<PartyPlayerInfo?, PartyPlayerInfo>? LeaderChanged;
         public event Action<PartyPlayerInfo>? UserJoined;
         public event Action<PartyPlayerInfo>? UserLeft;
         public event Action<PartyPlayerInfo>? UserChanged;
+
+        public event Action<InviteInfo>? UserInvited;
+        public event Action<PartyInvite>? InviteReceived;
+        public event Action<string>? InviteExpired;
 
         public PartyClient(
             IPlayerNameProvider playerNameProvider,
@@ -58,7 +68,8 @@ namespace H2MLauncher.Core.Party
             MatchmakingService matchmakingService,
             ILogger<PartyClient> logger,
             HubConnection hubConnection,
-            IOnlineServices onlineService) : base(hubConnection)
+            IOnlineServices onlineService,
+            IOptionsMonitor<H2MLauncherSettings> settings) : base(hubConnection)
         {
             _clientRegistration = hubConnection.Register<IPartyClient>(this);
 
@@ -69,6 +80,7 @@ namespace H2MLauncher.Core.Party
             _clientContext = onlineService.ClientContext;
 
             _serverJoinService.ServerJoined += ServerJoinService_ServerJoined;
+            _settings = settings;
         }
 
         protected override IPartyHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
@@ -80,7 +92,8 @@ namespace H2MLauncher.Core.Party
         {
             try
             {
-                if (Connection.State is HubConnectionState.Disconnected)
+                if (Connection.State is HubConnectionState.Disconnected ||
+                    !_settings.CurrentValue.PublicPlayerName)
                 {
                     return;
                 }
@@ -298,6 +311,53 @@ namespace H2MLauncher.Core.Party
             // no update needed, OnLeaderChanged() will handle this
         }
 
+        public async Task ChangePrivacy(PartyPrivacy partyPrivacy)
+        {
+            if (_currentParty is null || !_isPartyLeader)
+            {
+                return;
+            }
+
+            if (!await StartConnection())
+            {
+                return;
+            }
+
+            if (!await Hub.ChangePartyPrivacy(partyPrivacy))
+            {
+                _logger.LogDebug("Could not change party privacy to {newPartyPrivacy}", partyPrivacy);
+                return;
+            }
+
+            _currentParty = _currentParty with { PartyPrivacy = partyPrivacy };
+
+            PartyPrivacyChanged?.Invoke(partyPrivacy);
+        }
+
+        public async Task InviteToParty(string id)
+        {
+            if (_currentParty is null || !_isPartyLeader)
+            {
+                return;
+            }
+
+            if (!await StartConnection())
+            {
+                return;
+            }
+
+            InviteInfo? invite = await Hub.CreateInvite(id);
+            if (invite is null)
+            {
+                _logger.LogDebug("Could not invite {playerId} to party", id);
+                return;
+            }
+
+            _currentParty.Invites.Add(invite);
+
+            UserInvited?.Invoke(invite);
+        }
+
         public bool IsSelf(PartyPlayerInfo member)
         {
             return member.Id == _clientContext.UserId;
@@ -337,7 +397,7 @@ namespace H2MLauncher.Core.Party
 
         Task IPartyClient.OnServerChanged(SimpleServerInfo server)
         {
-            _logger.LogDebug("Party server changed: {server}, joining...", server);
+            _logger.LogDebug("Party server changed: {serverIp}:{serverPort}, joining...", server.ServerIp, server.ServerPort);
 
             return _serverJoinService.JoinServer(server, null, JoinKind.FromParty);
         }
@@ -375,13 +435,13 @@ namespace H2MLauncher.Core.Party
             return Task.CompletedTask;
         }
 
-        Task IPartyClient.OnUserJoinedParty(string id, string playerName)
+        Task IPartyClient.OnUserJoinedParty(string id, string userName, string playerName)
         {
             _logger.LogDebug("Player {playerName} ({playerId}) joined the party", playerName, id);
 
             if (_currentParty is not null)
             {
-                PartyPlayerInfo newUser = new(id, playerName, IsLeader: false);
+                PartyPlayerInfo newUser = new(id, playerName, userName, IsLeader: false);
 
                 _currentParty.Members.Add(newUser);
 
@@ -474,6 +534,37 @@ namespace H2MLauncher.Core.Party
 
             _logger.LogDebug("Party member {userId} changed name from {oldName} to {newName}", id, member.Name, newPlayerName);
 
+            return Task.CompletedTask;
+        }
+
+        Task IPartyClient.OnPartyPrivacyChanged(PartyPrivacy oldPrivacy, PartyPrivacy newPrivacy)
+        {
+            if (_currentParty is null)
+            {
+                _logger.LogWarning("Received OnPartyPrivacyChanged but current party is null");
+                return Task.CompletedTask;
+            }
+
+            _logger.LogTrace("Received OnUserNameChanged({oldPrivacy}, {newPrivacy})", oldPrivacy, newPrivacy);
+
+            _currentParty = _currentParty with { PartyPrivacy = newPrivacy };
+
+            PartyPrivacyChanged?.Invoke(newPrivacy);
+
+            _logger.LogDebug("Party leader changed party privacy from {oldPrivacy} to {newPrivacy}", oldPrivacy, newPrivacy);
+
+            return Task.CompletedTask;
+        }
+
+        Task IPartyClient.OnPartyInviteReceived(PartyInvite invite)
+        {
+            InviteReceived?.Invoke(invite);
+            return Task.CompletedTask;
+        }
+
+        Task IPartyClient.OnPartyInviteExpired(string partyId)
+        {
+            InviteExpired?.Invoke(partyId);
             return Task.CompletedTask;
         }
 
