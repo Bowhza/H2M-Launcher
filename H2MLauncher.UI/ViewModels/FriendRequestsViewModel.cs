@@ -1,6 +1,5 @@
 ﻿using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Net.Http;
 using System.Reactive.Linq;
 using System.Windows;
 using System.Windows.Data;
@@ -39,7 +38,7 @@ public sealed partial class FriendRequestsViewModel : ObservableObject, IDisposa
     private string _searchText = "";
 
     [ObservableProperty]
-    private UserSearchResultDto[] _searchResults = [];
+    private UserSearchResultViewModel[] _searchResults = [];
 
     public FriendRequestsViewModel(SocialClient socialClient, DialogService dialogService, IErrorHandlingService errorHandlingService)
     {
@@ -98,7 +97,12 @@ public sealed partial class FriendRequestsViewModel : ObservableObject, IDisposa
                 // Update the UI with results
                 if (results is not null)
                 {
-                    SearchResults = results.ToArray();
+                    SearchResults = results.Select(r => new UserSearchResultViewModel
+                    {
+                        Id = r.Id,
+                        UserName = r.UserName,
+                        PlayerName = r.PlayerName
+                    }).ToArray();
                 }
             });
     }
@@ -149,6 +153,12 @@ public sealed partial class FriendRequestsViewModel : ObservableObject, IDisposa
         if (!await _socialClient.AddFriendAsync(friendId))
         {
             _errorHandlingService.HandleError("Could not add friend.");
+            return;
+        }
+
+        foreach (UserSearchResultViewModel searchResultViewModel in SearchResults.Where(r => r.Id == friendId))
+        {
+            searchResultViewModel.HasRequested = true;
         }
     }
 

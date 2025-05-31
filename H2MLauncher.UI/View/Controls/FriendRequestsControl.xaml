@@ -259,13 +259,23 @@
 
                                 <!-- Add friend -->
                                 <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.RowSpan="2">
-                                    <Button Content="Add friend" Command="{Binding DataContext.AddFriendCommand, ElementName=SearchFriendsPanel}" 
+                                    <Button Command="{Binding DataContext.AddFriendCommand, ElementName=SearchFriendsPanel}" 
                                                 CommandParameter="{Binding Id}" Padding="10,0" 
                                                 HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
                                                 VerticalAlignment="Center" Height="25" FontWeight="ExtraLight"
-                                                ToolTip="Send the user a friend request" Background="#33ffffff">
+                                                Background="#33ffffff">
                                         <Button.Style>
-                                            <Style TargetType="Button" BasedOn="{StaticResource AcceptButtonStyle}"/>
+                                            <Style TargetType="Button" BasedOn="{StaticResource AcceptButtonStyle}">
+                                                <Setter Property="Content" Value="Add friend"/>
+                                                <Setter Property="ToolTip" Value="Send the user a friend request"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding HasRequested}" Value="True">
+                                                        <Setter Property="IsEnabled" Value="False"/>
+                                                        <Setter Property="Content" Value="Requested"/>
+                                                        <Setter Property="ToolTip" Value="Waiting for the user to accept the friend request"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
                                         </Button.Style>
                                     </Button>
                                 </StackPanel>
