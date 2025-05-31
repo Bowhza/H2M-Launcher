@@ -1,4 +1,4 @@
-﻿namespace Dashboard.DownloadCount;
+﻿namespace Dashboard.Downloads;
 
 public class DashboardStats
 {

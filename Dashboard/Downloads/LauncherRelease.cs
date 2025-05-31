@@ -1,6 +1,6 @@
 ﻿using Dashboard.Database.Entities;
 
-namespace Dashboard.DownloadCount;
+namespace Dashboard.Downloads;
 
 public class LauncherRelease
 {

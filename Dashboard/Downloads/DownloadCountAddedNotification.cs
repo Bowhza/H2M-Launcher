@@ -2,6 +2,6 @@
 
 using MediatR;
 
-namespace Dashboard.DownloadCount;
+namespace Dashboard.Downloads;
 
 public record DownloadCountAddedNotification(DownloadCount NewDownloadCount) : IEvent;

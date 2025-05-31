@@ -1,7 +1,7 @@
 using Dashboard;
 using Dashboard.Components;
 using Dashboard.Database;
-using Dashboard.DownloadCount;
+using Dashboard.Downloads;
 using Dashboard.GitHub;
 
 using Microsoft.EntityFrameworkCore;

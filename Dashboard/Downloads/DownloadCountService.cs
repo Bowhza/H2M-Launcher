@@ -3,7 +3,7 @@ using Dashboard.Database.Entities;
 
 using Microsoft.EntityFrameworkCore;
 
-namespace Dashboard.DownloadCount;
+namespace Dashboard.Downloads;
 
 public static class DownloadStatsCalculator
 {
