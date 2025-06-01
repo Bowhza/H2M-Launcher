@@ -30,6 +30,28 @@ services:
       postgres:
         condition: service_healthy
 
+  dashboard-server:
+    build:
+      context: .
+      dockerfile: Dashboard/Dockerfile
+    environment:
+      BackendApi__BaseAddress: http://matchmaking-server:9000
+      BackendApi__DashboardApiKey: ${API_KEY}
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=dashboard-service;Username=${DB_USER:-username};Password=${DB_PASSWORD:-password}
+    ports:
+      - 7100:7000
+      - 7101:7001
+    healthcheck:
+      test: curl --silent --fail http://localhost:7000/health || exit 1
+      interval: 15s
+      timeout: 20s
+      retries: 5
+      start_period: 8s
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   postgres:
     image: postgres:15.4-alpine
     restart: unless-stopped
