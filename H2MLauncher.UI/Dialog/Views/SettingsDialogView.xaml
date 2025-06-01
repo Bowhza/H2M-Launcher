@@ -73,7 +73,7 @@
                    Margin="0,0,0,15"/>
 
         <TextBlock Text="Master Server URL:" Grid.Row="1" Margin="15,5" HorizontalAlignment="Left"/>
-        <TextBox Text="{Binding Iw4mMasterServerUrl}" Grid.Row="1" Grid.Column="1" Height="20"/>
+        <TextBox Text="{Binding HmwMasterServerUrl}" Grid.Row="1" Grid.Column="1" Height="20"/>
 
         <TextBlock Text="Game Location:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Left"/>
         <Border Grid.Row="2" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">

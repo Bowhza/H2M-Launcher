@@ -4,12 +4,10 @@ using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-using H2MLauncher.Core;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 
-using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 
 using Nogic.WritableOptions;
@@ -22,7 +20,7 @@ public partial class SettingsViewModel : DialogViewModelBase
     private string _mwrLocation = "";
 
     [ObservableProperty]
-    private string _iw4mMasterServerUrl = "";
+    private string _hmwMasterServerUrl = "";
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanEnableServerQueueing))]
@@ -43,7 +41,7 @@ public partial class SettingsViewModel : DialogViewModelBase
     {
         // init properties from settings
         MwrLocation = options.CurrentValue.MWRLocation;
-        Iw4mMasterServerUrl = options.CurrentValue.IW4MMasterServerUrl;
+        HmwMasterServerUrl = options.CurrentValue.HMWMasterServerUrl;
         GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
         ServerQueueingEnabled = options.CurrentValue.ServerQueueing;
 
@@ -55,7 +53,7 @@ public partial class SettingsViewModel : DialogViewModelBase
             // write back to settings
             options.Update((settings) => settings with
             {
-                IW4MMasterServerUrl = Iw4mMasterServerUrl,
+                HMWMasterServerUrl = HmwMasterServerUrl,
                 MWRLocation = MwrLocation,
                 GameMemoryCommunication = GameCommunicationEnabled,
                 ServerQueueing = ServerQueueingEnabled,
@@ -73,7 +71,7 @@ public partial class SettingsViewModel : DialogViewModelBase
     private void SelectGameDirectory()
     {
         string directory = Path.GetDirectoryName(MwrLocation) ?? Environment.CurrentDirectory;
-        string fileName = Path.GetFileName(MwrLocation) ?? "h2m-mod.exe";
+        string fileName = Path.GetFileName(MwrLocation) ?? "hmw-mod.exe";
         var dialog = new OpenFileDialog()
         {
             InitialDirectory = directory,
