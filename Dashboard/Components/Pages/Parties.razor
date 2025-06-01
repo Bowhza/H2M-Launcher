@@ -1,0 +1,402 @@
+﻿@page "/parties"
+@rendermode InteractiveServer
+@using Dashboard.Party
+@using H2MLauncher.Core.Party
+@using Refit
+@using System.Linq
+@inject IPartiesApiClient PartiesApi
+@inject PartySnapshotService PartySnapshotService
+
+@* Party Statistics Cards Section *@
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card text-white bg-dark mb-3 shadow">
+            <div class="card-header">Total Active Parties</div>
+            <div class="card-body">
+                @if (isLoading)
+                {
+                    <h5 class="card-title display-4 text-center">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </h5>
+                }
+                else if (parties != null)
+                {
+                    <h5 class="card-title display-4 text-center">@TotalActiveParties.ToString("N0")</h5>
+                }
+                else
+                {
+                    <h5 class="card-title display-4 text-center text-danger">Error</h5>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning mb-3 shadow">
+            <div class="card-header">Players in Parties</div>
+            <div class="card-body">
+                @if (isLoading)
+                {
+                    <h5 class="card-title display-4 text-center">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </h5>
+                }
+                else if (parties != null)
+                {
+                    <h5 class="card-title display-4 text-center">@TotalPlayersInParties.ToString("N0")</h5>
+                }
+                else
+                {
+                    <h5 class="card-title display-4 text-center text-danger">Error</h5>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-secondary mb-3 shadow">
+            <div class="card-header">Average Party Size</div>
+            <div class="card-body">
+                @if (isLoading)
+                {
+                    <h5 class="card-title display-4 text-center">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </h5>
+                }
+                else if (parties != null)
+                {
+                    <h5 class="card-title display-4 text-center">@AveragePartySize.ToString("N1")</h5>
+                }
+                else
+                {
+                    <h5 class="card-title display-4 text-center text-danger">Error</h5>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Party Count Over Time Chart Section *@
+<h3 class="mt-4 mb-3">Party Count Over Time</h3>
+
+@if (isLoading)
+{
+    <p>
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <em>Loading chart data...</em>
+    </p>
+}
+else if (partyCountHistory == null || !partyCountHistory.Any())
+{
+    <p class="text-info">No historical party data available yet. Snapshots might be collecting.</p>
+}
+else
+{
+    <div class="card shadow p-3 mb-4">
+        <ApexChart TItem="PartyCountData" Options="countChartOptions"
+                   Title="Number Of Active Parties" Height="200">
+
+            <ApexPointSeries TItem="PartyCountData"
+                             Items="@partyCountHistory"
+                             SeriesType="@SeriesType.Line"
+                             Name="Active Parties"
+                             XValue="@(e => e.Timestamp)"
+                             YValue="@(e => e.Count)" />
+
+
+        </ApexChart>
+    </div>
+}
+
+
+@* Party Size Over Time Chart Section *@
+<h3 class="mt-4 mb-3">Party Distribution Over Time</h3>
+
+@if (isLoading)
+{
+    <p>
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <em>Loading chart data...</em>
+    </p>
+}
+else if (groupedByPartySize == null || !groupedByPartySize.Any())
+{
+    <p class="text-info">No historical party size data available yet. Snapshots might be collecting.</p>
+}
+else
+{
+    <div class="card shadow p-3 mb-4">
+        <ApexChart TItem="PartyCountData" Options="distributionChartOptions"
+                   Title="Party Size Distribution" Height="300">
+
+            @foreach (var (size, data) in groupedByPartySize)
+            {
+                string title = size.ToString() + " Members";
+                <ApexPointSeries TItem="PartyCountData"
+                                 Items="@data"
+                                 SeriesType="@SeriesType.Area"
+                                 Name="@title"
+                                 XValue="@(e => e.Timestamp)"
+                                 YValue="@(e => e.Count * size)" />
+            }
+
+        </ApexChart>
+    </div>
+}
+
+
+@* Parties Table Section *@
+<h3 class="mt-4 mb-3">Active Parties</h3>
+
+@if (isLoading)
+{
+    <p>
+        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+        <em>Loading party details...</em>
+    </p>
+}
+else if (parties == null)
+{
+    <p class="text-danger">Failed to load party details.</p>
+}
+else if (!parties.Any())
+{
+    <p>No active parties found.</p>
+}
+else
+{
+    <div class="table-responsive shadow">
+        <table class="table table-striped table-hover table-bordered">
+            <thead class="table-dark">
+                <tr>
+                    <th>Party ID</th>
+                    <th>Size</th>
+                    <th>Privacy</th>
+                    <th>Members</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var party in parties)
+                {
+                    <tr>
+                        <td>@party.PartyId</td>
+                        <td>@party.Members.Count</td>
+                        <td>@party.PartyPrivacy.ToString()</td>
+                        <td>
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var member in party.Members.OrderBy(m => m.Name))
+                                {
+                                    <li>
+                                        @if (member.IsLeader)
+                                        {
+                                            <strong>@member.Name (@member.UserName) (Leader)</strong>
+                                        }
+                                        else
+                                        {
+                                            <span>@member.Name (@member.UserName)</span>
+                                        }
+                                    </li>
+                                }
+                            </ul>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private IEnumerable<PartyInfo>? parties; // Now we store the full list of parties
+    private bool isLoading = true;
+
+    private Dictionary<DateTimeOffset, List<PartySnapshot>>? partyHistory;
+    private Dictionary<int, List<PartyCountData>> groupedByPartySize = [];
+    private List<PartyCountData> partyCountHistory = [];
+
+    private ApexChartOptions<PartyCountData> countChartOptions = new();
+    private ApexChartOptions<PartyCountData> distributionChartOptions = new();
+
+    // Derived properties for statistics
+    private int TotalActiveParties => parties?.Count() ?? 0;
+    private int TotalPlayersInParties => parties?.Sum(p => p.Members.Count) ?? 0;
+    private double AveragePartySize
+    {
+        get
+        {
+            if (parties == null || !parties.Any())
+            {
+                return 0;
+            }
+            return (double)TotalPlayersInParties / TotalActiveParties;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await FetchAllPartiesAndCalculateStats();
+        await LoadPartyHistory();
+        isLoading = false;
+
+        var now = DateTimeOffset.UtcNow;
+        var twentyFourHoursAgo = now.AddHours(-24);
+        // Convert DateTimeOffset to Unix timestamps (milliseconds since Jan 1, 1970 UTC)
+        // This is the format ApexCharts expects for datetime axes min/max.
+        long minTimestampMs = twentyFourHoursAgo.ToUnixTimeMilliseconds();
+
+        countChartOptions = new()
+        {
+            Chart = new Chart
+            {
+                Type = ChartType.Line,
+            },            
+            Stroke = new Stroke { Curve = Curve.Smooth },
+            Yaxis = [new YAxis
+            {
+                Min = 0,
+                StepSize = 1,
+                Title = new AxisTitle()
+                {
+                    Text = "Party count"
+                }
+            }],
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime, // X-axis is time-based
+                Min = minTimestampMs, // Show data from 24 hours ago
+            },
+        };
+
+        distributionChartOptions = new ApexChartOptions<PartyCountData>
+        {
+            Chart = new Chart
+            {
+                Type = ChartType.Area,
+                Stacked = true, // Stacks the area series on top of each other
+            },
+            DataLabels = new DataLabels { Enabled = false },
+            Stroke = new Stroke { Curve = Curve.Smooth },
+            Yaxis = [new YAxis
+            {
+                Min = 0,
+                StepSize = 1,
+                Title = new AxisTitle()
+                {
+                    Text = "Player count"
+                }
+            }],
+            Xaxis = new XAxis
+            {
+                Type = XAxisType.Datetime, // X-axis is time-based
+                Min = minTimestampMs, // Show data from 24 hours ago
+            },
+            Tooltip = new ApexCharts.Tooltip
+            {
+                X = new TooltipX
+                {
+                    Formatter = @"function(value, opts) {
+                    if (value === undefined) {return '';}
+                    return moment(value).format('DD-MM-YYYY hh:mm');}"
+                },
+                Y = new TooltipY
+                {
+                    Formatter = @"function(value, opts) {
+                    if (value === undefined || value === null) { return ''; } // Handle undefined/null values
+
+                    // Get the series name (e.g., 'Size 3 Parties')
+                    var seriesName = opts.w.globals.initialSeries[opts.seriesIndex].name;
+
+                    // Parse the party size from the series name using a regex
+                    var partySizeMatch = seriesName.match(/(\d+) Members/);
+                    var partySize = 0;
+                    if (partySizeMatch && partySizeMatch[1]) {
+                        partySize = parseInt(partySizeMatch[1]); // Convert the matched string to an integer
+                    }
+
+                    var partyCount = value / partySize;
+
+                    // Return the formatted string
+                    return partyCount + ' (' + value + ')';
+                }"
+                }
+            },
+            //Colors = new List<string> { "#008FFB", "#00E396", "#FEB019", "#FF4560", "#775DD0" } // Optional: specify colors
+        };
+    }
+
+    private async Task FetchAllPartiesAndCalculateStats()
+    {
+        try
+        {
+            var response = await PartiesApi.GetParties(); // Fetch all parties
+
+            if (response.IsSuccessStatusCode && response.Content != null)
+            {
+                parties = response.Content; // Store the fetched parties
+            }
+            else
+            {
+                Console.WriteLine($"Error fetching parties: {response.StatusCode} - {response.Error?.Content}");
+                parties = null; // Indicate error
+            }
+        }
+        catch (ApiException ex)
+        {
+            Console.WriteLine($"Refit API Exception while fetching parties: {ex.Message}");
+            parties = null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"General Exception while fetching parties: {ex.Message}");
+            parties = null;
+        }
+    }
+
+    private async Task LoadPartyHistory()
+    {
+        partyHistory = await PartySnapshotService.GetPartySnapshotsAsync();
+
+        groupedByPartySize.Clear();
+        partyCountHistory.Clear();
+
+        // Get all unique timestamps and party sizes
+        var uniqueTimestamps = partyHistory.Select(s => s.Key).ToList();
+        var uniquePartySizes = partyHistory.SelectMany(s => s.Value.Select(sp => sp.Size)).Distinct().ToList();
+
+        foreach (var size in uniquePartySizes)
+        {
+            List<PartyCountData> data = [];
+
+            groupedByPartySize.Add(size, data);
+        }
+
+        foreach (var timestamp in uniqueTimestamps)
+        {
+            // Count how many parties had this specific size at this specific timestamp
+            List<PartySnapshot> partiesAtThisTime = partyHistory[timestamp];
+
+            foreach (var size in uniquePartySizes)
+            {
+                groupedByPartySize[size].Add(new PartyCountData()
+                {
+                    Timestamp = timestamp,
+                    Count = partiesAtThisTime.Count(s => s.Size == size),
+                });
+            }
+
+            partyCountHistory.Add(new PartyCountData()
+            {
+                Timestamp = timestamp,
+                Count = partiesAtThisTime.Count
+            });
+        }
+    }
+
+    public class PartyCountData
+    {
+        public DateTimeOffset Timestamp { get; set; }
+        public int Count { get; set; }
+    }
+}

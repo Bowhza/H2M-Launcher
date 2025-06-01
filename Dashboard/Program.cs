@@ -3,6 +3,7 @@ using Dashboard.Components;
 using Dashboard.Database;
 using Dashboard.Downloads;
 using Dashboard.GitHub;
+using Dashboard.Party;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -29,10 +30,19 @@ builder.Services.AddRefitClient<IGitHubApiClient>()
         client.DefaultRequestHeaders.Add("Accept", "application/vnd.github+json");
     });
 
+builder.Services.AddRefitClient<IPartiesApiClient>()
+    .ConfigureHttpClient((sp, client) =>
+    {
+        client.BaseAddress = new Uri(builder.Configuration["BackendApi:BaseAddress"]!);
+        client.DefaultRequestHeaders.Add("X-API-Key", builder.Configuration["BackendApi:DashboardApiKey"]!);
+    });
+
 builder.Services.AddHostedService<GitHubFetcherService>();
+builder.Services.AddHostedService<PartySnapshottingService>();
 
 builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 builder.Services.AddTransient<DownloadCountService>();
+builder.Services.AddTransient<PartySnapshotService>();
 
 
 var app = builder.Build();

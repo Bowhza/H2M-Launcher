@@ -149,14 +149,6 @@
         });
     }
 
-    private async Task UploadFile(InputFileChangeEventArgs e)
-    {
-        var filePath = Path.GetTempFileName();        
-
-        await using FileStream fs = new(filePath, FileMode.Create);
-        await e.File.OpenReadStream().CopyToAsync(fs);
-    }
-
     private async Task LoadGroupedHistory()
     {        
         var history = await DownloadCountService.GetHistoryAsync(CancellationToken.None);

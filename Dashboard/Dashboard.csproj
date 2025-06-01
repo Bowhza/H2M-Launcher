@@ -24,4 +24,8 @@
   <ItemGroup>
     <Folder Include="Database\Migrations\" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\H2MLauncher.Core\H2MLauncher.Core.csproj" />
+  </ItemGroup>
 </Project>
