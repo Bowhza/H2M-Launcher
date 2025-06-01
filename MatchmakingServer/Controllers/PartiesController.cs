@@ -23,18 +23,18 @@ public class PartiesController : ControllerBase
     [HttpGet]
     public ActionResult<IEnumerable<PartyInfo>> GetParties()
     {
-        var parties = _partyService.Parties.Select(PartyService.CreatePartyInfo);
+        IEnumerable<PartyInfo> parties = _partyService.Parties.Select(PartyService.CreatePartyInfo);
         return Ok(parties);
     }
 
     [HttpGet("{id}")]
-    public ActionResult<Party> GetParty(string id)
+    public ActionResult<PartyInfo> GetParty(string id)
     {
-        var party = _partyService.GetPartyById(id);
+        IParty? party = _partyService.GetPartyById(id);
         if (party is null)
         {
             return NotFound();
         }
-        return Ok(party);
+        return Ok(PartyService.CreatePartyInfo(party));
     }
 }
