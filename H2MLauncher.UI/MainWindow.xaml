@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:s="clr-namespace:System;assembly=mscorlib"
         xmlns:local="clr-namespace:H2MLauncher.UI"
         xmlns:view="clr-namespace:H2MLauncher.UI.View" 
         xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
@@ -74,6 +75,18 @@
         <converters:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
         <converters:ProtocolToIconConverter x:Key="ProtocolToIconConverter"/>
 
+        <converters:NonlinearCoercionConverter x:Key="CompensateBlurConverter">
+            <converters:NonlinearCoercionConverter.InputMax>
+                <!-- Maximum possible blur radius -->
+                <s:Int32>200</s:Int32>
+            </converters:NonlinearCoercionConverter.InputMax>
+            <converters:NonlinearCoercionConverter.OutputMax>
+                <!-- Maximum compensating margin -->
+                <s:Int32>-40</s:Int32>
+            </converters:NonlinearCoercionConverter.OutputMax>
+        </converters:NonlinearCoercionConverter>
+
+
         <local:PlayersSorter x:Key="PlayersSorter"/>
     </Window.Resources>
     <Window.InputBindings>
@@ -86,10 +99,33 @@
     </Window.InputBindings>
     <Grid>
         <Border CornerRadius="10" Padding="10,10" Background="Black"/>
+        <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
+            <Grid RenderTransformOrigin="0.5, 0.5">
+                <Grid.Background>
+                    <VisualBrush Stretch="UniformToFill">
+                        <VisualBrush.Visual>
+                            <Image x:Name="BackgroundImageBrush" Source="{Binding Customization.BackgroundImage, ElementName=mainWindow}" Opacity="1"
+                                d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
+                        </VisualBrush.Visual>
+                    </VisualBrush>
+                </Grid.Background>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <!-- Compensate for the blur effect by non-linearly zooming in to prevent dark edges -->
+                        <Setter Property="Margin" 
+                                Value="{Binding Customization.BackgroundBlur, 
+                                                ElementName=mainWindow, 
+                                                Converter={StaticResource CompensateBlurConverter}}"/>
+                    </Style>
+                </Grid.Style>
+            </Grid>
+
+            <!-- Apply blur to the border AFTER the image fills the background -->
+            <Border.Effect>
+                <BlurEffect Radius="{Binding Customization.BackgroundBlur, ElementName=mainWindow}" KernelType="Gaussian"/>
+            </Border.Effect>
+        </Border>
         <Border CornerRadius="10" Padding="10,10">
-            <Border.Background>
-                <ImageBrush Stretch="UniformToFill" ImageSource="pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg" Opacity="1"/>
-            </Border.Background>
             <Grid Margin="0,0,0,0">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -105,7 +141,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="85" />
                     </Grid.ColumnDefinitions>
-
+                    
                     <!-- Title -->
                     <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
 
@@ -209,7 +245,7 @@
                         <TextBox TabIndex="1" Text="{Binding AdvancedServerFilter.FilterText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
                                  TextChanged="TextBox_TextChanged" HorizontalAlignment="Stretch" Margin="10,0,10,0" 
                                  VerticalAlignment="Center" x:Name="FilterTextBox"/>
-                        
+
                         <!-- Hint -->
                         <TextBlock IsHitTestVisible="False" Text="Enter keywords to filter servers"
                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" 
@@ -246,7 +282,7 @@
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3.5*"/>
-                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition x:Name="partyColumn" Width="290"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -445,7 +481,7 @@
                             </DataTemplate>
                         </TabControl.ContentTemplate>
                     </TabControl>
-                    
+
 
                     <!-- Party Header -->
                     <Border Grid.Column="0" Height="35" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
@@ -478,46 +514,6 @@
                                     </TextBlock.Style>
                                 </TextBlock>
 
-                                <!-- Party ID | Copy --><!--
-                                <Border BorderBrush="DarkGray" DataContext="{Binding SocialOverviewViewModel.Friends}" 
-                                        BorderThickness="1" Margin="5,0"
-                                        CornerRadius="0,4,4,0" Height="25">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                         --><!--Show only when hosting party & collapsed--><!-- 
-                                                        <Condition Binding="{Binding IsPartyLeader}" Value="True"/>
-                                                        <Condition Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <MultiDataTrigger.Setters>
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </MultiDataTrigger.Setters>
-                                                </MultiDataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Grid>
-                                            <TextBox Margin="0" Width="230" VerticalContentAlignment="Center" Padding="2,0"
-                                                     Text="{Binding PartyId, Mode=OneWay}" BorderThickness="0" IsReadOnly="True" IsReadOnlyCaretVisible="True"/>
-                                        </Grid>
-                                        <Button Height="Auto" Width="65" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="0" 
-                                                Background="DarkOrange" Foreground="Black" Style="{StaticResource TextBoxButtonStyle}"/>
-                                    </StackPanel>
-                                </Border>-->
-
-                                <!-- Create Party Button --><!--
-                                <Button Height="23" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
-                                        Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-
-                                --><!-- Join Party Button --><!--
-                                <Button Height="23" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
-                                        Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>-->
-
-
                                 <Separator Opacity="0" Width="5" />
                                 <Button TabIndex="3" Content="Join" Width="80" Height="23" Command="{Binding SelectedTab.JoinServerCommand}" />
                                 <Separator Opacity="0" Width="5" />
@@ -527,7 +523,7 @@
                             <!-- Expand / collapse -->
                             <ToggleButton Height="23" Width="20" Margin="0,0,2,0" Grid.Column="1"
                                           HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Show / hide party"
-                                          Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow}">
+                                          Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow, Mode=TwoWay}">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
                                         <Setter Property="Content" Value="&#10094;"/>
@@ -543,7 +539,17 @@
                     </Border>
 
                     <controls:SocialOverviewControl DataContext="{Binding SocialOverviewViewModel}" Grid.Column="1" Grid.RowSpan="2" Margin="10,9,0,5" Width="290"
-                                                    Visibility="{Binding IsPartyExpanded, ElementName=mainWindow, Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                                    view:SlidePanelBehavior.IsExpanded="{Binding IsPartyExpanded, ElementName=mainWindow}">
+
+                        <view:SlidePanelBehavior.TargetColumnName>partyColumn</view:SlidePanelBehavior.TargetColumnName>
+                        <!-- Add margin to width -->
+                        <view:SlidePanelBehavior.ExpandedWidth>300</view:SlidePanelBehavior.ExpandedWidth>
+                        <view:SlidePanelBehavior.CollapsedWidth>0</view:SlidePanelBehavior.CollapsedWidth>
+
+                        <controls:SocialOverviewControl.RenderTransform>
+                            <TranslateTransform X="0"/>
+                        </controls:SocialOverviewControl.RenderTransform>
+                    </controls:SocialOverviewControl>
                 </Grid>
 
                 <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">
@@ -552,6 +558,7 @@
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
                                     <ColumnDefinition Width="Auto" />
@@ -596,8 +603,15 @@
                         </StatusBarItem.ContentTemplate>
                     </StatusBarItem>
 
-                    <!-- Settings -->
+                    <!-- Customize -->
                     <StatusBarItem HorizontalAlignment="Right" Grid.Column="4" VerticalContentAlignment="Center">
+                        <Button Style="{StaticResource LinkButtonStyle}" ToolTip="Customize..." Click="CustomizeButton_Click">
+                            <TextBlock Text="&#x1FA84;" FontFamily="Segoe UI Emoji" FontWeight="Bold" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
+                        </Button>
+                    </StatusBarItem>
+
+                    <!-- Settings -->
+                    <StatusBarItem HorizontalAlignment="Right" Grid.Column="5" VerticalContentAlignment="Center">
                         <Button Style="{StaticResource LinkButtonStyle}"  Command="{Binding ShowSettingsCommand}">
                             <TextBlock Text="⚙" Padding="0,0,0,1.5" Margin="1" FontSize="14"/>
                         </Button>

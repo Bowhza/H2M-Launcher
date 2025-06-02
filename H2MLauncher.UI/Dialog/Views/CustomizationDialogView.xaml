@@ -1,0 +1,115 @@
+﻿<UserControl x:Class="H2MLauncher.UI.Dialog.Views.CustomizationDialogView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:H2MLauncher.UI.Dialog.Views"
+             mc:Ignorable="d" 
+             xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
+             xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
+             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
+             xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             MinHeight="250" MinWidth="300"
+             Height="Auto"
+             Width="400"
+             d:DataContext="{d:DesignInstance Type=vm:CustomizationDialogViewModel}"
+             d:Foreground="White"
+             d:Background="Black">
+    <UserControl.Resources>
+        <Style TargetType="{x:Type TextBox}">
+            <Style.Setters>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Background" Value="#33000000"/>
+                <Setter Property="CaretBrush" Value="White"/>
+            </Style.Setters>
+        </Style>
+
+        <Style TargetType="ToolTip">
+            <Style.Resources>
+                <Style TargetType="ContentPresenter">
+                    <Style.Resources>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap" />
+                        </Style>
+                    </Style.Resources>
+                </Style>
+            </Style.Resources>
+            <Setter Property="MaxWidth" Value="400" />
+        </Style>
+
+    </UserControl.Resources>
+    <Grid Margin="25,15,25,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition/>
+        </Grid.ColumnDefinitions>
+        <TextBlock Grid.Row="0" Text="✨ Customization ✨" TextWrapping="WrapWithOverflow" 
+                   TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
+                   Margin="0,0,0,15"/>
+
+        <TextBlock Text="Background Image:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Left"/>
+        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">                    
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetImageCommand}"
+                            DockPanel.Dock="Right" Margin="0,0,0,0">
+                        <TextBlock Text="❌" Padding="0,0,0,0" FontSize="10" ToolTip="Reset to default"/>
+                    </Button>
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectImageCommand}"
+                            DockPanel.Dock="Right" Margin="2,0,0,0">
+                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
+                    </Button>
+                </StackPanel>
+                
+                <TextBox Text="{Binding BackgroundImageUrl, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Image'}" BorderThickness="0" IsReadOnly="True" 
+                         FocusVisualStyle="{x:Null}" Foreground="White" Margin="0,3" Background="Transparent">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsKeyboardFocused, RelativeSource={RelativeSource Self}}" Value="False">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <TextBlock Margin="2,0,0,0" Cursor="IBeam" Text="{TemplateBinding Text}" TextTrimming="CharacterEllipsis" />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+            </DockPanel>
+        </Border>
+
+        <TextBlock Text="Background Blur:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
+        <DockPanel Grid.Row="2" Grid.Column="1">
+            <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
+                     Background="#222" Foreground="White" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
+            <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
+        </DockPanel>
+
+        <Grid Grid.Row="11" Grid.ColumnSpan="2" Margin="0,20,0,15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Content="Ok" Height="25" Command="{Binding CloseCommand}" Width="100"
+                    IsDefault="True" Grid.Column="0" Grid.ColumnSpan="2" HorizontalAlignment="Center" />
+        </Grid>
+    </Grid>
+</UserControl>

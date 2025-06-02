@@ -27,5 +27,12 @@ namespace H2MLauncher.Core.Settings
         public bool PublicPlayerName { get; init; } = true;
 
         public Dictionary<string, string> KeyBindings { get; init; } = [];
+        public LauncherCustomizationSettings? Customization { get; init; } = null;
+    }
+
+    public record LauncherCustomizationSettings
+    {
+        public string? BackgroundImagePath { get; init; } = null;
+        public double? BackgroundBlur { get; init; } = null;
     }
 }

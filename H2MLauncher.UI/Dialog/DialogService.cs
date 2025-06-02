@@ -3,10 +3,20 @@ using System.Windows.Controls;
 
 using H2MLauncher.UI.Dialog.Views;
 
+using Microsoft.Extensions.DependencyInjection;
+
 namespace H2MLauncher.UI.Dialog
 {
     public class DialogService
     {
+        private readonly IServiceScopeFactory _serviceScopeFactory;
+
+        public DialogService(IServiceScopeFactory serviceScopeFactory)
+        {
+            _serviceScopeFactory = serviceScopeFactory;
+        }
+
+
         private static DialogWindow CreateDialog(Control content)
         {
             return new DialogWindow
@@ -121,6 +131,20 @@ namespace H2MLauncher.UI.Dialog
                 });
 
                 return ShowDialog(viewModel, dialogWindow);
+            });
+        }
+
+        public bool? OpenDialog<TDialog, TDialogViewModel>() 
+            where TDialog : Control, new() 
+            where TDialogViewModel : IDialogViewModel
+        {
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                using var scope = _serviceScopeFactory.CreateScope();
+
+                var viewModel = scope.ServiceProvider.GetRequiredService<TDialogViewModel>();
+
+                return OpenDialog<TDialog>(viewModel);
             });
         }
 

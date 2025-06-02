@@ -726,4 +726,5 @@
     <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
     <converters:NegatingConverter x:Key="NegatingConverter" />
     <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
+    <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
 </ResourceDictionary>

@@ -2,12 +2,17 @@
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Game;
+using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Dialog.Views;
+using H2MLauncher.UI.Services;
 using H2MLauncher.UI.ViewModels;
+
 
 namespace H2MLauncher.UI
 {
@@ -22,19 +27,37 @@ namespace H2MLauncher.UI
         [ObservableProperty]
         private bool _isPartyExpanded = true;
 
+        [ObservableProperty]
+        private CustomizationManager _customization;
+
+        private readonly DialogService _dialogService;
+
         public ICommand ToggleOverlayCommand { get; }
 
-        public MainWindow(ServerBrowserViewModel serverBrowserViewModel, H2MCommunicationService h2MCommunicationService)
+        public MainWindow(
+            ServerBrowserViewModel serverBrowserViewModel,
+            H2MCommunicationService h2MCommunicationService,
+            CustomizationManager customizationViewModel,
+            DialogService dialogService)
         {
             InitializeComponent();
 
             DataContext = _viewModel = serverBrowserViewModel;
             _overlayHelper = new OverlayHelper(this);
             _h2MCommunicationService = h2MCommunicationService;
+            Customization = customizationViewModel;
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
+
+            customizationViewModel.LoadInitialValues();
+            _dialogService = dialogService;
+        }
+
+        private void CustomizeButton_Click(object sender, RoutedEventArgs e)
+        {
+            _dialogService.OpenDialog<CustomizationDialogView, CustomizationDialogViewModel>();
         }
 
         private void PartyViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -167,6 +190,18 @@ namespace H2MLauncher.UI
         {
             WindowState = WindowState is WindowState.Normal ? WindowState.Maximized : WindowState.Normal;
             MaximizeButtonText.Text = WindowState is WindowState.Normal ? "🗖︎" : "🗗︎";
+        }
+
+        private void Border_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Clip the border to have rounded corners even with background extending beyond
+            var control = (Border)sender;
+            control.Clip = new RectangleGeometry
+            {
+                Rect = new Rect(0, 0, control.ActualWidth, control.ActualHeight),
+                RadiusX = 10,
+                RadiusY = 10
+            };
         }
     }
 }

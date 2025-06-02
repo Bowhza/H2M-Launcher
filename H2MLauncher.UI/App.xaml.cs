@@ -168,6 +168,8 @@ namespace H2MLauncher.UI
             services.AddTransient<FriendsViewModel>();
             services.AddTransient<FriendRequestsViewModel>();
             services.AddTransient<SocialOverviewViewModel>();
+            services.AddSingleton<CustomizationManager>();
+            services.AddTransient<CustomizationDialogViewModel>();
 
             // online services
             services.AddSingleton<OnlineServiceManager>();
