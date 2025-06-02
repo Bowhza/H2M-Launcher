@@ -57,5 +57,28 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
 
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    user: postgres:postgres
+    volumes:
+        - ${DB_BACKUP_DIR:-./pgbackup}:/backups
+    links:
+        - postgres
+    depends_on:
+        - postgres
+    environment:
+        POSTGRES_HOST: postgres
+        POSTGRES_DB: database
+        POSTGRES_USER: ${DB_USER:-username}
+        POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+        POSTGRES_EXTRA_OPTS: -Z1 --schema=public --blobs
+        SCHEDULE: '@daily'
+        BACKUP_ON_START: 'TRUE'
+        BACKUP_KEEP_DAYS: 7
+        BACKUP_KEEP_WEEKS: 4
+        BACKUP_KEEP_MONTHS: 6
+        HEALTHCHECK_PORT: 8880
+
 volumes:
   postgres_data:
