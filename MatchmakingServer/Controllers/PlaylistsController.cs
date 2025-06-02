@@ -18,7 +18,7 @@ using Nito.AsyncEx;
 namespace MatchmakingServer.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class PlaylistsController : ControllerBase
     {
         private readonly IOptionsMonitor<ServerSettings> _serverSettings;

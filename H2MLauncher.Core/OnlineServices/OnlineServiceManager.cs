@@ -79,6 +79,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams), (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
+                opts.HttpMessageHandlerFactory = CreateMessageHandler;
 
                 // add headers to identify app version
                 AddAppHeaders(opts.Headers);
@@ -89,6 +90,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .WithUrl(matchmakingSettings.Value.PartyHubUrl.SetQueryParams(queryParams), (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
+                opts.HttpMessageHandlerFactory = CreateMessageHandler;
 
                 AddAppHeaders(opts.Headers);
             })
@@ -99,7 +101,8 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             .WithUrl(matchmakingSettings.Value.SocialHubUrl.SetQueryParams(queryParams), (opts) =>
             {
                 opts.AccessTokenProvider = GetAccessTokenAsync;
-                
+                opts.HttpMessageHandlerFactory = CreateMessageHandler;
+
                 AddAppHeaders(opts.Headers);
             })
             .WithAutomaticReconnect(new PartyHubConnectionRetryPolicy())
@@ -136,6 +139,19 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             _authenticationLock.Release();
         }
     }
+
+    private HttpMessageHandler CreateMessageHandler(HttpMessageHandler original)
+    {
+        return _options.Value.DisableCertificateValidation
+            ? new SocketsHttpHandler()
+            {
+                SslOptions = new()
+                {
+                    RemoteCertificateValidationCallback = delegate { return true; }
+                }
+            }
+            : original;
+}
 
     private void OnStateChanged(PlayerState oldState, PlayerState newState)
     {

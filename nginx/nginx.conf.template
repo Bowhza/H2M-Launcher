@@ -6,22 +6,33 @@ events {
 
 http {
     access_log /dev/stdout;
-    
+    resolver 127.0.0.11 valid=5s;
+
     server {
         listen 80;
-        server_name ${DOMAIN};
 
         return 301 https://$host$request_uri;
     }
 
+    map $host $backend_path {
+        api.${DOMAIN}             /api;
+        matchmaking.${DOMAIN}     /Queue;
+        party-hub.${DOMAIN}       /Party;
+        social-hub.${DOMAIN}      /Social;
+    }
+   
     server {
         listen 443 ssl;
-        server_name ${DOMAIN};
+        server_name *.${DOMAIN} ${DOMAIN};
 
         ssl_certificate /etc/nginx/certs/fullchain.pem;
         ssl_certificate_key /etc/nginx/certs/privkey.pem;
 
         location / {
+            # Rewrite the URI to include the backend prefix *before* proxy_pass
+            # This captures the requested URI ($request_uri) and prepends the backend_prefix
+            rewrite ^/(.*)$ $backend_path/$1 break;
+
             proxy_pass http://matchmaking-server:9000;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -33,6 +44,12 @@ http {
             proxy_pass_header Server;
             proxy_cache_bypass $http_upgrade;
             proxy_redirect off;
+
+            # Configuration for LongPolling or if your KeepAliveInterval is longer than 60 seconds
+		    proxy_read_timeout 100s;
+
+            # Configuration for ServerSentEvents
+		    proxy_buffering off;
         }
     }
 }

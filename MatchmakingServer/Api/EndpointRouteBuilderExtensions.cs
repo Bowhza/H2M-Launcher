@@ -7,8 +7,9 @@ public static class EndpointRouteBuilderExtensions
 {
     public static void MapEndpoints(this WebApplication app)
     {
-        app.MapEndpoint<PasswordlessAuthenticationEndpoint>();
-        app.MapEndpoint<StatsEndpoint>();
+        var apiGroup = app.MapGroup("api");
+        apiGroup.MapEndpoint<PasswordlessAuthenticationEndpoint>();
+        apiGroup.MapEndpoint<StatsEndpoint>();
     }
 
     private static IEndpointRouteBuilder MapEndpoint<TEndpoint>(this IEndpointRouteBuilder app) where TEndpoint : IEndpoint

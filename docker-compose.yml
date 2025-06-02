@@ -1,4 +1,14 @@
 services:
+  # Init Container to generate self-signed certificates
+  init-certs:
+    image: frapsoft/openssl:latest # A small image with OpenSSL pre-installed
+    volumes:
+      - ./nginx/certs:/certs
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    working_dir: "/certs"
+    entrypoint: ["/certs/generate-self-signed.sh"]
+
   nginx:
     build: nginx/
     ports:
@@ -13,6 +23,8 @@ services:
     depends_on:
       matchmaking-server:
         condition: service_healthy
+      init-certs:
+        condition: service_completed_successfully
 
   matchmaking-server:
     build:

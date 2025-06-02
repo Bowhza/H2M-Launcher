@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MatchmakingServer.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class QueuesController : ControllerBase
     {
         private readonly QueueingService _queueingService;
