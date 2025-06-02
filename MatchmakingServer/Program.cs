@@ -169,6 +169,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
+app.UseWebSockets();
 app.MapHubs();
 app.MapEndpoints();
 
