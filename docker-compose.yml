@@ -1,4 +1,19 @@
 services:
+  nginx:
+    build: nginx/
+    ports:
+      - "443:443"
+      - "80:80"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ${CERT_PATH:-./nginx/certs/selfsigned.crt}:/etc/nginx/certs/fullchain.pem:ro
+      - ${CERT_KEY_PATH:-./nginx/certs/selfsigned.key}:/etc/nginx/certs/privkey.pem:ro
+    restart: unless-stopped
+    depends_on:
+      matchmaking-server:
+        condition: service_healthy
+
   matchmaking-server:
     build:
       context: .
@@ -50,7 +65,7 @@ services:
   adminer:
     image: adminer
     restart: unless-stopped
-    environment: 
+    environment:
       ADMINER_DEFAULT_SERVER: postgres
       ADMINER_DEFAULT_DB_NAME: database
       ADMINER_DEFAULT_DB_DRIVER: pgsql
