@@ -59,7 +59,7 @@ public partial class CustomizationManager : ObservableObject
 
     public bool LoadImage(string imageFileName)
     {
-        if (TryLoadImage(imageFileName, out var image))
+        if (TryLoadImage(imageFileName, out ImageSource? image))
         {
             BackgroundImage = image;
             LoadingError = false;

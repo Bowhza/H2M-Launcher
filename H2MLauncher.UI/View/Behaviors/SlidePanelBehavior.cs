@@ -59,105 +59,7 @@ public static class SlidePanelBehavior
     public static void SetExpandedWidth(DependencyObject obj, double value)
     {
         obj.SetValue(ExpandedWidthProperty, value);
-    }
-
-    public class GridLengthAnimation : AnimationTimeline
-    {
-        public static readonly DependencyProperty FromProperty =
-            DependencyProperty.Register("From", typeof(GridLength), typeof(GridLengthAnimation));
-
-        public GridLength From
-        {
-            get { return (GridLength)GetValue(FromProperty); }
-            set { SetValue(FromProperty, value); }
-        }
-
-        public static readonly DependencyProperty ToProperty =
-            DependencyProperty.Register("To", typeof(GridLength), typeof(GridLengthAnimation));
-
-        public GridLength To
-        {
-            get { return (GridLength)GetValue(ToProperty); }
-            set { SetValue(ToProperty, value); }
-        }
-
-        public static readonly DependencyProperty EasingFunctionProperty =
-            DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(GridLengthAnimation));
-
-        public IEasingFunction EasingFunction
-        {
-            get { return (IEasingFunction)GetValue(EasingFunctionProperty); }
-            set { SetValue(EasingFunctionProperty, value); }
-        }
-
-        public override Type TargetPropertyType
-        {
-            get { return typeof(GridLength); }
-        }
-
-        protected override Freezable CreateInstanceCore()
-        {
-            return new GridLengthAnimation();
-        }
-
-        public override object GetCurrentValue(object defaultOriginValue, object defaultDestinationValue, AnimationClock animationClock)
-        {
-            // Ensure the animation has a progress value
-            if (!animationClock.CurrentProgress.HasValue)
-                return GridLength.Auto; // Or a sensible default if animation hasn't started/ended
-
-            double progress = animationClock.CurrentProgress.Value;
-
-            // Apply easing function if one is set
-            if (EasingFunction != null)
-            {
-                progress = EasingFunction.Ease(progress);
-            }
-
-            GridLength fromValue = From; // Use the Dependency Property
-            GridLength toValue = To;     // Use the Dependency Property
-
-            // Handle GridUnitType.Auto cases separately if necessary.
-            // Animating to/from Auto is not directly supported by linear interpolation.
-            // For simplicity, if either is Auto, we'll snap to the 'To' value at the end.
-            if (fromValue.GridUnitType == GridUnitType.Auto || toValue.GridUnitType == GridUnitType.Auto)
-            {
-                if (progress >= 1.0)
-                {
-                    return toValue;
-                }
-                else
-                {
-                    return fromValue;
-                }
-            }
-
-            // Extract the numerical values for interpolation
-            double fromVal = fromValue.Value;
-            double toVal = toValue.Value;
-
-            // Determine the target GridUnitType based on the 'From' value.
-            // This assumes From and To will have the same unit type for a smooth animation.
-            // If you need to animate between Pixel and Star, more complex logic is required
-            // that understands the actual pixel width of the grid at the start of the animation.
-            GridUnitType targetUnitType = fromValue.GridUnitType;
-
-            double animatedValue;
-
-            // Your provided logic for interpolation
-            if (fromVal > toVal)
-            {
-                animatedValue = (1 - progress) * (fromVal - toVal) + toVal;
-            }
-            else
-            {
-                animatedValue = progress * (toVal - fromVal) + fromVal;
-            }
-
-            return new GridLength(animatedValue, targetUnitType);
-        }
-    }
-
+    }    
 
     private static void OnIsExpandedChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
@@ -167,7 +69,7 @@ public static class SlidePanelBehavior
 
             // 1. Get/Create the TranslateTransform for the element itself
             TranslateTransform? translateTransform = element.RenderTransform as TranslateTransform;
-            if (translateTransform == null)
+            if (translateTransform is null)
             {
                 translateTransform = new TranslateTransform();
                 element.RenderTransform = translateTransform;
@@ -180,7 +82,7 @@ public static class SlidePanelBehavior
             ColumnDefinition? targetColumn = null;
             string targetColumnName = GetTargetColumnName(element);
 
-            if (parentGrid != null && !string.IsNullOrEmpty(targetColumnName))
+            if (parentGrid is not null && !string.IsNullOrEmpty(targetColumnName))
             {
                 foreach (ColumnDefinition colDef in parentGrid.ColumnDefinitions)
                 {
@@ -192,7 +94,7 @@ public static class SlidePanelBehavior
                 }
             }
 
-            if (targetColumn == null)
+            if (targetColumn is null)
             {
                 // This behavior needs a target column to animate its width
                 // Log an error or return if not found.
@@ -260,7 +162,104 @@ public static class SlidePanelBehavior
             {
                 return ancestor;
             }
-        } while (current != null);
+        } while (current is not null);
         return null;
+    }
+}
+
+public class GridLengthAnimation : AnimationTimeline
+{
+    public static readonly DependencyProperty FromProperty =
+        DependencyProperty.Register("From", typeof(GridLength), typeof(GridLengthAnimation));
+
+    public GridLength From
+    {
+        get { return (GridLength)GetValue(FromProperty); }
+        set { SetValue(FromProperty, value); }
+    }
+
+    public static readonly DependencyProperty ToProperty =
+        DependencyProperty.Register("To", typeof(GridLength), typeof(GridLengthAnimation));
+
+    public GridLength To
+    {
+        get { return (GridLength)GetValue(ToProperty); }
+        set { SetValue(ToProperty, value); }
+    }
+
+    public static readonly DependencyProperty EasingFunctionProperty =
+        DependencyProperty.Register("EasingFunction", typeof(IEasingFunction), typeof(GridLengthAnimation));
+
+    public IEasingFunction EasingFunction
+    {
+        get { return (IEasingFunction)GetValue(EasingFunctionProperty); }
+        set { SetValue(EasingFunctionProperty, value); }
+    }
+
+    public override Type TargetPropertyType
+    {
+        get { return typeof(GridLength); }
+    }
+
+    protected override Freezable CreateInstanceCore()
+    {
+        return new GridLengthAnimation();
+    }
+
+    public override object GetCurrentValue(object defaultOriginValue, object defaultDestinationValue, AnimationClock animationClock)
+    {
+        // Ensure the animation has a progress value
+        if (!animationClock.CurrentProgress.HasValue)
+            return GridLength.Auto; // Or a sensible default if animation hasn't started/ended
+
+        double progress = animationClock.CurrentProgress.Value;
+
+        // Apply easing function if one is set
+        if (EasingFunction is not null)
+        {
+            progress = EasingFunction.Ease(progress);
+        }
+
+        GridLength fromValue = From; // Use the Dependency Property
+        GridLength toValue = To;     // Use the Dependency Property
+
+        // Handle GridUnitType.Auto cases separately if necessary.
+        // Animating to/from Auto is not directly supported by linear interpolation.
+        // For simplicity, if either is Auto, we'll snap to the 'To' value at the end.
+        if (fromValue.GridUnitType is GridUnitType.Auto or GridUnitType.Auto)
+        {
+            if (progress >= 1.0)
+            {
+                return toValue;
+            }
+            else
+            {
+                return fromValue;
+            }
+        }
+
+        // Extract the numerical values for interpolation
+        double fromVal = fromValue.Value;
+        double toVal = toValue.Value;
+
+        // Determine the target GridUnitType based on the 'From' value.
+        // This assumes From and To will have the same unit type for a smooth animation.
+        // If you need to animate between Pixel and Star, more complex logic is required
+        // that understands the actual pixel width of the grid at the start of the animation.
+        GridUnitType targetUnitType = fromValue.GridUnitType;
+
+        double animatedValue;
+
+        // Your provided logic for interpolation
+        if (fromVal > toVal)
+        {
+            animatedValue = (1 - progress) * (fromVal - toVal) + toVal;
+        }
+        else
+        {
+            animatedValue = progress * (toVal - fromVal) + fromVal;
+        }
+
+        return new GridLength(animatedValue, targetUnitType);
     }
 }

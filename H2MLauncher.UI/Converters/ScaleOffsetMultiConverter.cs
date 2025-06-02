@@ -19,7 +19,7 @@ namespace H2MLauncher.UI.Converters
         /// <returns>A double representing the calculated scaling factor.</returns>
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
-            if (values == null || values.Length < 2)
+            if (values is null || values.Length < 2)
             {
                 // Not enough values provided
                 return 1.0;

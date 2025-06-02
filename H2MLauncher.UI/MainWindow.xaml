@@ -514,52 +514,6 @@
                                     </TextBlock.Style>
                                 </TextBlock>
 
-                                <!-- Party ID | Copy -->
-                                <!--
-                                <Border BorderBrush="DarkGray" DataContext="{Binding SocialOverviewViewModel.Friends}" 
-                                        BorderThickness="1" Margin="5,0"
-                                        CornerRadius="0,4,4,0" Height="25">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                            <Style.Triggers>
-                                                <MultiDataTrigger>
-                                                    <MultiDataTrigger.Conditions>
-                                                         -->
-                                <!--Show only when hosting party & collapsed-->
-                                <!-- 
-                                                        <Condition Binding="{Binding IsPartyLeader}" Value="True"/>
-                                                        <Condition Binding="{Binding IsPartyExpanded, ElementName=mainWindow}" Value="False"/>
-                                                    </MultiDataTrigger.Conditions>
-                                                    <MultiDataTrigger.Setters>
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </MultiDataTrigger.Setters>
-                                                </MultiDataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <StackPanel Orientation="Horizontal">
-                                        <Grid>
-                                            <TextBox Margin="0" Width="230" VerticalContentAlignment="Center" Padding="2,0"
-                                                     Text="{Binding PartyId, Mode=OneWay}" BorderThickness="0" IsReadOnly="True" IsReadOnlyCaretVisible="True"/>
-                                        </Grid>
-                                        <Button Height="Auto" Width="65" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="0" 
-                                                Background="DarkOrange" Foreground="Black" Style="{StaticResource TextBoxButtonStyle}"/>
-                                    </StackPanel>
-                                </Border>-->
-
-                                <!-- Create Party Button -->
-                                <!--
-                                <Button Height="23" Width="80" Content="Create Party" Command="{Binding CreatePartyCommand}" Margin="5,0"
-                                        Visibility="{Binding IsPartyActive, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
-
-                                -->
-                                <!-- Join Party Button -->
-                                <!--
-                                <Button Height="23" Width="80" Content="Join Party..." Command="{Binding JoinPartyCommand}" Margin="0"
-                                        Visibility="{Binding IsPartyGuest, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>-->
-
-
                                 <Separator Opacity="0" Width="5" />
                                 <Button TabIndex="3" Content="Join" Width="80" Height="23" Command="{Binding SelectedTab.JoinServerCommand}" />
                                 <Separator Opacity="0" Width="5" />

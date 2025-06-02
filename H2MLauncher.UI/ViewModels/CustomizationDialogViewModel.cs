@@ -39,12 +39,16 @@ namespace H2MLauncher.UI.ViewModels
                 Title = "Select Background Image"
             };
 
-            if (dlg.ShowDialog() == true &&
-                _customization.LoadImage(dlg.FileName))
+            bool? dialogResult = dlg.ShowDialog();            
+            if (dialogResult != true)
+            {
+                return;
+            }
+
+            if (_customization.LoadImage(dlg.FileName))
             {
                 BackgroundImageUrl = dlg.FileName;
                 IsLoadingError = false;
-                
             }
             else
             {
