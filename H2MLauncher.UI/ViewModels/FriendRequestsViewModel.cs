@@ -69,7 +69,7 @@ public sealed partial class FriendRequestsViewModel : ObservableObject, IDisposa
                 // Clear previous results while waiting for new ones
                 Application.Current.Dispatcher.Invoke(() => SearchResults = []);
             })
-            .Where(text => !string.IsNullOrWhiteSpace(text) && text.Length >= 5); // Minimum query length
+            .Where(text => !string.IsNullOrWhiteSpace(text) && text.Length >= 3); // Minimum query length
             
 
         // 2. Subscribe to the debounced observable and perform the search
