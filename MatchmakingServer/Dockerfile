@@ -5,7 +5,14 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 RUN apt-get update && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 
-USER app
+ARG UID=1003
+ARG GID=1003
+
+RUN addgroup --gid $GID appgroup && \
+    adduser -u $UID --ingroup appgroup --disabled-password appuser
+
+USER appuser
+
 WORKDIR /app
 EXPOSE 9000
 EXPOSE 9001

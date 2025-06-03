@@ -30,6 +30,9 @@ services:
     build:
       context: .
       dockerfile: MatchmakingServer/Dockerfile
+      args:
+        UID: ${UID:-1001}
+        GID: ${GID:-1001}
     environment:
       APIKEY: ${API_KEY}
       JWT__Issuer: ${JWT_ISSUER}
