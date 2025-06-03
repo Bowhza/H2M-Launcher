@@ -2,6 +2,7 @@ services:
   # Init Container to generate self-signed certificates
   init-certs:
     image: frapsoft/openssl:latest # A small image with OpenSSL pre-installed
+    user: ${UID:-1001}:${GID:-1001}
     volumes:
       - ./nginx/certs:/certs
     environment:

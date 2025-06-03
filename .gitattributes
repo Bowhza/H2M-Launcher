@@ -1,0 +1,2 @@
+# Set .sh scripts to always have LF line endings on checkout and in the repo
+*.sh text eol=lf
