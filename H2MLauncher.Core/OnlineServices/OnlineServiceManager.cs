@@ -6,6 +6,7 @@ using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities.SignalR;
 
+using Microsoft.AspNetCore.Http.Connections.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -76,32 +77,16 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         } : new { };
 
         QueueingHubConnection = new CustomHubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams), (opts) =>
-            {
-                opts.AccessTokenProvider = GetAccessTokenAsync;
-
-                // add headers to identify app version
-                AddAppHeaders(opts.Headers);
-            })
+            .WithUrl(matchmakingSettings.Value.QueueingHubUrl.SetQueryParams(queryParams), ConfigureHttpConnectionOptions)
             .Build();
 
         PartyHubConnection = new CustomHubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.PartyHubUrl.SetQueryParams(queryParams), (opts) =>
-            {
-                opts.AccessTokenProvider = GetAccessTokenAsync;
-
-                AddAppHeaders(opts.Headers);
-            })
+            .WithUrl(matchmakingSettings.Value.PartyHubUrl.SetQueryParams(queryParams), ConfigureHttpConnectionOptions)
             .WithAutomaticReconnect()
             .Build();
 
         SocialHubConnection = new CustomHubConnectionBuilder()
-            .WithUrl(matchmakingSettings.Value.SocialHubUrl.SetQueryParams(queryParams), (opts) =>
-            {
-                opts.AccessTokenProvider = GetAccessTokenAsync;
-                
-                AddAppHeaders(opts.Headers);
-            })
+            .WithUrl(matchmakingSettings.Value.SocialHubUrl.SetQueryParams(queryParams), ConfigureHttpConnectionOptions)
             .WithAutomaticReconnect(new PartyHubConnectionRetryPolicy())
             .Build();
 
@@ -135,6 +120,33 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
         {
             _authenticationLock.Release();
         }
+    }
+
+    private void ConfigureHttpConnectionOptions(HttpConnectionOptions opts)
+    {
+        opts.AccessTokenProvider = GetAccessTokenAsync;
+        opts.HttpMessageHandlerFactory = CreateMessageHandler;
+
+        if (_options.Value.DisableCertificateValidation)
+        {
+            opts.WebSocketConfiguration = c => c.RemoteCertificateValidationCallback = delegate { return true; };
+        }
+
+        // add headers to identify app version
+        AddAppHeaders(opts.Headers);
+    }
+
+    private HttpMessageHandler CreateMessageHandler(HttpMessageHandler original)
+    {
+        return _options.Value.DisableCertificateValidation
+            ? new SocketsHttpHandler()
+            {
+                SslOptions = new()
+                {
+                    RemoteCertificateValidationCallback = delegate { return true; }
+                }
+            }
+            : original;
     }
 
     private void OnStateChanged(PlayerState oldState, PlayerState newState)

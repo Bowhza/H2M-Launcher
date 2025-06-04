@@ -1,0 +1,64 @@
+error_log /dev/stderr info;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    access_log /dev/stdout;
+    resolver 127.0.0.11 valid=5s;
+
+    server {
+        listen 80;
+
+        return 301 https://$host$request_uri;
+    }
+
+    map $host $backend_path {
+        api.${DOMAIN}             /api;
+        matchmaking.${DOMAIN}     /Queue;
+        party-hub.${DOMAIN}       /Party;
+        social-hub.${DOMAIN}      /Social;
+    }
+
+    map $http_connection $connection_upgrade {
+        "~*Upgrade" $http_connection;
+        default keep-alive;
+    }
+   
+    server {
+        listen 443 ssl;
+        server_name *.${DOMAIN} ${DOMAIN};
+
+        ssl_certificate /etc/nginx/certs/fullchain.pem;
+        ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+        location / {
+            # Rewrite the URI to include the backend prefix *before* proxy_pass
+            # This captures the requested URI ($request_uri) and prepends the backend_prefix
+            rewrite ^/(.*)$ $backend_path/$1 break;
+
+            proxy_pass http://matchmaking-server:9000;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-NginX-Proxy true;
+            proxy_cache off;
+
+            # Configuration for WebSockets
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host $http_host;
+
+            proxy_ssl_session_reuse off;            
+            proxy_pass_header Server;
+            proxy_cache_bypass $http_upgrade;
+            proxy_redirect off;
+
+            # Configuration for LongPolling or if your KeepAliveInterval is longer than 60 seconds
+		    proxy_read_timeout 100s;
+
+            # Configuration for ServerSentEvents
+		    proxy_buffering off;
+        }
+    }
+}

@@ -11,7 +11,7 @@ using Microsoft.Extensions.Options;
 namespace MatchmakingServer.Controllers
 {
     [ApiController]
-    [Route("[controller]")]
+    [Route("api/[controller]")]
     public class ServersController : ControllerBase
     {
         private readonly IOptionsMonitor<ServerSettings> _serverSettings;

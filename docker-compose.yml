@@ -1,8 +1,39 @@
 services:
+  # Init Container to generate self-signed certificates
+  init-certs:
+    image: frapsoft/openssl:latest # A small image with OpenSSL pre-installed
+    user: ${UID:-1001}:${GID:-1001}
+    volumes:
+      - ./nginx/certs:/certs
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    working_dir: "/certs"
+    entrypoint: ["/certs/generate-self-signed.sh"]
+
+  nginx:
+    build: nginx/
+    ports:
+      - "443:443"
+      - "80:80"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ${CERT_PATH:-./nginx/certs/selfsigned.crt}:/etc/nginx/certs/fullchain.pem:ro
+      - ${CERT_KEY_PATH:-./nginx/certs/selfsigned.key}:/etc/nginx/certs/privkey.pem:ro
+    restart: unless-stopped
+    depends_on:
+      matchmaking-server:
+        condition: service_healthy
+      init-certs:
+        condition: service_completed_successfully
+
   matchmaking-server:
     build:
       context: .
       dockerfile: MatchmakingServer/Dockerfile
+      args:
+        UID: ${UID:-1001}
+        GID: ${GID:-1001}
     environment:
       APIKEY: ${API_KEY}
       JWT__Issuer: ${JWT_ISSUER}
@@ -50,7 +81,7 @@ services:
   adminer:
     image: adminer
     restart: unless-stopped
-    environment: 
+    environment:
       ADMINER_DEFAULT_SERVER: postgres
       ADMINER_DEFAULT_DB_NAME: database
       ADMINER_DEFAULT_DB_DRIVER: pgsql

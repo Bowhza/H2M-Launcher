@@ -1,25 +1,24 @@
-﻿using System.Text.Json.Serialization;
-
-using Flurl;
+﻿using Flurl;
 
 namespace H2MLauncher.Core.Settings
 {
     public sealed record MatchmakingSettings
     {
-        public string MatchmakingServerUrl { get; init; } = "";
+        public string MatchmakingServerApiUrl { get; init; } = "";
 
-        [JsonIgnore]
-        public string QueueingHubUrl => Url.Combine(MatchmakingServerUrl, "Queue");
+        public string QueueingHubUrl { get; init; } = "";
 
-        [JsonIgnore]
-        public string PartyHubUrl => Url.Combine(MatchmakingServerUrl, "Party");
+        public string PartyHubUrl { get; init; } = "";
 
-        [JsonIgnore]
-        public string SocialHubUrl => Url.Combine(MatchmakingServerUrl, "Social");
+        public string SocialHubUrl { get; init; } = "";
 
-        [JsonIgnore]
-        public string ServerDataUrl => Url.Combine(MatchmakingServerUrl, "servers/data");
+        public string ServerDataUrl => Url.Combine(MatchmakingServerApiUrl, "servers/data");
 
         public bool UseRandomCliendId { get; init; } = false;
+
+        /// <summary>
+        /// USE ONLY FOR LOCAL DEVELOPMENT!
+        /// </summary>
+        public bool DisableCertificateValidation { get; init; } = false;
     }
 }
