@@ -197,7 +197,7 @@ namespace H2MLauncher.UI.ViewModels
 
             InviteToPartyCommand = new AsyncRelayCommand(
                 () => partyClient.InviteToParty(Id),
-                () => CanInvite && partyClient.IsPartyLeader);
+                () => CanInvite && partyClient.IsPartyActive);
 
             AddFriendCommand = new AsyncRelayCommand(
                 async () =>
