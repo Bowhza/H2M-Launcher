@@ -1,8 +1,39 @@
 services:
+  # Init Container to generate self-signed certificates
+  init-certs:
+    image: frapsoft/openssl:latest # A small image with OpenSSL pre-installed
+    user: ${UID:-1001}:${GID:-1001}
+    volumes:
+      - ./nginx/certs:/certs
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    working_dir: "/certs"
+    entrypoint: ["/certs/generate-self-signed.sh"]
+
+  nginx:
+    build: nginx/
+    ports:
+      - "443:443"
+      - "80:80"
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    volumes:
+      - ${CERT_PATH:-./nginx/certs/selfsigned.crt}:/etc/nginx/certs/fullchain.pem:ro
+      - ${CERT_KEY_PATH:-./nginx/certs/selfsigned.key}:/etc/nginx/certs/privkey.pem:ro
+    restart: unless-stopped
+    depends_on:
+      matchmaking-server:
+        condition: service_healthy
+      init-certs:
+        condition: service_completed_successfully
+
   matchmaking-server:
     build:
       context: .
       dockerfile: MatchmakingServer/Dockerfile
+      args:
+        UID: ${UID:-1001}
+        GID: ${GID:-1001}
     environment:
       APIKEY: ${API_KEY}
       JWT__Issuer: ${JWT_ISSUER}
@@ -72,12 +103,35 @@ services:
   adminer:
     image: adminer
     restart: unless-stopped
-    environment: 
+    environment:
       ADMINER_DEFAULT_SERVER: postgres
       ADMINER_DEFAULT_DB_NAME: database
       ADMINER_DEFAULT_DB_DRIVER: pgsql
     ports:
       - "127.0.0.1:8080:8080"
+
+  pgbackups:
+    image: prodrigestivill/postgres-backup-local
+    restart: always
+    user: postgres:postgres
+    volumes:
+        - ${DB_BACKUP_DIR:-./pgbackup}:/backups
+    links:
+        - postgres
+    depends_on:
+        - postgres
+    environment:
+        POSTGRES_HOST: postgres
+        POSTGRES_DB: database
+        POSTGRES_USER: ${DB_USER:-username}
+        POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
+        POSTGRES_EXTRA_OPTS: -Z1 --schema=public --blobs
+        SCHEDULE: '@daily'
+        BACKUP_ON_START: 'TRUE'
+        BACKUP_KEEP_DAYS: 7
+        BACKUP_KEEP_WEEKS: 4
+        BACKUP_KEEP_MONTHS: 6
+        HEALTHCHECK_PORT: 8880
 
 volumes:
   postgres_data:

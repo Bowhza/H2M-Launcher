@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "H2MLauncher.UI", "H2MLaunch
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "H2MLauncher.Core", "H2MLauncher.Core\H2MLauncher.Core.csproj", "{A628215E-2BF7-481E-A74C-6D789E9CB639}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "H2MLauncher.CLI", "H2MLauncher.CLI\H2MLauncher.CLI.csproj", "{FDC0C8F6-FC63-422D-8D29-E87380DCF26E}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatchmakingServer", "MatchmakingServer\MatchmakingServer.csproj", "{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MatchmakingServer.Tests", "MatchmakingServer.Tests\MatchmakingServer.Tests.csproj", "{0A39CB47-BFA0-4F7A-B69D-92687A477402}"
@@ -33,10 +31,6 @@ Global
 		{A628215E-2BF7-481E-A74C-6D789E9CB639}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A628215E-2BF7-481E-A74C-6D789E9CB639}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A628215E-2BF7-481E-A74C-6D789E9CB639}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FDC0C8F6-FC63-422D-8D29-E87380DCF26E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FDC0C8F6-FC63-422D-8D29-E87380DCF26E}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FDC0C8F6-FC63-422D-8D29-E87380DCF26E}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FDC0C8F6-FC63-422D-8D29-E87380DCF26E}.Release|Any CPU.Build.0 = Release|Any CPU
 		{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{92A62ADB-DEA0-4828-B65F-EE6D3DE9F653}.Release|Any CPU.ActiveCfg = Release|Any CPU

@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace MatchmakingServer.Controllers;
 
 [Authorize]
-[ApiController]
+[Route("api")]
 public class FriendsController : ControllerBase
 {
     private readonly FriendshipsService _friendshipsService;

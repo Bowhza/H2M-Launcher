@@ -28,7 +28,6 @@ using H2MLauncher.UI.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Microsoft.Xaml.Behaviors.Input;
 
 using Nogic.WritableOptions;
 
@@ -36,9 +35,7 @@ namespace H2MLauncher.UI.ViewModels;
 
 public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
-    private readonly IMasterServerService _h2mMaster;
     private readonly IMasterServerService _hmwMaster;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _udpGameServerCommunicationService;
     private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
     private readonly LauncherService _h2MLauncherService;
@@ -117,7 +114,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
     private ServerTabViewModel<ServerViewModel> HMWServersTab { get; set; }
-    private ServerTabViewModel<ServerViewModel> H2MServersTab { get; set; }
     private ServerTabViewModel<ServerViewModel> FavouritesTab { get; set; }
     private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
     public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
@@ -140,9 +136,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
     public ServerBrowserViewModel(
-        [FromKeyedServices("H2M")] IMasterServerService h2mMasterService,
         [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,
-        [FromKeyedServices("UDP")] IGameServerInfoService<ServerConnectionDetails> udpGameServerService,
         [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
         LauncherService h2MLauncherService,
@@ -162,9 +156,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         IOnlineServices onlineService,
         SocialOverviewViewModel socialOverviewViewModel)
     {
-        _h2mMaster = h2mMasterService;
         _hmwMaster = hmwMasterService;
-        _udpGameServerCommunicationService = udpGameServerService;
         _tcpGameServerCommunicationService = tcpGameServerService;
         _h2MCommunicationService = h2MCommunicationService;
         _h2MLauncherService = h2MLauncherService;
@@ -211,11 +203,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             throw new Exception("Could not add HMW servers tab");
         }
 
-        if (!TryAddNewTab("H2M Servers", out ServerTabViewModel? h2mServersTab))
-        {
-            throw new Exception("Could not add H2M servers tab");
-        }
-
         if (!TryAddNewTab("Favourites", out ServerTabViewModel? favouritesTab))
         {
             throw new Exception("Could not add favourites tab");
@@ -233,7 +220,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
         ServerTabs.Remove(allServersTab);
         AllServersTab = allServersTab;
-        H2MServersTab = h2mServersTab;
         HMWServersTab = hmwServersTab;
         FavouritesTab = favouritesTab;
 
@@ -784,23 +770,17 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             StatusText = "Refreshing servers...";
 
             AllServersTab.Servers.Clear();
-            H2MServersTab.Servers.Clear();
             HMWServersTab.Servers.Clear();
             FavouritesTab.Servers.Clear();
             RecentsTab.Servers.Clear();
 
             // Get servers from the master
             IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMaster.FetchServersAsync(linkedCancellation.Token);
-            IReadOnlySet<ServerConnectionDetails> h2mServers = await _h2mMaster.FetchServersAsync(linkedCancellation.Token);
-
-            // Exclude HMW only servers from H2M list
-            List<ServerConnectionDetails> actualH2mServers = h2mServers.Except(hmwServers).ToList();
 
             Task hmwServerInfoTask = GetServerInfo(_tcpGameServerCommunicationService, hmwServers, linkedCancellation.Token);
-            Task h2mServerInfoTask = GetServerInfo(_udpGameServerCommunicationService, actualH2mServers, linkedCancellation.Token);
 
             // artificial delay
-            await Task.WhenAny(Task.WhenAll(hmwServerInfoTask, h2mServerInfoTask), Task.Delay(1000));
+            await Task.WhenAny(hmwServerInfoTask, Task.Delay(1000));
 
             // Start fetching server data in the background
             _ = UpdateServerDataList(linkedCancellation.Token);
@@ -865,13 +845,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             RecentsTab.Servers.Add(serverViewModel);
         }
 
-        if (serverViewModel.Protocol == 3)
+        if (serverViewModel.Protocol == 3) // == HMW
         {
             HMWServersTab.Servers.Add(serverViewModel);
-        }
-        else
-        {
-            H2MServersTab.Servers.Add(serverViewModel);
         }
     }
 

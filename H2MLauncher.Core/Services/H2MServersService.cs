@@ -51,7 +51,7 @@ namespace H2MLauncher.Core.Services
             }
             catch (Exception ex)
             {
-                _errorHandlingService.HandleException(ex, "Unable to fetch the servers details at this time. Please try again later.");
+               _errorHandlingService.HandleException(ex, "Unable to fetch the servers details at this time. Please try again later.");
             }
             finally
             {

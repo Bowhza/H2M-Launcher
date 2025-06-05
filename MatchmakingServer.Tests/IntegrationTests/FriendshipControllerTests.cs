@@ -48,7 +48,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
         FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>(
-            $"/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
+            $"/api/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
 
         // Assert
         friends.Should().BeEmpty();
@@ -106,7 +106,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
-        FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>($"/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
+        FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>($"/api/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
 
         // Assert
         friends.Should().HaveCount(2);
@@ -175,7 +175,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
-        FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>($"/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
+        FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>($"/api/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
 
         // Assert
         friends.Should().HaveCount(2);
@@ -243,7 +243,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.GetAsync($"/users/{requestingUser.Id}/friend-requests/{otherUser.Id}");
+        HttpResponseMessage response = await client.GetAsync($"/api/users/{requestingUser.Id}/friend-requests/{otherUser.Id}");
 
         // Assert
         if (expectRequestFound)
@@ -281,7 +281,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user1.Id, user1.Name);
-        HttpResponseMessage response = await client.GetAsync($"/users/{user1.Id}/friend-requests/{user2.Id}");
+        HttpResponseMessage response = await client.GetAsync($"/api/users/{user1.Id}/friend-requests/{user2.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -301,7 +301,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(nonExistentUser.Id, nonExistentUser.Name);
-        HttpResponseMessage response = await client.GetAsync($"/users/{nonExistentUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.GetAsync($"/api/users/{nonExistentUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -319,7 +319,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.GetAsync($"/users/{requestingUser.Id}/friend-requests/{nonExistentTargetUser.Id}");
+        HttpResponseMessage response = await client.GetAsync($"/api/users/{requestingUser.Id}/friend-requests/{nonExistentTargetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -343,7 +343,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(targetUser.Id));
+            $"/api/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(targetUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -362,7 +362,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(nonExistentTargetUser.Id));
+            $"/api/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(nonExistentTargetUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -380,7 +380,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(requestingUser.Id));
+            $"/api/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(requestingUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.BadRequest);
@@ -407,7 +407,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{fromOtherUser.Id}/friend-requests", new SendFriendRequestDto(targetUser.Id));
+            $"/api/users/{fromOtherUser.Id}/friend-requests", new SendFriendRequestDto(targetUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Forbidden);
@@ -445,7 +445,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
+            $"/api/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
@@ -469,7 +469,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
+            $"/api/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
@@ -501,7 +501,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
         HttpResponseMessage response = await client.PostAsJsonAsync(
-            $"/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
+            $"/api/users/{requestingUser.Id}/friend-requests", new SendFriendRequestDto(otherUser.Id));
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Created);
@@ -535,7 +535,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -553,7 +553,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -571,7 +571,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -594,7 +594,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -617,7 +617,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -640,7 +640,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
@@ -673,7 +673,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.PutAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
+        HttpResponseMessage response = await client.PutAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", null);
         FriendDto? acceptedFriend = await response.Content.ReadFromJsonAsync<FriendDto>(JsonSerialization.SerializerOptions);
 
         // Assert
@@ -682,7 +682,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         acceptedFriend!.FriendsSince.Should().BeCloseTo(DateTimeOffset.UtcNow, TimeSpan.FromSeconds(10));
 
         FriendDto? friend = await client.GetFromJsonAsync<FriendDto>(
-            $"/users/{requestingUser.Id}/friends/{targetUser.Id}", JsonSerialization.SerializerOptions);
+            $"/api/users/{requestingUser.Id}/friends/{targetUser.Id}", JsonSerialization.SerializerOptions);
 
         friend.Should().BeEquivalentTo(expectedFriendDto, options => options.Excluding(f => f.FriendsSince));
     }
@@ -704,7 +704,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -722,7 +722,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -740,7 +740,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -763,7 +763,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -786,7 +786,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -809,7 +809,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.Conflict);
@@ -832,7 +832,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friend-requests/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
@@ -862,7 +862,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
         FriendRequestDto[]? friendRequests = await client.GetFromJsonAsync<FriendRequestDto[]>(
-            $"/users/{user.Id}/friend-requests", JsonSerialization.SerializerOptions);
+            $"/api/users/{user.Id}/friend-requests", JsonSerialization.SerializerOptions);
 
         // Assert
         friendRequests.Should().NotBeNull();
@@ -879,7 +879,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(nonExistentUser.Id, nonExistentUser.Name);
-        HttpResponseMessage response = await client.GetAsync($"/users/{nonExistentUser.Id}/friend-requests");
+        HttpResponseMessage response = await client.GetAsync($"/api/users/{nonExistentUser.Id}/friend-requests");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -995,7 +995,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -1013,7 +1013,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -1031,7 +1031,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
@@ -1054,12 +1054,12 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
 
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(requestingUser.Id, requestingUser.Name);
-        HttpResponseMessage response = await client.DeleteAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+        HttpResponseMessage response = await client.DeleteAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}");
 
         // Assert
         response.StatusCode.Should().Be(System.Net.HttpStatusCode.NoContent);
 
-        HttpResponseMessage friendResponse = await client.GetAsync($"/users/{requestingUser.Id}/friends/{targetUser.Id}");
+        HttpResponseMessage friendResponse = await client.GetAsync($"/api/users/{requestingUser.Id}/friends/{targetUser.Id}");
         friendResponse.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
     }
 

@@ -41,7 +41,7 @@ public sealed class AuthenticationService
         {
             _logger.LogDebug("Authenticating with passwordless auth...");
 
-            string challengeUrl = _options.Value.MatchmakingServerUrl
+            string challengeUrl = _options.Value.MatchmakingServerApiUrl
                 .AppendPathSegment("auth/challenge");
 
             ChallengeResponse? challengeResponse = await _httpClient.GetFromJsonAsync<ChallengeResponse>(challengeUrl);
