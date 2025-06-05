@@ -44,6 +44,8 @@ builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 builder.Services.AddTransient<DownloadCountService>();
 builder.Services.AddTransient<PartySnapshotService>();
 
+builder.Services.AddHealthChecks();
+
 
 var app = builder.Build();
 
