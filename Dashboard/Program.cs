@@ -62,10 +62,9 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-//app.UseHttpsRedirection();
-
-
 app.UseAntiforgery();
+
+app.MapHealthChecks("/health");
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()

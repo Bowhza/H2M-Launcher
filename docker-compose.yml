@@ -45,7 +45,6 @@ services:
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=database;Username=${DB_USER:-username};Password=${DB_PASSWORD:-password}
     ports:
       - 9100:9000
-      - 9101:9001
     volumes:
       - ./MatchmakingServer/appsettings.json:/app/appsettings.json
       - ${LOG_DIR:-./logs}:/app/logs
@@ -65,13 +64,15 @@ services:
     build:
       context: .
       dockerfile: Dashboard/Dockerfile
+      args:
+        UID: ${UID:-1001}
+        GID: ${GID:-1001}
     environment:
       BackendApi__BaseAddress: http://matchmaking-server:9000
       BackendApi__DashboardApiKey: ${API_KEY}
       ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=dashboard-service;Username=${DB_USER:-username};Password=${DB_PASSWORD:-password}
     ports:
       - 7100:7000
-      - 7101:7001
     healthcheck:
       test: curl --silent --fail http://localhost:7000/health || exit 1
       interval: 15s
