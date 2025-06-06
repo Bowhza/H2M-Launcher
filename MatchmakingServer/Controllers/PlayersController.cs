@@ -9,7 +9,7 @@ namespace MatchmakingServer.Controllers;
 
 [ApiController]
 [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class PlayersController : ControllerBase
 {
     private readonly PlayerStore _playerStore;

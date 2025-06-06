@@ -11,7 +11,7 @@ namespace MatchmakingServer.Controllers;
 
 [ApiController]
 [Authorize(AuthenticationSchemes = ApiKeyDefaults.AuthenticationScheme)]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
     private readonly DatabaseContext _dbContext;
