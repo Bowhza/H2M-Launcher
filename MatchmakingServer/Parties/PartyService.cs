@@ -60,7 +60,12 @@ namespace MatchmakingServer.Parties
                 });
         }
 
-        private static PartyInfo CreatePartyInfo(Party party)
+        public IParty? GetPartyById(string partyId)
+        {
+            return _parties.GetValueOrDefault(partyId);
+        }
+
+        public static PartyInfo CreatePartyInfo(IParty party)
         {
             // Only include currently valid invites in the DTO
             List<InviteInfo> validInvites = party.Invites

@@ -15,6 +15,7 @@ namespace MatchmakingServer.Controllers;
 
 [Authorize]
 [Route("api")]
+[Route("")] // NOTE: for compatibility
 public class FriendsController : ControllerBase
 {
     private readonly FriendshipsService _friendshipsService;
