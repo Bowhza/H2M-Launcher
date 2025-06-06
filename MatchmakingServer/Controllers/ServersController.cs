@@ -12,6 +12,7 @@ namespace MatchmakingServer.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("[controller]")] // NOTE: for compatibility
     public class ServersController : ControllerBase
     {
         private readonly IOptionsMonitor<ServerSettings> _serverSettings;
