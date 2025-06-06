@@ -195,14 +195,17 @@ namespace H2MLauncher.UI
                         new JsonSerializerOptions(JsonSerializerDefaults.Web)
                         {
                             Converters = { new JsonStringEnumConverter() }
-                        })
+                        }),
+                    HttpMessageHandlerFactory = () =>
+                        Core.Utilities.Http.HttpClientBuilderExtensions.CustomMessageHandlerFactory(sp)
                 })
                 .ConfigureMatchmakingClient();
 
             // authentication
             services.AddTransient<AuthenticationService>();
             services.AddHttpClient<AuthenticationService>()
-                .ConfigureMatchmakingClient();
+                .ConfigureMatchmakingClient()
+                .ConfigureCertificateValidationIgnore();
 
             services.AddSingleton(sp =>
             {
@@ -219,7 +222,8 @@ namespace H2MLauncher.UI
             services.AddTransient<CachedServerDataService>();
             services.AddTransient<IPlaylistService, CachedServerDataService>(sp => sp.GetRequiredService<CachedServerDataService>());
             services.AddHttpClient<CachedServerDataService>()
-                .ConfigureMatchmakingClient();
+                .ConfigureMatchmakingClient()
+                .ConfigureCertificateValidationIgnore();
 
             // hub clients
             services.AddHubClient<QueueingService, IMatchmakingHub>((sp, manager) => manager.QueueingHubConnection);
