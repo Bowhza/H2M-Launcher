@@ -330,9 +330,10 @@
                                         <Setter.Value>
                                             <ControlTemplate TargetType="ToggleButton">
                                                 <Border Name="Bd"
-                                                Padding="{TemplateBinding Padding}"
-                                                TextBlock.Foreground="{TemplateBinding Foreground}"
-                                                TextElement.Foreground="{TemplateBinding Foreground}">
+                                                        Padding="{TemplateBinding Padding}"
+                                                        TextBlock.Foreground="{TemplateBinding Foreground}"
+                                                        TextElement.Foreground="{TemplateBinding Foreground}"
+                                                        Background="Transparent">
                                                     <ContentPresenter />
                                                 </Border>
                                                 <ControlTemplate.Triggers>

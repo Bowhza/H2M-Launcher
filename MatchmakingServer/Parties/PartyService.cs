@@ -349,13 +349,6 @@ namespace MatchmakingServer.Parties
                 return null;
             }
 
-            if (!caller.IsPartyLeader)
-            {
-                // only party leader can create invites (for now)
-                _logger.LogWarning("Player {leaderId} tried to create invite for party {partyId} but is not the leader", caller.Id, party.Id);
-                return null;
-            }
-
             // Ensure the invited player is not already in the party
             if (party.Members.Any(m => m.Id == invitedPlayer.Id))
             {

@@ -97,7 +97,6 @@ There are two ways to add friends to your friends list:
   ![](./Images/Party-Add-Friend.png)
 
 - Or you can search for their user name or ID
-  > **NOTE**: *You can not find users by their player name, only by their randomly generated user name.*
 
   ![](./Images/Search-Friends.png)
 
