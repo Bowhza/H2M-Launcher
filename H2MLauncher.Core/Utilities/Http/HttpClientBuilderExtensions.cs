@@ -17,20 +17,27 @@ namespace H2MLauncher.Core.Utilities.Http
 
                 client.BaseAddress = Url.Parse(matchmakingSettings.MatchmakingServerApiUrl).ToUri();
                 client.DefaultRequestHeaders.AddApplicationMetadata();
-            }).ConfigurePrimaryHttpMessageHandler((sp) =>
-            {
-                MatchmakingSettings matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>().Value;
-
-                return matchmakingSettings.DisableCertificateValidation
-                    ? new SocketsHttpHandler()
-                    {
-                        SslOptions = new()
-                        {
-                            RemoteCertificateValidationCallback = delegate { return true; }
-                        }
-                    }
-                    : new SocketsHttpHandler();
             });
         }
+
+        public static IHttpClientBuilder ConfigureCertificateValidationIgnore(this IHttpClientBuilder httpClientBuilder)
+        {
+           return httpClientBuilder.ConfigurePrimaryHttpMessageHandler(CustomMessageHandlerFactory);
+        }
+
+        public static readonly Func<IServiceProvider, HttpMessageHandler> CustomMessageHandlerFactory = (sp) =>
+        {
+            MatchmakingSettings matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>().Value;
+
+            return matchmakingSettings.DisableCertificateValidation
+                ? new SocketsHttpHandler()
+                {
+                    SslOptions = new()
+                    {
+                        RemoteCertificateValidationCallback = delegate { return true; }
+                    }
+                }
+                : new SocketsHttpHandler();
+        };
     }
 }
