@@ -503,7 +503,9 @@ public sealed class FriendshipsService(
             else
             {
                 // If not a GUID, search by username (case-insensitive)
-                usersQuery = usersQuery.Where(u => u.Name.ToLower().Contains(normalizedQuery));
+                usersQuery = usersQuery.Where(u => 
+                    u.Name.ToLower().Contains(normalizedQuery) ||
+                    (u.LastPlayerName != null && u.LastPlayerName.ToLower().Contains(normalizedQuery)));
             }
 
             List<UserSearchResultDto> users = await usersQuery
