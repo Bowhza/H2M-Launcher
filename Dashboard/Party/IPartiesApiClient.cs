@@ -6,9 +6,9 @@ namespace Dashboard.Party;
 
 public interface IPartiesApiClient
 {
-    [Get("/parties")]
+    [Get("/api/parties")]
     Task<IApiResponse<IEnumerable<PartyInfo>>> GetParties(); // Use ApiResponse for more control over HTTP response details
 
-    [Get("/parties/{id}")]
+    [Get("/api/parties/{id}")]
     Task<IApiResponse<PartyInfo>> GetParty(string id);
 }
