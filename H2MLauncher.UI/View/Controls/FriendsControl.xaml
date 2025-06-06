@@ -192,15 +192,36 @@
                                                 <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="Opacity" Value="0.8"/>
                                                 <Setter Property="ToolTip" Value="Party privacy"/>
+                                                <Setter Property="Visibility" Value="Collapsed"/>
                                                 <Style.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
                                                         <!--<Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, StringFormat={}Privacy: {0}}"/>-->
                                                         <Setter Property="Opacity" Value="1"/>
                                                     </Trigger>
+                                                    <DataTrigger Binding="{Binding DataContext.IsPartyLeader, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
                                         </Button.Style>
                                     </Button>
+
+                                    <!-- Party Privacy Text (non-leader) -->
+                                    <TextBlock Grid.Column="1" Padding="3,1" Margin="3,0,2,0" Foreground="White" Opacity="0.8" VerticalAlignment="Center"
+                                               Text="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Opacity" Value="0.8"/>
+                                                <Setter Property="ToolTip" Value="Party privacy"/>
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DataContext.IsPartyLeader, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
 
                                     <!-- Party member count -->
                                     <TextBlock Text="{Binding ItemCount, StringFormat={}({0})}" 
@@ -446,7 +467,7 @@
                     </ItemsControl.GroupStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ToggleButton x:Name="border" Padding="7,5,7,0" Foreground="White">
+                            <ToggleButton x:Name="border" Padding="7,5,7,0" Foreground="White" Background="Transparent">
                                 <!-- Deselect item when popup closes -->
                                 <i:Interaction.Triggers>
                                     <i:EventTrigger EventName="Closed">
@@ -464,7 +485,8 @@
                                                     <Border Name="Bd"
                                                             Padding="{TemplateBinding Padding}"
                                                             TextBlock.Foreground="{TemplateBinding Foreground}"
-                                                            TextElement.Foreground="{TemplateBinding Foreground}">
+                                                            TextElement.Foreground="{TemplateBinding Foreground}"
+                                                            Background="Transparent">
                                                         <ContentPresenter />
                                                     </Border>
                                                     <ControlTemplate.Triggers>

@@ -336,7 +336,7 @@ namespace H2MLauncher.Core.Party
 
         public async Task InviteToParty(string id)
         {
-            if (_currentParty is null || !_isPartyLeader)
+            if (_currentParty is null)
             {
                 return;
             }
