@@ -330,7 +330,7 @@
 
         <!-- Connection Error -->
         <StackPanel Visibility="{Binding IsConnectionError, Converter={StaticResource booleanToVisibilityConverter}}"
-                    Background="#88000000" TextBlock.Foreground="{DynamicResource TextLight}" Margin="0,5">
+                    Background="{DynamicResource TransparentDark500}" TextBlock.Foreground="{DynamicResource TextLight}" Margin="0,5">
             <TextBlock Text="Socials Unavailable" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" Margin="0,10,0,0"/>
             <TextBlock Text="We're having trouble connecting to the socials system. Some features may not work right now."
                        TextWrapping="WrapWithOverflow" HorizontalAlignment="Center" TextAlignment="Center" 
@@ -343,11 +343,11 @@
         </StackPanel>
 
         <!-- Connecting -->
-        <StackPanel Background="#88000000" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center" Height="70">
+        <StackPanel Background="{DynamicResource TransparentDark500}" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center" Height="70">
             <TextBlock Text="Connecting to social hub..." VerticalAlignment="Center" 
                TextWrapping="WrapWithOverflow" HorizontalAlignment="Center" TextAlignment="Center" 
                Foreground="{DynamicResource TextLight}" Margin="0,5,0,10" FontFamily="Consolas" />
-            <ProgressBar IsIndeterminate="True" Height="5" Foreground="{DynamicResource ControlPrimaryHover}" BorderThickness="0" Background="#55000000" Margin="10"/>
+            <ProgressBar IsIndeterminate="True" Height="5" Foreground="{DynamicResource ControlPrimaryHover}" BorderThickness="0" Background="{DynamicResource TransparentDark300}" Margin="10"/>
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -365,7 +365,7 @@
         </StackPanel>
 
         <!-- No friends -->
-        <Border Background="#66000000" VerticalAlignment="Stretch" Grid.Row="1" Margin="0,5" 
+        <Border Background="{DynamicResource TransparentDark400}" VerticalAlignment="Stretch" Grid.Row="1" Margin="0,5" 
                 BorderBrush="#1999" BorderThickness="0">
             <StackPanel  TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center">
                 <TextBlock Text="You don't seem to have any friends yet." VerticalAlignment="Center" 
@@ -402,7 +402,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}">            
             <StackPanel Grid.Row="1" TextBlock.FontFamily="Consolas">
                 <!-- No party -->
-                <Border Background="#66000000" Grid.Row="1" Margin="0,5" BorderThickness="0">
+                <Border Background="{DynamicResource TransparentDark400}" Grid.Row="1" Margin="0,5" BorderThickness="0">
                     <Grid TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center"
                           Margin="11.5,2,10,0" HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
@@ -441,7 +441,7 @@
                 <!-- Friends & Party -->
                 <ItemsControl ItemsSource="{Binding Friends, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5"
                               Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}"
-                              BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="#66000000" Grid.Row="1"
+                              BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="{DynamicResource TransparentDark400}" Grid.Row="1"
                               KeyboardNavigation.DirectionalNavigation="Contained">
                     <ItemsControl.GroupStyle>
                         <GroupStyle>

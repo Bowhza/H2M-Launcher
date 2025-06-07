@@ -69,19 +69,19 @@
     <Color x:Key="ColorPrimary600">#c824d5</Color>
     <Color x:Key="ColorPrimary900">#741976</Color>-->
 
-    <Style TargetType="{x:Type Control}">
-        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
-    </Style>
 
+    <!--  Brushes -->
     <SolidColorBrush x:Key="TextDark" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="TextLight" Color="{DynamicResource ColorLight}" />
     <SolidColorBrush x:Key="TextHint" Color="{DynamicResource ColorNeutral300}" />
+    
     <SolidColorBrush x:Key="ControlBackground" Color="{DynamicResource ColorNeutral700}" />
     <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="{DynamicResource ColorNeutral600}" />
     <SolidColorBrush x:Key="ControlForegroundDisabled" Color="{DynamicResource ColorNeutral200}" />
     <SolidColorBrush x:Key="ControlBorderBrush" Color="{DynamicResource ColorNeutral300}" />
     <SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
 
+    <!-- Primary Brushes -->
     <SolidColorBrush x:Key="ControlPrimary" Color="{DynamicResource ColorPrimary500}" />
     <SolidColorBrush x:Key="ControlPrimaryHover" Color="{DynamicResource ColorPrimary400}" />
     <SolidColorBrush x:Key="ControlPrimarySelected" Color="{DynamicResource ColorPrimary500}" />
@@ -90,13 +90,13 @@
     <SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
     <SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
     
-    <!--<SolidColorBrush x:Key="TransparentDark" Color="{}"-->
 
     <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
 
     <SolidColorBrush x:Key="BrushSecondary" Color="{DynamicResource ColorSecondary500}"/>
 
+    <!-- Neutral Brushes -->
     <SolidColorBrush x:Key="BrushNeutral" Color="{DynamicResource ColorNeutral400}"/>
     <SolidColorBrush x:Key="BrushNeutralLight" Color="{DynamicResource ColorNeutral250}"/>
     <SolidColorBrush x:Key="BrushNeutralDark" Color="{DynamicResource ColorNeutral700}"/>
@@ -108,20 +108,34 @@
     <SolidColorBrush x:Key="BrushNeutral700" Color="{DynamicResource ColorNeutral700}"/>
     <SolidColorBrush x:Key="BrushNeutral800" Color="{DynamicResource ColorNeutral800}"/>
     <SolidColorBrush x:Key="BrushNeutral900" Color="{DynamicResource ColorNeutral900}"/>
+    <SolidColorBrush x:Key="BrushNeutral950" Color="{DynamicResource ColorNeutral950}"/>
 
-    <SolidColorBrush x:Key="ItemTransparentHover" Color="{DynamicResource ColorLight}" Opacity="0.07"/>
-    <SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
-    <SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
-
+    <!-- TextBox Brushes -->
     <SolidColorBrush x:Key="TextBoxBackgroundDark" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
     <SolidColorBrush x:Key="TextBoxBorderBrush" Color="{DynamicResource ColorNeutral400}"/>
 
+    <!-- Transparent Item Brushes -->
+    <SolidColorBrush x:Key="ItemTransparentHover" Color="{DynamicResource ColorLight}" Opacity="0.07"/>
+    <SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
+    <SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
 
     <!-- Transparent Dark Brushes -->
     <SolidColorBrush x:Key="TransparentDark200" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
     <SolidColorBrush x:Key="TransparentDark300" Color="{DynamicResource ColorBlack}" Opacity="0.3"/>
     <SolidColorBrush x:Key="TransparentDark400" Color="{DynamicResource ColorBlack}" Opacity="0.4"/>
     <SolidColorBrush x:Key="TransparentDark500" Color="{DynamicResource ColorBlack}" Opacity="0.5"/>
+
+    <!-- Transparent White Brushes -->
+    <SolidColorBrush x:Key="TransparentLight100" Color="{DynamicResource ColorLight}" Opacity="0.1"/>
+    <SolidColorBrush x:Key="TransparentLight200" Color="{DynamicResource ColorLight}" Opacity="0.2"/>
+    <SolidColorBrush x:Key="TransparentLight300" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
+    <SolidColorBrush x:Key="TransparentLight400" Color="{DynamicResource ColorLight}" Opacity="0.4"/>
+    <SolidColorBrush x:Key="TransparentLight500" Color="{DynamicResource ColorLight}" Opacity="0.5"/>
+
+
+    <Style TargetType="{x:Type Control}">
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    </Style>
 
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
@@ -235,7 +249,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#66FFFFFF" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource TransparentLight400}" />
                             <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
@@ -892,6 +906,7 @@
         </Style.Triggers>
     </Style>
 
+    
     <Style x:Key="SocialPanelBorderStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="5,5,0,0"/>
         <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
@@ -908,6 +923,16 @@
                 <Setter Property="HorizontalAlignment" Value="Center" />
             </Style>
         </Style.Resources>
+    </Style>
+
+    
+    <SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
+
+    <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
+        <Setter Property="Opacity" Value="0.9"/>
+        <Setter Property="RowBackground" Value="Transparent"/>
+        <Setter Property="Background" Value="{DynamicResource DialogBackground}"/>
+        <Setter Property="BorderThickness" Value="0"/>
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />

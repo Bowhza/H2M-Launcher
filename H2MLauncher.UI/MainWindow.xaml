@@ -141,7 +141,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="85" />
                     </Grid.ColumnDefinitions>
-                    
+
                     <!-- Title -->
                     <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource TextLight}"/>
 
@@ -149,14 +149,14 @@
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
                         <Button VerticalAlignment="Center" Style="{StaticResource DiscordWindowButtonStyle}" HorizontalAlignment="Left"
                                 Height="27" Width="27" Margin="0,0,5,0"
-                                Background="#22FFFFFF" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
+                                Background="{DynamicResource TransparentLight100}" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </StackPanel>
                         </Button>
                         <Button VerticalAlignment="Center" HorizontalAlignment="Left"
                                 Height="27" Width="27" Style="{StaticResource WindowButtonStyle}"
-                                Background="#22FFFFFF" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
+                                Background="{DynamicResource TransparentLight100}" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </StackPanel>
@@ -302,9 +302,10 @@
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <Grid>
                                     <!-- Opaque background for the header row -->
-                                    <Rectangle VerticalAlignment="Top" Fill="{DynamicResource DialogBackground}" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
+                                    <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="0, 0, 0, 5"></Rectangle>
                                     <view:CustomDataGrid
                                         x:Name="serverDataGrid" 
+                                        Style="{DynamicResource ServerDataGridStyle}"
                                         ItemsSource="{Binding ServerCollectionView}" 
                                         FontFamily="Consolas"
                                         Margin="-2,-2,-2,-2" 
@@ -320,15 +321,11 @@
                                         GridLinesVisibility="None"
                                         SelectionUnit="FullRow"
                                         HorizontalScrollBarVisibility="Hidden"
-                                        BorderThickness="0"
-                                        Background="{DynamicResource DialogBackground}"
-                                        Opacity="0.90"
                                         SelectionMode="Single"
                                         CanUserResizeColumns="true"
                                         HeadersVisibility="Column"
                                         VerticalScrollBarVisibility="Hidden"
-                                        SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
-                                        RowBackground="Transparent">
+                                        SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
                                         <DataGrid.Resources>
                                             <DataGridTextColumn 
                                             x:Key="ThatPeskyColumn"

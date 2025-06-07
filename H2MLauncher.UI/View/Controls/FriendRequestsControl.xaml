@@ -168,7 +168,7 @@
         </Grid.RowDefinitions>
 
         <!-- Search Friends -->
-        <StackPanel Visibility="Visible" Background="#66000000" Margin="0,5" x:Name="SearchFriendsPanel">
+        <StackPanel Visibility="Visible" Background="{DynamicResource TransparentDark400}" Margin="0,5" x:Name="SearchFriendsPanel">
             <!-- Search Query -->
             <Grid Grid.Column="1" VerticalAlignment="Center" Margin="0,10,0,0">
                 <TextBox TabIndex="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
@@ -288,14 +288,14 @@
 
         <!-- No friend requests -->
         <Border Visibility="{Binding HasRequests, Converter={StaticResource InverseBoolToVisibilityConverter}}" 
-                BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="#88000000" VerticalAlignment="Stretch" Margin="0,5" Grid.Row="1">
+                BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="{DynamicResource TransparentDark500}" VerticalAlignment="Stretch" Margin="0,5" Grid.Row="1">
             <TextBlock Margin="0,5"  Padding="0,5" Text="No pending friend requests." HorizontalAlignment="Center"/>
         </Border>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
 
             <!-- Friend Requests list -->
-            <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="#66000000"
+            <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="{DynamicResource TransparentDark400}"
                           BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
                           KeyboardNavigation.DirectionalNavigation="Contained" VerticalAlignment="Top">
                 <ItemsControl.GroupStyle>

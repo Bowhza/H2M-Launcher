@@ -9,7 +9,7 @@
              MinWidth="150"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:PartyViewModel}">
-    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#66000000">
+    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="{DynamicResource TransparentDark400}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
