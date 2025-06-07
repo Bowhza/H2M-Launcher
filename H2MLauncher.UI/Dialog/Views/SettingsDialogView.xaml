@@ -29,7 +29,7 @@
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
                 <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
-                <Setter Property="Background" Value="#33000000"/>
+                <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
                 <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
@@ -76,7 +76,7 @@
         <TextBox Text="{Binding HmwMasterServerUrl}" Grid.Row="1" Grid.Column="1" Height="20"/>
 
         <TextBlock Text="Game Location:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Left"/>
-        <Border Grid.Row="2" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">
+        <Border Grid.Row="2" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
             <DockPanel>
                 <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectGameDirectoryCommand}"
                         Width="30" DockPanel.Dock="Right" Margin="2,0,0,0">

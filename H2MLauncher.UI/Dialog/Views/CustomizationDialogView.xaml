@@ -19,7 +19,7 @@
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
                 <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
-                <Setter Property="Background" Value="#33000000"/>
+                <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
                 <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
@@ -56,7 +56,7 @@
                    Margin="0,0,0,15"/>
 
         <TextBlock Text="Background Image:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Left"/>
-        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">
+        <Border Grid.Row="1" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">                    
                     <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetImageCommand}"
@@ -99,7 +99,7 @@
         <TextBlock Text="Background Blur:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
         <DockPanel Grid.Row="2" Grid.Column="1">
             <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="#222" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
+                     Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
             <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 

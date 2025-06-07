@@ -6,7 +6,7 @@
              xmlns:local="clr-namespace:H2MLauncher.UI.View.Controls"
              mc:Ignorable="d"
              x:Name="root"
-             Background="#33000000">
+             Background="{DynamicResource TextBoxBackgroundDark}">
     <Border Background="{Binding Background, ElementName=root}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Border.Style>
             <Style TargetType="Border">

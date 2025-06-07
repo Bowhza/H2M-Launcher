@@ -440,9 +440,9 @@
 
                 <!-- Friends & Party -->
                 <ItemsControl ItemsSource="{Binding Friends, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5"
-                      Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}"
-                      BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="#66000000" Grid.Row="1"
-                      KeyboardNavigation.DirectionalNavigation="Contained">
+                              Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}"
+                              BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="#66000000" Grid.Row="1"
+                              KeyboardNavigation.DirectionalNavigation="Contained">
                     <ItemsControl.GroupStyle>
                         <GroupStyle>
                             <GroupStyle.ContainerStyle>
@@ -467,7 +467,7 @@
                     </ItemsControl.GroupStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ToggleButton x:Name="border" Padding="7,5,7,0" Foreground="{DynamicResource TextLight}" Background="Transparent">
+                            <ToggleButton x:Name="border" Padding="7,5,7,0" Foreground="{DynamicResource TextLight}" Style="{StaticResource TransparentItemToggleButton}">
                                 <!-- Deselect item when popup closes -->
                                 <i:Interaction.Triggers>
                                     <i:EventTrigger EventName="Closed">
@@ -475,43 +475,6 @@
                                                                 PropertyName="IsChecked" Value="False" />
                                     </i:EventTrigger>
                                 </i:Interaction.Triggers>
-
-                                <ToggleButton.Style>
-                                    <Style TargetType="{x:Type ToggleButton}">
-                                        <Setter Property="Background" Value="Transparent"/>
-                                        <Setter Property="Template">
-                                            <Setter.Value>
-                                                <ControlTemplate TargetType="ToggleButton">
-                                                    <Border Name="Bd"
-                                                            Padding="{TemplateBinding Padding}"
-                                                            TextBlock.Foreground="{TemplateBinding Foreground}"
-                                                            TextElement.Foreground="{TemplateBinding Foreground}"
-                                                            Background="Transparent">
-                                                        <ContentPresenter />
-                                                    </Border>
-                                                    <ControlTemplate.Triggers>
-                                                        <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="#11FFFFFF"/>
-                                                        </Trigger>
-
-                                                        <Trigger Property="IsChecked" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
-                                                        </Trigger>
-                                                        <Trigger Property="IsPressed" Value="True">
-                                                            <Setter TargetName="Bd" Property="Background" Value="#22FFFFFF"/>
-                                                        </Trigger>
-                                                    </ControlTemplate.Triggers>
-                                                </ControlTemplate>
-                                            </Setter.Value>
-                                        </Setter>
-
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="True">
-                                                <Setter Property="Background" Value="#33FFFFFF" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </ToggleButton.Style>
 
                                 <Grid x:Name="grid" Height="35" >
                                     <Grid.ColumnDefinitions>
