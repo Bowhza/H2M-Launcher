@@ -6,9 +6,78 @@
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
                     x:Name="GlobalResources">
+
+    <!-- Contrast Colors -->
+    <Color x:Key="ColorLight">White</Color>
+    <Color x:Key="ColorBlack">Black</Color>
+
+    <!-- Neutral Color Palette -->
+    <Color x:Key="ColorNeutral100">#e7e7e7</Color>
+    <Color x:Key="ColorNeutral200">#CCC</Color>
+    <Color x:Key="ColorNeutral300">DarkGray</Color>
+    <Color x:Key="ColorNeutral400">#888888</Color>
+    <Color x:Key="ColorNeutral500">#6d6d6d</Color>
+    <Color x:Key="ColorNeutral600">#444</Color>
+    <Color x:Key="ColorNeutral700">#373737</Color>
+    <Color x:Key="ColorNeutral800">#262626</Color>
+    <Color x:Key="ColorNeutral900">#171717</Color>
+    <Color x:Key="ColorNeutral950">#0a0a0a</Color>
+
+    <!-- Primary Color Palette -->
+    <Color x:Key="ColorPrimary100">#ffd1a5</Color>
+    <Color x:Key="ColorPrimary200">#fdba74</Color>
+    <Color x:Key="ColorPrimary300">Orange</Color>
+    <Color x:Key="ColorPrimary400">#E59400</Color>
+    <Color x:Key="ColorPrimary500">DarkOrange</Color>
+    <Color x:Key="ColorPrimary600">OrangeRed</Color>    
+    <Color x:Key="ColorPrimary700">#cc2f02</Color>
+    <Color x:Key="ColorPrimary800">#a1250b</Color>
+    <Color x:Key="ColorPrimary900">DarkRed</Color>
+    <Color x:Key="ColorPrimary950">#460d04</Color>
+
+    <!-- Secondary Color Palette -->
+    <Color x:Key="ColorSecondary100">#c9ffc4</Color>
+    <Color x:Key="ColorSecondary200">#98ff90</Color>
+    <Color x:Key="ColorSecondary300">#56ff50</Color>
+    <Color x:Key="ColorSecondary400">#00ff00</Color>
+    <Color x:Key="ColorSecondary500">#7cfc00</Color>
+    <Color x:Key="ColorSecondary600">#32CD32</Color>
+    <Color x:Key="ColorSecondary700">#008b07</Color>
+    <Color x:Key="ColorSecondary800">#008b07</Color>
+    <Color x:Key="ColorSecondary900">#008b07</Color>
+    <Color x:Key="ColorSecondary950">#003406</Color>
+
+
+    <!--<Color x:Key="ColorPrimary300">#f4aafd</Color>
+    <Color x:Key="ColorPrimary400">#ec6bfa</Color>
+    <Color x:Key="ColorPrimary500">#e044f1</Color>
+    <Color x:Key="ColorPrimary600">#c824d5</Color>
+    <Color x:Key="ColorPrimary900">#741976</Color>-->
+
+    <Style TargetType="{x:Type Control}">
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    </Style>
+
+    <SolidColorBrush x:Key="TextDark" Color="{DynamicResource ColorBlack}" />
+    <SolidColorBrush x:Key="TextLight" Color="{DynamicResource ColorLight}" />
+    <SolidColorBrush x:Key="ControlBackground" Color="{DynamicResource ColorNeutral700}" />
+    <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="{DynamicResource ColorNeutral600}" />
+    <SolidColorBrush x:Key="ControlForegroundDisabled" Color="{DynamicResource ColorNeutral200}" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="{DynamicResource ColorNeutral300}" />
+    <SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
+
+    <SolidColorBrush x:Key="ControlPrimary" Color="{DynamicResource ColorPrimary500}" />
+    <SolidColorBrush x:Key="ControlPrimaryHover" Color="{DynamicResource ColorPrimary400}" />
+    <SolidColorBrush x:Key="ControlPrimarySelected" Color="{DynamicResource ColorPrimary500}" />
+    <SolidColorBrush x:Key="ControlPrimaryPressed" Color="{DynamicResource ColorPrimary600}" />
+    <SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
+    <SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
+
+    <SolidColorBrush x:Key="BrushSecondary" Color="{DynamicResource ColorSecondary500}"/>
+
     <Style TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="#373737" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
@@ -24,12 +93,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E59400" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
@@ -41,9 +110,9 @@
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -52,7 +121,7 @@
     </Style>
 
     <Style x:Key="TextBoxButtonStyle" TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="#373737" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Padding" Value="0" />
@@ -62,7 +131,7 @@
                     <Border CornerRadius="0,4,4,0" x:Name="border"
                         Background="{TemplateBinding Background}"
                         Padding="{TemplateBinding Padding}"
-                            BorderBrush="DarkGray" 
+                            BorderBrush="{DynamicResource ControlBorderBrush}" 
                             BorderThickness="1,0,0,0">
                         <Grid>
                             <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
@@ -71,12 +140,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E59400" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
@@ -88,9 +157,9 @@
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -123,14 +192,14 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -160,14 +229,14 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -197,14 +266,14 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -234,14 +303,14 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -281,7 +350,7 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Foreground" Value="#E59400" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlPrimaryHover}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -301,7 +370,7 @@
     </Style>
 
     <Style TargetType="{x:Type ToggleButton}">
-        <Setter Property="Background" Value="#373737" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
         <Setter Property="Foreground" Value="White" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -320,12 +389,12 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#E59400" />
+                            <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="OrangeRed" />
+                            <Setter Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                             <Setter Property="Foreground" Value="White" />
                         </Trigger>
 
@@ -337,7 +406,7 @@
                         </Trigger>
 
                         <Trigger Property="IsChecked" Value="False">
-                            <Setter Property="Foreground" Value="DarkRed" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary900}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -375,7 +444,7 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Foreground" Value="#E59400" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlPrimaryHover}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -400,15 +469,8 @@
                 Grid.ColumnSpan="2"
                 CornerRadius="0"
                 Background="#FF3F3F3F"
-                BorderBrush="#FF97A0A5"
+                BorderBrush="{DynamicResource ControlBorderBrush}"
                 BorderThickness="0" />
-            <!--<Border 
-                  Grid.Column="0"
-                  CornerRadius="0" 
-                  Margin="1" 
-                  Background="#FF3F3F3F" 
-                  BorderBrush="#FF97A0A5"
-                  BorderThickness="0,0,0,0" />-->
             <Path
                 x:Name="Arrow"
                 Grid.Column="1"
@@ -419,13 +481,13 @@
         </Grid>
         <ControlTemplate.Triggers>
             <Trigger Property="ToggleButton.IsMouseOver" Value="true">
-                <Setter TargetName="Border" Property="Background" Value="#E59400" />
-                <Setter Property="Background" Value="#E59400" />
+                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                 <Setter Property="Foreground" Value="White" />
             </Trigger>
             <Trigger Property="ToggleButton.IsChecked" Value="true">
-                <Setter TargetName="Border" Property="Background" Value="#E59400" />
-                <Setter Property="Foreground" Value="DarkRed" />
+                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                <Setter Property="Foreground" Value="{DynamicResource BrushPrimary900}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter TargetName="Border" Property="BorderBrush" Value="Transparent" />
@@ -434,7 +496,7 @@
             </Trigger>
 
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="OrangeRed" />
+                <Setter Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
                 <Setter Property="Foreground" Value="White" />
             </Trigger>
         </ControlTemplate.Triggers>
@@ -444,8 +506,8 @@
         <Border x:Name="PART_ContentHost" Focusable="False" Background="{TemplateBinding Background}" />
     </ControlTemplate>
 
-    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="#373737" />
-    <SolidColorBrush x:Key="ComboBoxForegroundColor" Color="White" />
+    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="{DynamicResource ColorDark700}" />
+    <SolidColorBrush x:Key="ComboBoxForegroundColor" Color="{DynamicResource ColorLight}" />
     <SolidColorBrush x:Key="ComboBoxPopupBorderColor" Color="#AAA" />
 
     <Style TargetType="{x:Type ComboBox}">
@@ -539,8 +601,8 @@
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type DataGridColumnHeader}">
-                    <Border Background="#373737"
-                            BorderBrush="DarkGray"
+                    <Border Background="{DynamicResource ControlBackground}"
+                            BorderBrush="{DynamicResource ControlBorderBrush}"
                             BorderThickness="0,0,1,1">
                         <Grid Name="HeaderGrid">
                             <Grid.ColumnDefinitions>
@@ -558,14 +620,14 @@
                     </Border>
 
                     <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="Orange" />
+                        <Trigger Property="IsMouseOver" Value="True"> 
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource BrushPrimary300}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="DarkOrange" />                            
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource ControlPrimarySelected}" />
                         </Trigger>
                         <Trigger Property="SortDirection" Value="Ascending">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="DarkOrange" />
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource ControlPrimarySelected}" />
                             <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
                             <Setter TargetName="SortArrow" Property="RenderTransform">
                                 <Setter.Value>
@@ -574,7 +636,7 @@
                             </Setter>
                         </Trigger>
                         <Trigger Property="SortDirection" Value="Descending">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="DarkOrange" />
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource ControlPrimarySelected}" />
                             <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -680,7 +742,7 @@
                 <ControlTemplate TargetType="{x:Type TabItem}">
                     <Grid>
                         <Border Name="Border" Margin="0,4,-1,0" Background="#333" CornerRadius="2,6,0,0"
-                                BorderBrush="DarkGray" BorderThickness="1,1,1,1">
+                                BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1,1,1,1">
                             <ContentPresenter 
                                     x:Name="ContentSite" VerticalAlignment="Center"
                                     HorizontalAlignment="Center"
@@ -690,7 +752,7 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="DarkOrange" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimarySelected}" />
                             <Setter Property="Foreground" Value="Black" />
                             <Setter TargetName="Border" Property="BorderThickness" Value="1,1,1,0" />
                             <Setter TargetName="Border" Property="Margin" Value="0,0,-4,0" />
@@ -702,7 +764,7 @@
                                 <Condition Property="IsSelected" Value="False"/>
                             </MultiTrigger.Conditions>
                             <MultiTrigger.Setters>
-                                <Setter TargetName="Border" Property="Background" Value="#E59400" />
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                             </MultiTrigger.Setters>
                         </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">

@@ -441,7 +441,7 @@
                 <!-- Friends & Party -->
                 <ItemsControl ItemsSource="{Binding Friends, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5"
                       Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}"
-                      BorderBrush="#444" Background="#66000000" Grid.Row="1"
+                      BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="#66000000" Grid.Row="1"
                       KeyboardNavigation.DirectionalNavigation="Contained">
                     <ItemsControl.GroupStyle>
                         <GroupStyle>

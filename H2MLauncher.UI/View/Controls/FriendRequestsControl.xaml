@@ -288,7 +288,7 @@
 
         <!-- No friend requests -->
         <Border Visibility="{Binding HasRequests, Converter={StaticResource InverseBoolToVisibilityConverter}}" 
-                BorderBrush="#444" Background="#88000000" VerticalAlignment="Stretch" Margin="0,5" Grid.Row="1">
+                BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="#88000000" VerticalAlignment="Stretch" Margin="0,5" Grid.Row="1">
             <TextBlock Margin="0,5"  Padding="0,5" Text="No pending friend requests." HorizontalAlignment="Center"/>
         </Border>
 
@@ -296,7 +296,7 @@
 
             <!-- Friend Requests list -->
             <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="#66000000"
-                      BorderBrush="#444" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
+                      BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
                       KeyboardNavigation.DirectionalNavigation="Contained" VerticalAlignment="Top">
                 <ItemsControl.GroupStyle>
                     <GroupStyle>
