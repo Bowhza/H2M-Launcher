@@ -115,8 +115,25 @@
     <SolidColorBrush x:Key="TransparentLight500" Color="{DynamicResource ColorLight}" Opacity="0.5"/>
 
 
+    <!-- Default style for all controls -->
     <Style TargetType="{x:Type Control}">
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    </Style>
+
+    <!-- Main Window -->
+    <Style x:Key="BackgroundImageContainerStyle" TargetType="Grid">
+        <!-- Hide this container to hide the background image and expose the background brush -->
+        <Setter Property="Visibility" Value="Visible"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <!-- Brush for the background of the main window behind the image -->
+    <SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorBlack}"/>
+
+    <!-- Status Bar -->
+    <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
+        <Setter Property="Foreground" Value="{DynamicResource BrushNeutral200}" />
+        <Setter Property="Background" Value="Transparent"/>
     </Style>
 
     <Style TargetType="{x:Type Button}">
@@ -950,12 +967,6 @@
                 <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"/>
             </Trigger>
         </Style.Triggers>
-    </Style>
-
-    <!-- Status Bar -->
-    <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
-        <Setter Property="Foreground" Value="{DynamicResource BrushNeutral200}" />
-        <Setter Property="Background" Value="Transparent"/>
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />

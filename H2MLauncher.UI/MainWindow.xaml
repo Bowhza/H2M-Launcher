@@ -64,7 +64,7 @@
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
-        <Border CornerRadius="10" Padding="10,10" Background="{DynamicResource DialogBackground}"/>
+        <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}"/>
         <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
             <Grid RenderTransformOrigin="0.5, 0.5">
                 <Grid.Background>
@@ -76,7 +76,7 @@
                     </VisualBrush>
                 </Grid.Background>
                 <Grid.Style>
-                    <Style TargetType="Grid">
+                    <Style TargetType="Grid" BasedOn="{StaticResource BackgroundImageContainerStyle}">
                         <!-- Compensate for the blur effect by non-linearly zooming in to prevent dark edges -->
                         <Setter Property="Margin" 
                                 Value="{Binding Customization.BackgroundBlur, 
@@ -248,7 +248,7 @@
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3.5*"/>
-                        <ColumnDefinition x:Name="partyColumn" Width="290"/>
+                        <ColumnDefinition x:Name="partyColumn" Width="300"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
