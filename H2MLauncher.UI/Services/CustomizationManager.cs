@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -47,21 +46,23 @@ public partial class CustomizationManager : ObservableObject
         LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
         BackgroundBlur = customizationSettings?.BackgroundBlur ?? DefaultBackgroundBlur;
+        SetResourceInBaseTheme(Constants.BackgroundImageBlurRadiusKey, BackgroundBlur);
 
         // Background image
         if (string.IsNullOrEmpty(customizationSettings?.BackgroundImagePath))
         {
-            LoadDefaultImage();
+            LoadDefaultImage(resetSetting: false);
             return;
         }
 
         if (!TryLoadImage(customizationSettings!.BackgroundImagePath, out var image))
         {
+            LoadDefaultImage(resetSetting: false);
             BackgroundImageLoadingError = true;
-            LoadDefaultImage();
         }
         else
         {
+            SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
             BackgroundImage = image;
         }
 
@@ -77,6 +78,8 @@ public partial class CustomizationManager : ObservableObject
     {
         if (TryLoadImage(imageFileName, out ImageSource? image))
         {
+            SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
+
             BackgroundImage = image;
             BackgroundImageLoadingError = false;
 
@@ -84,6 +87,7 @@ public partial class CustomizationManager : ObservableObject
             {
                 BackgroundImagePath = imageFileName
             });
+
 
             return true;
         }
@@ -94,10 +98,17 @@ public partial class CustomizationManager : ObservableObject
         }
     }
 
-    public void LoadDefaultImage()
+    public void LoadDefaultImage(bool resetSetting = true)
     {
         BackgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
+        SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, BackgroundImage);
+
         BackgroundImageLoadingError = false;
+
+        if (!resetSetting)
+        {
+            return;
+        }
 
         UpdateCustomizationSettings(settings => settings with
         {
@@ -173,6 +184,8 @@ public partial class CustomizationManager : ObservableObject
 
     partial void OnBackgroundBlurChanged(double value)
     {
+        SetResourceInBaseTheme(Constants.BackgroundImageBlurRadiusKey, value);
+
         UpdateCustomizationSettings(settings => settings with
         {
             BackgroundBlur = value
@@ -185,5 +198,10 @@ public partial class CustomizationManager : ObservableObject
         {
             Customization = update(settings.Customization ?? new())
         });
+    }
+
+    private static void SetResourceInBaseTheme(object resourceKey, object value)
+    {
+        Application.Current.Resources.MergedDictionaries[0][resourceKey] = value;
     }
 }

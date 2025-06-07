@@ -5,6 +5,7 @@
                     xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
+                    xmlns:system="clr-namespace:System;assembly=mscorlib" 
                     x:Name="GlobalResources">
 
     <!-- Contrast Colors -->
@@ -126,6 +127,11 @@
         <Setter Property="Visibility" Value="Visible"/>
         <Setter Property="Opacity" Value="1"/>
     </Style>
+
+    <!-- Background image source of the main window -->
+    <ImageSource x:Key="{x:Static local:Constants.BackgroundImageSourceKey}">pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg</ImageSource>
+    <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
+
 
     <!-- Brush for the background of the main window behind the image -->
     <SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorBlack}"/>

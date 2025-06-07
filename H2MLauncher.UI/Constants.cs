@@ -39,5 +39,9 @@ namespace H2MLauncher.UI
         public const string DISCORD_INVITE_LINK = "https://discord.gg/J6cxWGvy4C";
 
         public const string GITHUB_REPO = "https://github.com/Bowhza/H2M-Launcher";
+
+        // Resources
+        public const string BackgroundImageSourceKey = "BackgroundImageSource";
+        public const string BackgroundImageBlurRadiusKey = "BackgroundImageBlurRadius";
     }
 }

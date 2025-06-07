@@ -64,14 +64,17 @@
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
+        <!-- Workaround to bind to a dynamic resource -->
+        <FrameworkElement  x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
+        
         <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}"/>
         <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
             <Grid RenderTransformOrigin="0.5, 0.5">
                 <Grid.Background>
                     <VisualBrush Stretch="UniformToFill">
                         <VisualBrush.Visual>
-                            <Image x:Name="BackgroundImageBrush" Source="{Binding Customization.BackgroundImage, ElementName=mainWindow}" Opacity="1"
-                                d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
+                            <Image x:Name="BackgroundImageBrush" Source="{DynamicResource BackgroundImageSource}" Opacity="1"
+                                   d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Grid.Background>
@@ -79,8 +82,8 @@
                     <Style TargetType="Grid" BasedOn="{StaticResource BackgroundImageContainerStyle}">
                         <!-- Compensate for the blur effect by non-linearly zooming in to prevent dark edges -->
                         <Setter Property="Margin" 
-                                Value="{Binding Customization.BackgroundBlur, 
-                                                ElementName=mainWindow, 
+                                Value="{Binding DataContext, 
+                                                ElementName=BackgroundBlurGetter, 
                                                 Converter={StaticResource CompensateBlurConverter}}"/>
                     </Style>
                 </Grid.Style>
@@ -88,7 +91,7 @@
 
             <!-- Apply blur to the border AFTER the image fills the background -->
             <Border.Effect>
-                <BlurEffect Radius="{Binding Customization.BackgroundBlur, ElementName=mainWindow}" KernelType="Gaussian"/>
+                <BlurEffect Radius="{DynamicResource BackgroundImageBlurRadius}" KernelType="Gaussian"/>
             </Border.Effect>
         </Border>
         <Border CornerRadius="10" Padding="10,10">
