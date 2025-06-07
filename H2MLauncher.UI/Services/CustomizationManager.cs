@@ -32,6 +32,9 @@ public partial class CustomizationManager : ObservableObject
     [ObservableProperty]
     private bool _themeLoadingError;
 
+    [ObservableProperty]
+    private bool _hotReloadThemes;
+
 
     public CustomizationManager(IWritableOptions<H2MLauncherSettings> settings)
     {
@@ -45,6 +48,7 @@ public partial class CustomizationManager : ObservableObject
     {
         LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
+        // Background blur
         BackgroundBlur = customizationSettings?.BackgroundBlur ?? DefaultBackgroundBlur;
         SetResourceInBaseTheme(Constants.BackgroundImageBlurRadiusKey, BackgroundBlur);
 
@@ -70,6 +74,8 @@ public partial class CustomizationManager : ObservableObject
         {
             LoadTheme(customizationSettings.Themes[0]);
         }
+
+        HotReloadThemes = customizationSettings?.HotReloadThemes ?? false;
     }
 
     public bool LoadImage(string imageFileName)
@@ -144,23 +150,28 @@ public partial class CustomizationManager : ObservableObject
     {
         try
         {
-            Application.Current.Resources.MergedDictionaries.Add(
-                new ResourceDictionary()
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                ResourceDictionary resourceDictionary = new()
                 {
                     Source = new Uri(path, UriKind.Absolute)
+                };
+
+                Application.Current.Resources.MergedDictionaries.Add(resourceDictionary);
+
+                UpdateCustomizationSettings(settings => settings with
+                {
+                    Themes = [path]
                 });
 
-            UpdateCustomizationSettings(settings => settings with
-            {
-                Themes = [path]
+                ThemeLoadingError = false;
+                return true;
             });
-
-            ThemeLoadingError = false;
-            return true;
         }
         catch (Exception)
         {
             ThemeLoadingError = true;
+            GC.Collect(); // force garbage collection to free locked file resource
             return false;
         }
     }
@@ -187,6 +198,14 @@ public partial class CustomizationManager : ObservableObject
         UpdateCustomizationSettings(settings => settings with
         {
             BackgroundBlur = value
+        });
+    }
+
+    partial void OnHotReloadThemesChanged(bool value)
+    {
+        UpdateCustomizationSettings(settings => settings with
+        {
+            HotReloadThemes = value
         });
     }
 

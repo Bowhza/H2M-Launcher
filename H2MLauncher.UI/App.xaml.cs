@@ -83,6 +83,8 @@ namespace H2MLauncher.UI
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
 
+            ServiceProvider.GetRequiredService<ThemeFileWatcher>();
+
             base.OnStartup(e);
         }
 
@@ -170,6 +172,7 @@ namespace H2MLauncher.UI
             services.AddTransient<SocialOverviewViewModel>();
             services.AddSingleton<CustomizationManager>();
             services.AddTransient<CustomizationDialogViewModel>();
+            services.AddSingleton<ThemeFileWatcher>();
 
             // online services
             services.AddSingleton<OnlineServiceManager>();

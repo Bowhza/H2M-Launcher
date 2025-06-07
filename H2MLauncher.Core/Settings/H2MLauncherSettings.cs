@@ -32,6 +32,7 @@ namespace H2MLauncher.Core.Settings
 
     public record LauncherCustomizationSettings
     {
+        public bool HotReloadThemes { get; init; } = true;
         public string? BackgroundImagePath { get; init; } = null;
         public double? BackgroundBlur { get; init; } = null;
         public List<string>? Themes { get; init; } = null;
