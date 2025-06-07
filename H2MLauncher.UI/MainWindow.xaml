@@ -363,6 +363,7 @@
                                                                        }"
                                                                        IsHitTestVisible="False"
                                                                        Focusable="False"/>
+                                                        </StackPanel>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
