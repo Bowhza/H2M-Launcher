@@ -13,14 +13,14 @@
              Height="Auto"
              Width="400"
              d:DataContext="{d:DesignInstance Type=vm:CustomizationDialogViewModel}"
-             d:Foreground="White"
-             d:Background="Black">
+             d:Foreground="{DynamicResource TextLight}"
+             d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
-                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
                 <Setter Property="Background" Value="#33000000"/>
-                <Setter Property="CaretBrush" Value="White"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
 
@@ -70,7 +70,7 @@
                 </StackPanel>
                 
                 <TextBox Text="{Binding BackgroundImageUrl, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Image'}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="White" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Style.Triggers>
@@ -99,7 +99,7 @@
         <TextBlock Text="Background Blur:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
         <DockPanel Grid.Row="2" Grid.Column="1">
             <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="#222" Foreground="White" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
+                     Background="#222" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
             <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 

@@ -39,7 +39,7 @@
         <Style TargetType="DataGridCell">
             <Setter Property="TextBlock.TextAlignment" Value="Left" />
             <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
-            <Setter Property="TextBlock.Foreground" Value="White" />
+            <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextLight}" />
             <Setter Property="Background" Value="Transparent" />
             <Setter Property="VerticalAlignment" Value="Stretch"/>
             <Setter Property="Padding" Value="0"/>
@@ -66,7 +66,7 @@
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <!-- Selection background -->
-                    <Setter Property="Background" Value="#252525"></Setter>
+                    <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"></Setter>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -98,7 +98,7 @@
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
-        <Border CornerRadius="10" Padding="10,10" Background="Black"/>
+        <Border CornerRadius="10" Padding="10,10" Background="{DynamicResource DialogBackground}"/>
         <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
             <Grid RenderTransformOrigin="0.5, 0.5">
                 <Grid.Background>
@@ -143,7 +143,7 @@
                     </Grid.ColumnDefinitions>
                     
                     <!-- Title -->
-                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource TextLight}"/>
 
                     <!-- Socials -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
@@ -164,7 +164,7 @@
                     </StackPanel>
 
                     <!-- Update -->
-                    <TextBlock Grid.Column="3" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
+                    <TextBlock Grid.Column="3" Text="{Binding UpdateStatusText}" Foreground="{DynamicResource TextLight}" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Style.Triggers>
@@ -234,10 +234,10 @@
 
                     <!-- Player / Server count -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
-                        <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
-                        <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="White" />
-                        <Label Content="Total Servers:" Foreground="White"/>
-                        <Label Content="{Binding SelectedTab.TotalServers}" Foreground="White" />
+                        <Label Content="Total Players:" Foreground="{DynamicResource TextLight}" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
+                        <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="{DynamicResource TextLight}" />
+                        <Label Content="Total Servers:" Foreground="{DynamicResource TextLight}"/>
+                        <Label Content="{Binding SelectedTab.TotalServers}" Foreground="{DynamicResource TextLight}" />
                     </StackPanel>
 
                     <!-- Text Filter -->
@@ -249,7 +249,7 @@
                         <!-- Hint -->
                         <TextBlock IsHitTestVisible="False" Text="Enter keywords to filter servers"
                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" 
-                                   Padding="3,0,0,0" Margin="10,0,10,0" Foreground="DarkGray">
+                                   Padding="3,0,0,0" Margin="10,0,10,0" Foreground="{DynamicResource TextHint}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -302,7 +302,7 @@
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <Grid>
                                     <!-- Opaque background for the header row -->
-                                    <Rectangle VerticalAlignment="Top" Fill="Black" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
+                                    <Rectangle VerticalAlignment="Top" Fill="{DynamicResource DialogBackground}" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
                                     <view:CustomDataGrid
                                         x:Name="serverDataGrid" 
                                         ItemsSource="{Binding ServerCollectionView}" 
@@ -321,7 +321,7 @@
                                         SelectionUnit="FullRow"
                                         HorizontalScrollBarVisibility="Hidden"
                                         BorderThickness="0"
-                                        Background="Black"
+                                        Background="{DynamicResource DialogBackground}"
                                         Opacity="0.90"
                                         SelectionMode="Single"
                                         CanUserResizeColumns="true"
@@ -360,7 +360,6 @@
                                                     <Trigger Property="IsSelected" Value="True">
                                                         <Setter Property="BorderBrush" Value="{DynamicResource BrushSecondary}" />
                                                         <Setter Property="BorderThickness" Value="0 1" />
-                                                        <Setter Property="Background" Value="#454545"></Setter>
                                                     </Trigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -498,7 +497,7 @@
                                 <!-- Party Status -->
                                 <TextBlock DataContext="{Binding SocialOverviewViewModel.Friends}" 
                                            Text="{Binding PartyStatus, StringFormat={}Party: {0}}" 
-                                           Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
+                                           Foreground="{DynamicResource TextLight}" VerticalAlignment="Center" Margin="5,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -523,7 +522,7 @@
                             <!-- Expand / collapse -->
                             <ToggleButton Height="23" Width="20" Margin="0,0,2,0" Grid.Column="1"
                                           HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Show / hide party"
-                                          Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow, Mode=TwoWay}">
+                                          Foreground="{DynamicResource TextLight}" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow, Mode=TwoWay}">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
                                         <Setter Property="Content" Value="&#10094;"/>

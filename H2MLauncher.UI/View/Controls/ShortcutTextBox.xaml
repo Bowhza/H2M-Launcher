@@ -41,7 +41,7 @@
                  PreviewKeyUp="ShortcutTextBox_PreviewKeyUp">
                 <TextBox.Style>
                     <Style TargetType="TextBox">
-                        <Setter Property="Foreground" Value="White" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         <Style.Triggers>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter Property="BorderThickness" Value="0"/>
@@ -54,7 +54,7 @@
                                 <Setter Property="Foreground" Value="#a7171a"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding IsKeySet}" Value="False">
-                                <Setter Property="Foreground" Value="Gray"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrushNeutral}"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>

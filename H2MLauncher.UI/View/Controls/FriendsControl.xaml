@@ -100,7 +100,7 @@
                                               VerticalAlignment="Center"
                                               Margin="5,0"/>
                             <Path x:Name="arrow" Data="M 0 0 L 6 6 L 12 0"
-                                  Stroke="White" Opacity="0.8" Margin="12,0"
+                                  Stroke="{DynamicResource TextLight}" Opacity="0.8" Margin="12,0"
                                   StrokeThickness="1.8"
                                   HorizontalAlignment="Right"
                                   VerticalAlignment="Center"
@@ -152,7 +152,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Foreground="White" Opacity="0.8" FontSize="12"
+                                <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
                                            VerticalAlignment="Center">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -173,7 +173,7 @@
 
                                 <!-- Party Header (left) -->
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Foreground="White" Opacity="0.8" FontSize="12"
+                                    <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
                                                VerticalAlignment="Center">
                                         <TextBlock.Text>
                                             <MultiBinding StringFormat="{} {0} —">
@@ -207,7 +207,7 @@
                                     </Button>
 
                                     <!-- Party Privacy Text (non-leader) -->
-                                    <TextBlock Grid.Column="1" Padding="3,1" Margin="3,0,2,0" Foreground="White" Opacity="0.8" VerticalAlignment="Center"
+                                    <TextBlock Grid.Column="1" Padding="3,1" Margin="3,0,2,0" Foreground="{DynamicResource TextLight}" Opacity="0.8" VerticalAlignment="Center"
                                                Text="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -225,7 +225,7 @@
 
                                     <!-- Party member count -->
                                     <TextBlock Text="{Binding ItemCount, StringFormat={}({0})}" 
-                                               Foreground="White" Opacity="0.8" FontSize="12"
+                                               Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
                                                VerticalAlignment="Center"/>
                                     <StackPanel.Style>
                                         <Style TargetType="StackPanel">
@@ -330,11 +330,11 @@
 
         <!-- Connection Error -->
         <StackPanel Visibility="{Binding IsConnectionError, Converter={StaticResource booleanToVisibilityConverter}}"
-                    Background="#88000000" TextBlock.Foreground="White" Margin="0,5">
+                    Background="#88000000" TextBlock.Foreground="{DynamicResource TextLight}" Margin="0,5">
             <TextBlock Text="Socials Unavailable" FontWeight="Bold" FontSize="13" HorizontalAlignment="Center" Margin="0,10,0,0"/>
             <TextBlock Text="We're having trouble connecting to the socials system. Some features may not work right now."
                        TextWrapping="WrapWithOverflow" HorizontalAlignment="Center" TextAlignment="Center" 
-                       Foreground="White" Margin="10" FontFamily="Consolas" />
+                       Foreground="{DynamicResource TextLight}" Margin="10" FontFamily="Consolas" />
 
             <Button Content="Try again" Width="90" Margin="0,0,3,10" Padding="5" 
                     Style="{StaticResource TransparentButtonStyle}" Background="#1fff"
@@ -343,11 +343,11 @@
         </StackPanel>
 
         <!-- Connecting -->
-        <StackPanel Background="#88000000" TextBlock.Foreground="White" VerticalAlignment="Center" Height="70">
+        <StackPanel Background="#88000000" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center" Height="70">
             <TextBlock Text="Connecting to social hub..." VerticalAlignment="Center" 
                TextWrapping="WrapWithOverflow" HorizontalAlignment="Center" TextAlignment="Center" 
-               Foreground="White" Margin="0,5,0,10" FontFamily="Consolas" />
-            <ProgressBar IsIndeterminate="True" Height="5" Foreground="#E59400" BorderThickness="0" Background="#55000000" Margin="10"/>
+               Foreground="{DynamicResource TextLight}" Margin="0,5,0,10" FontFamily="Consolas" />
+            <ProgressBar IsIndeterminate="True" Height="5" Foreground="{DynamicResource ControlPrimaryHover}" BorderThickness="0" Background="#55000000" Margin="10"/>
             <StackPanel.Style>
                 <Style TargetType="StackPanel">
                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -366,11 +366,11 @@
 
         <!-- No friends -->
         <Border Background="#66000000" VerticalAlignment="Stretch" Grid.Row="1" Margin="0,5" 
-         BorderBrush="#1999" BorderThickness="0">
-            <StackPanel  TextBlock.Foreground="White" VerticalAlignment="Center">
+                BorderBrush="#1999" BorderThickness="0">
+            <StackPanel  TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center">
                 <TextBlock Text="You don't seem to have any friends yet." VerticalAlignment="Center" 
                      TextWrapping="WrapWithOverflow" HorizontalAlignment="Center" TextAlignment="Center" 
-                     Foreground="White" Margin="10" FontFamily="Consolas" />
+                     Foreground="{DynamicResource TextLight}" Margin="10" FontFamily="Consolas" />
 
                 <TextBlock Text="Maybe meet them in a party?" HorizontalAlignment="Center" FontFamily="Consolas"
                     Margin="0,10,0,5"/>
@@ -403,8 +403,8 @@
             <StackPanel Grid.Row="1" TextBlock.FontFamily="Consolas">
                 <!-- No party -->
                 <Border Background="#66000000" Grid.Row="1" Margin="0,5" BorderThickness="0">
-                    <Grid TextBlock.Foreground="White" VerticalAlignment="Center"
-                      Margin="11.5,2,10,0" HorizontalAlignment="Stretch">
+                    <Grid TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Center"
+                          Margin="11.5,2,10,0" HorizontalAlignment="Stretch">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition/>
@@ -453,8 +453,8 @@
                                                 <Expander IsExpanded="True"
                                                           Header="{Binding}"
                                                           Background="Transparent" 
-                                                          Foreground="White" 
-                                                          BorderBrush="#33FFFFFF" BorderThickness="0,0,0,1" Margin="0,5,0,3"
+                                                          Foreground="{DynamicResource TextLight}" 
+                                                          Margin="0,5,0,3"
                                                           Style="{StaticResource SleekExpanderStyle}">
                                                     <ItemsPresenter/>
                                                 </Expander>
@@ -467,7 +467,7 @@
                     </ItemsControl.GroupStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <ToggleButton x:Name="border" Padding="7,5,7,0" Foreground="White" Background="Transparent">
+                            <ToggleButton x:Name="border" Padding="7,5,7,0" Foreground="{DynamicResource TextLight}" Background="Transparent">
                                 <!-- Deselect item when popup closes -->
                                 <i:Interaction.Triggers>
                                     <i:EventTrigger EventName="Closed">
@@ -523,7 +523,7 @@
                                         <RowDefinition/>
                                     </Grid.RowDefinitions>
                                     <TextBlock ui:TextBlockExtensions.BindableInlines="{Binding Name, Converter={StaticResource HostNameColorConverter}}" 
-                                               Foreground="White" FontSize="15"
+                                               Foreground="{DynamicResource TextLight}" FontSize="15"
                                                VerticalAlignment="Center" Margin="0,0,0,0">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -538,7 +538,7 @@
                                     </TextBlock>
 
                                     <TextBlock Text="{Binding DetailedStatus}" Grid.Row="1"  
-                                               Foreground="#BBB" FontSize="10"  FontWeight="SemiBold"
+                                               Foreground="{DynamicResource TextHint}" FontSize="10"  FontWeight="SemiBold"
                                                VerticalAlignment="Center" Margin="0,2,0,2">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -600,7 +600,7 @@
                                         </Button>
 
                                     </StackPanel>
-                                    <TextBlock Text="★" Foreground="Orange" FontSize="18" HorizontalAlignment="Center" Grid.Column="1"
+                                    <TextBlock Text="★" Foreground="{DynamicResource BrushPrimary300}" FontSize="18" HorizontalAlignment="Center" Grid.Column="1"
                                                VerticalAlignment="Center" ToolTip="Party Leader"
                                                Visibility="{Binding IsPartyLeader, Converter={StaticResource booleanToVisibilityConverter}}">
                                     </TextBlock>
@@ -618,8 +618,8 @@
                                            Opened="DetailsPopup_Opened"
                                            MouseDown="DetailsPopup_MouseDown"
                                            Width="200">
-                                        <Border Focusable="True" Background="#111" 
-                                                BorderBrush="GhostWhite" BorderThickness="1" CornerRadius="7"
+                                        <Border Focusable="True" Background="{DynamicResource BrushNeutral900}" 
+                                                BorderBrush="{DynamicResource DialogBorderBrush}" BorderThickness="1" CornerRadius="7"
                                                 Opacity="1">
                                             <StackPanel Margin="12">
                                                 <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"/>
@@ -634,7 +634,7 @@
                                                         </i:Interaction.Triggers>
                                                         <TextBox.Style>
                                                             <Style TargetType="TextBox">
-                                                                <Setter Property="Foreground" Value="White"/>
+                                                                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
                                                                 <Setter Property="Background" Value="Transparent"/>
                                                                 <Setter Property="BorderThickness" Value="0"/>
                                                             </Style>

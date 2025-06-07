@@ -59,7 +59,7 @@
                                               VerticalAlignment="Center"
                                               Margin="5,0"/>
                             <Path x:Name="arrow" Data="M 0 0 L 6 6 L 12 0"
-                                  Stroke="White" Opacity="0.8" Margin="12,0"
+                                  Stroke="{DynamicResource TextLight}" Opacity="0.8" Margin="12,0"
                                   StrokeThickness="1.8"
                                   HorizontalAlignment="Right"
                                   VerticalAlignment="Center"
@@ -111,7 +111,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Foreground="White" Opacity="0.8" FontSize="12"
+                                <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
                                            VerticalAlignment="Center">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="{} {0} — {1}">
@@ -160,7 +160,7 @@
             </Setter>
         </Style>
     </UserControl.Resources>
-    <Grid Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="White" VerticalAlignment="Stretch"
+    <Grid Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Stretch"
                 TextBlock.FontFamily="Consolas">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -182,7 +182,7 @@
                 <!-- Hint -->
                 <TextBlock IsHitTestVisible="False" Text="Find users by ID or name"
                            VerticalAlignment="Center" HorizontalAlignment="Stretch" 
-                           Padding="3,0,0,0" Margin="10,0,10,0" Foreground="DarkGray">
+                           Padding="3,0,0,0" Margin="10,0,10,0" Foreground="{DynamicResource TextHint}">
                     <TextBlock.Style>
                         <Style TargetType="{x:Type TextBlock}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -236,7 +236,7 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- Player name -->
-                                <TextBlock Foreground="White" FontSize="13"
+                                <TextBlock Foreground="{DynamicResource TextLight}" FontSize="13"
                                                VerticalAlignment="Center" Margin="0,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -308,7 +308,7 @@
                                             <Expander IsExpanded="True"
                                               Header="{Binding}"
                                               Background="Transparent" 
-                                              Foreground="White" 
+                                              Foreground="{DynamicResource TextLight}" 
                                               BorderBrush="#33FFFFFF" BorderThickness="0,0,0,1" Margin="0,5,0,3"
                                               Style="{StaticResource SleekExpanderStyle}">
                                                 <ItemsPresenter/>
@@ -322,7 +322,7 @@
                 </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ToggleButton x:Name="border" Padding="7,5,10,0" Foreground="White">
+                        <ToggleButton x:Name="border" Padding="7,5,10,0" Foreground="{DynamicResource TextLight}">
                             <ToggleButton.Style>
                                 <Style TargetType="{x:Type ToggleButton}">
                                     <Setter Property="Background" Value="Transparent"/>
@@ -359,7 +359,7 @@
 
                                 <!-- Player name -->
                                 <TextBlock ui:TextBlockExtensions.BindableInlines="{Binding Name, Converter={StaticResource HostNameColorConverter}}" 
-                                   Foreground="White" FontSize="15"
+                                   Foreground="{DynamicResource TextLight}" FontSize="15"
                                    VerticalAlignment="Center" Margin="0,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">

@@ -12,7 +12,9 @@
     <Color x:Key="ColorBlack">Black</Color>
 
     <!-- Neutral Color Palette -->
+    <Color x:Key="ColorNeutral50">GhostWhite</Color>
     <Color x:Key="ColorNeutral100">#e7e7e7</Color>
+    <Color x:Key="ColorNeutral250">LightGray</Color>
     <Color x:Key="ColorNeutral200">#CCC</Color>
     <Color x:Key="ColorNeutral300">DarkGray</Color>
     <Color x:Key="ColorNeutral400">#888888</Color>
@@ -22,6 +24,19 @@
     <Color x:Key="ColorNeutral800">#262626</Color>
     <Color x:Key="ColorNeutral900">#171717</Color>
     <Color x:Key="ColorNeutral950">#0a0a0a</Color>
+
+    <!--<Color x:Key="ColorNeutral950">GhostWhite</Color>
+    <Color x:Key="ColorNeutral900">#e7e7e7</Color>
+    <Color x:Key="ColorNeutral800">LightGray</Color>
+    <Color x:Key="ColorNeutral700">#CCC</Color>
+    <Color x:Key="ColorNeutral600">DarkGray</Color>
+    <Color x:Key="ColorNeutral500">#888888</Color>
+    <Color x:Key="ColorNeutral400">#6d6d6d</Color>
+    <Color x:Key="ColorNeutral300">#444</Color>
+    <Color x:Key="ColorNeutral250">#373737</Color>
+    <Color x:Key="ColorNeutral200">#262626</Color>
+    <Color x:Key="ColorNeutral100">#171717</Color>
+    <Color x:Key="ColorNeutral50">#0a0a0a</Color>-->
 
     <!-- Primary Color Palette -->
     <Color x:Key="ColorPrimary100">#ffd1a5</Color>
@@ -60,6 +75,7 @@
 
     <SolidColorBrush x:Key="TextDark" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="TextLight" Color="{DynamicResource ColorLight}" />
+    <SolidColorBrush x:Key="TextHint" Color="{DynamicResource ColorNeutral300}" />
     <SolidColorBrush x:Key="ControlBackground" Color="{DynamicResource ColorNeutral700}" />
     <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="{DynamicResource ColorNeutral600}" />
     <SolidColorBrush x:Key="ControlForegroundDisabled" Color="{DynamicResource ColorNeutral200}" />
@@ -70,10 +86,28 @@
     <SolidColorBrush x:Key="ControlPrimaryHover" Color="{DynamicResource ColorPrimary400}" />
     <SolidColorBrush x:Key="ControlPrimarySelected" Color="{DynamicResource ColorPrimary500}" />
     <SolidColorBrush x:Key="ControlPrimaryPressed" Color="{DynamicResource ColorPrimary600}" />
+    <SolidColorBrush x:Key="ControlPrimaryForeground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
     <SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
 
+    <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
+    <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
+
     <SolidColorBrush x:Key="BrushSecondary" Color="{DynamicResource ColorSecondary500}"/>
+
+    <SolidColorBrush x:Key="BrushNeutral" Color="{DynamicResource ColorNeutral400}"/>
+    <SolidColorBrush x:Key="BrushNeutralLight" Color="{DynamicResource ColorNeutral250}"/>
+    <SolidColorBrush x:Key="BrushNeutralDark" Color="{DynamicResource ColorNeutral700}"/>
+    <SolidColorBrush x:Key="BrushNeutral250" Color="{DynamicResource ColorNeutral250}"/>
+    <SolidColorBrush x:Key="BrushNeutral300" Color="{DynamicResource ColorNeutral300}"/>
+    <SolidColorBrush x:Key="BrushNeutral400" Color="{DynamicResource ColorNeutral400}"/>
+    <SolidColorBrush x:Key="BrushNeutral500" Color="{DynamicResource ColorNeutral500}"/>
+    <SolidColorBrush x:Key="BrushNeutral600" Color="{DynamicResource ColorNeutral600}"/>
+    <SolidColorBrush x:Key="BrushNeutral700" Color="{DynamicResource ColorNeutral700}"/>
+    <SolidColorBrush x:Key="BrushNeutral800" Color="{DynamicResource ColorNeutral800}"/>
+    <SolidColorBrush x:Key="BrushNeutral900" Color="{DynamicResource ColorNeutral900}"/>
+    
+    
 
     <Style TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
@@ -94,19 +128,19 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -122,7 +156,7 @@
 
     <Style x:Key="TextBoxButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
@@ -141,19 +175,19 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -169,7 +203,7 @@
 
     <Style x:Key="WindowButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Template">
@@ -188,12 +222,12 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#66FFFFFF" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -209,7 +243,7 @@
 
     <Style x:Key="DiscordWindowButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -225,12 +259,12 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#5865F2" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -246,7 +280,7 @@
 
     <Style x:Key="AcceptButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -262,12 +296,12 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#34b233" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -283,7 +317,7 @@
 
     <Style x:Key="RejectButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -299,12 +333,12 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="Red" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
@@ -320,7 +354,7 @@
 
     <Style x:Key="LinkButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -341,7 +375,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
@@ -355,7 +389,7 @@
 
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -371,7 +405,7 @@
 
     <Style TargetType="{x:Type ToggleButton}">
         <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -390,19 +424,19 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
                             <Setter Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsChecked" Value="False">
@@ -416,7 +450,7 @@
 
     <Style x:Key="LinkToggleButtonStyle" TargetType="{x:Type ToggleButton}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -435,7 +469,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
@@ -449,7 +483,7 @@
 
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -474,7 +508,7 @@
             <Path
                 x:Name="Arrow"
                 Grid.Column="1"
-                Fill="White"
+                Fill="{DynamicResource TextLight}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z" />
@@ -483,7 +517,7 @@
             <Trigger Property="ToggleButton.IsMouseOver" Value="true">
                 <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                 <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
-                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
             </Trigger>
             <Trigger Property="ToggleButton.IsChecked" Value="true">
                 <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
@@ -491,13 +525,13 @@
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter TargetName="Border" Property="BorderBrush" Value="Transparent" />
-                <Setter Property="Foreground" Value="#888888" />
-                <Setter TargetName="Arrow" Property="Fill" Value="#888888" />
+                <Setter Property="Foreground" Value="{DynamicResource BrushNeutral}" />
+                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource BrushNeutral}" />
             </Trigger>
 
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
-                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
             </Trigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -575,7 +609,7 @@
                             <Setter TargetName="DropDownBorder" Property="MinHeight" Value="95" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="false">
-                            <Setter Property="Foreground" Value="#888888" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrushNeutral}" />
                         </Trigger>
                         <Trigger Property="IsGrouping" Value="true">
                             <Setter Property="ScrollViewer.CanContentScroll" Value="false" />
@@ -597,7 +631,7 @@
 
     <Style TargetType="{x:Type DataGridColumnHeader}">
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type DataGridColumnHeader}">
@@ -614,7 +648,7 @@
 
 
                             <Path x:Name="SortArrow" Visibility="Collapsed" Data="M0,0 L1,0 0.5,1 z" Stretch="Fill"
-                                  Grid.Column="1" Width="8" Height="6" Fill="White" Margin="0,0,8,0"
+                                  Grid.Column="1" Width="8" Height="6" Fill="{DynamicResource TextLight}" Margin="0,0,8,0"
                                   VerticalAlignment="Center" RenderTransformOrigin="0.5,0.4" />
                         </Grid>
                     </Border>
@@ -734,14 +768,14 @@
     </Style>
 
     <Style TargetType="{x:Type TabItem}">
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontFamily" Value="Consolas" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabItem}">
                     <Grid>
-                        <Border Name="Border" Margin="0,4,-1,0" Background="#333" CornerRadius="2,6,0,0"
+                        <Border Name="Border" Margin="0,4,-1,0" Background="{DynamicResource ControlBackground}" CornerRadius="2,6,0,0"
                                 BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1,1,1,1">
                             <ContentPresenter 
                                     x:Name="ContentSite" VerticalAlignment="Center"
@@ -753,7 +787,7 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
                             <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimarySelected}" />
-                            <Setter Property="Foreground" Value="Black" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlPrimaryForeground}" />
                             <Setter TargetName="Border" Property="BorderThickness" Value="1,1,1,0" />
                             <Setter TargetName="Border" Property="Margin" Value="0,0,-4,0" />
                             <Setter Property="Panel.ZIndex" Value="100" />
@@ -768,8 +802,8 @@
                             </MultiTrigger.Setters>
                         </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Border" Property="Background" Value="Gray" />
-                            <Setter Property="Foreground" Value="DarkGray" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource BrushNeutral}" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrushNeutralLight}" />
                         </Trigger>
                         <DataTrigger Binding="{Binding Path=HorizontalAlignment, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TabPanel}}}"
                                      Value="Center">
