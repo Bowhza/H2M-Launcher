@@ -80,6 +80,8 @@
     <SolidColorBrush x:Key="BrushNeutral" Color="{DynamicResource ColorNeutral400}"/>
     <SolidColorBrush x:Key="BrushNeutralLight" Color="{DynamicResource ColorNeutral250}"/>
     <SolidColorBrush x:Key="BrushNeutralDark" Color="{DynamicResource ColorNeutral700}"/>
+    <SolidColorBrush x:Key="BrushNeutral100" Color="{DynamicResource ColorNeutral100}"/>
+    <SolidColorBrush x:Key="BrushNeutral200" Color="{DynamicResource ColorNeutral200}"/>
     <SolidColorBrush x:Key="BrushNeutral250" Color="{DynamicResource ColorNeutral250}"/>
     <SolidColorBrush x:Key="BrushNeutral300" Color="{DynamicResource ColorNeutral300}"/>
     <SolidColorBrush x:Key="BrushNeutral400" Color="{DynamicResource ColorNeutral400}"/>
@@ -945,9 +947,15 @@
         <Style.Triggers>
             <Trigger Property="IsSelected" Value="True">
                 <!-- Selection background -->
-                <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"></Setter>
+                <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"/>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- Status Bar -->
+    <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
+        <Setter Property="Foreground" Value="{DynamicResource BrushNeutral200}" />
+        <Setter Property="Background" Value="Transparent"/>
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />

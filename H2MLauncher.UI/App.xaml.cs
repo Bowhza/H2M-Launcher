@@ -78,7 +78,7 @@ namespace H2MLauncher.UI
             });
 
             // NOTE: this is really stupid but necessary to have the latest urls we just set above available
-            config.Reload();
+            config.Reload();            
 
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();

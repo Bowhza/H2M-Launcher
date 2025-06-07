@@ -4,6 +4,10 @@
              xmlns:local="clr-namespace:H2MLauncher.UI"
              >
     <Application.Resources>
-        <ResourceDictionary Source="GlobalResources.xaml"  />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="GlobalResources.xaml"  />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </Application.Resources>
 </Application>

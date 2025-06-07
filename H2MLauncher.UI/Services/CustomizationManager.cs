@@ -1,7 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -23,10 +25,14 @@ public partial class CustomizationManager : ObservableObject
     private ImageSource _backgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
 
     [ObservableProperty]
-    private bool _loadingError;
+    private bool _backgroundImageLoadingError;
 
     [ObservableProperty]
     private double _backgroundBlur = 0;
+
+    [ObservableProperty]
+    private bool _themeLoadingError;
+
 
     public CustomizationManager(IWritableOptions<H2MLauncherSettings> settings)
     {
@@ -38,23 +44,33 @@ public partial class CustomizationManager : ObservableObject
     /// </summary>
     public void LoadInitialValues()
     {
-        BackgroundBlur = _settings.Value.Customization?.BackgroundBlur ?? DefaultBackgroundBlur;
+        LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
-        if (string.IsNullOrEmpty(_settings.Value.Customization?.BackgroundImagePath))
+        BackgroundBlur = customizationSettings?.BackgroundBlur ?? DefaultBackgroundBlur;
+
+        // Background image
+        if (string.IsNullOrEmpty(customizationSettings?.BackgroundImagePath))
         {
             LoadDefaultImage();
             return;
         }
 
-        if (!TryLoadImage(_settings.Value.Customization!.BackgroundImagePath, out var image))
+        if (!TryLoadImage(customizationSettings!.BackgroundImagePath, out var image))
         {
-            LoadingError = true;
+            BackgroundImageLoadingError = true;
             LoadDefaultImage();
         }
         else
         {
             BackgroundImage = image;
-        }        
+        }
+
+        // Theme
+        if (customizationSettings.Themes is not null &&
+            customizationSettings.Themes.Count > 0)
+        {
+            LoadTheme(customizationSettings.Themes[0]);
+        }
     }
 
     public bool LoadImage(string imageFileName)
@@ -62,7 +78,7 @@ public partial class CustomizationManager : ObservableObject
         if (TryLoadImage(imageFileName, out ImageSource? image))
         {
             BackgroundImage = image;
-            LoadingError = false;
+            BackgroundImageLoadingError = false;
 
             UpdateCustomizationSettings(settings => settings with
             {
@@ -73,7 +89,7 @@ public partial class CustomizationManager : ObservableObject
         }
         else
         {
-            LoadingError = true;
+            BackgroundImageLoadingError = true;
             return false;
         }
     }
@@ -81,7 +97,7 @@ public partial class CustomizationManager : ObservableObject
     public void LoadDefaultImage()
     {
         BackgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
-        LoadingError = false;
+        BackgroundImageLoadingError = false;
 
         UpdateCustomizationSettings(settings => settings with
         {
@@ -112,6 +128,46 @@ public partial class CustomizationManager : ObservableObject
         catch
         {
             return false;
+        }
+    }
+
+    public bool LoadTheme(string path)
+    {
+        try
+        {
+            Application.Current.Resources.MergedDictionaries.Add(
+                new ResourceDictionary()
+                {
+                    Source = new Uri(path, UriKind.Absolute)
+                });
+
+            UpdateCustomizationSettings(settings => settings with
+            {
+                Themes = [path]
+            });
+
+            ThemeLoadingError = false;
+            return true;
+        }
+        catch (Exception)
+        {
+            ThemeLoadingError = true;
+            return false;
+        }
+    }
+
+    public void ResetTheme()
+    {
+        if (Application.Current.Resources.MergedDictionaries.Count > 1)
+        {
+            Application.Current.Resources.MergedDictionaries.RemoveAt(1);
+
+            UpdateCustomizationSettings(settings => settings with
+            {
+                Themes = []
+            });
+
+            ThemeLoadingError = false;
         }
     }
 

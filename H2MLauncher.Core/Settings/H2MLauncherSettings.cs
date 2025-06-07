@@ -34,5 +34,6 @@ namespace H2MLauncher.Core.Settings
     {
         public string? BackgroundImagePath { get; init; } = null;
         public double? BackgroundBlur { get; init; } = null;
+        public List<string>? Themes { get; init; } = null;
     }
 }

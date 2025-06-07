@@ -1,4 +1,6 @@
-﻿using CommunityToolkit.Mvvm.ComponentModel;
+﻿using System.IO;
+
+using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Settings;
@@ -18,7 +20,7 @@ namespace H2MLauncher.UI.ViewModels
         private string? _backgroundImageUrl;
 
         [ObservableProperty]
-        private bool _isLoadingError;
+        private string? _loadedThemePath;
 
         public CustomizationManager Customization => _customization;
 
@@ -27,7 +29,7 @@ namespace H2MLauncher.UI.ViewModels
             _customization = customization;
 
             BackgroundImageUrl = options.CurrentValue.Customization?.BackgroundImagePath;
-            IsLoadingError = customization.LoadingError;
+            BackgroundImageUrl = options.CurrentValue.Customization?.Themes?.FirstOrDefault();
         }
 
         [RelayCommand]
@@ -45,15 +47,9 @@ namespace H2MLauncher.UI.ViewModels
                 return;
             }
 
-            if (_customization.LoadImage(dlg.FileName))
-            {
-                BackgroundImageUrl = dlg.FileName;
-                IsLoadingError = false;
-            }
-            else
-            {
-                IsLoadingError = true;
-            }
+            BackgroundImageUrl = dlg.FileName;
+
+            _customization.LoadImage(dlg.FileName);
         }
 
         [RelayCommand]
@@ -62,7 +58,32 @@ namespace H2MLauncher.UI.ViewModels
             _customization.LoadDefaultImage();
 
             BackgroundImageUrl = null;
-            IsLoadingError = _customization.LoadingError;
+        }
+
+        [RelayCommand]
+        public void SelectTheme()
+        {
+            OpenFileDialog dlg = new()
+            {
+                Filter = "XAML Resource|*.xaml",
+                Title = "Select Resource File"
+            };
+
+            bool? dialogResult = dlg.ShowDialog();
+            if (dialogResult != true)
+            {
+                return;
+            }
+
+            _customization.LoadTheme(dlg.FileName);
+            LoadedThemePath = Path.GetFileName(dlg.FileName);
+        }
+
+        [RelayCommand]
+        public void ResetTTheme()
+        {
+            _customization.ResetTheme();
+            LoadedThemePath = null;
         }
     }
 }

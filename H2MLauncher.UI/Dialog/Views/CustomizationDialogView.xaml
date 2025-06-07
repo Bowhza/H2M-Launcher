@@ -44,6 +44,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -96,12 +97,59 @@
             </DockPanel>
         </Border>
 
-        <TextBlock Text="Background Blur:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
-        <DockPanel Grid.Row="2" Grid.Column="1">
+        <TextBlock Text="Error while loading background image." Grid.Row="2" Grid.Column="1" Foreground="DarkRed" Margin="0,0,0,10"
+                   Visibility="{Binding Customization.BackgroundImageLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
+
+        <TextBlock Text="Background Blur:" Grid.Row="3" Margin="15,10" HorizontalAlignment="Left"/>
+        <DockPanel Grid.Row="3" Grid.Column="1">
             <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
                      Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
             <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
+
+        <TextBlock Text="Custom Theme:" Grid.Row="4" Margin="15,10" HorizontalAlignment="Left"/>
+        <Border Grid.Row="4" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetImageCommand}"
+                                DockPanel.Dock="Right" Margin="0,0,0,0">
+                        <TextBlock Text="❌" Padding="0,0,0,0" FontSize="10" ToolTip="Reset to default"/>
+                    </Button>
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectThemeCommand}"
+                            DockPanel.Dock="Right" Margin="2,0,0,0">
+                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
+                    </Button>
+                </StackPanel>
+
+                <TextBox Text="{Binding LoadedThemePath, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Theme'}" BorderThickness="0" IsReadOnly="True" 
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsKeyboardFocused, RelativeSource={RelativeSource Self}}" Value="False">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <TextBlock Margin="2,0,0,0" Cursor="IBeam" Text="{TemplateBinding Text}" TextTrimming="CharacterEllipsis" />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+            </DockPanel>
+        </Border>
+
+        <TextBlock Text="Error while loading theme." Grid.Row="5" Grid.Column="1" Foreground="DarkRed" Margin="0,0,0,10"
+           Visibility="{Binding Customization.ThemeLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
 
         <Grid Grid.Row="11" Grid.ColumnSpan="2" Margin="0,20,0,15">
             <Grid.ColumnDefinitions>
