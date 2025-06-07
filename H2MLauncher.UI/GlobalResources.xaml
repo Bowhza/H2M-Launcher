@@ -25,19 +25,6 @@
     <Color x:Key="ColorNeutral900">#171717</Color>
     <Color x:Key="ColorNeutral950">#0a0a0a</Color>
 
-    <!--<Color x:Key="ColorNeutral950">GhostWhite</Color>
-    <Color x:Key="ColorNeutral900">#e7e7e7</Color>
-    <Color x:Key="ColorNeutral800">LightGray</Color>
-    <Color x:Key="ColorNeutral700">#CCC</Color>
-    <Color x:Key="ColorNeutral600">DarkGray</Color>
-    <Color x:Key="ColorNeutral500">#888888</Color>
-    <Color x:Key="ColorNeutral400">#6d6d6d</Color>
-    <Color x:Key="ColorNeutral300">#444</Color>
-    <Color x:Key="ColorNeutral250">#373737</Color>
-    <Color x:Key="ColorNeutral200">#262626</Color>
-    <Color x:Key="ColorNeutral100">#171717</Color>
-    <Color x:Key="ColorNeutral50">#0a0a0a</Color>-->
-
     <!-- Primary Color Palette -->
     <Color x:Key="ColorPrimary100">#ffd1a5</Color>
     <Color x:Key="ColorPrimary200">#fdba74</Color>
@@ -63,18 +50,11 @@
     <Color x:Key="ColorSecondary950">#003406</Color>
 
 
-    <!--<Color x:Key="ColorPrimary300">#f4aafd</Color>
-    <Color x:Key="ColorPrimary400">#ec6bfa</Color>
-    <Color x:Key="ColorPrimary500">#e044f1</Color>
-    <Color x:Key="ColorPrimary600">#c824d5</Color>
-    <Color x:Key="ColorPrimary900">#741976</Color>-->
-
-
     <!--  Brushes -->
     <SolidColorBrush x:Key="TextDark" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="TextLight" Color="{DynamicResource ColorLight}" />
     <SolidColorBrush x:Key="TextHint" Color="{DynamicResource ColorNeutral300}" />
-    
+
     <SolidColorBrush x:Key="ControlBackground" Color="{DynamicResource ColorNeutral700}" />
     <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="{DynamicResource ColorNeutral600}" />
     <SolidColorBrush x:Key="ControlForegroundDisabled" Color="{DynamicResource ColorNeutral200}" />
@@ -89,7 +69,7 @@
     <SolidColorBrush x:Key="ControlPrimaryForeground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
     <SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
-    
+
 
     <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
@@ -888,7 +868,7 @@
                             TextBlock.Foreground="{TemplateBinding Foreground}"
                             TextElement.Foreground="{TemplateBinding Foreground}"
                             Background="{TemplateBinding Background}">
-                            <ContentPresenter />
+                        <ContentPresenter />
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
@@ -906,7 +886,7 @@
         </Style.Triggers>
     </Style>
 
-    
+
     <Style x:Key="SocialPanelBorderStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="5,5,0,0"/>
         <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
@@ -925,14 +905,49 @@
         </Style.Resources>
     </Style>
 
-    
+
     <SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
 
     <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
-        <Setter Property="Opacity" Value="0.9"/>
         <Setter Property="RowBackground" Value="Transparent"/>
         <Setter Property="Background" Value="{DynamicResource DialogBackground}"/>
+        <Setter Property="Opacity" Value="0.9"/>
         <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style x:Key="ServerDataGridCellStyle" TargetType="DataGridCell">
+        <Setter Property="TextBlock.TextAlignment" Value="Left" />
+        <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextLight}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+        <!-- Custom template to center content -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type DataGridCell}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <!-- Disable focus for cells -->
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Focusable" Value="True"/>
+        <Setter Property="IsTabStop" Value="False"/>
+
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <!-- Selection background -->
+                <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"></Setter>
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
