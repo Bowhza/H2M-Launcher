@@ -52,10 +52,8 @@ public partial class CustomizationManager : ObservableObject
         if (string.IsNullOrEmpty(customizationSettings?.BackgroundImagePath))
         {
             LoadDefaultImage(resetSetting: false);
-            return;
         }
-
-        if (!TryLoadImage(customizationSettings!.BackgroundImagePath, out var image))
+        else if (!TryLoadImage(customizationSettings!.BackgroundImagePath, out var image))
         {
             LoadDefaultImage(resetSetting: false);
             BackgroundImageLoadingError = true;
@@ -67,7 +65,7 @@ public partial class CustomizationManager : ObservableObject
         }
 
         // Theme
-        if (customizationSettings.Themes is not null &&
+        if (customizationSettings?.Themes is not null &&
             customizationSettings.Themes.Count > 0)
         {
             LoadTheme(customizationSettings.Themes[0]);
