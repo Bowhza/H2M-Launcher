@@ -111,7 +111,7 @@
         <Border Grid.Row="4" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">
-                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetImageCommand}"
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetThemeCommand}"
                                 DockPanel.Dock="Right" Margin="0,0,0,0">
                         <TextBlock Text="❌" Padding="0,0,0,0" FontSize="10" ToolTip="Reset to default"/>
                     </Button>

@@ -29,7 +29,7 @@ namespace H2MLauncher.UI.ViewModels
             _customization = customization;
 
             BackgroundImageUrl = options.CurrentValue.Customization?.BackgroundImagePath;
-            BackgroundImageUrl = options.CurrentValue.Customization?.Themes?.FirstOrDefault();
+            LoadedThemePath = options.CurrentValue.Customization?.Themes?.FirstOrDefault();
         }
 
         [RelayCommand]
@@ -80,7 +80,7 @@ namespace H2MLauncher.UI.ViewModels
         }
 
         [RelayCommand]
-        public void ResetTTheme()
+        public void ResetTheme()
         {
             _customization.ResetTheme();
             LoadedThemePath = null;
