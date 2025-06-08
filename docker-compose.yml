@@ -62,7 +62,8 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:15.4-alpine
+    image: postgres:17-alpine
+    user: ${UID:-1001}:${GID:-1001}
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
