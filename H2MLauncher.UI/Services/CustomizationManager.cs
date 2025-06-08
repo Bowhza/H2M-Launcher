@@ -157,6 +157,13 @@ public partial class CustomizationManager : ObservableObject
                     Source = new Uri(path, UriKind.Absolute)
                 };
 
+                // remove old one
+                if (Application.Current.Resources.MergedDictionaries.Count > 1)
+                {
+                    Application.Current.Resources.MergedDictionaries.RemoveAt(1);
+                }
+                
+                // add new one
                 Application.Current.Resources.MergedDictionaries.Add(resourceDictionary);
 
                 UpdateCustomizationSettings(settings => settings with
