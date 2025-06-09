@@ -119,6 +119,7 @@
     <!-- Default style for all controls -->
     <Style TargetType="{x:Type Control}">
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
     </Style>
 
     <!-- Main Window -->
@@ -537,7 +538,7 @@
                 x:Name="Border"
                 Grid.ColumnSpan="2"
                 CornerRadius="0"
-                Background="#FF3F3F3F"
+                Background="{DynamicResource ControlBackground}"
                 BorderBrush="{DynamicResource ControlBorderBrush}"
                 BorderThickness="0" />
             <Path
@@ -575,13 +576,13 @@
         <Border x:Name="PART_ContentHost" Focusable="False" Background="{TemplateBinding Background}" />
     </ControlTemplate>
 
-    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="{DynamicResource ColorDark700}" />
+    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="{DynamicResource ColorNeutral700}" />
     <SolidColorBrush x:Key="ComboBoxForegroundColor" Color="{DynamicResource ColorLight}" />
-    <SolidColorBrush x:Key="ComboBoxPopupBorderColor" Color="#AAA" />
+    <SolidColorBrush x:Key="ComboBoxPopupBorderColor" Color="{DynamicResource ColorNeutral300}" />
 
     <Style TargetType="{x:Type ComboBox}">
-        <Setter Property="Background" Value="{StaticResource ComboBoxBackgroundColor}" />
-        <Setter Property="Foreground" Value="{StaticResource ComboBoxForegroundColor}" />
+        <Setter Property="Background" Value="{DynamicResource ComboBoxBackgroundColor}" />
+        <Setter Property="Foreground" Value="{DynamicResource ComboBoxForegroundColor}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
@@ -630,9 +631,9 @@
                               MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <Border 
                                 x:Name="DropDownBorder"
-                                Background="{StaticResource ComboBoxBackgroundColor}"
+                                Background="{DynamicResource ComboBoxBackgroundColor}"
                                 BorderThickness="1"
-                                BorderBrush="{StaticResource ComboBoxPopupBorderColor}"/>
+                                BorderBrush="{DynamicResource ComboBoxPopupBorderColor}"/>
                                 <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
                                     <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
                                 </ScrollViewer>
@@ -754,14 +755,14 @@
                              VerticalAlignment="Center" 
                              Margin="3,3,23,3"
                              Focusable="True" 
-                             Background="{StaticResource ComboBoxBackgroundColor}"
+                             Background="{DynamicResource ComboBoxBackgroundColor}"
                              Foreground="Green"
                              Visibility="Hidden"
                              IsReadOnly="{TemplateBinding IsReadOnly}"/>
 
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" x:Name="Popup" Focusable="False" AllowsTransparency="True" PopupAnimation="Slide">
                             <Grid MaxHeight="{TemplateBinding MaxDropDownHeight}" MinWidth="{TemplateBinding ActualWidth}" x:Name="DropDown" SnapsToDevicePixels="True">
-                                <Border x:Name="DropDownBorder" Background="{StaticResource ComboBoxBackgroundColor}" BorderBrush="{StaticResource ComboBoxPopupBorderColor}" BorderThickness="1" Padding="0,4">
+                                <Border x:Name="DropDownBorder" Background="{DynamicResource ComboBoxBackgroundColor}" BorderBrush="{DynamicResource ComboBoxPopupBorderColor}" BorderThickness="1" Padding="0,4">
                                     <ScrollViewer SnapsToDevicePixels="True" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" 
                                                   CanContentScroll="True" Style="{x:Null}"
                                                   MaxHeight="100">
@@ -880,7 +881,7 @@
 
         <Style.Triggers>
             <DataTrigger Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="True">
-                <Setter Property="Background" Value="#33FFFFFF" />
+                <Setter Property="Background" Value="{DynamicResource TransparentLight200}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -908,7 +909,7 @@
 
         <Style.Triggers>
             <DataTrigger Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="True">
-                <Setter Property="Background" Value="#33FFFFFF" />
+                <Setter Property="Background" Value="{DynamicResource TransparentDark200}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>

@@ -188,7 +188,7 @@
                                         <Button.Style>
                                             <Style TargetType="{x:Type Button}" BasedOn="{StaticResource TransparentButtonStyle}">
                                                 <Setter Property="Content" Value="{Binding DataContext.PartyPrivacy, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"/>
-                                                <Setter Property="BorderBrush" Value="#33FFFFFF"/>
+                                                <Setter Property="BorderBrush" Value="{DynamicResource TransparentLight200}"/>
                                                 <Setter Property="Background" Value="Transparent"/>
                                                 <Setter Property="Opacity" Value="0.8"/>
                                                 <Setter Property="ToolTip" Value="Party privacy"/>

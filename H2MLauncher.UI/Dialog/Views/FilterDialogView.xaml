@@ -28,7 +28,7 @@
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
                 <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
-                <Setter Property="Background" Value="#333"/>
+                <Setter Property="Background" Value="{DynamicResource ControlBackground}"/>
                 <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
@@ -125,7 +125,7 @@
         <TextBlock Text="Max Ping:" Grid.Row="8" Margin="15,10" HorizontalAlignment="Right"/>
         <DockPanel Grid.Row="8" Grid.Column="1">
             <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" PreviewTextInput="PingTextBox_PreviewTextInput" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="#222" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
+                     Background="{DynamicResource ControlBackground}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
             <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 
@@ -146,7 +146,7 @@
                                 <Border BorderThickness="{TemplateBinding Border.BorderThickness}"
                                         Padding="{TemplateBinding Control.Padding}"
                                         BorderBrush="{TemplateBinding Border.BorderBrush}"
-                                        Background="{TemplateBinding Panel.Background}"
+                                        Background="{TemplateBinding Border.Background}"
                                         Name="Bd"
                                         SnapsToDevicePixels="True">
                                     <ContentPresenter Content="{TemplateBinding ContentControl.Content}"
