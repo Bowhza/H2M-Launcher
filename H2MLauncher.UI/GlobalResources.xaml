@@ -3,10 +3,22 @@
                     xmlns:local="clr-namespace:H2MLauncher.UI;assembly=H2MLauncher.UI" 
                     xmlns:converters="clr-namespace:H2MLauncher.UI.Converters;assembly=H2MLauncher.UI" 
                     xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
+                    xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels;assembly=H2MLauncher.UI" 
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
                     xmlns:system="clr-namespace:System;assembly=mscorlib"
                     x:Name="GlobalResources">
+
+    <!-- Converters -->
+    <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+    <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
+    <converters:EmptyItemConverter x:Key="emptyItemConverter" />
+    <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
+    <converters:NegatingConverter x:Key="NegatingConverter" />
+    <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
+    <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
+    <converters:StringUriConverter x:Key="StringUriConverter"/>
 
     <!-- Contrast Colors -->
     <Color x:Key="ColorLight">White</Color>
@@ -135,6 +147,10 @@
 
     <!-- Background video source -->
     <x:Null x:Key="BackgroundVideoSource"></x:Null>
+
+    <!-- Background controls (put any elements or media here) -->
+    <DataTemplate x:Key="BackgroundControlTemplate" DataType="{x:Type vm:ServerBrowserViewModel}">
+    </DataTemplate>
 
     <!-- Brush for the background of the main window behind the image -->
     <SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorBlack}"/>
@@ -991,14 +1007,4 @@
             </Trigger>
         </Style.Triggers>
     </Style>
-
-    <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
-    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-    <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
-    <converters:EmptyItemConverter x:Key="emptyItemConverter" />
-    <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
-    <converters:NegatingConverter x:Key="NegatingConverter" />
-    <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
-    <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
-    <converters:StringUriConverter x:Key="StringUriConverter"/>
 </ResourceDictionary>

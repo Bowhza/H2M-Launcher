@@ -89,16 +89,15 @@
                                        d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
                                 
                                 <!-- Background video -->
-                                <MediaElement Source="{Binding DataContext, ElementName=BackgroundMediaUriGetter, Converter={StaticResource StringUriConverter}}" 
+                                <controls:LoopingMediaElement Source="{Binding DataContext, ElementName=BackgroundMediaUriGetter, Converter={StaticResource StringUriConverter}}" 
                                               Stretch="UniformToFill" d:Source="Assets/Background.jpg"
-                                              MediaEnded="MediaElement_MediaEnded"
                                               MediaFailed="MediaElement_MediaFailed"
                                               MediaOpened="MediaElement_MediaOpened"
                                               LoadedBehavior="Play"
                                               UnloadedBehavior="Manual"
                                               IsMuted="True"
                                               Opacity="0">
-                                    <MediaElement.Style>
+                                    <controls:LoopingMediaElement.Style>
                                         <Style TargetType="MediaElement">
                                             <Style.Triggers>                                                
                                                 <!-- Fade in video once loaded -->
@@ -112,8 +111,8 @@
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </MediaElement.Style>
-                                </MediaElement>
+                                    </controls:LoopingMediaElement.Style>
+                                </controls:LoopingMediaElement>
                             </Grid>
                         </VisualBrush.Visual>
                     </VisualBrush>
@@ -133,6 +132,9 @@
             <Border.Effect>
                 <BlurEffect Radius="{DynamicResource BackgroundImageBlurRadius}" KernelType="Gaussian"/>
             </Border.Effect>
+        </Border>
+        <Border CornerRadius="10">
+            <ContentPresenter ContentTemplate="{DynamicResource BackgroundControlTemplate}" Content="{Binding }"/>
         </Border>
         <Border CornerRadius="10" Padding="10,10">
             <Grid Margin="0,0,0,0">
@@ -350,11 +352,11 @@
                                             <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
                                         </DataGrid.InputBindings>
                                         <DataGrid.ItemContainerStyle>
-                                            <Style TargetType="DataGridRow" BasedOn="{DynamicResource ServerDataGridRowStyle}">
+                                            <Style TargetType="DataGridRow" BasedOn="{StaticResource ServerDataGridRowStyle}">
                                                 <!-- Enable focus and tab navigation for row -->
                                                 <Setter Property="IsTabStop" Value="True"/>
                                                 <Setter Property="Focusable" Value="True"/>
-                                                
+
                                                 <!-- Click handlers -->
                                                 <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
                                                 <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
