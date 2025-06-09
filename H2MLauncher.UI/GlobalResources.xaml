@@ -5,7 +5,7 @@
                     xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
-                    xmlns:system="clr-namespace:System;assembly=mscorlib" 
+                    xmlns:system="clr-namespace:System;assembly=mscorlib"
                     x:Name="GlobalResources">
 
     <!-- Contrast Colors -->
@@ -129,9 +129,11 @@
     </Style>
 
     <!-- Background image source of the main window -->
-    <ImageSource x:Key="{x:Static local:Constants.BackgroundImageSourceKey}">pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg</ImageSource>
+    <ImageSource x:Key="{x:Static local:Constants.BackgroundImageSourceKey}">/Assets/Background.jpg</ImageSource>
     <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
 
+    <!-- Background video source -->
+    <x:Null x:Key="BackgroundVideoSource"></x:Null>
 
     <!-- Brush for the background of the main window behind the image -->
     <SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorBlack}"/>
@@ -983,4 +985,5 @@
     <converters:NegatingConverter x:Key="NegatingConverter" />
     <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
     <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
+    <converters:StringUriConverter x:Key="StringUriConverter"/>
 </ResourceDictionary>

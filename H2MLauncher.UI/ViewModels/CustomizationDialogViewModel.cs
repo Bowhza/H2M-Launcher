@@ -33,29 +33,29 @@ namespace H2MLauncher.UI.ViewModels
         }
 
         [RelayCommand]
-        public void SelectImage()
+        public Task SelectBackgroundMedia()
         {
             OpenFileDialog dlg = new()
             {
-                Filter = "Image Files|*.png;*.jpg;*.jpeg;*.bmp",
-                Title = "Select Background Image"
+                Filter = "All Supported Files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.mp4;*.wmv;*.avi|Image Files|*.png;*.jpg;*.jpeg;*.bmp|GIF Files|*.gif|Video Files|*.mp4;*.wmv;*.avi",
+                Title = "Select Background Media"
             };
 
-            bool? dialogResult = dlg.ShowDialog();            
+            bool? dialogResult = dlg.ShowDialog();
             if (dialogResult != true)
             {
-                return;
+                return Task.CompletedTask;
             }
 
             BackgroundImageUrl = dlg.FileName;
 
-            _customization.LoadImage(dlg.FileName);
+            return _customization.LoadMedia(dlg.FileName);
         }
 
         [RelayCommand]
-        public void ResetImage()
+        public void ResetBackgroundMedia()
         {
-            _customization.LoadDefaultImage();
+            _customization.ResetBackgroundMedia();
 
             BackgroundImageUrl = null;
         }

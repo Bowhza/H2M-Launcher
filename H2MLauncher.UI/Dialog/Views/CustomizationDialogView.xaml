@@ -57,17 +57,17 @@
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
                    Margin="0,0,0,15"/>
 
-        <TextBlock Text="Background Image:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Left"/>
+        <TextBlock Text="Background Media:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Left"/>
         <Border Grid.Row="1" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">                    
-                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetImageCommand}"
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetBackgroundMediaCommand}"
                             DockPanel.Dock="Right" Margin="0,0,0,0">
                         <TextBlock Text="❌" Padding="0,0,0,0" FontSize="10" ToolTip="Reset to default"/>
                     </Button>
-                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectImageCommand}"
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectBackgroundMediaCommand}"
                             DockPanel.Dock="Right" Margin="2,0,0,0">
-                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
+                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13" ToolTip="Select image or video file"/>
                     </Button>
                 </StackPanel>
                 

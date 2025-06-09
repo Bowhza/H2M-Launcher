@@ -43,5 +43,6 @@ namespace H2MLauncher.UI
         // Resources
         public const string BackgroundImageSourceKey = "BackgroundImageSource";
         public const string BackgroundImageBlurRadiusKey = "BackgroundImageBlurRadius";
+        public const string BackgroundVideoSourceKey = "BackgroundVideoSource";
     }
 }

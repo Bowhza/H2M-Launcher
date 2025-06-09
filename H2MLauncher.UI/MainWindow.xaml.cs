@@ -37,7 +37,7 @@ namespace H2MLauncher.UI
         public MainWindow(
             ServerBrowserViewModel serverBrowserViewModel,
             H2MCommunicationService h2MCommunicationService,
-            CustomizationManager customizationViewModel,
+            CustomizationManager customizationManager,
             DialogService dialogService)
         {
             InitializeComponent();
@@ -45,14 +45,26 @@ namespace H2MLauncher.UI
             DataContext = _viewModel = serverBrowserViewModel;
             _overlayHelper = new OverlayHelper(this);
             _h2MCommunicationService = h2MCommunicationService;
-            Customization = customizationViewModel;
+            Customization = customizationManager;
 
             serverBrowserViewModel.ServerFilterChanged += ServerBrowserViewModel_ServerFilterChanged;
 
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
 
-            customizationViewModel.LoadInitialValues();
+            _ = customizationManager.LoadInitialValues();
+            customizationManager.PropertyChanged += CustomizationManager_PropertyChanged;
             _dialogService = dialogService;
+        }
+
+        private void CustomizationManager_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(CustomizationManager.PreviewBackgroundVideo))
+            {
+                if (Customization.PreviewBackgroundVideo is not null)
+                {
+                    this.AddChild(Customization.PreviewBackgroundVideo);
+                }
+            }
         }
 
         private void CustomizeButton_Click(object sender, RoutedEventArgs e)
@@ -202,6 +214,28 @@ namespace H2MLauncher.UI
                 RadiusX = 10,
                 RadiusY = 10
             };
+        }
+
+        private void MediaElement_MediaEnded(object sender, RoutedEventArgs e)
+        {
+            if (sender is MediaElement media)
+            {
+                // loop the video
+                media.Position = media.Source.AbsolutePath.EndsWith(".gif", StringComparison.InvariantCultureIgnoreCase)
+                    ? TimeSpan.FromMilliseconds(1)
+                    : TimeSpan.Zero;
+                media.Play();
+            }
+        }
+
+        private void MediaElement_MediaFailed(object sender, ExceptionRoutedEventArgs e)
+        {
+            Customization.OnBackgroundMediaFailed(e.ErrorException);
+        }
+
+        private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
+        {
+            Customization.OnBackgroundMediaLoaded();
         }
     }
 }

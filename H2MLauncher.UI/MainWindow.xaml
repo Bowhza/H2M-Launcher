@@ -65,16 +65,56 @@
     </Window.InputBindings>
     <Grid>
         <!-- Workaround to bind to a dynamic resource -->
-        <FrameworkElement  x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
-        
+        <FrameworkElement x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
+        <FrameworkElement x:Name="BackgroundMediaUriGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundVideoSource}" />
+
         <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}"/>
         <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
-            <Grid RenderTransformOrigin="0.5, 0.5">
+            <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5">
+                <Grid.Resources>
+                    <Storyboard x:Key="FadeInStoryboard">
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                         From="0.0" To="1.0" Duration="0:0:0.5"/>
+                    </Storyboard>
+                </Grid.Resources>
                 <Grid.Background>
                     <VisualBrush Stretch="UniformToFill">
                         <VisualBrush.Visual>
-                            <Image x:Name="BackgroundImageBrush" Source="{DynamicResource BackgroundImageSource}" Opacity="1"
-                                   d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
+                            <!-- Stack image and video inside a grid - make sure it always fills the parent container -->
+                            <Grid Width="{Binding Path=ActualWidth, ElementName=ImageContainer}" HorizontalAlignment="Stretch"
+                                  Height="{Binding Path=ActualHeight, ElementName=ImageContainer}" VerticalAlignment="Stretch">
+                                
+                                <!-- Background image -->
+                                <Image x:Name="BackgroundImageBrush" Source="{DynamicResource BackgroundImageSource}" Opacity="1"
+                                       d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
+                                
+                                <!-- Background video -->
+                                <MediaElement Source="{Binding DataContext, ElementName=BackgroundMediaUriGetter, Converter={StaticResource StringUriConverter}}" 
+                                              Stretch="UniformToFill" d:Source="Assets/Background.jpg"
+                                              MediaEnded="MediaElement_MediaEnded"
+                                              MediaFailed="MediaElement_MediaFailed"
+                                              MediaOpened="MediaElement_MediaOpened"
+                                              LoadedBehavior="Play"
+                                              UnloadedBehavior="Manual"
+                                              IsMuted="True"
+                                              Opacity="0">
+                                    <MediaElement.Style>
+                                        <Style TargetType="MediaElement">
+                                            <Style.Triggers>                                                
+                                                <!-- Fade in video once loaded -->
+                                                <EventTrigger RoutedEvent="MediaElement.MediaOpened">
+                                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
+                                                </EventTrigger>
+
+                                                <!-- Hide video if no url -->
+                                                <DataTrigger Binding="{Binding DataContext, ElementName=BackgroundMediaUriGetter}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </MediaElement.Style>
+                                </MediaElement>
+                            </Grid>
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Grid.Background>

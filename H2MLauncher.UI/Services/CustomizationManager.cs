@@ -1,8 +1,10 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -20,8 +22,17 @@ public partial class CustomizationManager : ObservableObject
 
     private readonly IWritableOptions<H2MLauncherSettings> _settings;
 
+    // Callback from the UI that the media element has loaded the source
+    private TaskCompletionSource _backgroundVideoLoadCompletionSource = new();
+
     [ObservableProperty]
     private ImageSource _backgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
+
+    [ObservableProperty]
+    private Uri? _backgroundVideo;
+
+    [ObservableProperty]
+    private MediaElement? _previewBackgroundVideo;
 
     [ObservableProperty]
     private bool _backgroundImageLoadingError;
@@ -44,7 +55,7 @@ public partial class CustomizationManager : ObservableObject
     /// <summary>
     /// Load the initial background image from the settings.
     /// </summary>
-    public void LoadInitialValues()
+    public async Task LoadInitialValues()
     {
         LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
@@ -52,20 +63,26 @@ public partial class CustomizationManager : ObservableObject
         BackgroundBlur = customizationSettings?.BackgroundBlur ?? DefaultBackgroundBlur;
         SetResourceInBaseTheme(Constants.BackgroundImageBlurRadiusKey, BackgroundBlur);
 
-        // Background image
+        // Background media
         if (string.IsNullOrEmpty(customizationSettings?.BackgroundImagePath))
         {
-            LoadDefaultImage(resetSetting: false);
+            // no custom image or video set
+            SetDefaultBackgroundImage(resetSetting: false);
         }
-        else if (!TryLoadImage(customizationSettings!.BackgroundImagePath, out var image))
-        {
-            LoadDefaultImage(resetSetting: false);
-            BackgroundImageLoadingError = true;
-        }
-        else
+        else if (TryLoadImage(customizationSettings.BackgroundImagePath, out ImageSource? image))
         {
             SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
             BackgroundImage = image;
+        }
+        else if (await TryLoadBackgroundVideo(customizationSettings.BackgroundImagePath))
+        {
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, customizationSettings.BackgroundImagePath);
+            BackgroundVideo = new Uri(customizationSettings.BackgroundImagePath);
+        }
+        else
+        {
+            // something went wrong trying to load it
+            BackgroundImageLoadingError = true;
         }
 
         // Theme
@@ -78,20 +95,35 @@ public partial class CustomizationManager : ObservableObject
         HotReloadThemes = customizationSettings?.HotReloadThemes ?? false;
     }
 
-    public bool LoadImage(string imageFileName)
-    {
-        if (TryLoadImage(imageFileName, out ImageSource? image))
+    public async Task<bool> LoadMedia(string mediaFileName)
+    {        
+        if (TryLoadImage(mediaFileName, out ImageSource? image))
         {
             SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, null);
 
             BackgroundImage = image;
             BackgroundImageLoadingError = false;
 
             UpdateCustomizationSettings(settings => settings with
             {
-                BackgroundImagePath = imageFileName
+                BackgroundImagePath = mediaFileName
             });
 
+            return true;
+        }
+        else if (await TryLoadBackgroundVideo(mediaFileName))
+        {
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, mediaFileName);
+            SetDefaultBackgroundImage(resetSetting: false);
+            
+            BackgroundVideo = new Uri(mediaFileName);
+            BackgroundImageLoadingError = false;
+
+            UpdateCustomizationSettings(settings => settings with
+            {
+                BackgroundImagePath = mediaFileName
+            });
 
             return true;
         }
@@ -102,12 +134,21 @@ public partial class CustomizationManager : ObservableObject
         }
     }
 
-    public void LoadDefaultImage(bool resetSetting = true)
+    public void ResetBackgroundMedia()
+    {
+        // Reset video
+        SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, null);
+        BackgroundVideo = null;
+
+        // Reset image
+        SetDefaultBackgroundImage(resetSetting: true);
+    }
+
+    private void SetDefaultBackgroundImage(bool resetSetting = true)
     {
         BackgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
-        SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, BackgroundImage);
-
         BackgroundImageLoadingError = false;
+        SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, BackgroundImage);
 
         if (!resetSetting)
         {
@@ -144,6 +185,45 @@ public partial class CustomizationManager : ObservableObject
         {
             return false;
         }
+    }
+
+    private async Task<bool> TryLoadBackgroundVideo(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            // Cancel previous loading callback and create new
+            _backgroundVideoLoadCompletionSource.TrySetCanceled();
+            _backgroundVideoLoadCompletionSource = new();
+            
+            using CancellationTokenSource timeoutCancellation = new(TimeSpan.FromSeconds(15));
+            using CancellationTokenRegistration reg = timeoutCancellation.Token.Register(() => _backgroundVideoLoadCompletionSource.TrySetCanceled());
+
+            // Set the resource so the MediaElement starts loading
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, path);  
+
+            // Wait for the media to be opened in the UI
+            await _backgroundVideoLoadCompletionSource.Task;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public void OnBackgroundMediaLoaded()
+    {
+        _backgroundVideoLoadCompletionSource.TrySetResult();
+    }
+
+    public void OnBackgroundMediaFailed(Exception exception)
+    {
+        _backgroundVideoLoadCompletionSource.TrySetException(exception);
     }
 
     public bool LoadTheme(string path)
@@ -224,7 +304,7 @@ public partial class CustomizationManager : ObservableObject
         });
     }
 
-    private static void SetResourceInBaseTheme(object resourceKey, object value)
+    private static void SetResourceInBaseTheme(object resourceKey, object? value)
     {
         Application.Current.Resources.MergedDictionaries[0][resourceKey] = value;
     }
