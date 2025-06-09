@@ -29,7 +29,7 @@ public sealed class LoopingMediaElement : MediaElement
         if (Loop && UnloadedBehavior is MediaState.Manual)
         {
             // loop the video
-            Position = Source.LocalPath.EndsWith(".gif", StringComparison.InvariantCultureIgnoreCase)
+            Position = Source.ToString().EndsWith(".gif", StringComparison.InvariantCultureIgnoreCase)
                 ? TimeSpan.FromMilliseconds(1)
                 : TimeSpan.Zero;
             Play();
