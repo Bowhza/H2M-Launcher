@@ -350,25 +350,15 @@
                                             <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
                                         </DataGrid.InputBindings>
                                         <DataGrid.ItemContainerStyle>
-                                            <Style TargetType="DataGridRow">
+                                            <Style TargetType="DataGridRow" BasedOn="{DynamicResource ServerDataGridRowStyle}">
                                                 <!-- Enable focus and tab navigation for row -->
                                                 <Setter Property="IsTabStop" Value="True"/>
                                                 <Setter Property="Focusable" Value="True"/>
-                                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                                <Setter Property="Opacity" Value="0.9"></Setter>
-
+                                                
                                                 <!-- Click handlers -->
                                                 <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
                                                 <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
                                                 <EventSetter Event="GotFocus" Handler="DataGridRow_GotFocus"/>
-
-                                                <Style.Triggers>
-                                                    <!-- Selection box -->
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter Property="BorderBrush" Value="{DynamicResource BrushSecondary}" />
-                                                        <Setter Property="BorderThickness" Value="0 1" />
-                                                    </Trigger>
-                                                </Style.Triggers>
                                             </Style>
                                         </DataGrid.ItemContainerStyle>
 
