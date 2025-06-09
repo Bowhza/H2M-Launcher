@@ -52,19 +52,7 @@ namespace H2MLauncher.UI
             ToggleOverlayCommand = new RelayCommand(ToggleOverlay);
 
             _ = customizationManager.LoadInitialValues();
-            customizationManager.PropertyChanged += CustomizationManager_PropertyChanged;
             _dialogService = dialogService;
-        }
-
-        private void CustomizationManager_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(CustomizationManager.PreviewBackgroundVideo))
-            {
-                if (Customization.PreviewBackgroundVideo is not null)
-                {
-                    this.AddChild(Customization.PreviewBackgroundVideo);
-                }
-            }
         }
 
         private void CustomizeButton_Click(object sender, RoutedEventArgs e)

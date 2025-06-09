@@ -64,7 +64,7 @@
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
-        <!-- Workaround to bind to a dynamic resource -->
+        <!-- Workaround to bind to dynamic resources -->
         <FrameworkElement x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
         <FrameworkElement x:Name="BackgroundMediaUriGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundVideoSource}" />
 
@@ -85,11 +85,14 @@
                                   Height="{Binding Path=ActualHeight, ElementName=ImageContainer}" VerticalAlignment="Stretch">
                                 
                                 <!-- Background image -->
-                                <Image x:Name="BackgroundImageBrush" Source="{DynamicResource BackgroundImageSource}" Opacity="1"
-                                       d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
+                                <Image x:Name="BackgroundImageBrush" Opacity="1" Stretch="UniformToFill" >
+                                    <Image.Source>
+                                        <DynamicResource ResourceKey="{x:Static local:Constants.BackgroundImageSourceKey}"/>
+                                    </Image.Source>
+                                </Image>
                                 
                                 <!-- Background video -->
-                                <controls:LoopingMediaElement Source="{Binding DataContext, ElementName=BackgroundMediaUriGetter, Converter={StaticResource StringUriConverter}}" 
+                                <controls:LoopingMediaElement 
                                               Stretch="UniformToFill" d:Source="Assets/Background.jpg"
                                               MediaFailed="MediaElement_MediaFailed"
                                               MediaOpened="MediaElement_MediaOpened"
@@ -97,6 +100,12 @@
                                               UnloadedBehavior="Manual"
                                               IsMuted="True"
                                               Opacity="0">
+                                    <controls:LoopingMediaElement.Source>
+                                        <MultiBinding Converter="{StaticResource UrlCombinerConverter}">
+                                            <Binding Path="Customization.CurrentThemeDirectory" ElementName="mainWindow" />
+                                            <Binding Path="DataContext" ElementName="BackgroundMediaUriGetter"/>
+                                        </MultiBinding>
+                                    </controls:LoopingMediaElement.Source>
                                     <controls:LoopingMediaElement.Style>
                                         <Style TargetType="MediaElement">
                                             <Style.Triggers>                                                

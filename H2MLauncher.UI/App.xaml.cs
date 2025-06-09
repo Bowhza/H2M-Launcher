@@ -48,6 +48,8 @@ namespace H2MLauncher.UI
     public partial class App : Application
     {
         public static IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static CustomizationManager CustomizationManager { get; private set; } = null!;
+
         private H2MLauncherSettings _defaultSettings = null!;
 
         protected override void OnStartup(StartupEventArgs e)
@@ -78,12 +80,13 @@ namespace H2MLauncher.UI
             });
 
             // NOTE: this is really stupid but necessary to have the latest urls we just set above available
-            config.Reload();            
+            config.Reload();
+
+            CustomizationManager = ServiceProvider.GetRequiredService<CustomizationManager>();
+            ServiceProvider.GetRequiredService<ThemeFileWatcher>();
 
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
-
-            ServiceProvider.GetRequiredService<ThemeFileWatcher>();
 
             base.OnStartup(e);
         }

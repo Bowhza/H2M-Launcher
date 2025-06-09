@@ -1,10 +1,9 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Windows;
-using System.Windows.Controls;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -17,7 +16,8 @@ namespace H2MLauncher.UI.Services;
 
 public partial class CustomizationManager : ObservableObject
 {
-    internal const string DefaultBackgroundImagePath = "pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg";
+    internal const string DefaultResourceDirectory = "pack://application:,,,/H2MLauncher.UI;component";
+    internal const string DefaultBackgroundImagePath = DefaultResourceDirectory + "/Assets/Background.jpg";
     internal const double DefaultBackgroundBlur = 0;
 
     private readonly IWritableOptions<H2MLauncherSettings> _settings;
@@ -32,9 +32,6 @@ public partial class CustomizationManager : ObservableObject
     private Uri? _backgroundVideo;
 
     [ObservableProperty]
-    private MediaElement? _previewBackgroundVideo;
-
-    [ObservableProperty]
     private bool _backgroundImageLoadingError;
 
     [ObservableProperty]
@@ -45,6 +42,9 @@ public partial class CustomizationManager : ObservableObject
 
     [ObservableProperty]
     private bool _hotReloadThemes;
+
+    [ObservableProperty]
+    private string _currentThemeDirectory = DefaultResourceDirectory;
 
 
     public CustomizationManager(IWritableOptions<H2MLauncherSettings> settings)
@@ -57,6 +57,9 @@ public partial class CustomizationManager : ObservableObject
     /// </summary>
     public async Task LoadInitialValues()
     {
+        CurrentThemeDirectory = "C:\\Users\\Tobias\\source\\repos\\H2M-Launcher\\";
+
+        // Set the theme directory
         LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
         // Background blur
@@ -96,7 +99,7 @@ public partial class CustomizationManager : ObservableObject
     }
 
     public async Task<bool> LoadMedia(string mediaFileName)
-    {        
+    {
         if (TryLoadImage(mediaFileName, out ImageSource? image))
         {
             SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
@@ -116,7 +119,7 @@ public partial class CustomizationManager : ObservableObject
         {
             SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, mediaFileName);
             SetDefaultBackgroundImage(resetSetting: false);
-            
+
             BackgroundVideo = new Uri(mediaFileName);
             BackgroundImageLoadingError = false;
 
@@ -199,12 +202,12 @@ public partial class CustomizationManager : ObservableObject
             // Cancel previous loading callback and create new
             _backgroundVideoLoadCompletionSource.TrySetCanceled();
             _backgroundVideoLoadCompletionSource = new();
-            
+
             using CancellationTokenSource timeoutCancellation = new(TimeSpan.FromSeconds(15));
             using CancellationTokenRegistration reg = timeoutCancellation.Token.Register(() => _backgroundVideoLoadCompletionSource.TrySetCanceled());
 
             // Set the resource so the MediaElement starts loading
-            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, path);  
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, path);
 
             // Wait for the media to be opened in the UI
             await _backgroundVideoLoadCompletionSource.Task;
@@ -226,37 +229,50 @@ public partial class CustomizationManager : ObservableObject
         _backgroundVideoLoadCompletionSource.TrySetException(exception);
     }
 
-    public bool LoadTheme(string path)
+    public bool LoadTheme(string xamlPath)
     {
         try
         {
             return Application.Current.Dispatcher.Invoke(() =>
             {
-                ResourceDictionary resourceDictionary = new()
+                string themeDirectory = Path.GetDirectoryName(xamlPath)! + '\\';
+
+                // load resource dictionary
+                using FileStream stream = new(xamlPath, FileMode.Open, FileAccess.Read);
+
+                ParserContext parserContext = new()
                 {
-                    Source = new Uri(path, UriKind.Absolute)
+                    // Critical: this makes relative URIs work!
+                    BaseUri = new Uri(themeDirectory, UriKind.Absolute)
                 };
+                
+                ResourceDictionary resourceDictionary = (ResourceDictionary)XamlReader.Load(stream, parserContext);
 
                 // remove old one
                 if (Application.Current.Resources.MergedDictionaries.Count > 1)
                 {
                     Application.Current.Resources.MergedDictionaries.RemoveAt(1);
                 }
-                
+
+                // set theme directory resource
+                CurrentThemeDirectory = themeDirectory;
+                Application.Current.Resources[Constants.CurrentThemeDirectoryKey] = themeDirectory;
+
                 // add new one
                 Application.Current.Resources.MergedDictionaries.Add(resourceDictionary);
 
                 UpdateCustomizationSettings(settings => settings with
                 {
-                    Themes = [path]
+                    Themes = [xamlPath]
                 });
 
                 ThemeLoadingError = false;
                 return true;
             });
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            var d = ex;
             ThemeLoadingError = true;
             GC.Collect(); // force garbage collection to free locked file resource
             return false;
@@ -268,6 +284,10 @@ public partial class CustomizationManager : ObservableObject
         if (Application.Current.Resources.MergedDictionaries.Count > 1)
         {
             Application.Current.Resources.MergedDictionaries.RemoveAt(1);
+
+            // reset resource directory
+            Application.Current.Resources.Remove(Constants.CurrentThemeDirectoryKey);
+            CurrentThemeDirectory = DefaultResourceDirectory;
 
             UpdateCustomizationSettings(settings => settings with
             {

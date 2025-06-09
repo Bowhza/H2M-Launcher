@@ -9,6 +9,8 @@
                     xmlns:system="clr-namespace:System;assembly=mscorlib"
                     x:Name="GlobalResources">
 
+    <system:String x:Key="CurrentThemeDirectory">pack://application:,,,/H2MLauncher.UI;component/</system:String>
+
     <!-- Converters -->
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
     <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
@@ -19,6 +21,7 @@
     <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
     <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
     <converters:StringUriConverter x:Key="StringUriConverter"/>
+    <converters:UrlCombinerConverter x:Key="UrlCombinerConverter" />
 
     <!-- Contrast Colors -->
     <Color x:Key="ColorLight">White</Color>
@@ -144,9 +147,10 @@
     <!-- Background image source of the main window -->
     <ImageSource x:Key="{x:Static local:Constants.BackgroundImageSourceKey}">/Assets/Background.jpg</ImageSource>
     <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
-
+    
     <!-- Background video source -->
     <x:Null x:Key="BackgroundVideoSource"></x:Null>
+    <!--<system:String x:Key="BackgroundVideoSource">preview.gif</system:String>-->
 
     <!-- Background controls (put any elements or media here) -->
     <DataTemplate x:Key="BackgroundControlTemplate" DataType="{x:Type vm:ServerBrowserViewModel}">
