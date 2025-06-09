@@ -1,7 +1,5 @@
 ﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Media.Animation;
 
 namespace H2MLauncher.UI.View.Controls;
 
@@ -31,7 +29,7 @@ public sealed class LoopingMediaElement : MediaElement
         if (Loop && UnloadedBehavior is MediaState.Manual)
         {
             // loop the video
-            Position = Source.AbsolutePath.EndsWith(".gif", StringComparison.InvariantCultureIgnoreCase)
+            Position = Source.LocalPath.EndsWith(".gif", StringComparison.InvariantCultureIgnoreCase)
                 ? TimeSpan.FromMilliseconds(1)
                 : TimeSpan.Zero;
             Play();
