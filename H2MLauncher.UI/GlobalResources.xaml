@@ -7,10 +7,11 @@
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
                     xmlns:system="clr-namespace:System;assembly=mscorlib"
+                    xmlns:gif="clr-namespace:XamlAnimatedGif;assembly=XamlAnimatedGif"
                     x:Name="GlobalResources">
 
     <system:String x:Key="CurrentThemeDirectory">pack://application:,,,/H2MLauncher.UI;component/</system:String>
-
+    
     <!-- Converters -->
     <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
     <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
