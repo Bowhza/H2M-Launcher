@@ -20,7 +20,7 @@ public class UrlCombinerConverter : IMultiValueConverter
             return null;
         }
 
-        if (!Uri.TryCreate(path.TrimStart('/'), UriKind.RelativeOrAbsolute, out Uri? uri))
+        if (!Uri.TryCreate(path.TrimStart('/', '\\'), UriKind.RelativeOrAbsolute, out Uri? uri))
         {
             return null;
         }
@@ -31,11 +31,10 @@ public class UrlCombinerConverter : IMultiValueConverter
             return uri;
         }
 
-        var uriBuilder = new UriBuilder(basePath.TrimEnd('/'));
+        var uriBuilder = new UriBuilder(basePath.TrimEnd('/', '\\'));
 
         uriBuilder.Path += "/";
         uriBuilder.Path += uri;
-
 
         return uriBuilder.Uri;
     }
