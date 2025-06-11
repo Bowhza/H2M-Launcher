@@ -7,11 +7,12 @@ using MatchmakingServer.Parties;
 
 namespace MatchmakingServer
 {
-    public class Player
+    public class Player()
     {
         public required string Id { get; init; }
         public required string Name { get; set; }
         public required string UserName { get; init; }
+        public required CancellationToken DisconnectedToken { get; init; }
 
         /// <summary>
         /// Gets the connection id for the queueing hub.
@@ -39,7 +40,12 @@ namespace MatchmakingServer
         /// <summary>
         /// The server the player is queued or joined.
         /// </summary>
-        public GameServer? Server { get; set; }
+        public GameServer? QueuedServer { get; set; }
+
+        /// <summary>
+        /// The server the player is currently playing on.
+        /// </summary>
+        public GameServer? PlayingServer { get; set; }
 
         private Party? _party = null;
 

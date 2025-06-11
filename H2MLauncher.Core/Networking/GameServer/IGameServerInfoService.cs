@@ -3,8 +3,6 @@ using H2MLauncher.Core.Networking.GameServer;
 
 namespace H2MLauncher.Core.Services
 {
-    public interface IGameServerService<TServer> : IGameServerInfoService<TServer>, IGameServerStatusService<TServer> where TServer : IServerConnectionDetails;
-
     public interface IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
     {
         Task<GameServerInfo?> GetInfoAsync(TServer server, CancellationToken cancellationToken);

@@ -20,7 +20,7 @@ namespace H2MLauncher.Core.Services
 {
     public partial class GameServerCommunicationService<TServer> : 
         IAsyncDisposable,
-        IGameServerService<TServer> where TServer : IServerConnectionDetails
+        IGameServerCommunicationService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, ConcurrentHashSet<Request>> _queuedRequests = [];
         private readonly UdpGameServerCommunication _gameServerCommunication;

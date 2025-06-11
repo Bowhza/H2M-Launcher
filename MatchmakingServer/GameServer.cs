@@ -1,4 +1,9 @@
-﻿using H2MLauncher.Core;
+﻿using System.Collections.Concurrent;
+using System.Linq;
+
+using ConcurrentCollections;
+
+using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
@@ -9,6 +14,8 @@ namespace MatchmakingServer
 {
     public class GameServer : IServerConnectionDetails, ISimpleServerInfo
     {
+        public string Id { get; init; } = "";
+
         public required string ServerIp { get; init; }
 
         public required int ServerPort { get; init; }
@@ -28,35 +35,105 @@ namespace MatchmakingServer
             }
         }
 
+        #region Queueing
+
         public ConcurrentLinkedQueue<Player> PlayerQueue { get; } = [];
 
+        /// <summary>
+        /// Players that are currently joining this server from the queue.
+        /// </summary>
         public IEnumerable<Player> JoiningPlayers => PlayerQueue.Where(p => p.State is PlayerState.Joining);
 
+        /// <summary>
+        /// Players that are currently queued to join this server.
+        /// </summary>
         public IEnumerable<Player> QueuedPlayers => PlayerQueue.Where(p => p.State is PlayerState.Queued);
 
+        /// <summary>
+        /// The number of players currently joining this server from the queue.
+        /// </summary>
         public int JoiningPlayerCount { get; set; }
 
-        string IServerConnectionDetails.Ip => ServerIp;
+        /// <summary>
+        /// When this server object was created.
+        /// </summary>
+        public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
 
-        int IServerConnectionDetails.Port => ServerPort;
+        /// <summary>
+        /// The current server queue processing task.
+        /// </summary>
+        public Task? ProcessingTask { get; set; }
 
-        public DateTimeOffset LastSuccessfulPingTimestamp { get; set; }
-        public GameServerInfo? LastServerInfo { get; set; }
-        public GameServerStatus? LastStatusResponse { get; set; }
+        /// <summary>
+        /// Cancellation token source used to cancel the queue processing task.
+        /// </summary>
+        public CancellationTokenSource ProcessingCancellation { get; set; } = new();
+
+        /// <summary>
+        /// The queue processing state.
+        /// </summary>
+        public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
+
+        /// <summary>
+        /// Event that gets triggered when players joined the idle server queue.
+        /// </summary>
+        public AsyncManualResetEvent PlayersAvailable { get; } = new(false);
 
         public List<string> ActualPlayers { get; } = [];
 
-        public string InstanceId { get; init; } = "";
+        #endregion
 
-        public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
 
-        public Task? ProcessingTask { get; set; }
+        public IReadOnlyDictionary<Player, DateTimeOffset> KnownPlayers
+        {
+            get
+            {
+                // return a thread-safe snapshot
+                lock (PlayerCollectionLock)
+                {
+                    return _knownPlayers.ToDictionary();
+                }
+            }
+        }
 
-        public CancellationTokenSource ProcessingCancellation { get; set; } = new();
 
-        public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
+        private readonly Dictionary<Player, DateTimeOffset> _knownPlayers = [];
 
-        public AsyncManualResetEvent PlayersAvailable { get; } = new(false);
+        internal readonly object PlayerCollectionLock = new();
+
+
+        // Internal methods for managing players, ideally only called by ServerManager
+        internal bool AddPlayerInternal(Player player)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.TryAdd(player, DateTimeOffset.Now);
+            }
+        }
+
+        internal bool RemovePlayerInternal(Player player, out DateTimeOffset startTime)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.Remove(player, out startTime);
+            }
+        }
+
+        public bool ContainsPlayer(Player player)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.ContainsKey(player);
+            }
+        }
+
+
+
+        public DateTimeOffset? LastServerInfoTimestamp { get; set; }
+        public DateTimeOffset? LastServerStatusTimestamp { get; set; }
+        public GameServerInfo? LastServerInfo { get; set; }
+        public GameServerStatus? LastStatusResponse { get; set; }
+
 
         public int PrivilegedSlots { get; init; }
 
@@ -72,6 +149,9 @@ namespace MatchmakingServer
                 return JoiningPlayerCount + LastServerInfo.PrivilegedSlots;
             }
         }
+
+        string IServerConnectionDetails.Ip => ServerIp;
+        int IServerConnectionDetails.Port => ServerPort;
 
         /// <summary>
         /// Gets the actual ip address from the game server info if present.

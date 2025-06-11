@@ -158,7 +158,7 @@ namespace H2MLauncher.UI
             services.AddKeyedSingleton<IGameServerStatusService<IServerConnectionDetails>>("UDP", (sp, key) =>
                 sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
 
-            services.AddKeyedSingleton<IGameServerService<IServerConnectionDetails>>("UDP", (sp, key) =>
+            services.AddKeyedSingleton<IGameServerCommunicationService<IServerConnectionDetails>>("UDP", (sp, key) =>
                 sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
 
             services.AddTransient<IGameServerInfoService<IServerConnectionDetails>, 

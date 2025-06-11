@@ -3,14 +3,15 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
 using H2MLauncher.Core.Party;
+using H2MLauncher.Core.Social;
 
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
-using MatchmakingServer.Social;
+using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.SignalR;
 
-namespace MatchmakingServer.SignalR;
+namespace MatchmakingServer.Social;
 
 public class SocialService
 {
@@ -69,7 +70,7 @@ public class SocialService
             );
     }
 
-    public Task UpdateGameStatus(string userId, string connectionId, GameStatus gameStatus)
+    public Task UpdateGameStatus(string userId, string connectionId, GameStatus gameStatus, ConnectedServerInfo? connectedServer)
     {
         _logger.LogDebug("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
             userId, connectionId, gameStatus);
@@ -171,8 +172,8 @@ public class SocialService
                     player.GameStatus,
                     player.Party is not null
                         ? new PartyStatusDto(
-                            player.Party.Id, 
-                            player.Party.Members.Count, 
+                            player.Party.Id,
+                            player.Party.Members.Count,
                             player.Party.Privacy is not PartyPrivacy.Closed,
                             player.Party.ValidInvites.ToList())
                         : null

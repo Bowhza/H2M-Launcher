@@ -69,7 +69,7 @@ namespace MatchmakingServer.Queueing
         /// </summary>
         public void OnPlayerJoinFailed(Player player)
         {
-            if (player.State is not PlayerState.Joining || player.Server is null)
+            if (player.State is not PlayerState.Joining || player.QueuedServer is null)
             {
                 // not joining
                 return;
@@ -87,12 +87,12 @@ namespace MatchmakingServer.Queueing
 
             // allow retry and keep player in queue
             player.State = PlayerState.Queued;
-            player.Server.JoiningPlayerCount--;
+            player.QueuedServer.JoiningPlayerCount--;
 
             _logger.LogDebug("Moved player {player} back to queue", player);
 
-            if (player.Server.LastServerInfo is not null &&
-                player.Server.LastServerInfo.FreeSlots == 0)
+            if (player.QueuedServer.LastServerInfo is not null &&
+                player.QueuedServer.LastServerInfo.FreeSlots == 0)
             {
                 // server was probably full
                 if (QueueingSettings.ResetJoinAttemptsWhenServerFull)
@@ -110,7 +110,7 @@ namespace MatchmakingServer.Queueing
 
         public void OnPlayerJoinConfirmed(Player player)
         {
-            if (player.State is not (PlayerState.Joining or PlayerState.Queued) || player.Server is null)
+            if (player.State is not (PlayerState.Joining or PlayerState.Queued) || player.QueuedServer is null)
             {
                 // not joining
                 _logger.LogWarning("Could not confirm player join: invalid player state ({player})", player);
@@ -197,7 +197,7 @@ namespace MatchmakingServer.Queueing
         {
             _logger.LogDebug("Fetching actual players of server {server}...", server);
 
-            IReadOnlyList<IW4MServerStatus> serverStatusList = await _instanceCache.TryGetWebfrontStatusList(server.InstanceId, cancellationToken);
+            IReadOnlyList<IW4MServerStatus> serverStatusList = await _instanceCache.TryGetWebfrontStatusList(server.Id, cancellationToken);
 
             IW4MServerStatus? serverStatus = serverStatusList.FirstOrDefault(s =>
                 s.ListenAddress == server.ServerIp &&
@@ -205,7 +205,7 @@ namespace MatchmakingServer.Queueing
 
             if (serverStatus is null)
             {
-                _logger.LogDebug("No server status found for server instance {instanceId}", server.InstanceId);
+                _logger.LogDebug("No server status found for server instance {instanceId}", server.Id);
 
                 server.ActualPlayers.Clear();
 
@@ -282,7 +282,7 @@ namespace MatchmakingServer.Queueing
                 _logger.LogTrace("Server info retrieved successfully: {gameServerInfo}", gameServerInfo);
 
                 server.LastServerInfo = gameServerInfo;
-                server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+                server.LastServerInfoTimestamp = DateTimeOffset.Now;
 
                 return true;
             }
@@ -706,7 +706,7 @@ namespace MatchmakingServer.Queueing
             // queue the player
             player.State = PlayerState.Queued;
             player.QueuedAt = DateTimeOffset.Now;
-            player.Server = server;
+            player.QueuedServer = server;
             player.JoinAttempts = [];
             server.PlayerQueue.Enqueue(player);
 
@@ -751,16 +751,16 @@ namespace MatchmakingServer.Queueing
 
         private void DequeuePlayer(Player player, PlayerState newState, DequeueReason reason, bool notifyPlayerDequeued = true)
         {
-            if (player.Server is null)
+            if (player.QueuedServer is null)
             {
                 _logger.LogTrace("Cannot dequeue {player} to {newState}: player not in queue", player, newState);
                 return;
             }
 
             _logger.LogDebug("Dequeueing player {player} from server {server}, reason '{reason}'",
-                player, player.Server, reason);
+                player, player.QueuedServer, reason);
 
-            if (!player.Server.PlayerQueue.Remove(player))
+            if (!player.QueuedServer.PlayerQueue.Remove(player))
             {
                 // invalid state, player expected in queue
                 _logger.LogWarning("Invalid state, expected player {player} with state {state} to be in queue", player, player.State);
@@ -769,14 +769,14 @@ namespace MatchmakingServer.Queueing
 
             if (player.State is PlayerState.Joining)
             {
-                player.Server.JoiningPlayerCount--;
+                player.QueuedServer.JoiningPlayerCount--;
             }
 
             player.State = newState;
             player.QueuedAt = null;
 
             // TODO
-            _ = NotifyPlayerQueuePositions(player.Server);
+            _ = NotifyPlayerQueuePositions(player.QueuedServer);
 
             if (reason is DequeueReason.UserLeave or DequeueReason.Disconnect || !notifyPlayerDequeued)
             {
