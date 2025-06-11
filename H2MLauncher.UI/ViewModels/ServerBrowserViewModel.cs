@@ -457,7 +457,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         tabViewModel = new ServerTabViewModel(tabName, JoinServer, AdvancedServerFilter.ApplyFilter)
         {
             ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite),
-            ShowServerDetailsCommand = new RelayCommand<ServerViewModel>(ShowServerDetails, s => s is not null),
         };
 
         ServerTabs.Add(tabViewModel);
