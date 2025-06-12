@@ -353,8 +353,11 @@ namespace H2MLauncher.Core.Services
 
                 if (handleFirstOnly)
                 {
-                    Request firstRequest = matchingRequests.First();
-                    removeInterpretAndCallback(firstRequest);
+                    Request? firstRequest = matchingRequests.FirstOrDefault();
+                    if (firstRequest is not null)
+                    {
+                        removeInterpretAndCallback(firstRequest);
+                    }
                     return;
                 }
 
