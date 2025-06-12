@@ -254,7 +254,6 @@ public sealed class GameServerService
 
     private async Task<GameServerInfo?> FetchFreshInfoInternalAsync(GameServer gameServer, CancellationToken cancellationToken)
     {
-        HttpClient g;
         GameServerInfo? info = await _gameServerInfoService.GetInfoAsync(gameServer, cancellationToken);
         if (info != null)
         {
