@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -25,6 +26,7 @@ namespace H2MLauncher.UI.ViewModels
         private readonly DialogService _dialogService;
         private readonly IErrorHandlingService _errorHandlingService;
         private readonly IOptions<ResourceSettings> _resourceSettings;
+        private readonly DispatcherTimer _timer;
 
         private readonly HashSet<string> _addedUserIds = [];
 
@@ -149,6 +151,21 @@ namespace H2MLauncher.UI.ViewModels
 
             OnPropertyChanged(nameof(Status));
             _resourceSettings = resourceSettings;
+
+            _timer = new()
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
+        }
+
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            foreach (FriendViewModel friend in Friends)
+            {
+                friend.PlayingServer?.RecalculatePlayingTime();
+            }
         }
 
         private void ClientContext_UserChanged()
@@ -435,7 +452,7 @@ namespace H2MLauncher.UI.ViewModels
             await connectionTask;
         }
 
-            [RelayCommand]
+        [RelayCommand]
         public async Task AcceptFriendRequest(string? friendId)
         {
             friendId ??= _dialogService.OpenInputDialog(
@@ -579,6 +596,7 @@ namespace H2MLauncher.UI.ViewModels
                 ServerName = matchStatus.ServerName,
                 MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
                 GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
+                JoinedAt = matchStatus.JoinedAt,
             };
         }
 
@@ -616,6 +634,9 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserLeft -= PartyService_UserLeft;
             _partyClient.LeaderChanged -= PartyClient_LeaderChanged;
             _partyClient.ConnectionChanged -= PartyService_ConnectionChanged;
+
+            _timer.Stop();
+            _timer.Tick -= Timer_Tick;
         }
 
         public class FriendStatusGroupComparer : IComparer

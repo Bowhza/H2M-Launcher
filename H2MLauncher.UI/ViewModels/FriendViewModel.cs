@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -26,6 +28,29 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private string _gameTypeDisplayName = "";
+
+        public required DateTimeOffset JoinedAt { get; init; }
+
+        [ObservableProperty]
+        private TimeSpan _playingTime = TimeSpan.Zero;
+
+        public string Status => this switch
+        {
+            { GameTypeDisplayName: not null, MapDisplayName: not null } =>
+                $"{GameTypeDisplayName} on {MapDisplayName}",
+            { MapDisplayName: not null } => $"Playing on {MapDisplayName}",
+            _ => ""
+        };
+
+        public string SanitizedServerName => ColorCodeSequenceRegex().Replace(ServerName, "");
+
+        public void RecalculatePlayingTime()
+        {
+            PlayingTime = DateTimeOffset.Now - JoinedAt;
+        }
+
+        [GeneratedRegex(@"(\^\d)")]
+        private static partial Regex ColorCodeSequenceRegex();
     }
 
     public partial class FriendViewModel : ObservableObject
@@ -38,6 +63,9 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private bool _showDetails;
+
+        [ObservableProperty]
+        private string _test = "[EU] ^1Rasselbande ^7| ^1Vanilla KC/TDM ^7| ^1MW2/MW3 Best Maps";
 
         /// <summary>
         /// Whether this is the user itself.
