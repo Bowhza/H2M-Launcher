@@ -160,8 +160,11 @@ namespace H2MLauncher.UI.ViewModels
         private GameStatus _gameStatus;
 
         [NotifyPropertyChangedFor(nameof(DetailedStatus))]
+        [NotifyPropertyChangedFor(nameof(HasPlayingServer))]
         [ObservableProperty]
         private PlayingServerViewModel? _playingServer;
+
+        public bool HasPlayingServer => PlayingServer is not null;
 
         /// <summary>
         /// The group this person is sorted into.
