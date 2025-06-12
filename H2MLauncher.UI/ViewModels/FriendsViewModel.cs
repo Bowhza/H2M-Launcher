@@ -14,7 +14,6 @@ using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
-using H2MLauncher.UI.Services;
 
 using Microsoft.Extensions.Options;
 
@@ -400,6 +399,7 @@ namespace H2MLauncher.UI.ViewModels
                 {
                     selfViewModel.Status = _socialClient.OnlineStatus;
                     selfViewModel.GameStatus = _socialClient.GameStatus;
+                    selfViewModel.PlayingServer = CreatePlayingServerViewModel(_socialClient.MatchStatus);
                 }
             });
         }
@@ -599,27 +599,10 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelf = isSelf,
                 PartySize = _partyClient.Members?.Count ?? 0,
                 PartyId = friend?.PartyStatus?.PartyId,
+                PlayingServer = CreatePlayingServerViewModel(isSelf ? _socialClient.MatchStatus : friend?.MatchStatus),
             };
 
             Friends.Add(friendViewModel);
-        }
-
-        private PlayingServerViewModel? CreatePlayingServerViewModel(MatchStatusDto? matchStatus)
-        {
-            if (matchStatus is null)
-            {
-                return null;
-            }
-
-            return new()
-            {
-                Ip = matchStatus.Server.Ip,
-                Port = matchStatus.Server.Port,
-                ServerName = matchStatus.ServerName,
-                MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
-                GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
-                JoinedAt = matchStatus.JoinedAt,
-            };
         }
 
         private void UpdateFriend(FriendDto friend)
@@ -640,6 +623,24 @@ namespace H2MLauncher.UI.ViewModels
                                              friend.PartyStatus.Invites.Contains(UserId);
                 friendViewModel.PlayingServer = CreatePlayingServerViewModel(friend.MatchStatus);
             }
+        }
+
+        private PlayingServerViewModel? CreatePlayingServerViewModel(MatchStatusDto? matchStatus)
+        {
+            if (matchStatus is null)
+            {
+                return null;
+            }
+
+            return new()
+            {
+                Ip = matchStatus.Server.Ip,
+                Port = matchStatus.Server.Port,
+                ServerName = matchStatus.ServerName,
+                MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
+                GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
+                JoinedAt = matchStatus.JoinedAt,
+            };
         }
 
         public void Dispose()

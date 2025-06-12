@@ -656,7 +656,7 @@
                                                         </Style>
                                                     </Separator.Style>
                                                 </Separator>
-                                                
+
                                                 <!-- Playing Server -->
                                                 <Border Padding="7" CornerRadius="5" Background="#33ffffff" Margin="0,5">
                                                     <Border.Style>
@@ -689,11 +689,26 @@
                                                                               Inlines="{Binding PlayingServer.ServerName, Converter={StaticResource HostNameColorConverter}}">
                                                         </local:MarqueeTextBox>
 
+                                                        <!-- Join Button -->
                                                         <Button Command="{Binding JoinServerCommand }"
-                                                                Visibility="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=Border,AncestorLevel=1}, Converter={StaticResource booleanToVisibilityConverter}}"
-                                                                Style="{DynamicResource WindowButtonStyle}" Content="▶️" ToolTip="Join server" 
+                                                                Content="▶️" ToolTip="Join server" 
                                                                 Grid.Row="0" Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Bottom"
-                                                                Width="25" Height="25"/>
+                                                                Width="25" Height="25">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+                                                                    <Setter Property="Visibility" 
+                                                                            Value="{Binding IsMouseOver, 
+                                                                                            RelativeSource={RelativeSource AncestorType=Border,
+                                                                                                                           AncestorLevel=1}, 
+                                                                                            Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
                                                     </Grid>
                                                 </Border>
                                                 <Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
