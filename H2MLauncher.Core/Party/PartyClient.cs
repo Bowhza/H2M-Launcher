@@ -365,6 +365,16 @@ namespace H2MLauncher.Core.Party
             return base.OnConnected(cancellationToken);
         }
 
+        protected override Task OnReconnecting(Exception? exception)
+        {
+            _logger.LogDebug(exception, "Party client reconnecting {state}", Connection.State);
+
+            _currentParty = null;
+            _isPartyLeader = false;
+
+            return base.OnReconnecting(exception);
+        }
+
         protected override Task OnReconnected(string? connectionId)
         {
             if (_autoCreateParty)

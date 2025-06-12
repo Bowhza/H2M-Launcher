@@ -44,6 +44,9 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private bool _isConnectionError = false;
 
+        [ObservableProperty]
+        private bool _isPartyConnected = false;
+
         public string Status
         {
             get
@@ -111,10 +114,10 @@ namespace H2MLauncher.UI.ViewModels
         #endregion
 
         public FriendsViewModel(
-            SocialClient socialClient, 
-            PartyClient partyClient, 
-            DialogService dialogService, 
-            IErrorHandlingService errorHandlingService, 
+            SocialClient socialClient,
+            PartyClient partyClient,
+            DialogService dialogService,
+            IErrorHandlingService errorHandlingService,
             IServerJoinService serverJoinService,
             IOptions<ResourceSettings> resourceSettings)
         {
@@ -232,6 +235,9 @@ namespace H2MLauncher.UI.ViewModels
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    bool isConnectionLoss = IsPartyConnected;
+
+                    IsPartyConnected = false;
                     RefreshPeople();
 
                     OnPropertyChanged(nameof(PartyId));
@@ -240,13 +246,17 @@ namespace H2MLauncher.UI.ViewModels
                     OnPropertyChanged(nameof(IsPartyGuest));
                     OnPropertyChanged(nameof(PartyStatus));
 
-                    _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                    if (isConnectionLoss)
+                    {
+                        _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                    }
                 });
             }
             else
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    IsPartyConnected = true;
                     OnPropertyChanged(nameof(PartyStatus));
                 });
             }
