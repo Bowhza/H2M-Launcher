@@ -22,5 +22,10 @@ namespace MatchmakingServer.Social
         /// <param name="player">The player associated with the connection update.</param>
         /// <param name="connectedServerInfo">The info about the connected server or <see langword="null"/> if disconnected.</param>
         Task HandlePlayerConnectionUpdate(Player player, ConnectedServerInfo? connectedServerInfo, CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Removes the player from it's current server and stops tracking him.
+        /// </summary>
+        Task<bool> RemovePlayerFromCurrentServer(Player player);
     }
 }

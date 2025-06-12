@@ -374,7 +374,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     {
         if (_trackedPlayers.TryRemove(player, out _))
         {
-            _logger.LogDebug("Stopped tracking player {player} due to exceeding max tracking time.", player);
+            _logger.LogDebug("Stopped tracking player {player}.", player);
             return true;
         }
 
@@ -399,6 +399,11 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     }
 
     #region Methods for Player - Server relationship
+
+    public Task<bool> RemovePlayerFromCurrentServer(Player player)
+    {
+        return RemovePlayerFromCurrentServer(player, isTimeout: false, hasLock: false);
+    }
 
     private Task<bool> RemovePlayerFromCurrentServer(Player player, bool isTimeout = false, bool hasLock = false)
     {
@@ -440,6 +445,8 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
 
         _logger.LogDebug("Player {player} left server {server}", player, server);
 
+        StopTrackingPlayer(player);
+
         PlayerLeftServer?.Invoke(new PlayerLeftEventArgs()
         {
             Player = player,
@@ -480,7 +487,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                 return false;
             }
 
-            player.PlayingServer = null;
+            player.PlayingServer = server;
         }
 
         PlayerJoinedServer?.Invoke(player, server);

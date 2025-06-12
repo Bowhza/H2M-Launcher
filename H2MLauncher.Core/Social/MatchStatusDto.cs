@@ -2,4 +2,4 @@
 
 namespace H2MLauncher.Core.Social;
 
-public record MatchStatusDto(ServerConnectionDetails Server, string? GameMode, string? MapName, DateTimeOffset JoinedAt);
+public record MatchStatusDto(ServerConnectionDetails Server, string ServerName, string? GameMode, string? MapName, DateTimeOffset JoinedAt);

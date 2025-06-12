@@ -7,4 +7,5 @@ public record FriendDto(
     OnlineStatus Status, 
     GameStatus GameStatus,
     PartyStatusDto? PartyStatus,
+    MatchStatusDto? MatchStatus,
     DateTimeOffset FriendsSince);

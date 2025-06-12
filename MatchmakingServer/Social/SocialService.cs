@@ -33,10 +33,13 @@ public class SocialService
         IHubContext<SocialHub, ISocialClient> hubContext,
         IServiceScopeFactory serviceScopeFactory)
     {
-        _playerServerTrackingService = playerServerTrackingService;
         _logger = logger;
         _hubContext = hubContext;
         _serviceScopeFactory = serviceScopeFactory;
+
+        _playerServerTrackingService = playerServerTrackingService;
+        _playerServerTrackingService.PlayerJoinedServer += PlayerServerTrackingService_PlayerJoinedServer;
+        _playerServerTrackingService.PlayerLeftServer += PlayerServerTrackingService_PlayerLeftServer;
 
         _partyService = partyService;
         _partyService.PartyClosed += PartyService_PartyClosed;
@@ -78,7 +81,7 @@ public class SocialService
            .GroupBy(x => x.Player.Id)
 
            // debounce each player group, then merge into a single sequence
-           .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(5)))
+           .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(2)))
 
            // handle server connectino update
            .SelectMany(x =>
@@ -101,7 +104,7 @@ public class SocialService
         }
 
         if (player.GameStatus == gameStatus && 
-            player.LastConnectedServerInfo?.Equals(connectedServer) == true)
+            EqualityComparer<ConnectedServerInfo>.Default.Equals(player.LastConnectedServerInfo, connectedServer))
         {
             // no change
             return Task.CompletedTask;
@@ -174,6 +177,7 @@ public class SocialService
         if (_onlinePlayers.TryRemove(userId, out Player? player))
         {
             player.GameStatus = GameStatus.None;
+            await _playerServerTrackingService.RemovePlayerFromCurrentServer(player);
 
             await using var scope = _serviceScopeFactory.CreateAsyncScope();
             FriendshipsService friendshipsService = scope.ServiceProvider.GetRequiredService<FriendshipsService>();
@@ -184,7 +188,7 @@ public class SocialService
         }
     }
 
-    private async Task TryNotifyOnlineFriendsOfStatusChange(Player player, IServiceScope serviceScope)
+    private async Task TryNotifyOnlineFriendsOfStatusChange(Player player, AsyncServiceScope serviceScope)
     {
         try
         {
@@ -206,6 +210,7 @@ public class SocialService
                     player.PlayingServer is not null
                         ? new MatchStatusDto(
                             (player.PlayingServer.ServerIp, player.PlayingServer.ServerPort),
+                            player.PlayingServer.LastServerInfo?.HostName ?? player.PlayingServer.ServerName,
                             player.PlayingServer.LastServerInfo?.GameType,
                             player.PlayingServer.LastServerInfo?.MapName,
                             player.PlayingServer.KnownPlayers[player])
@@ -250,7 +255,7 @@ public class SocialService
         return onlineIds;
     }
 
-    private void PartyService_PlayerRemovedFromParty(Party party, Player players)
+    private void PartyService_PlayerRemovedFromParty(Party party, Player player)
     {
         _playerStatusChanges.OnNext(party.Members.ToList());
     }
@@ -273,5 +278,22 @@ public class SocialService
     private void PartyService_PartyPrivacyChanged(Party party, PartyPrivacy partyPrivacy)
     {
         _playerStatusChanges.OnNext(party.Members.ToList());
+    }
+
+    private void PlayerServerTrackingService_PlayerJoinedServer(Player player, GameServer server)
+    {
+        _playerStatusChanges.OnNext([player]);
+    }
+
+    private void PlayerServerTrackingService_PlayerLeftServer(PlayerServerTrackingService.PlayerLeftEventArgs e)
+    {
+        if (e.Player.SocialHubId is null)
+        {
+            // No status change needs to be sent (OnPlayerOffline takes care of that).
+            // We are probably here because the player was removed from the server after disconnecting.
+            return;
+        }
+
+        _playerStatusChanges.OnNext([e.Player]);
     }
 }

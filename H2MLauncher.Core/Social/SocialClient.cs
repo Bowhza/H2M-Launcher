@@ -86,7 +86,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         _masterServerService = masterServerService;
         _logger = logger;
         _settings = settings;
-        _gameConfigProvider = gameConfigProvider;
     }
 
     protected override ISocialHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
@@ -108,9 +107,10 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     private ConnectedServerInfo? GetConnectedServerInfo(GameState gameState)
     {
-        if (gameState.Endpoint is null || 
+        if (gameState.ConnectionState is not ConnectionState.CA_ACTIVE ||
+            gameState.Endpoint is null ||
             gameState.IsPrivateMatch || // for now do not track private matches
-            !gameState.IsConnected) 
+            gameState.IsInMainMenu) 
         {
             // game state has no connected endpoint
             return null;
@@ -146,8 +146,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             {
                 return;
             }
-
-            _logger.LogDebug("{@state}", state);
 
             GameStatus = CreateGameStatus(state);
             ConnectedServer = GetConnectedServerInfo(state);
@@ -480,6 +478,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             PlayerName = playerName,
             GameStatus = status,
             PartyStatus = partyStatus,
+            MatchStatus = matchStatus,
         });
 
         return Task.CompletedTask;
