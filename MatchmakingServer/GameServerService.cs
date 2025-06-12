@@ -121,20 +121,22 @@ public sealed class GameServerService
         try
         {
             // Request server info for all servers matching ip
-            Task getInfoCompleted = await _gameServerCommunicationService.SendGetInfoAsync(gameServers, (e) =>
+            Task getInfoCompleted = _gameServerCommunicationService.SendGetInfoAsync(gameServers, (e) =>
             {
                 e.Server.LastServerInfo = e.ServerInfo;
                 e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
 
                 respondingServers.Add(e.Server);
-            }, timeoutInMs, cancellationToken: cancellationToken);
+            }, timeoutInMs, cancellationToken: cancellationToken)
+                .Unwrap(); // unwrap immediately to avoid inner task never being awaited when cancellation happens in the outer part
 
             // Immediately after send info requests send status requests
-            Task getStatusCompleted = await _gameServerCommunicationService.SendGetStatusAsync(gameServers, (e) =>
+            Task getStatusCompleted = _gameServerCommunicationService.SendGetStatusAsync(gameServers, (e) =>
             {
                 e.Server.LastStatusResponse = e.ServerInfo;
                 e.Server.LastServerStatusTimestamp = DateTimeOffset.Now;
-            }, timeoutInMs, cancellationToken: cancellationToken);
+            }, timeoutInMs, cancellationToken: cancellationToken)
+                .Unwrap(); // unwrap immediately to avoid inner task never being awaited when cancellation happens in the outer part
 
             // Wait for all to complete / time out
             await Task.WhenAll(getInfoCompleted, getStatusCompleted);
