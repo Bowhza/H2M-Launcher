@@ -43,6 +43,12 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     /// </summary>
     private static readonly TimeSpan ServerStatusTimeout = TimeSpan.FromMinutes(1);
 
+    /// <summary>
+    /// Whether to require confirmation of the player name via the status response (only if available)
+    /// to successfully match a server.
+    /// </summary>
+    private static readonly bool ServerMatchingRequirePlayerNameConfirmation = true;
+
     private readonly IMasterServerService _masterServerService;
     private readonly GameServerService _gameServerService;
     private readonly ServerStore _serverStore;
@@ -123,7 +129,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
             _logger.LogInformation("Checking tracked servers ({numTrackedServers}) and players ({numTrackedPlayers})...",
                 _trackedGameServers.Count, _trackedPlayers.Count);
 
-            IAsyncEnumerable<GameServer> refreshedServers = _gameServerService.GetServerStatusAsync(
+            IAsyncEnumerable<GameServer> refreshedServers = _gameServerService.GetServerInfoAsync(
                 gameServers: _trackedGameServers,
                 maxAge: TrackingServerStatusMaxAge,
                 cancellationToken: cancellationToken);
@@ -156,7 +162,6 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                     {
                         // Player not on server anymore (TODO: check what happens with name changes)
                         await RemovePlayerFromServer(player, server);
-                        StopTrackingPlayer(player);
                         continue;
                     }
 
@@ -179,7 +184,6 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                             // Max tracking time exceeded so removing the player because we do not have enough confidence to say
                             // he is still on there.
                             await RemovePlayerFromServer(player, server, isTimeout: true);
-                            StopTrackingPlayer(player);
                         }
                     }
                 }
@@ -201,59 +205,65 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     /// <param name="connectedServerInfo">The info about the connected server or <see langword="null"/> if disconnected.</param>
     public async Task HandlePlayerConnectionUpdate(Player player, ConnectedServerInfo? connectedServerInfo, CancellationToken cancellationToken)
     {
-        DateTimeOffset timestamp = DateTimeOffset.Now;
-
-        _logger.LogDebug("Handling server connection update for player {player}: {connectedServerInfo}",
-            player, connectedServerInfo);
-
-        if (connectedServerInfo is null)
+        try
         {
-            // Player is not connected to any server -> remove or detect with next check
-            if (RemovePlayerOnClientUpdate)
+            DateTimeOffset timestamp = DateTimeOffset.Now;
+
+            _logger.LogDebug("Handling server connection update for player {player}: {connectedServerInfo}",
+                player, connectedServerInfo);
+
+            if (connectedServerInfo is null)
             {
-                await RemovePlayerFromCurrentServer(player);
+                // Player is not connected to any server -> remove or detect with next check
+                if (RemovePlayerOnClientUpdate)
+                {
+                    await RemovePlayerFromCurrentServer(player);
+                }
+
+                TryUpdateTrackedPlayerInfo(player, (_, prevInfo) => prevInfo with
+                {
+                    LastConnectionInfo = null,
+                    LastConnectionInfoTimestamp = timestamp
+                });
+
+                return;
             }
 
-            TryUpdateTrackedPlayerInfo(player, (_, prevInfo) => prevInfo with
+            // Find a server matching the info
+            (GameServer? matchingServer, int confidence) = await MatchServer(player, connectedServerInfo, cancellationToken);
+            if (matchingServer is null)
             {
-                LastConnectionInfo = null,
-                LastConnectionInfoTimestamp = timestamp
-            });
+                // Since the player is connected to a server we cannot identify,
+                // remove them from the current server he is tracked on
+                await RemovePlayerFromCurrentServer(player);
 
-            return;
+                // Also remove him from the tracking, as it is very unlike now he is still on the same server as before.
+                StopTrackingPlayer(player);
+                return;
+            }
+
+            // Track the player on this matching server
+            if (!await AddPlayerToServer(player, matchingServer, migrate: true))
+            {
+                return;
+            }
+
+            _trackedGameServers.Add(matchingServer);
+
+            _trackedPlayers[player] = new TrackedPlayerInfo()
+            {
+                LastConnectionInfo = connectedServerInfo,
+                LastConnectionInfoTimestamp = timestamp,
+                MatchedServer = matchingServer,
+                MatchConfidenceScore = confidence,
+            };
+
+            _logger.LogInformation("Tracking player {player} connected on server {server}.", player, matchingServer);
         }
-
-
-        // Find a server matching the info
-        (GameServer? matchingServer, int confidence) = await MatchServer(player, connectedServerInfo, cancellationToken);
-        if (matchingServer is null)
+        catch (Exception ex)
         {
-            // Since the player is connected to a server we cannot identify,
-            // remove them from the current server he is tracked on
-            await RemovePlayerFromCurrentServer(player);
-
-            // Also remove him from the tracking, as it is very unlike now he is still on the same server as before.
-            StopTrackingPlayer(player);
-            return;
+            _logger.LogError(ex, "Error while handling player connetion update");
         }
-
-        // Track the player on this matching server
-        if (!await AddPlayerToServer(player, matchingServer, migrate: true))
-        {
-            return;
-        }
-
-        _trackedGameServers.Add(matchingServer);
-
-        _trackedPlayers[player] = new TrackedPlayerInfo()
-        {
-            LastConnectionInfo = connectedServerInfo,
-            LastConnectionInfoTimestamp = timestamp,
-            MatchedServer = matchingServer,
-            MatchConfidenceScore = confidence,
-        };
-
-        _logger.LogInformation("Tracking player {player} connected on server {server}.", player, matchingServer);
     }
 
     /// <summary>
@@ -266,87 +276,117 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
         ConnectedServerInfo connectedServerInfo,
         CancellationToken cancellationToken)
     {
-        IReadOnlySet<ServerConnectionDetails> servers = await _masterServerService.GetServersAsync(CancellationToken.None);
-        IEnumerable<ServerConnectionDetails> serversMatchingIp = servers.Where(s => s.Ip == connectedServerInfo.Ip);
-
-        //if (connectedServerInfo.PortGuess.HasValue)
-        //{
-        //    var serverMatchingPort = serversMatchingIp.FirstOrDefault(s => s.Port == connectedServerInfo.PortGuess.Value);
-        //    if (serverMatchingPort is not null)
-        //    {
-        //        GameServer gameServer = _serverStore.GetOrAddServer(
-        //            serverMatchingPort.Ip,
-        //            serverMatchingPort.Port,
-        //            connectedServerInfo.ServerName);
-
-        //        GameServerStatus? status = await _gameServerService.GetServerStatusAsync(gameServer, cancellationToken: cancellationToken);
-        //        if (status is not null && status.Players.Any(p => p.PlayerName.Equals(player.Name)))
-        //        {
-        //            // match
-        //            _logger.LogInformation("Found matching server {server} for player {player} with confidence score of {matchConfidence}",
-        //                gameServer, player, 3);
-        //            return (gameServer, 3);
-        //        }
-        //    }
-        //}
-
-        List<GameServer> gameServersMatchingIp = serversMatchingIp.Select(server =>
+        try
         {
-            return _serverStore.GetOrAddServer(
-                server.Ip,
-                server.Port,
-                connectedServerInfo.ServerName);
-        }).ToList();
+            IReadOnlySet<ServerConnectionDetails> servers = await _masterServerService.GetServersAsync(cancellationToken);
+            HashSet<ServerConnectionDetails> serversMatchingIp = servers.Where(s => s.Ip == connectedServerInfo.Ip).ToHashSet();
 
-        List<GameServer> respondingServers = await _gameServerService.RefreshInfoAndStatusAsync(
-            gameServersMatchingIp,
-            timeoutInMs: 5000,
-            cancellationToken);
-
-        List<(GameServer server, int score)> scoredServers = respondingServers.Select(s =>
+            if (connectedServerInfo.PortGuess.HasValue)
             {
-                int score = 0;
-                if (s.LastServerInfo is not null &&
-                    s.LastServerInfo.HostName.Equals(connectedServerInfo.ServerName))
-                {
-                    score += 1;
-                }
+                // If there is a port guess, make sure that server is included
+                serversMatchingIp.Add(new(connectedServerInfo.Ip, connectedServerInfo.PortGuess.Value));
+            }
 
-                if (s.LastStatusResponse is not null &&
-                    s.LastStatusResponse.Players.Any(p => p.PlayerName.Equals(player.Name)))
-                {
-                    score += 2;
-                }
+            List<GameServer> gameServersMatchingIp = serversMatchingIp.Select(server =>
+            {
+                return _serverStore.GetOrAddServer(
+                    server.Ip,
+                    server.Port,
+                    connectedServerInfo.ServerName);
+            }).ToList();
 
-                if (connectedServerInfo.PortGuess.HasValue &&
-                    connectedServerInfo.PortGuess.Value == s.ServerPort)
-                {
-                    score += 2;
-                }
+            List<GameServer> respondingServers = await _gameServerService.RefreshInfoAsync(
+                gameServersMatchingIp,
+                timeoutInMs: 5000,
+                cancellationToken);
 
-                return (s, score);
-            })
-            .OrderByDescending(x => x.score)
-            .ToList();
+            List<(GameServer server, int score)> scoredServers = respondingServers
+                .Select(s => (server: s, score: CalculateScore(s)))
+                .OrderByDescending(_ => _.score)
+                .ToList();
 
-        _logger.LogDebug(
-            "Found {numMatchingServers} matching servers for player {player} with connection info {connectionInfo}",
-            scoredServers.Count,
-            player,
-            connectedServerInfo);
+            if (scoredServers.Count > 0) {
+                _logger.LogDebug(
+                    "Found {numMatchingServers} matching servers for player {player} with connection info {@connectionInfo} (highest score: {highestScore})",
+                    scoredServers.Count,
+                    player,
+                    connectedServerInfo,
+                    scoredServers[0].score
+                    );
+            }
 
-        (GameServer server, int score) matchingServer = scoredServers.FirstOrDefault(x => x.score > 0);
-        if (matchingServer.server is null)
+            (GameServer server, int score) matchingServer = scoredServers.FirstOrDefault(x => x.score > 0);
+            if (matchingServer.server is null)
+            {
+                _logger.LogInformation("No matching server found for player {player} with connection info {@connectionInfo}",
+                    player, connectedServerInfo);
+
+                return matchingServer;
+            }
+
+            _logger.LogInformation("Found matching server {server} for player {player} with confidence score of {matchConfidence}",
+                        matchingServer, player, matchingServer.score);
+
+            return matchingServer;
+        }
+        catch (OperationCanceledException)
         {
-            _logger.LogInformation("No matching server found for player {player} with connection info {connectionInfo}",
-                player, connectedServerInfo);
-
+            _logger.LogDebug("Canceled finding matching server for player {player}.", player);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during server matching for player {player}", player);
         }
 
-        _logger.LogInformation("Found matching server {server} for player {player} with confidence score of {matchConfidence}",
-            matchingServer, player, matchingServer.score);
+        return default;
 
-        return matchingServer;
+        int CalculateScore(GameServer s)
+        {
+            int score = 0;
+
+            _logger.LogTrace("Matching server {server}: {hostName} | {players}", 
+                s, 
+                s.LastServerInfo?.Players.Select(p => p.PlayerName), 
+                s.LastServerInfo?.HostName);
+
+            //if (s.LastStatusResponse is not null &&
+            //    s.LastStatusResponse.Players.Any(p => p.PlayerName.Equals(player.Name)))
+            //{
+            //    score += 2;
+            //}
+            //else if (s.LastStatusResponse is not null && ServerMatchingRequirePlayerNameConfirmation)
+            //{
+            //    // player name could not be confirmed
+            //    return 0;
+            //}            
+
+            if (s.LastServerInfo is not null &&
+                s.LastServerInfo.Players.Any(p => p.PlayerName.Equals(player.Name)))
+            {
+                score += 2;
+            }
+            else if (s.LastServerInfo is not null && ServerMatchingRequirePlayerNameConfirmation)
+            {
+                // player name could not be confirmed
+                return 0;
+            }
+
+            if (s.LastServerInfo is not null &&
+                s.LastServerInfo.HostName.Equals(connectedServerInfo.ServerName))
+            {
+                score += 1;
+            }
+
+            if (connectedServerInfo.PortGuess.HasValue &&
+                connectedServerInfo.PortGuess.Value == s.ServerPort)
+            {
+                score += 2;
+            }
+
+            _logger.LogTrace("Matched server {server} with confidence score {score}", s, score);
+
+            return score;
+        }
     }
 
     private bool TryUpdateTrackedPlayerInfo(Player player, Func<Player, TrackedPlayerInfo, TrackedPlayerInfo> updateFunc)

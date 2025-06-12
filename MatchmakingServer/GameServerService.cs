@@ -3,7 +3,9 @@
 using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Services;
 
-namespace MatchmakingServer.SignalR;
+using MatchmakingServer.SignalR;
+
+namespace MatchmakingServer;
 
 /// <summary>
 /// Common service to interact with game servers.
@@ -11,12 +13,16 @@ namespace MatchmakingServer.SignalR;
 public sealed class GameServerService
 {
     private readonly ServerStore _serverStore;
-    private readonly IGameServerCommunicationService<GameServer> _gameServerCommunicationService;
+    private readonly IGameServerCommunicationService<GameServer> _udpGameServerCommunicationService;
+    private readonly IGameServerInfoService<GameServer> _gameServerInfoService;
 
-    public GameServerService(ServerStore serverStore, [FromKeyedServices("UDP")] IGameServerCommunicationService<GameServer> gameServerCommunicationService)
+    public GameServerService(ServerStore serverStore, 
+        [FromKeyedServices("UDP")] IGameServerCommunicationService<GameServer> gameServerCommunicationService, 
+        IGameServerInfoService<GameServer> gameServerInfoService)
     {
         _serverStore = serverStore;
-        _gameServerCommunicationService = gameServerCommunicationService;
+        _udpGameServerCommunicationService = gameServerCommunicationService;
+        _gameServerInfoService = gameServerInfoService;
     }
 
 
@@ -94,7 +100,7 @@ public sealed class GameServerService
         }
 
         // Then request and yield status
-        var responses = await _gameServerCommunicationService.GetStatusAsync(
+        var responses = await _udpGameServerCommunicationService.GetStatusAsync(
             serversToRefreshStatus,
             requestTimeoutInMs: timeoutInMs,
             cancellationToken: cancellationToken);
@@ -112,6 +118,90 @@ public sealed class GameServerService
         }
     }
 
+    /// <summary>
+    /// Fetches the game server info for multiple server objects, either fresh or cached.
+    /// </summary>
+    /// <param name="gameServers">The game servers.</param>
+    /// <param name="maxAge">The maximum age of a cached response. If null, a fresh response is always fetched.</param>
+    /// <returns>The processed servers.</returns>
+    public async IAsyncEnumerable<GameServer> GetServerInfoAsync(
+        IEnumerable<GameServer> gameServers,
+        TimeSpan? maxAge = null,
+        int timeoutInMs = 5000,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        ILookup<bool, GameServer> servers = gameServers.ToLookup(gameServer =>
+        {
+            return maxAge == null ||
+                   gameServer.LastServerInfoTimestamp == null ||
+                   (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge;
+        });
+
+
+        IEnumerable<GameServer> serversWithCachedInfo = servers[false];
+        IEnumerable<GameServer> serversToRefreshInfo = servers[true];
+
+        // First yield cached
+        foreach (GameServer gameServer in serversWithCachedInfo)
+        {
+            yield return gameServer;
+        }
+
+        if (!serversToRefreshInfo.Any())
+        {
+            // all cached, nothing to request
+            yield break;
+        }
+
+        // Then request and yield status
+        var responses = await _gameServerInfoService.GetInfoAsync(
+            serversToRefreshInfo,
+            requestTimeoutInMs: timeoutInMs,
+            cancellationToken: cancellationToken);
+
+        await foreach ((GameServer server, GameServerInfo? info) in responses.ConfigureAwait(false))
+        {
+            if (info is not null)
+            {
+                // only update if successful
+                server.LastServerInfo = info;
+                server.LastServerInfoTimestamp = DateTimeOffset.Now;
+            }
+
+            yield return server;
+        }
+    }
+
+
+
+    public async Task<List<GameServer>> RefreshInfoAsync(
+        IEnumerable<GameServer> gameServers,
+        int timeoutInMs = 5000,
+        CancellationToken cancellationToken = default)
+    {
+        List<GameServer> respondingServers = [];
+        try
+        {
+            // Request server info for all servers matching ip
+            await _gameServerInfoService.SendGetInfoAsync(gameServers, (e) =>
+            {
+                e.Server.LastServerInfo = e.ServerInfo;
+                e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
+                e.Server.ServerName = e.ServerInfo.HostName;
+
+                respondingServers.Add(e.Server);
+            }, timeoutInMs, cancellationToken: cancellationToken)
+                .Unwrap(); // unwrap immediately to avoid inner task never being awaited when cancellation happens in the outer part
+        }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            // expected timeout
+            return respondingServers;
+        }
+
+        return respondingServers;
+    }
+
     public async Task<List<GameServer>> RefreshInfoAndStatusAsync(
         IEnumerable<GameServer> gameServers,
         int timeoutInMs = 5000,
@@ -121,7 +211,7 @@ public sealed class GameServerService
         try
         {
             // Request server info for all servers matching ip
-            Task getInfoCompleted = _gameServerCommunicationService.SendGetInfoAsync(gameServers, (e) =>
+            Task getInfoCompleted = _gameServerInfoService.SendGetInfoAsync(gameServers, (e) =>
             {
                 e.Server.LastServerInfo = e.ServerInfo;
                 e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
@@ -131,7 +221,7 @@ public sealed class GameServerService
                 .Unwrap(); // unwrap immediately to avoid inner task never being awaited when cancellation happens in the outer part
 
             // Immediately after send info requests send status requests
-            Task getStatusCompleted = _gameServerCommunicationService.SendGetStatusAsync(gameServers, (e) =>
+            Task getStatusCompleted = _udpGameServerCommunicationService.SendGetStatusAsync(gameServers, (e) =>
             {
                 e.Server.LastStatusResponse = e.ServerInfo;
                 e.Server.LastServerStatusTimestamp = DateTimeOffset.Now;
@@ -152,7 +242,7 @@ public sealed class GameServerService
 
     private async Task<GameServerStatus?> FetchFreshStatusInternalAsync(GameServer gameServer, CancellationToken cancellationToken)
     {
-        GameServerStatus? status = await _gameServerCommunicationService.GetStatusAsync(gameServer, cancellationToken);
+        GameServerStatus? status = await _udpGameServerCommunicationService.GetStatusAsync(gameServer, cancellationToken);
         if (status != null)
         {
             gameServer.LastStatusResponse = status;
@@ -164,7 +254,8 @@ public sealed class GameServerService
 
     private async Task<GameServerInfo?> FetchFreshInfoInternalAsync(GameServer gameServer, CancellationToken cancellationToken)
     {
-        GameServerInfo? info = await _gameServerCommunicationService.GetInfoAsync(gameServer, cancellationToken);
+        HttpClient g;
+        GameServerInfo? info = await _gameServerInfoService.GetInfoAsync(gameServer, cancellationToken);
         if (info != null)
         {
             gameServer.LastServerInfo = info;
