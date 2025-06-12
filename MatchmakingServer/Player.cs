@@ -1,6 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Social;
 
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
@@ -71,6 +72,8 @@ namespace MatchmakingServer
         #region Social
 
         public GameStatus GameStatus { get; set; }
+
+        public ConnectedServerInfo? LastConnectedServerInfo { get; set; }
 
         #endregion
 

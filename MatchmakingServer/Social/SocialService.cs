@@ -17,8 +17,10 @@ public class SocialService
 {
     private readonly ConcurrentDictionary<string, Player> _onlinePlayers = [];
     private readonly Subject<IReadOnlyCollection<Player>> _playerStatusChanges = new();
+    private readonly Subject<(Player Player, ConnectedServerInfo? ConnectedServer)> _playerConnectedServerChanges = new();
 
     private readonly PartyService _partyService;
+    private readonly IPlayerServerTrackingService _playerServerTrackingService;
 
     private readonly ILogger<SocialHub> _logger;
     private readonly IHubContext<SocialHub, ISocialClient> _hubContext;
@@ -27,10 +29,12 @@ public class SocialService
 
     public SocialService(
         PartyService partyService,
+        IPlayerServerTrackingService playerServerTrackingService,
         ILogger<SocialHub> logger,
         IHubContext<SocialHub, ISocialClient> hubContext,
         IServiceScopeFactory serviceScopeFactory)
     {
+        _playerServerTrackingService = playerServerTrackingService;
         _logger = logger;
         _hubContext = hubContext;
         _serviceScopeFactory = serviceScopeFactory;
@@ -68,28 +72,51 @@ public class SocialService
                 onNext: (p) => _logger.LogTrace("Player status change notification pipe processed {player}", p),
                 onError: (ex) => _logger.LogError(ex, "Error in player status change notification pipe")
             );
+
+        // Use another obersvable pipe to throttle handling INCOMING server connection updates to prevent matching during map changes etc.
+        _playerConnectedServerChanges
+           // group by player to get a sequence for each player change
+           .GroupBy(x => x.Player.Id)
+
+           // debounce each player group, then merge into a single sequence
+           .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(5)))
+
+           // handle server connectino update
+           .SelectMany(x =>
+               Observable.FromAsync((ct) =>               
+                   _playerServerTrackingService.HandlePlayerConnectionUpdate(x.Player, x.ConnectedServer, ct)
+               )
+           )
+           .Subscribe(
+               onNext: (_) => { },
+               onError: (ex) => _logger.LogError(ex, "Error in server connection update handling pipe")
+           );
     }
 
     public Task UpdateGameStatus(string userId, string connectionId, GameStatus gameStatus, ConnectedServerInfo? connectedServer)
     {
-        _logger.LogDebug("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
-            userId, connectionId, gameStatus);
-
         if (!_onlinePlayers.TryGetValue(userId, out Player? player))
         {
             _logger.LogWarning("No connected player found for user id {userId}", userId);
             return Task.CompletedTask;
         }
 
-        if (player.GameStatus == gameStatus)
+        if (player.GameStatus == gameStatus && 
+            player.LastConnectedServerInfo?.Equals(connectedServer) == true)
         {
             // no change
             return Task.CompletedTask;
         }
 
+        _logger.LogTrace("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
+            userId, connectionId, gameStatus);
+
         // update game status in session
         player.GameStatus = gameStatus;
+        player.LastConnectedServerInfo = connectedServer;
 
+        // handle connected server
+        _playerConnectedServerChanges.OnNext((player, connectedServer));
         _playerStatusChanges.OnNext([player]);
 
         return Task.CompletedTask;

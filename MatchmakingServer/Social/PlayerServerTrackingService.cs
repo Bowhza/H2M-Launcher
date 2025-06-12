@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Reactive.Linq;
 
 using AsyncKeyedLock;
@@ -10,7 +9,6 @@ using FxKit.Extensions;
 
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Social;
 
@@ -204,7 +202,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     {
         DateTimeOffset timestamp = DateTimeOffset.Now;
 
-        _logger.LogInformation("Handling server connection update for player {player}: {connectedServerInfo}",
+        _logger.LogDebug("Handling server connection update for player {player}: {connectedServerInfo}",
             player, connectedServerInfo);
 
         if (connectedServerInfo is null)
@@ -223,6 +221,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
 
             return;
         }
+
 
         // Find a server matching the info
         (GameServer? matchingServer, int confidence) = await MatchServer(player, connectedServerInfo, cancellationToken);
@@ -262,8 +261,8 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     /// </summary>
     /// <returns>The matching server, if found.</returns>
     internal async Task<(GameServer? Server, int Confidence)> MatchServer(
-        Player player, 
-        ConnectedServerInfo connectedServerInfo, 
+        Player player,
+        ConnectedServerInfo connectedServerInfo,
         CancellationToken cancellationToken)
     {
         IReadOnlySet<ServerConnectionDetails> servers = await _masterServerService.GetServersAsync(CancellationToken.None);
@@ -351,14 +350,14 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
 
     private bool TryUpdateTrackedPlayerInfo(Player player, Func<Player, TrackedPlayerInfo, TrackedPlayerInfo> updateFunc)
     {
-        if (!_trackedPlayers.TryGetValue(player, out TrackedPlayerInfo prevInfo))
-        {
-            return false;
-        }
-
         // try to update a few times
         for (int i = 0; i < 100; i++)
         {
+            if (!_trackedPlayers.TryGetValue(player, out TrackedPlayerInfo prevInfo))
+            {
+                return false;
+            }
+
             TrackedPlayerInfo newInfo = updateFunc(player, prevInfo);
 
             if (_trackedPlayers.TryUpdate(player, newInfo, prevInfo))

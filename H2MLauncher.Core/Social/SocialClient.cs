@@ -111,7 +111,9 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     private ConnectedServerInfo? GetConnectedServerInfo(GameState gameState)
     {
-        if (gameState.Endpoint is null || gameState.IsPrivateMatch) // for now do not track private matches
+        if (gameState.Endpoint is null || 
+            gameState.IsPrivateMatch || // for now do not track private matches
+            !gameState.IsConnected) 
         {
             // game state has no connected endpoint
             return null;
@@ -148,13 +150,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
                 return;
             }
 
+            _logger.LogDebug("{@state}", state);
+
             GameStatus = CreateGameStatus(state);
             ConnectedServer = GetConnectedServerInfo(state);
             ConnectedServerInfo? connectedServer = null;
             if (GameStatus is GameStatus.InMatch)
             {
                 connectedServer = GetConnectedServerInfo(state);
-            }
+            }            
 
             await Hub.UpdateGameStatus(GameStatus, connectedServer);
 

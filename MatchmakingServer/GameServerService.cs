@@ -13,7 +13,7 @@ public sealed class GameServerService
     private readonly ServerStore _serverStore;
     private readonly IGameServerCommunicationService<GameServer> _gameServerCommunicationService;
 
-    public GameServerService(ServerStore serverStore, IGameServerCommunicationService<GameServer> gameServerCommunicationService)
+    public GameServerService(ServerStore serverStore, [FromKeyedServices("UDP")] IGameServerCommunicationService<GameServer> gameServerCommunicationService)
     {
         _serverStore = serverStore;
         _gameServerCommunicationService = gameServerCommunicationService;
