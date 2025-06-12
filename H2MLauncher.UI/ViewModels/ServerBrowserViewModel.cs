@@ -59,9 +59,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly CachedServerDataService _serverDataService;
     private readonly H2MLauncherSettings _defaultSettings;
 
-    private readonly Dictionary<string, string> _mapMap = [];
-    private readonly Dictionary<string, string> _gameTypeMap = [];
-
     private IReadOnlyList<ServerData> _serverData = [];
 
     [ObservableProperty]
@@ -224,16 +221,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         FavouritesTab = favouritesTab;
 
         SelectedTab = HMWServersTab;
-
-        foreach (IW4MObjectMap oMap in resourceSettings.Value.MapPacks.SelectMany(mappack => mappack.Maps))
-        {
-            _mapMap!.TryAdd(oMap.Name, oMap.Alias);
-        }
-
-        foreach (IW4MObjectMap oMap in resourceSettings.Value.GameTypes)
-        {
-            _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
-        }
 
         H2MLauncherSettings oldSettings = _h2MLauncherOptions.CurrentValue;
         _h2MLauncherOptions.OnChange((newSettings, _) =>
@@ -804,10 +791,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
 
         bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
-        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
-
-        _mapMap.TryGetValue(serverInfo.MapName, out string? mapDisplayName);
-        _gameTypeMap.TryGetValue(serverInfo.GameType, out string? gameTypeDisplayName);
+        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);        
 
         ServerViewModel serverViewModel = new()
         {
@@ -819,9 +803,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             MaxClientNum = serverInfo.MaxClients,
             Game = serverInfo.GameName,
             GameType = serverInfo.GameType,
-            GameTypeDisplayName = gameTypeDisplayName ?? serverInfo.GameType,
+            GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(serverInfo.GameType),
             Map = serverInfo.MapName,
-            MapDisplayName = mapDisplayName ?? serverInfo.MapName,
+            MapDisplayName = _resourceSettings.Value.GetMapDisplayName(serverInfo.MapName),
             HasMap = _mapsProvider.InstalledMaps.Contains(serverInfo.MapName) || !_h2MLauncherOptions.Value.WatchGameDirectory,
             IsPrivate = serverInfo.IsPrivate,
             Ping = serverInfo.Ping,
