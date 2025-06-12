@@ -1,4 +1,7 @@
-﻿using MatchmakingServer.Core.Social;
+﻿using H2MLauncher.Core.Social;
+
+using MatchmakingServer.Core.Social;
+using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -20,14 +23,14 @@ public class SocialHub : Hub<ISocialClient>, ISocialHub
         _socialService = socialService;
     }
 
-    public Task UpdateGameStatus(GameStatus gameStatus)
+    public Task UpdateGameStatus(GameStatus gameStatus, ConnectedServerInfo? connectedServer)
     {
         if (string.IsNullOrEmpty(Context.UserIdentifier))
         {
             return Task.CompletedTask;
         }
 
-        return _socialService.UpdateGameStatus(Context.UserIdentifier, Context.ConnectionId, gameStatus);
+        return _socialService.UpdateGameStatus(Context.UserIdentifier, Context.ConnectionId, gameStatus, connectedServer);
     }
 
     public Task UpdatePlayerName(string newPlayerName)

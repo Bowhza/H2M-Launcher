@@ -170,6 +170,7 @@ namespace H2MLauncher.UI
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
             services.AddSingleton<IPlayerNameProvider, ConfigPlayerNameProvider>();
+            services.AddSingleton<IGameConfigProvider, GameDirectoryService>(sp => sp.GetRequiredService<GameDirectoryService>());
             services.AddSingleton<IMapsProvider, InstalledMapsProvider>();
             services.AddMemoryCache();
 

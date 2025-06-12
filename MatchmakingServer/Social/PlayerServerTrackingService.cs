@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Reactive.Linq;
 
 using AsyncKeyedLock;
@@ -268,26 +269,26 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
         IReadOnlySet<ServerConnectionDetails> servers = await _masterServerService.GetServersAsync(CancellationToken.None);
         IEnumerable<ServerConnectionDetails> serversMatchingIp = servers.Where(s => s.Ip == connectedServerInfo.Ip);
 
-        if (connectedServerInfo.PortGuess.HasValue)
-        {
-            var serverMatchingPort = serversMatchingIp.FirstOrDefault(s => s.Port == connectedServerInfo.PortGuess.Value);
-            if (serverMatchingPort is not null)
-            {
-                GameServer gameServer = _serverStore.GetOrAddServer(
-                    serverMatchingPort.Ip,
-                    serverMatchingPort.Port,
-                    connectedServerInfo.ServerName);
+        //if (connectedServerInfo.PortGuess.HasValue)
+        //{
+        //    var serverMatchingPort = serversMatchingIp.FirstOrDefault(s => s.Port == connectedServerInfo.PortGuess.Value);
+        //    if (serverMatchingPort is not null)
+        //    {
+        //        GameServer gameServer = _serverStore.GetOrAddServer(
+        //            serverMatchingPort.Ip,
+        //            serverMatchingPort.Port,
+        //            connectedServerInfo.ServerName);
 
-                GameServerStatus? status = await _gameServerService.GetServerStatusAsync(gameServer, cancellationToken: cancellationToken);
-                if (status is not null && status.Players.Any(p => p.PlayerName.Equals(player.Name)))
-                {
-                    // match
-                    _logger.LogInformation("Found matching server {server} for player {player} with confidence score of {matchConfidence}",
-                        gameServer, player, 3);
-                    return (gameServer, 3);
-                }
-            }
-        }
+        //        GameServerStatus? status = await _gameServerService.GetServerStatusAsync(gameServer, cancellationToken: cancellationToken);
+        //        if (status is not null && status.Players.Any(p => p.PlayerName.Equals(player.Name)))
+        //        {
+        //            // match
+        //            _logger.LogInformation("Found matching server {server} for player {player} with confidence score of {matchConfidence}",
+        //                gameServer, player, 3);
+        //            return (gameServer, 3);
+        //        }
+        //    }
+        //}
 
         List<GameServer> gameServersMatchingIp = serversMatchingIp.Select(server =>
         {
@@ -305,13 +306,20 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
         List<(GameServer server, int score)> scoredServers = respondingServers.Select(s =>
             {
                 int score = 0;
-                if (connectedServerInfo.ServerName.Equals(s.LastServerInfo?.HostName))
+                if (s.LastServerInfo is not null &&
+                    s.LastServerInfo.HostName.Equals(connectedServerInfo.ServerName))
                 {
                     score += 1;
                 }
 
                 if (s.LastStatusResponse is not null &&
                     s.LastStatusResponse.Players.Any(p => p.PlayerName.Equals(player.Name)))
+                {
+                    score += 2;
+                }
+
+                if (connectedServerInfo.PortGuess.HasValue &&
+                    connectedServerInfo.PortGuess.Value == s.ServerPort)
                 {
                     score += 2;
                 }
@@ -447,13 +455,18 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     {
         if (player.PlayingServer is not null && !migrate)
         {
-            return false;
+            return player.PlayingServer == server;
         }
 
         using (await _playerLock.ConditionalLockAsync(player.Id, !hasLock))
         {
             if (player.PlayingServer is not null)
             {
+                if (player.PlayingServer == server)
+                {
+                    return true;
+                }
+
                 if (migrate)
                 {
                     return await MigratePlayer(player, player.PlayingServer, server, verifySource: false, hasLock: true);
