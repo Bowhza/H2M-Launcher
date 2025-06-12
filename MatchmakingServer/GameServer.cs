@@ -127,7 +127,13 @@ namespace MatchmakingServer
             }
         }
 
-
+        public bool TryGetPlayerJoinDate(Player player, out DateTimeOffset joinDate)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.TryGetValue(player, out joinDate);
+            }
+        }
 
         public DateTimeOffset? LastServerInfoTimestamp { get; set; }
         public DateTimeOffset? LastServerStatusTimestamp { get; set; }
