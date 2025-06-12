@@ -18,6 +18,8 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 {
     private readonly ILogger<MatchmakingService> _logger;
     private readonly IGameServerInfoService<IServerConnectionDetails> _gameServerInfoService;
+    private readonly IGameCommunicationService _gameCommunicationService;
+    private readonly IGameDetectionService _gameDetectionService;
     private readonly IMapsProvider _mapsProvider;
     private readonly IPlaylistService _playlistService;
     private readonly IOptionsMonitor<H2MLauncherSettings> _options;
@@ -76,6 +78,8 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
         OnlineServiceManager onlineServiceManager,
         ILogger<MatchmakingService> logger,
         IGameServerInfoService<IServerConnectionDetails> gameServerInfoService,
+        IGameCommunicationService gameCommunicationService,
+        IGameDetectionService gameDetectionService,
         IMapsProvider mapsProvider,
         IPlaylistService playlistService,
         IOptionsMonitor<H2MLauncherSettings> options,
@@ -83,6 +87,8 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     {
         _logger = logger;
         _gameServerInfoService = gameServerInfoService;
+        _gameCommunicationService = gameCommunicationService;
+        _gameDetectionService = gameDetectionService;
         _mapsProvider = mapsProvider;
         _playlistService = playlistService;
         _options = options;
@@ -239,6 +245,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     {
         try
         {
+
 #if DEBUG == false
             if (!_options.CurrentValue.ServerQueueing ||
                 !_options.CurrentValue.GameMemoryCommunication ||
