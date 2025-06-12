@@ -16,6 +16,18 @@ namespace H2MLauncher.UI.ViewModels
         Offline,
     }
 
+    public partial class PlayingServerViewModel : ObservableObject
+    {
+        [ObservableProperty]
+        private string _serverName = "";
+
+        [ObservableProperty]
+        private string _mapDisplayName = "";
+
+        [ObservableProperty]
+        private string _gameTypeDisplayName = "";
+    }
+
     public partial class FriendViewModel : ObservableObject
     {
         [ObservableProperty]
@@ -119,6 +131,10 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private GameStatus _gameStatus;
 
+        [NotifyPropertyChangedFor(nameof(DetailedStatus))]
+        [ObservableProperty]
+        private PlayingServerViewModel? _playingServer;
+
         /// <summary>
         /// The group this person is sorted into.
         /// </summary>
@@ -153,7 +169,13 @@ namespace H2MLauncher.UI.ViewModels
                         return GameStatus switch
                         {
                             GameStatus.InLobby => "Lobby",
-                            GameStatus.InMatch => "In Match",
+                            GameStatus.InMatch => PlayingServer switch
+                            {
+                                { GameTypeDisplayName: not null, MapDisplayName: not null } =>
+                                    $"{PlayingServer.GameTypeDisplayName} on {PlayingServer.MapDisplayName}",
+                                { MapDisplayName: not null } => $"In Match on {PlayingServer.MapDisplayName}",
+                                _ => "In Match"
+                            },
                             GameStatus.InMainMenu => "Main Menu",
                             _ when Status is OnlineStatus.InGame => "In Game",
                             _ => "Online"
