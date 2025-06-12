@@ -213,7 +213,7 @@ namespace H2MLauncher.UI
                     HttpMessageHandlerFactory = () =>
                         Core.Utilities.Http.HttpClientBuilderExtensions.CustomMessageHandlerFactory(sp)
                 })
-                .ConfigureMatchmakingClient();
+                .ConfigureMatchmakingClient(trimTrailingSlashes: true);
 
             // authentication
             services.AddTransient<AuthenticationService>();
