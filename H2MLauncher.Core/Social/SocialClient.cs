@@ -3,14 +3,11 @@
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.Joining;
-using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities.SignalR;
-
-using MatchmakingServer.Core.Social;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
@@ -475,7 +472,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         return Task.CompletedTask;
     }
 
-    Task ISocialClient.OnFriendStatusChanged(string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus)
+    Task ISocialClient.OnFriendStatusChanged(
+        string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus, MatchStatusDto? matchStatus)
     {
         FriendDto? newFriend = UpdateFriend(friendId, (friend) => friend with
         {

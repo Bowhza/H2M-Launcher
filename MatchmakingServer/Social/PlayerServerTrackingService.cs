@@ -12,7 +12,6 @@ using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.SignalR;
 
 namespace MatchmakingServer.Social;
@@ -184,6 +183,8 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                         }
                     }
                 }
+
+                // Now handle normal updates of server state
             }
         }
         finally

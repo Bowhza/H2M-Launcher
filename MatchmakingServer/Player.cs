@@ -3,7 +3,6 @@
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
 
 namespace MatchmakingServer

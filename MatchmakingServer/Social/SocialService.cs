@@ -5,7 +5,6 @@ using System.Reactive.Subjects;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
 using MatchmakingServer.SignalR;
 
@@ -203,6 +202,13 @@ public class SocialService
                             player.Party.Members.Count,
                             player.Party.Privacy is not PartyPrivacy.Closed,
                             player.Party.ValidInvites.ToList())
+                        : null,
+                    player.PlayingServer is not null
+                        ? new MatchStatusDto(
+                            (player.PlayingServer.ServerIp, player.PlayingServer.ServerPort),
+                            player.PlayingServer.LastServerInfo?.GameType,
+                            player.PlayingServer.LastServerInfo?.MapName,
+                            player.PlayingServer.KnownPlayers[player])
                         : null
                 );
         }

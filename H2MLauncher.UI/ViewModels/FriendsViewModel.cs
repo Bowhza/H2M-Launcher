@@ -12,8 +12,6 @@ using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
 
-using MatchmakingServer.Core.Social;
-
 namespace H2MLauncher.UI.ViewModels
 {
 
@@ -335,7 +333,7 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void PartyClient_InviteReceived(MatchmakingServer.Core.Party.PartyInvite partyInvite)
+        private void PartyClient_InviteReceived(PartyInvite partyInvite)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {

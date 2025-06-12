@@ -1,6 +1,7 @@
 ﻿using FluentAssertions;
 
-using MatchmakingServer.Core.Social;
+using H2MLauncher.Core.Social;
+
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
 using MatchmakingServer.Parties;

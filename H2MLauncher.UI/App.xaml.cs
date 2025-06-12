@@ -29,9 +29,6 @@ using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Services;
 using H2MLauncher.UI.ViewModels;
 
-using MatchmakingServer.Core.Party;
-using MatchmakingServer.Core.Social;
-
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;

@@ -1,6 +1,5 @@
 ﻿using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;

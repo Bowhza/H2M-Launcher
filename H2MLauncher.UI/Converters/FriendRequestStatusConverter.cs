@@ -1,6 +1,6 @@
 ﻿using System.Windows.Data;
 
-using MatchmakingServer.Core.Social;
+using H2MLauncher.Core.Social;
 
 namespace H2MLauncher.UI.Converters
 {

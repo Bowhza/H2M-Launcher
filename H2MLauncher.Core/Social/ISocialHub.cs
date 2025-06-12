@@ -1,6 +1,4 @@
-﻿using H2MLauncher.Core.Social;
-
-namespace MatchmakingServer.Core.Social;
+﻿namespace H2MLauncher.Core.Social;
 
 public interface ISocialHub
 {

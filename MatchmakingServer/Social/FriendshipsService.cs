@@ -1,20 +1,14 @@
-﻿using System;
-
-using FxKit;
+﻿using FxKit;
 
 using H2MLauncher.Core.Party;
+using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
-using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.SignalR;
 
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MatchmakingServer.Social;
 
