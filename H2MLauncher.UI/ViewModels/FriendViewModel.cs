@@ -1,10 +1,13 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq.Expressions;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Joining;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
@@ -18,10 +21,13 @@ namespace H2MLauncher.UI.ViewModels
         Offline,
     }
 
-    public partial class PlayingServerViewModel : ObservableObject
+    public partial class PlayingServerViewModel : ObservableObject, ISimpleServerInfo
     {
-        [ObservableProperty]
-        private string _serverName = "";
+        public required string Ip { get; init; }
+
+        public required int Port { get; init; }
+
+        public required string ServerName { get; init; }
 
         [ObservableProperty]
         private string _mapDisplayName = "";
@@ -43,6 +49,7 @@ namespace H2MLauncher.UI.ViewModels
         };
 
         public string SanitizedServerName => ColorCodeSequenceRegex().Replace(ServerName, "");
+
 
         public void RecalculatePlayingTime()
         {
@@ -224,13 +231,15 @@ namespace H2MLauncher.UI.ViewModels
         public IAsyncRelayCommand JoinPartyCommand { get; }
         public IAsyncRelayCommand InviteToPartyCommand { get; }
 
+        public IAsyncRelayCommand JoinServerCommand { get; }
+
         public IAsyncRelayCommand AddFriendCommand { get; }
         public IAsyncRelayCommand RemoveFriendCommand { get; }
 
         public IRelayCommand CopyUserIdCommand { get; }
         public IRelayCommand CopyUserNameCommand { get; }
 
-        public FriendViewModel(string userId, PartyClient partyClient, SocialClient socialClient, DialogService dialogService)
+        public FriendViewModel(string userId, PartyClient partyClient, SocialClient socialClient, DialogService dialogService, IServerJoinService serverJoinService)
         {
             Id = userId;
 
@@ -249,6 +258,10 @@ namespace H2MLauncher.UI.ViewModels
             InviteToPartyCommand = new AsyncRelayCommand(
                 () => partyClient.InviteToParty(Id),
                 () => CanInvite && partyClient.IsPartyActive);
+
+            JoinServerCommand = new AsyncRelayCommand(
+                () => serverJoinService.JoinServer(PlayingServer!, JoinKind.Normal),
+                () => PlayingServer is not null);
 
             AddFriendCommand = new AsyncRelayCommand(
                 async () =>

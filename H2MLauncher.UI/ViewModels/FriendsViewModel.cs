@@ -8,11 +8,13 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Services;
 
 using Microsoft.Extensions.Options;
 
@@ -24,6 +26,7 @@ namespace H2MLauncher.UI.ViewModels
         private readonly SocialClient _socialClient;
         private readonly PartyClient _partyClient;
         private readonly DialogService _dialogService;
+        private readonly IServerJoinService _serverJoinService;
         private readonly IErrorHandlingService _errorHandlingService;
         private readonly IOptions<ResourceSettings> _resourceSettings;
         private readonly DispatcherTimer _timer;
@@ -107,10 +110,17 @@ namespace H2MLauncher.UI.ViewModels
 
         #endregion
 
-        public FriendsViewModel(SocialClient socialClient, PartyClient partyClient, DialogService dialogService, IErrorHandlingService errorHandlingService, IOptions<ResourceSettings> resourceSettings)
+        public FriendsViewModel(
+            SocialClient socialClient, 
+            PartyClient partyClient, 
+            DialogService dialogService, 
+            IErrorHandlingService errorHandlingService, 
+            IServerJoinService serverJoinService,
+            IOptions<ResourceSettings> resourceSettings)
         {
             _dialogService = dialogService;
             _errorHandlingService = errorHandlingService;
+            _serverJoinService = serverJoinService;
             _socialClient = socialClient;
             _socialClient.Context.UserChanged += ClientContext_UserChanged;
 
@@ -541,7 +551,7 @@ namespace H2MLauncher.UI.ViewModels
         private void AddFriend(FriendDto friend)
         {
             PartyPlayerInfo? partyPlayer = _partyClient.Members?.FirstOrDefault(m => m.Id == friend.Id);
-            FriendViewModel friendViewModel = new(friend.Id, _partyClient, _socialClient, _dialogService)
+            FriendViewModel friendViewModel = new(friend.Id, _partyClient, _socialClient, _dialogService, _serverJoinService)
             {
                 Name = friend.PlayerName ?? friend.UserName,
                 UserName = friend.UserName,
@@ -567,7 +577,7 @@ namespace H2MLauncher.UI.ViewModels
         {
             bool isSelf = _partyClient.IsSelf(member);
             FriendDto? friend = _socialClient.Friends?.FirstOrDefault(f => f.Id == member.Id);
-            FriendViewModel friendViewModel = new(member.Id, _partyClient, _socialClient, _dialogService)
+            FriendViewModel friendViewModel = new(member.Id, _partyClient, _socialClient, _dialogService, _serverJoinService)
             {
                 Name = member.Name,
                 UserName = friend?.UserName ?? (isSelf ? _socialClient.Context.UserName ?? "" : member.UserName),
@@ -593,6 +603,8 @@ namespace H2MLauncher.UI.ViewModels
 
             return new()
             {
+                Ip = matchStatus.Server.Ip,
+                Port = matchStatus.Server.Port,
                 ServerName = matchStatus.ServerName,
                 MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
                 GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
