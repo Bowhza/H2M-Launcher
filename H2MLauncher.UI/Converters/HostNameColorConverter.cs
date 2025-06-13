@@ -20,7 +20,7 @@ public partial class HostNameColorConverter : IValueConverter
         }
 
         Style? runStyle = parameter as Style;        
-        Brush whiteBrush = (Application.Current.FindResource("TextLight") as Brush) ?? Brushes.White;
+        Brush whiteBrush = (Application.Current.TryFindResource("TextLight") as Brush) ?? Brushes.White;
 
         List<Run> runs = [];
         MatchCollection matches = ColorRegex().Matches(hostname);
