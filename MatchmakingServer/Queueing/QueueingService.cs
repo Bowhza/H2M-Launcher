@@ -774,8 +774,7 @@ namespace MatchmakingServer.Queueing
 
             player.State = newState;
             player.QueuedAt = null;
-
-            // TODO
+                        
             _ = NotifyPlayerQueuePositions(player.QueuedServer);
 
             if (reason is DequeueReason.UserLeave or DequeueReason.Disconnect || !notifyPlayerDequeued)

@@ -35,8 +35,8 @@ public sealed class GameServerService
     public Task<GameServerStatus?> GetServerStatusAsync(GameServer gameServer, TimeSpan? maxAge = null, CancellationToken cancellationToken = default)
     {
         // If maxAge is null, or the cached status is too old, fetch a fresh one
-        if (maxAge == null ||
-            gameServer.LastServerStatusTimestamp == null ||
+        if (maxAge is null ||
+            gameServer.LastServerStatusTimestamp is null ||
             (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge)
         {
             return FetchFreshStatusInternalAsync(gameServer, cancellationToken);
@@ -54,8 +54,8 @@ public sealed class GameServerService
     public Task<GameServerInfo?> GetServerInfoAsync(GameServer gameServer, TimeSpan? maxAge = null, CancellationToken cancellationToken = default)
     {
         // If maxAge is null, or the cached info is too old, fetch a fresh one
-        if (maxAge == null ||
-            gameServer.LastServerInfoTimestamp == null ||
+        if (maxAge is null ||
+            gameServer.LastServerInfoTimestamp is null ||
             (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge)
         {
             return FetchFreshInfoInternalAsync(gameServer, cancellationToken);
@@ -78,8 +78,8 @@ public sealed class GameServerService
     {
         ILookup<bool, GameServer> servers = gameServers.ToLookup(gameServer =>
         {
-            return maxAge == null ||
-                   gameServer.LastServerInfoTimestamp == null ||
+            return maxAge is null ||
+                   gameServer.LastServerInfoTimestamp is null ||
                    (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge;
         });
 
@@ -100,7 +100,7 @@ public sealed class GameServerService
         }
 
         // Then request and yield status
-        var responses = await _udpGameServerCommunicationService.GetStatusAsync(
+        IAsyncEnumerable<(GameServer server, GameServerStatus? status)> responses = await _udpGameServerCommunicationService.GetStatusAsync(
             serversToRefreshStatus,
             requestTimeoutInMs: timeoutInMs,
             cancellationToken: cancellationToken);
@@ -132,8 +132,8 @@ public sealed class GameServerService
     {
         ILookup<bool, GameServer> servers = gameServers.ToLookup(gameServer =>
         {
-            return maxAge == null ||
-                   gameServer.LastServerInfoTimestamp == null ||
+            return maxAge is null ||
+                   gameServer.LastServerInfoTimestamp is null ||
                    (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge;
         });
 
@@ -154,7 +154,7 @@ public sealed class GameServerService
         }
 
         // Then request and yield status
-        var responses = await _gameServerInfoService.GetInfoAsync(
+        IAsyncEnumerable<(GameServer server, GameServerInfo? info)> responses = await _gameServerInfoService.GetInfoAsync(
             serversToRefreshInfo,
             requestTimeoutInMs: timeoutInMs,
             cancellationToken: cancellationToken);
@@ -171,7 +171,6 @@ public sealed class GameServerService
             yield return server;
         }
     }
-
 
 
     public async Task<List<GameServer>> RefreshInfoAsync(
@@ -243,7 +242,7 @@ public sealed class GameServerService
     private async Task<GameServerStatus?> FetchFreshStatusInternalAsync(GameServer gameServer, CancellationToken cancellationToken)
     {
         GameServerStatus? status = await _udpGameServerCommunicationService.GetStatusAsync(gameServer, cancellationToken);
-        if (status != null)
+        if (status is not null)
         {
             gameServer.LastStatusResponse = status;
             gameServer.LastServerStatusTimestamp = DateTimeOffset.Now;
@@ -255,7 +254,7 @@ public sealed class GameServerService
     private async Task<GameServerInfo?> FetchFreshInfoInternalAsync(GameServer gameServer, CancellationToken cancellationToken)
     {
         GameServerInfo? info = await _gameServerInfoService.GetInfoAsync(gameServer, cancellationToken);
-        if (info != null)
+        if (info is not null)
         {
             gameServer.LastServerInfo = info;
             gameServer.LastServerInfoTimestamp = DateTimeOffset.Now;

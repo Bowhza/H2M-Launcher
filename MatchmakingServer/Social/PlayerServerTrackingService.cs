@@ -77,7 +77,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
 
     public event Action<GameServer>? ServerTimeout;
     public event Action<PlayerLeftEventArgs>? PlayerLeftServer;
-    public event Action<Player, GameServer>? PlayerJoinedServer; //TODO: consume and notify each other of new recent
+    public event Action<Player, GameServer>? PlayerJoinedServer;
 
     private readonly record struct TrackedPlayerInfo
     {

@@ -127,8 +127,6 @@ namespace MatchmakingServer
             }
         }
 
-
-
         public DateTimeOffset? LastServerInfoTimestamp { get; set; }
         public DateTimeOffset? LastServerStatusTimestamp { get; set; }
         public GameServerInfo? LastServerInfo { get; set; }

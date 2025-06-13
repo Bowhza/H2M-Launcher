@@ -1162,7 +1162,6 @@ namespace H2MLauncher.Core.Services
             catch (Exception ex)
             {
                 // failed to send message (maybe server is not online)
-                //request.TryCancel();
                 request.ResponseCompletionSource?.TrySetException(ex);
                 return false;
             }
