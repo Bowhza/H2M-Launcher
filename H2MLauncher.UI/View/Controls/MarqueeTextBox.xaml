@@ -16,7 +16,6 @@
                     Visibility="{TemplateBinding Visibility}" Height="{Binding ActualHeight, ElementName=textBox}"
                     SizeChanged="Container_SizeChanged" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                     >
-                <!--<ContentPresenter x:Name="textBox" SizeChanged="TextBox_SizeChanged" Loaded="TextBox_Loaded" Canvas.Left="0" />-->
                 <TextBlock x:Name="textBox" SizeChanged="TextBox_SizeChanged" Canvas.Left="0"
                            TextWrapping="NoWrap" Height="{TemplateBinding Height}"
                            VerticalAlignment="Center"

@@ -7,7 +7,7 @@ using MatchmakingServer.Parties;
 
 namespace MatchmakingServer
 {
-    public class Player()
+    public class Player
     {
         public required string Id { get; init; }
         public required string Name { get; set; }

@@ -80,8 +80,6 @@ builder.Services.AddSingleton<IMasterServerService, HMWMasterService>();
 
 builder.Services.AddTransient<UdpGameServerCommunication>();
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
-//builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) =>
-//    sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
 builder.Services.AddTransient<IGameServerInfoService<GameServer>, HttpGameServerInfoService<GameServer>>();
 
 builder.Services.AddKeyedSingleton<IGameServerStatusService<GameServer>>("UDP", (sp, key) =>
@@ -90,7 +88,6 @@ builder.Services.AddKeyedSingleton<IGameServerStatusService<GameServer>>("UDP", 
 builder.Services.AddKeyedSingleton<IGameServerCommunicationService<GameServer>>("UDP", (sp, key) => 
     sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
 
-//builder.Services.AddTransient<IGameServerInfoService<GameServer>, TcpUdpDynamicGameServerInfoService<GameServer>>();
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
