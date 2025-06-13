@@ -19,7 +19,7 @@ namespace H2MLauncher.Core.Utilities
         public override object? ConvertFrom(ITypeDescriptorContext? context, CultureInfo? culture, object value)
         {
             if (value is string stringValue &&
-                ServerConnectionDetails.TryParse(stringValue, out ServerConnectionDetails connectionDetails))
+                ServerConnectionDetails.TryParse(stringValue, out ServerConnectionDetails? connectionDetails))
             {
                 return connectionDetails;
             }

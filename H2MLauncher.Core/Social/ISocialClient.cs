@@ -1,4 +1,4 @@
-﻿namespace MatchmakingServer.Core.Social;
+﻿namespace H2MLauncher.Core.Social;
 
 public interface ISocialClient
 {
@@ -6,7 +6,7 @@ public interface ISocialClient
 
     Task OnFriendOffline(string friendId);
 
-    Task OnFriendStatusChanged(string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus);
+    Task OnFriendStatusChanged(string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus, MatchStatusDto? matchStatus);
 
     Task OnFriendRequestAccepted(FriendDto newFriend);
 

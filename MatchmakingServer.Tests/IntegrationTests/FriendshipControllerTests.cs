@@ -1,6 +1,9 @@
-﻿using FluentAssertions;
+﻿using System.Net;
 
-using MatchmakingServer.Core.Social;
+using FluentAssertions;
+
+using H2MLauncher.Core.Social;
+
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
 using MatchmakingServer.Parties;
@@ -104,6 +107,31 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
         friend2Party.AddPlayer(friend2Player);
         friend2Party.AddInvite(notAFriendPlayer, DateTime.UtcNow.AddMinutes(10));
 
+        GameServer friend2Server = new()
+        {
+            ServerIp = "1.2.3.4",
+            ServerPort = 4269,
+            ServerName = "cool-server",
+            LastServerInfo = new()
+            {
+                Address = IPEndPoint.Parse("1.2.3.4:4269"),
+                Clients = 12,
+                Bots = 10,
+                GameName = "H2M",
+                GameType = "tdm",
+                HostName = "cool-server",
+                IsPrivate = false,
+                MapName = "mp_terminal",
+                PlayMode = "2",
+                MaxClients = 12,
+                ModName = "",
+                Ping = 33,
+            }
+        };
+        friend2Server.AddPlayerInternal(friend2Player);
+        friend2Player.PlayingServer = friend2Server;
+        DateTimeOffset friend2joinedAt = friend2Server.KnownPlayers[friend2Player];
+
         // Act
         HttpClient client = factory.CreateAuthenticatedClient(user.Id, user.Name);
         FriendDto[]? friends = await client.GetFromJsonAsync<FriendDto[]>($"/api/users/{user.Id}/friends", JsonSerialization.SerializerOptions);
@@ -118,6 +146,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 OnlineStatus.Offline,
                 GameStatus.None,
                 null,
+                null,
                 friendship1.UpdateDate
             ),
             new FriendDto(
@@ -127,6 +156,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 OnlineStatus.Online,
                 GameStatus.InLobby,
                 new PartyStatusDto(friend2Party.Id, 1, true, [notAFriend.Id.ToString()]),
+                new MatchStatusDto(new("1.2.3.4", 4269), "cool-server", "tdm", "mp_terminal", friend2joinedAt),
                 friendship2.UpdateDate
             )
         ], options => options.WithoutStrictOrdering());
@@ -187,6 +217,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 OnlineStatus.Offline,
                 GameStatus.None,
                 null,
+                null,
                 friendship1.UpdateDate
             ),
             new FriendDto(
@@ -195,6 +226,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
                 friend2.LastPlayerName,
                 OnlineStatus.Offline,
                 GameStatus.None,
+                null,
                 null,
                 friendship2.UpdateDate
             )
@@ -667,6 +699,7 @@ public class FriendshipControllerTests(Factory factory) : IClassFixture<Factory>
             targetUser.LastPlayerName,
             OnlineStatus.Offline,
             GameStatus.None,
+            null,
             null,
             DateTime.UtcNow
         );

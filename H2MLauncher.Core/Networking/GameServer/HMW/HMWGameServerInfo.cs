@@ -45,5 +45,8 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
 
         [JsonPropertyName("protocol")]
         public int Protocol { get; init; } = -1;
+
+        [JsonPropertyName("players")]
+        public HMWGamePlayerStatus[] Players { get; init; } = [];
     }
 }

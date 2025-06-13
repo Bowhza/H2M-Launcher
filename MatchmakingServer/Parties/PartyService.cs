@@ -1,5 +1,4 @@
 ﻿using System.Collections.Concurrent;
-using System.Numerics;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
@@ -7,7 +6,6 @@ using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 
-using MatchmakingServer.Core.Party;
 using MatchmakingServer.SignalR;
 using MatchmakingServer.Social;
 

@@ -1,4 +1,4 @@
-﻿namespace MatchmakingServer.Core.Party;
+﻿namespace H2MLauncher.Core.Party;
 
 public record PartyInvite
 {

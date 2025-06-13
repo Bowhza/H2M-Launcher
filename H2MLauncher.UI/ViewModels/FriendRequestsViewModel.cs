@@ -12,8 +12,6 @@ using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Converters;
 using H2MLauncher.UI.Dialog;
 
-using MatchmakingServer.Core.Social;
-
 using Refit;
 
 namespace H2MLauncher.UI.ViewModels;

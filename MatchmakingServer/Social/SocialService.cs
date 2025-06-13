@@ -3,21 +3,23 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 
 using H2MLauncher.Core.Party;
+using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
-using MatchmakingServer.Social;
+using MatchmakingServer.SignalR;
 
 using Microsoft.AspNetCore.SignalR;
 
-namespace MatchmakingServer.SignalR;
+namespace MatchmakingServer.Social;
 
 public class SocialService
 {
     private readonly ConcurrentDictionary<string, Player> _onlinePlayers = [];
     private readonly Subject<IReadOnlyCollection<Player>> _playerStatusChanges = new();
+    private readonly Subject<(Player Player, ConnectedServerInfo? ConnectedServer)> _playerConnectedServerChanges = new();
 
     private readonly PartyService _partyService;
+    private readonly IPlayerServerTrackingService _playerServerTrackingService;
 
     private readonly ILogger<SocialHub> _logger;
     private readonly IHubContext<SocialHub, ISocialClient> _hubContext;
@@ -26,6 +28,7 @@ public class SocialService
 
     public SocialService(
         PartyService partyService,
+        IPlayerServerTrackingService playerServerTrackingService,
         ILogger<SocialHub> logger,
         IHubContext<SocialHub, ISocialClient> hubContext,
         IServiceScopeFactory serviceScopeFactory)
@@ -33,6 +36,10 @@ public class SocialService
         _logger = logger;
         _hubContext = hubContext;
         _serviceScopeFactory = serviceScopeFactory;
+
+        _playerServerTrackingService = playerServerTrackingService;
+        _playerServerTrackingService.PlayerJoinedServer += PlayerServerTrackingService_PlayerJoinedServer;
+        _playerServerTrackingService.PlayerLeftServer += PlayerServerTrackingService_PlayerLeftServer;
 
         _partyService = partyService;
         _partyService.PartyClosed += PartyService_PartyClosed;
@@ -67,28 +74,51 @@ public class SocialService
                 onNext: (p) => _logger.LogTrace("Player status change notification pipe processed {player}", p),
                 onError: (ex) => _logger.LogError(ex, "Error in player status change notification pipe")
             );
+
+        // Use another obersvable pipe to throttle handling INCOMING server connection updates to prevent matching during map changes etc.
+        _playerConnectedServerChanges
+           // group by player to get a sequence for each player change
+           .GroupBy(x => x.Player.Id)
+
+           // debounce each player group, then merge into a single sequence
+           .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(2)))
+
+           // handle server connectino update
+           .SelectMany(x =>
+               Observable.FromAsync((ct) =>               
+                   _playerServerTrackingService.HandlePlayerConnectionUpdate(x.Player, x.ConnectedServer, ct)
+               )
+           )
+           .Subscribe(
+               onNext: (_) => { },
+               onError: (ex) => _logger.LogError(ex, "Error in server connection update handling pipe")
+           );
     }
 
-    public Task UpdateGameStatus(string userId, string connectionId, GameStatus gameStatus)
+    public Task UpdateGameStatus(string userId, string connectionId, GameStatus gameStatus, ConnectedServerInfo? connectedServer)
     {
-        _logger.LogDebug("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
-            userId, connectionId, gameStatus);
-
         if (!_onlinePlayers.TryGetValue(userId, out Player? player))
         {
             _logger.LogWarning("No connected player found for user id {userId}", userId);
             return Task.CompletedTask;
         }
 
-        if (player.GameStatus == gameStatus)
+        if (player.GameStatus == gameStatus && 
+            EqualityComparer<ConnectedServerInfo>.Default.Equals(player.LastConnectedServerInfo, connectedServer))
         {
             // no change
             return Task.CompletedTask;
         }
 
+        _logger.LogTrace("Updating game status for {userId} ({socialHubConnectionId}) to {gameStatus}",
+            userId, connectionId, gameStatus);
+
         // update game status in session
         player.GameStatus = gameStatus;
+        player.LastConnectedServerInfo = connectedServer;
 
+        // handle connected server
+        _playerConnectedServerChanges.OnNext((player, connectedServer));
         _playerStatusChanges.OnNext([player]);
 
         return Task.CompletedTask;
@@ -147,6 +177,7 @@ public class SocialService
         if (_onlinePlayers.TryRemove(userId, out Player? player))
         {
             player.GameStatus = GameStatus.None;
+            await _playerServerTrackingService.RemovePlayerFromCurrentServer(player);
 
             await using var scope = _serviceScopeFactory.CreateAsyncScope();
             FriendshipsService friendshipsService = scope.ServiceProvider.GetRequiredService<FriendshipsService>();
@@ -157,7 +188,7 @@ public class SocialService
         }
     }
 
-    private async Task TryNotifyOnlineFriendsOfStatusChange(Player player, IServiceScope serviceScope)
+    private async Task TryNotifyOnlineFriendsOfStatusChange(Player player, AsyncServiceScope serviceScope)
     {
         try
         {
@@ -171,10 +202,18 @@ public class SocialService
                     player.GameStatus,
                     player.Party is not null
                         ? new PartyStatusDto(
-                            player.Party.Id, 
-                            player.Party.Members.Count, 
+                            player.Party.Id,
+                            player.Party.Members.Count,
                             player.Party.Privacy is not PartyPrivacy.Closed,
                             player.Party.ValidInvites.ToList())
+                        : null,
+                    player.PlayingServer is not null
+                        ? new MatchStatusDto(
+                            (player.PlayingServer.ServerIp, player.PlayingServer.ServerPort),
+                            player.PlayingServer.LastServerInfo?.HostName ?? player.PlayingServer.ServerName,
+                            player.PlayingServer.LastServerInfo?.GameType,
+                            player.PlayingServer.LastServerInfo?.MapName,
+                            player.PlayingServer.KnownPlayers[player])
                         : null
                 );
         }
@@ -216,7 +255,7 @@ public class SocialService
         return onlineIds;
     }
 
-    private void PartyService_PlayerRemovedFromParty(Party party, Player players)
+    private void PartyService_PlayerRemovedFromParty(Party party, Player player)
     {
         _playerStatusChanges.OnNext(party.Members.ToList());
     }
@@ -239,5 +278,22 @@ public class SocialService
     private void PartyService_PartyPrivacyChanged(Party party, PartyPrivacy partyPrivacy)
     {
         _playerStatusChanges.OnNext(party.Members.ToList());
+    }
+
+    private void PlayerServerTrackingService_PlayerJoinedServer(Player player, GameServer server)
+    {
+        _playerStatusChanges.OnNext([player]);
+    }
+
+    private void PlayerServerTrackingService_PlayerLeftServer(PlayerServerTrackingService.PlayerLeftEventArgs e)
+    {
+        if (e.Player.SocialHubId is null)
+        {
+            // No status change needs to be sent (OnPlayerOffline takes care of that).
+            // We are probably here because the player was removed from the server after disconnecting.
+            return;
+        }
+
+        _playerStatusChanges.OnNext([e.Player]);
     }
 }

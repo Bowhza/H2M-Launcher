@@ -3,16 +3,18 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Data;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Services;
+using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
 
-using MatchmakingServer.Core.Social;
+using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -23,6 +25,8 @@ namespace H2MLauncher.UI.ViewModels
         private readonly PartyClient _partyClient;
         private readonly DialogService _dialogService;
         private readonly IErrorHandlingService _errorHandlingService;
+        private readonly IOptions<ResourceSettings> _resourceSettings;
+        private readonly DispatcherTimer _timer;
 
         private readonly HashSet<string> _addedUserIds = [];
 
@@ -103,13 +107,13 @@ namespace H2MLauncher.UI.ViewModels
 
         #endregion
 
-        public FriendsViewModel(SocialClient socialClient, PartyClient partyClient, DialogService dialogService, IErrorHandlingService errorHandlingService)
+        public FriendsViewModel(SocialClient socialClient, PartyClient partyClient, DialogService dialogService, IErrorHandlingService errorHandlingService, IOptions<ResourceSettings> resourceSettings)
         {
             _dialogService = dialogService;
             _errorHandlingService = errorHandlingService;
             _socialClient = socialClient;
             _socialClient.Context.UserChanged += ClientContext_UserChanged;
-            
+
             _socialClient.FriendsChanged += SocialClient_FriendsChanged;
             _socialClient.FriendChanged += SocialClient_FriendChanged;
             _socialClient.StatusChanged += SocialClient_StatusChanged;
@@ -146,6 +150,22 @@ namespace H2MLauncher.UI.ViewModels
             ConnectToHubCommand.Execute(null);
 
             OnPropertyChanged(nameof(Status));
+            _resourceSettings = resourceSettings;
+
+            _timer = new()
+            {
+                Interval = TimeSpan.FromSeconds(1)
+            };
+            _timer.Tick += Timer_Tick;
+            _timer.Start();
+        }
+
+        private void Timer_Tick(object? sender, EventArgs e)
+        {
+            foreach (FriendViewModel friend in Friends)
+            {
+                friend.PlayingServer?.RecalculatePlayingTime();
+            }
         }
 
         private void ClientContext_UserChanged()
@@ -335,7 +355,7 @@ namespace H2MLauncher.UI.ViewModels
             });
         }
 
-        private void PartyClient_InviteReceived(MatchmakingServer.Core.Party.PartyInvite partyInvite)
+        private void PartyClient_InviteReceived(PartyInvite partyInvite)
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -432,7 +452,7 @@ namespace H2MLauncher.UI.ViewModels
             await connectionTask;
         }
 
-            [RelayCommand]
+        [RelayCommand]
         public async Task AcceptFriendRequest(string? friendId)
         {
             friendId ??= _dialogService.OpenInputDialog(
@@ -536,7 +556,8 @@ namespace H2MLauncher.UI.ViewModels
                 IsPartyOpen = friend.PartyStatus?.IsOpen == true,
                 HasInvited = UserId is not null &&
                              friend.PartyStatus is not null &&
-                             friend.PartyStatus.Invites.Contains(UserId)
+                             friend.PartyStatus.Invites.Contains(UserId),
+                PlayingServer = CreatePlayingServerViewModel(friend.MatchStatus),
             };
 
             Friends.Add(friendViewModel);
@@ -557,10 +578,26 @@ namespace H2MLauncher.UI.ViewModels
                 IsPartyLeader = member.IsLeader,
                 IsSelf = isSelf,
                 PartySize = _partyClient.Members?.Count ?? 0,
-                PartyId = friend?.PartyStatus?.PartyId
+                PartyId = friend?.PartyStatus?.PartyId,
             };
 
             Friends.Add(friendViewModel);
+        }
+
+        private PlayingServerViewModel? CreatePlayingServerViewModel(MatchStatusDto? matchStatus)
+        {
+            if (matchStatus is null)
+            {
+                return null;
+            }
+
+            return new()
+            {
+                ServerName = matchStatus.ServerName,
+                MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
+                GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
+                JoinedAt = matchStatus.JoinedAt,
+            };
         }
 
         private void UpdateFriend(FriendDto friend)
@@ -579,6 +616,7 @@ namespace H2MLauncher.UI.ViewModels
                 friendViewModel.HasInvited = UserId is not null &&
                                              friend.PartyStatus is not null &&
                                              friend.PartyStatus.Invites.Contains(UserId);
+                friendViewModel.PlayingServer = CreatePlayingServerViewModel(friend.MatchStatus);
             }
         }
 
@@ -596,6 +634,9 @@ namespace H2MLauncher.UI.ViewModels
             _partyClient.UserLeft -= PartyService_UserLeft;
             _partyClient.LeaderChanged -= PartyClient_LeaderChanged;
             _partyClient.ConnectionChanged -= PartyService_ConnectionChanged;
+
+            _timer.Stop();
+            _timer.Tick -= Timer_Tick;
         }
 
         public class FriendStatusGroupComparer : IComparer

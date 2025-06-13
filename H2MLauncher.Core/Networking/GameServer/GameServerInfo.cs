@@ -35,5 +35,7 @@ namespace H2MLauncher.Core.Networking.GameServer
         public int RealPlayerCount => Clients - Bots;
 
         public int FreeSlots => MaxClients - RealPlayerCount;
+
+        public GamePlayerStatus[] Players { get; init; } = [];
     }
 }

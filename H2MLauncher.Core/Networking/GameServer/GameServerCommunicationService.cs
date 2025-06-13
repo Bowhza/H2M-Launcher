@@ -18,7 +18,9 @@ using Microsoft.Extensions.Logging;
 
 namespace H2MLauncher.Core.Services
 {
-    public partial class GameServerCommunicationService<TServer> : IAsyncDisposable, IGameServerInfoService<TServer> where TServer : IServerConnectionDetails
+    public partial class GameServerCommunicationService<TServer> :
+        IAsyncDisposable,
+        IGameServerCommunicationService<TServer> where TServer : IServerConnectionDetails
     {
         private readonly ConcurrentDictionary<IPEndPoint, ConcurrentHashSet<Request>> _queuedRequests = [];
         private readonly UdpGameServerCommunication _gameServerCommunication;
@@ -29,6 +31,8 @@ namespace H2MLauncher.Core.Services
 
         private const int MIN_REQUEST_DELAY = 1;
         private const int REQUEST_TIMEOUT_IN_MS = 10000;
+
+        private static readonly bool CancelPreviousRequests = true;
 
         public bool AutoStartCommunication { get; } = true;
 
@@ -41,8 +45,8 @@ namespace H2MLauncher.Core.Services
             _endpointResolver = endpointResolver;
             _gameServerCommunication = gameServerCommunication;
 
-            _registrations.Add(RegisterQueuedCommandHandler(GetInfoCommand.CommandName, GetInfoCommand.ResponseCommandName));
-            _registrations.Add(RegisterQueuedCommandHandler(GetStatusCommand.CommandName, GetStatusCommand.ResponseCommandName));
+            _registrations.Add(RegisterQueuedCommandHandler(GetInfoCommand.CommandName, GetInfoCommand.ResponseCommandName, handleFirstOnly: false));
+            _registrations.Add(RegisterQueuedCommandHandler(GetStatusCommand.CommandName, GetStatusCommand.ResponseCommandName, handleFirstOnly: false));
         }
 
         protected enum RequestState
@@ -139,7 +143,7 @@ namespace H2MLauncher.Core.Services
 
             public override string? ToString()
             {
-                return $"'{Message.CommandName}' - {State} ({Timestamp})";
+                return $"'{Message.CommandName}' - {State} ({Timestamp.Ticks})";
             }
         }
 
@@ -337,6 +341,11 @@ namespace H2MLauncher.Core.Services
                     return;
                 }
 
+                _logger.LogTrace("QueueRequestHandler[{requestCommandName}] received message from {remoteEndPoint} - {@message}",
+                    requestCommandName, 
+                    receivedMessage.RemoteEndPoint,
+                    receivedMessage.Message);
+                
                 if (!_queuedRequests.TryGetValue(receivedMessage.RemoteEndPoint, out var queuedRequests))
                 {
                     // unknown remote endpoint
@@ -346,17 +355,22 @@ namespace H2MLauncher.Core.Services
                 IEnumerable<Request> matchingRequests = queuedRequests.Where(r => r.Message.CommandName.Equals(requestCommandName));
                 if (!matchingRequests.Any())
                 {
+                    _logger.LogTrace("QueueRequestHandler[{requestCommandName}] no matching requests in queue.", requestCommandName);
                     return;
                 }
 
                 if (handleFirstOnly)
                 {
-                    Request firstRequest = matchingRequests.First();
-                    removeInterpretAndCallback(firstRequest);
+                    Request? firstRequest = matchingRequests.FirstOrDefault();
+                    if (firstRequest is not null)
+                    {
+                        removeInterpretAndCallback(firstRequest);
+                    }
                     return;
                 }
 
-                foreach (Request request in matchingRequests.ToList())
+                List<Request> matchingRequestsSnapshot = matchingRequests.ToList();
+                foreach (Request request in matchingRequestsSnapshot)
                 {
                     removeInterpretAndCallback(request);
                 }
@@ -365,6 +379,8 @@ namespace H2MLauncher.Core.Services
                 {
                     if (queuedRequests.TryRemove(request))
                     {
+                        _logger.LogTrace("QueueRequestHandler[{requestCommandName}] completing matching request {request}.", requestCommandName, request);
+
                         request.ResponseCompletionSource?.TrySetResult(receivedMessage);
                         if (onResponse is not null)
                         {
@@ -1095,27 +1111,38 @@ namespace H2MLauncher.Core.Services
         {
             AddToQueueCancelPreviousRequest(serverEndpoint, request);
 
-            // register request cancellation
-            // (does not need to be disposed since this lives as long as the request. May be moved into the request)
-            _ = request.CancellationToken.Register(() =>
+            // Clean up request when completed
+            _ = request.ResponseCompletionSource.Task.ContinueWith(task =>
             {
-                // remove the request from the queue
+                _logger.LogTrace("Request {request} completed after {time}ms", request, 
+                    Math.Round((DateTimeOffset.Now - request.Timestamp).TotalMilliseconds, 4));
+                
+                request.Dispose();
+
+                // remove the request from the queue (if not already done by handler)
                 if (_queuedRequests.TryGetValue(serverEndpoint, out var list))
                 {
-                    list.TryRemove(request);
+                    bool removed = list.TryRemove(request);
 
                     if (list.Count == 0)
                     {
                         // remove the queue for this endpoint if empty
                         _queuedRequests.TryRemove(serverEndpoint, out _);
                     }
+
+                    if (removed)
+                    {
+                        _logger.LogTrace("Request {request} was removed from queue", request);
+                    }
                 }
-            });
+            }, CancellationToken.None);
 
             try
             {
                 // set timestamp just before sending
                 request.Timestamp = DateTimeOffset.Now;
+
+                _logger.LogTrace("Start sending request {request} -> {endpoint}", request, serverEndpoint);
 
                 // send request message
                 await _gameServerCommunication.SendAsync(serverEndpoint, request.Message, cancellationToken: cancellationToken);
@@ -1123,12 +1150,19 @@ namespace H2MLauncher.Core.Services
                 // activate request to start timeout
                 request.Activate();
 
+                _logger.LogTrace("End sending request {request} -> {endpoint}", request, serverEndpoint);
+
                 return true;
             }
-            catch
+            catch (OperationCanceledException cex)
+            {
+                request.ResponseCompletionSource?.TrySetCanceled(cex.CancellationToken);
+                return false;
+            }
+            catch (Exception ex)
             {
                 // failed to send message (maybe server is not online)
-                request.TryCancel();
+                request.ResponseCompletionSource?.TrySetException(ex);
                 return false;
             }
         }
@@ -1139,22 +1173,29 @@ namespace H2MLauncher.Core.Services
         /// </summary>
         private void AddToQueueCancelPreviousRequest(IPEndPoint endpoint, Request request)
         {
+            // Get queued requests for that endpoint
             ConcurrentHashSet<Request> requests = _queuedRequests.GetOrAdd(endpoint, []);
 
-            bool filter(Request x) =>
-                x.Message.CommandName == request.Message.CommandName &&
-                x.Message.Data == request.Message.Data &&
-                x.Message.Separator == request.Message.Separator;
-
-            // cancel and remove previous operations
-            foreach (Request r in requests.Where(filter).ToList())
+            if (CancelPreviousRequests)
             {
-                requests.TryRemove(r);
-                r.ResponseCompletionSource?.TrySetCanceled();
-                r.Dispose();
+                bool filter(Request x) =>
+                    x.Message.CommandName == request.Message.CommandName &&
+                    x.Message.Data == request.Message.Data &&
+                    x.Message.Separator == request.Message.Separator;
+
+                // cancel and remove previous operations
+                foreach (Request r in requests.Where(filter).ToList())
+                {
+                    requests.TryRemove(r);
+                    r.ResponseCompletionSource?.TrySetCanceled();
+                    r.Dispose();
+                }
             }
 
-            requests.Add(request);
+            if (requests.Add(request))
+            {
+                _logger.LogTrace("Queued request {request} -> {endpoint}", request, endpoint);
+            }
         }
 
         public ValueTask DisposeAsync()

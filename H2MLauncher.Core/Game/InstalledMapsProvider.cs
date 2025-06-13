@@ -62,7 +62,7 @@ namespace H2MLauncher.Core.Game
         }
 
         public void Dispose()
-        {            
+        {
             _gameDirectoryService.UsermapsChanged -= GameDirectoryService_UsermapsChanged;
             _gameDirectoryService.FastFileChanged -= GameDirectoryService_FastFileChanged;
         }

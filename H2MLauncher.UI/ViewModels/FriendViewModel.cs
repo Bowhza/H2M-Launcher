@@ -1,4 +1,6 @@
-﻿using System.Windows;
+﻿using System.Text.RegularExpressions;
+using System.Windows;
+using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -7,8 +9,6 @@ using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
 
-using MatchmakingServer.Core.Social;
-
 namespace H2MLauncher.UI.ViewModels
 {
     public enum FriendStatus
@@ -16,6 +16,41 @@ namespace H2MLauncher.UI.ViewModels
         Party,
         Online,
         Offline,
+    }
+
+    public partial class PlayingServerViewModel : ObservableObject
+    {
+        [ObservableProperty]
+        private string _serverName = "";
+
+        [ObservableProperty]
+        private string _mapDisplayName = "";
+
+        [ObservableProperty]
+        private string _gameTypeDisplayName = "";
+
+        public required DateTimeOffset JoinedAt { get; init; }
+
+        [ObservableProperty]
+        private TimeSpan _playingTime = TimeSpan.Zero;
+
+        public string Status => this switch
+        {
+            { GameTypeDisplayName: not null, MapDisplayName: not null } =>
+                $"{GameTypeDisplayName} on {MapDisplayName}",
+            { MapDisplayName: not null } => $"Playing on {MapDisplayName}",
+            _ => ""
+        };
+
+        public string SanitizedServerName => ColorCodeSequenceRegex().Replace(ServerName, "");
+
+        public void RecalculatePlayingTime()
+        {
+            PlayingTime = DateTimeOffset.Now - JoinedAt;
+        }
+
+        [GeneratedRegex(@"(\^\d)")]
+        private static partial Regex ColorCodeSequenceRegex();
     }
 
     public partial class FriendViewModel : ObservableObject
@@ -28,6 +63,9 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private bool _showDetails;
+
+        [ObservableProperty]
+        private string _test = "[EU] ^1Rasselbande ^7| ^1Vanilla KC/TDM ^7| ^1MW2/MW3 Best Maps";
 
         /// <summary>
         /// Whether this is the user itself.
@@ -121,6 +159,13 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private GameStatus _gameStatus;
 
+        [NotifyPropertyChangedFor(nameof(DetailedStatus))]
+        [NotifyPropertyChangedFor(nameof(HasPlayingServer))]
+        [ObservableProperty]
+        private PlayingServerViewModel? _playingServer;
+
+        public bool HasPlayingServer => PlayingServer is not null;
+
         /// <summary>
         /// The group this person is sorted into.
         /// </summary>
@@ -155,7 +200,13 @@ namespace H2MLauncher.UI.ViewModels
                         return GameStatus switch
                         {
                             GameStatus.InLobby => "Lobby",
-                            GameStatus.InMatch => "In Match",
+                            GameStatus.InMatch => PlayingServer switch
+                            {
+                                { GameTypeDisplayName: not null, MapDisplayName: not null } =>
+                                    $"{PlayingServer.GameTypeDisplayName} on {PlayingServer.MapDisplayName}",
+                                { MapDisplayName: not null } => $"In Match on {PlayingServer.MapDisplayName}",
+                                _ => "In Match"
+                            },
                             GameStatus.InMainMenu => "Main Menu",
                             _ when Status is OnlineStatus.InGame => "In Game",
                             _ => "Online"

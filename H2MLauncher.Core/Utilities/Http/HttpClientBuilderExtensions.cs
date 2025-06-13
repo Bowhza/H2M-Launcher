@@ -9,13 +9,17 @@ namespace H2MLauncher.Core.Utilities.Http
 {
     public static class HttpClientBuilderExtensions
     {
-        public static IHttpClientBuilder ConfigureMatchmakingClient(this IHttpClientBuilder httpClientBuilder)
+        public static IHttpClientBuilder ConfigureMatchmakingClient(this IHttpClientBuilder httpClientBuilder, bool trimTrailingSlashes = false)
         {
             return httpClientBuilder.ConfigureHttpClient((sp, client) =>
             {
                 MatchmakingSettings matchmakingSettings = sp.GetRequiredService<IOptions<MatchmakingSettings>>().Value;
 
-                client.BaseAddress = Url.Parse(matchmakingSettings.MatchmakingServerApiUrl).ToUri();
+                string apiUrl = trimTrailingSlashes 
+                    ? matchmakingSettings.MatchmakingServerApiUrl.TrimEnd('/') 
+                    : matchmakingSettings.MatchmakingServerApiUrl;
+
+                client.BaseAddress = Url.Parse(apiUrl).ToUri();
                 client.DefaultRequestHeaders.AddApplicationMetadata();
             });
         }

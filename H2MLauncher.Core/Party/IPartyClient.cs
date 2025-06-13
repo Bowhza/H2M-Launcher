@@ -1,7 +1,6 @@
 ﻿using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Party;
 
-namespace MatchmakingServer.Core.Party;
+namespace H2MLauncher.Core.Party;
 
 public interface IPartyClient
 {

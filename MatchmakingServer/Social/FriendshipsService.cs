@@ -1,20 +1,14 @@
-﻿using System;
-
-using FxKit;
+﻿using FxKit;
 
 using H2MLauncher.Core.Party;
+using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
-using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.SignalR;
 
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MatchmakingServer.Social;
 
@@ -124,6 +118,7 @@ public sealed class FriendshipsService(
                 OnlineStatus.Offline,
                 GameStatus.None,
                 null,
+                null,
                 friendsSince);
         }
         else
@@ -140,6 +135,14 @@ public sealed class FriendshipsService(
                             player.Party.Members.Count,
                             player.Party.Privacy is not PartyPrivacy.Closed,
                             player.Party.ValidInvites.ToList())
+                        : null,
+                player.PlayingServer is not null
+                        ? new MatchStatusDto(
+                            (player.PlayingServer.ServerIp, player.PlayingServer.ServerPort),
+                            player.PlayingServer.LastServerInfo?.HostName ?? player.PlayingServer.ServerName,
+                            player.PlayingServer.LastServerInfo?.GameType,
+                            player.PlayingServer.LastServerInfo?.MapName,
+                            player.PlayingServer.KnownPlayers[player])
                         : null,
                 friendsSince);
         }

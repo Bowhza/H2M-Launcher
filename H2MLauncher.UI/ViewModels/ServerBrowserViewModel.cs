@@ -36,7 +36,7 @@ namespace H2MLauncher.UI.ViewModels;
 public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 {
     private readonly IMasterServerService _hmwMaster;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _tcpGameServerCommunicationService;
+    private readonly IGameServerInfoService<IServerConnectionDetails> _tcpGameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
     private readonly LauncherService _h2MLauncherService;
     private readonly IClipBoardService _clipBoardService;
@@ -58,9 +58,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     private readonly IOnlineServices _onlineService;
     private readonly CachedServerDataService _serverDataService;
     private readonly H2MLauncherSettings _defaultSettings;
-
-    private readonly Dictionary<string, string> _mapMap = [];
-    private readonly Dictionary<string, string> _gameTypeMap = [];
 
     private IReadOnlyList<ServerData> _serverData = [];
 
@@ -137,7 +134,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
 
     public ServerBrowserViewModel(
         [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,
-        [FromKeyedServices("TCP")] IGameServerInfoService<ServerConnectionDetails> tcpGameServerService,
+        [FromKeyedServices("TCP")] IGameServerInfoService<IServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
         LauncherService h2MLauncherService,
         IClipBoardService clipBoardService,
@@ -224,16 +221,6 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         FavouritesTab = favouritesTab;
 
         SelectedTab = HMWServersTab;
-
-        foreach (IW4MObjectMap oMap in resourceSettings.Value.MapPacks.SelectMany(mappack => mappack.Maps))
-        {
-            _mapMap!.TryAdd(oMap.Name, oMap.Alias);
-        }
-
-        foreach (IW4MObjectMap oMap in resourceSettings.Value.GameTypes)
-        {
-            _gameTypeMap!.TryAdd(oMap.Name, oMap.Alias);
-        }
 
         H2MLauncherSettings oldSettings = _h2MLauncherOptions.CurrentValue;
         _h2MLauncherOptions.OnChange((newSettings, _) =>
@@ -718,11 +705,11 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
     }
 
     private async Task GetServerInfo(
-        IGameServerInfoService<ServerConnectionDetails> service,
+        IGameServerInfoService<IServerConnectionDetails> service,
         IEnumerable<ServerConnectionDetails> servers,
         CancellationToken cancellationToken)
     {
-        IAsyncEnumerable<(ServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
+        IAsyncEnumerable<(IServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
             servers,
             sendSynchronously: false,
             cancellationToken: cancellationToken);
@@ -734,7 +721,7 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         {
             try
             {
-                await foreach ((ServerConnectionDetails server, GameServerInfo? info) in responses.ConfigureAwait(false).WithCancellation(cancellationToken))
+                await foreach ((IServerConnectionDetails server, GameServerInfo? info) in responses.ConfigureAwait(false).WithCancellation(cancellationToken))
                 {
                     if (info is not null)
                     {
@@ -798,16 +785,13 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         }
     }
 
-    private void OnGameServerInfoReceived(ServerConnectionDetails server, GameServerInfo serverInfo)
+    private void OnGameServerInfoReceived(IServerConnectionDetails server, GameServerInfo serverInfo)
     {
         List<SimpleServerInfo> userFavorites = GetFavoritesFromSettings();
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
 
         bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
-        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
-
-        _mapMap.TryGetValue(serverInfo.MapName, out string? mapDisplayName);
-        _gameTypeMap.TryGetValue(serverInfo.GameType, out string? gameTypeDisplayName);
+        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);        
 
         ServerViewModel serverViewModel = new()
         {
@@ -819,9 +803,9 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
             MaxClientNum = serverInfo.MaxClients,
             Game = serverInfo.GameName,
             GameType = serverInfo.GameType,
-            GameTypeDisplayName = gameTypeDisplayName ?? serverInfo.GameType,
+            GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(serverInfo.GameType),
             Map = serverInfo.MapName,
-            MapDisplayName = mapDisplayName ?? serverInfo.MapName,
+            MapDisplayName = _resourceSettings.Value.GetMapDisplayName(serverInfo.MapName),
             HasMap = _mapsProvider.InstalledMaps.Contains(serverInfo.MapName) || !_h2MLauncherOptions.Value.WatchGameDirectory,
             IsPrivate = serverInfo.IsPrivate,
             Ping = serverInfo.Ping,

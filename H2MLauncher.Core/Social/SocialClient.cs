@@ -2,15 +2,15 @@
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
+using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities.SignalR;
 
-using MatchmakingServer.Core.Social;
-
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -29,6 +29,10 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     private readonly IFriendshipApiClient _friendshipApiClient;
     private readonly IOptionsMonitor<H2MLauncherSettings> _settings;
 
+    private readonly IServerJoinService _serverJoinService;
+    private readonly IMasterServerService _masterServerService;
+    private readonly IGameConfigProvider _gameConfigProvider;
+
     private readonly ILogger<SocialClient> _logger;
     private readonly ClientContext _clientContext;
 
@@ -37,6 +41,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     public GameStatus GameStatus { get; private set; }
     public OnlineStatus OnlineStatus { get; private set; }
+
+    public ConnectedServerInfo? ConnectedServer { get; private set; }
 
 
     private List<FriendDto> _friends = [];
@@ -60,8 +66,11 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     public SocialClient(
         IPlayerNameProvider playerNameProvider,
         IGameCommunicationService gameCommunicationService,
+        IGameConfigProvider gameConfigProvider,
         IOnlineServices onlineService,
         IFriendshipApiClient friendshipApiClient,
+        IServerJoinService serverJoinService,
+        [FromKeyedServices("HMW")] IMasterServerService masterServerService,
         ILogger<SocialClient> logger,
         HubConnection hubConnection,
         IOptionsMonitor<H2MLauncherSettings> settings) : base(hubConnection)
@@ -70,8 +79,11 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
         _playerNameProvider = playerNameProvider;
         _gameCommunicationService = gameCommunicationService;
+        _gameConfigProvider = gameConfigProvider;
         _clientContext = onlineService.ClientContext;
         _friendshipApiClient = friendshipApiClient;
+        _serverJoinService = serverJoinService;
+        _masterServerService = masterServerService;
         _logger = logger;
         _settings = settings;
     }
@@ -93,6 +105,39 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         };
     }
 
+    private ConnectedServerInfo? GetConnectedServerInfo(GameState gameState)
+    {
+        if (gameState.ConnectionState is not ConnectionState.CA_ACTIVE ||
+            gameState.Endpoint is null ||
+            gameState.IsPrivateMatch || // for now do not track private matches
+            gameState.IsInMainMenu) 
+        {
+            // game state has no connected endpoint
+            return null;
+        }
+
+        // (unfortunately we cannot use port because the game gives us the local UDP port)
+        string gameStateIp = gameState.Endpoint.Address.GetRealAddress().ToString();
+
+        if (_serverJoinService.LastServer?.Ip == gameStateIp)
+        {
+            // ip matches the last joined server
+            return new()
+            {
+                Ip = _serverJoinService.LastServer.Ip,
+                PortGuess = _serverJoinService.LastServer.Port,
+                ServerName = _serverJoinService.LastServer.ServerName,
+            };
+        }
+
+        // ip matches the last joined server
+        return new()
+        {
+            Ip = gameStateIp,
+            ServerName = _gameConfigProvider.CurrentConfigMp?.LastHostName,
+        };
+    }
+
     private async void GameCommunicationService_GameStateChanged(GameState state)
     {
         try
@@ -103,8 +148,14 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             }
 
             GameStatus = CreateGameStatus(state);
+            ConnectedServer = GetConnectedServerInfo(state);
+            ConnectedServerInfo? connectedServer = null;
+            if (GameStatus is GameStatus.InMatch)
+            {
+                connectedServer = GetConnectedServerInfo(state);
+            }            
 
-            await Hub.UpdateGameStatus(GameStatus);
+            await Hub.UpdateGameStatus(GameStatus, connectedServer);
 
             StatusChanged?.Invoke();
         }
@@ -124,8 +175,9 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             }
 
             GameStatus = GameStatus.None;
+            ConnectedServer = null;
 
-            await Hub.UpdateGameStatus(GameStatus.None);
+            await Hub.UpdateGameStatus(GameStatus.None, null);
 
             StatusChanged?.Invoke();
         }
@@ -161,8 +213,9 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             {
                 // send initial game status
                 GameStatus = CreateGameStatus(_gameCommunicationService.CurrentGameState);
+                ConnectedServer = GetConnectedServerInfo(_gameCommunicationService.CurrentGameState);
 
-                await Hub.UpdateGameStatus(GameStatus);
+                await Hub.UpdateGameStatus(GameStatus, ConnectedServer);
 
                 StatusChanged?.Invoke();
             }
@@ -285,7 +338,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         {
             _logger.LogDebug("Rejected incoming friend request of {friendId}", friendId);
 
-            _friendRequests.RemoveAll(fr => fr.UserId.ToString() == friendId);            
+            _friendRequests.RemoveAll(fr => fr.UserId.ToString() == friendId);
 
             FriendsChanged?.Invoke();
             return true;
@@ -417,13 +470,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         return Task.CompletedTask;
     }
 
-    Task ISocialClient.OnFriendStatusChanged(string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus)
+    Task ISocialClient.OnFriendStatusChanged(
+        string friendId, string playerName, GameStatus status, PartyStatusDto? partyStatus, MatchStatusDto? matchStatus)
     {
         FriendDto? newFriend = UpdateFriend(friendId, (friend) => friend with
         {
             PlayerName = playerName,
             GameStatus = status,
             PartyStatus = partyStatus,
+            MatchStatus = matchStatus,
         });
 
         return Task.CompletedTask;

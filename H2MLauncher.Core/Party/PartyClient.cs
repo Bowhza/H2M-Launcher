@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
@@ -11,8 +9,6 @@ using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.Core.Utilities.SignalR;
-
-using MatchmakingServer.Core.Party;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
