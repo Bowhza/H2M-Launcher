@@ -164,6 +164,7 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         private GameStatus _gameStatus;
 
+        [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
         [NotifyPropertyChangedFor(nameof(DetailedStatus))]
         [NotifyPropertyChangedFor(nameof(HasPlayingServer))]
         [ObservableProperty]
