@@ -70,7 +70,7 @@
 
         <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}"/>
         <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
-            <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5">
+            <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5" Opacity="0.8">
                 <Grid.Resources>
                     <Storyboard x:Key="FadeInStoryboard">
                         <DoubleAnimation Storyboard.TargetProperty="Opacity"

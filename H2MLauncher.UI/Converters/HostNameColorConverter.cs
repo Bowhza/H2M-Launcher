@@ -9,7 +9,6 @@ namespace H2MLauncher.UI.Converters;
 
 public partial class HostNameColorConverter : IValueConverter
 {
-    private static readonly FontFamily Font = new("Consolas");
     private static readonly SolidColorBrush LighterBlueBrush = new(Color.FromRgb(37, 62, 235));
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -18,7 +17,7 @@ public partial class HostNameColorConverter : IValueConverter
         {
             return Array.Empty<Run>();
         }
-
+        
         Style? runStyle = parameter as Style;        
         Brush whiteBrush = (Application.Current.TryFindResource("TextLight") as Brush) ?? Brushes.White;
 

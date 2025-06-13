@@ -13,6 +13,8 @@ namespace H2MLauncher.UI
 
         public static readonly string LauncherSettingsFilePath = Path.Combine(LocalDir, LauncherSettingsFileName);
 
+        public static readonly string ThemesDir = Path.Combine(LocalDir, "themes");
+
         public static readonly string KeyFilePath = Path.Combine(LocalDir, "userkey");
 
         /// <summary>

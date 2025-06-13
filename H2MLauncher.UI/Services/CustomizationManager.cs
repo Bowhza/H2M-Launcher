@@ -46,6 +46,9 @@ public partial class CustomizationManager : ObservableObject
     [ObservableProperty]
     private string _currentThemeDirectory = DefaultResourceDirectory;
 
+    [ObservableProperty]
+    private string? _currentThemeFile;
+
 
     public CustomizationManager(IWritableOptions<H2MLauncherSettings> settings)
     {
@@ -57,8 +60,6 @@ public partial class CustomizationManager : ObservableObject
     /// </summary>
     public async Task LoadInitialValues()
     {
-        CurrentThemeDirectory = "C:\\Users\\Tobias\\source\\repos\\H2M-Launcher\\";
-
         // Set the theme directory
         LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
@@ -266,13 +267,13 @@ public partial class CustomizationManager : ObservableObject
                     Themes = [xamlPath]
                 });
 
+                CurrentThemeFile = xamlPath;
                 ThemeLoadingError = false;
                 return true;
             });
         }
-        catch (Exception ex)
+        catch
         {
-            var d = ex;
             ThemeLoadingError = true;
             GC.Collect(); // force garbage collection to free locked file resource
             return false;
@@ -288,6 +289,7 @@ public partial class CustomizationManager : ObservableObject
             // reset resource directory
             Application.Current.Resources.Remove(Constants.CurrentThemeDirectoryKey);
             CurrentThemeDirectory = DefaultResourceDirectory;
+            CurrentThemeFile = null;
 
             UpdateCustomizationSettings(settings => settings with
             {

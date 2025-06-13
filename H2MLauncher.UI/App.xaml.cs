@@ -287,7 +287,7 @@ namespace H2MLauncher.UI
                 try
                 {
                     var dialogService = ServiceProvider?.GetService<DialogService>();
-                    if (dialogService != null)
+                    if (dialogService is not null)
                     {
                         dialogService.OpenTextDialog("Error", e.Exception.Message);
                     }
@@ -295,6 +295,19 @@ namespace H2MLauncher.UI
                     {
                         MessageBox.Show(e.Exception.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
+
+                    // reset theme just in case so the next restart works
+                    ServiceProvider?.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
+                    {
+                        return settings with
+                        {
+                            Customization = settings.Customization is null ? null : settings.Customization with
+                            {
+                                Themes = [],
+                                BackgroundImagePath = null
+                            }
+                        };
+                    });
                 }
                 catch (Exception ex)
                 {

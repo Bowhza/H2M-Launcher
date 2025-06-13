@@ -5,6 +5,8 @@ namespace H2MLauncher.UI.Converters;
 
 public class UriImageSourceConverter : UrlCombinerConverter
 {
+    private static readonly ImageSourceConverter ImageSourceConverter = new();
+
     public override object? Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values.Length == 0) return null;
@@ -19,6 +21,6 @@ public class UriImageSourceConverter : UrlCombinerConverter
             return null;
         }
 
-        return new ImageSourceConverter().ConvertFrom(imageUri);
+        return ImageSourceConverter.ConvertFrom(imageUri);
     }
 }

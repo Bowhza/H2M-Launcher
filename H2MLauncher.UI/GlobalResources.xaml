@@ -907,11 +907,11 @@
         </Style.Triggers>
     </Style>
 
-    <Style x:Key="TransparentItem" TargetType="{x:Type ToggleButton}">
+    <Style x:Key="TransparentItem" TargetType="{x:Type ContentControl}">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="Template">
             <Setter.Value>
-                <ControlTemplate TargetType="ToggleButton">
+                <ControlTemplate TargetType="ContentControl">
                     <Border Name="Bd"
                             Padding="{TemplateBinding Padding}"
                             TextBlock.Foreground="{TemplateBinding Foreground}"
