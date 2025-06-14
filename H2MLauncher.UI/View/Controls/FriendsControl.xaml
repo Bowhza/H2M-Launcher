@@ -685,7 +685,7 @@
                                                         <TextBlock Grid.Row="1" Text="{Binding PlayingServer.Status}" FontSize="10" Margin="0,0,0,2"/>
 
                                                         <!-- Server Name -->
-                                                        <local:MarqueeTextBox Grid.Row="2" FontSize="10" HorizontalContentAlignment="Stretch"
+                                                        <local:MarqueeTextBox Grid.Row="2" FontSize="10" HorizontalContentAlignment="Stretch" TextAlignment="Left"
                                                                               Inlines="{Binding PlayingServer.ServerName, Converter={StaticResource HostNameColorConverter}}">
                                                         </local:MarqueeTextBox>
 
