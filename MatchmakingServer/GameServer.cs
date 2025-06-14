@@ -1,9 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Linq;
-
-using ConcurrentCollections;
-
-using H2MLauncher.Core;
+﻿using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking.GameServer;
@@ -14,11 +9,18 @@ namespace MatchmakingServer
 {
     public class GameServer : IServerConnectionDetails, ISimpleServerInfo
     {
+        private readonly Dictionary<Player, DateTimeOffset> _knownPlayers = [];
+
+        internal readonly object PlayerCollectionLock = new();
+
         public string Id { get; init; } = "";
 
         public required string ServerIp { get; init; }
-
         public required int ServerPort { get; init; }
+
+        string IServerConnectionDetails.Ip => ServerIp;
+        int IServerConnectionDetails.Port => ServerPort;
+
 
         private string? _serverName;
         public string ServerName
@@ -95,14 +97,29 @@ namespace MatchmakingServer
                 }
             }
         }
+        
+        
+        public DateTimeOffset? LastServerInfoTimestamp { get; set; }
+        public DateTimeOffset? LastServerStatusTimestamp { get; set; }
+        public GameServerInfo? LastServerInfo { get; set; }
+        public GameServerStatus? LastStatusResponse { get; set; }
 
 
-        private readonly Dictionary<Player, DateTimeOffset> _knownPlayers = [];
+        public int PrivilegedSlots { get; init; }
 
-        internal readonly object PlayerCollectionLock = new();
+        public int UnavailableSlots
+        {
+            get
+            {
+                if (LastServerInfo is null || LastServerInfo.PrivilegedSlots < 0)
+                {
+                    return JoiningPlayerCount + PrivilegedSlots;
+                }
 
-
-        // Internal methods for managing players, ideally only called by ServerManager
+                return JoiningPlayerCount + LastServerInfo.PrivilegedSlots;
+            }
+        }
+        
         internal bool AddPlayerInternal(Player player)
         {
             lock (PlayerCollectionLock)
@@ -126,7 +143,7 @@ namespace MatchmakingServer
                 return _knownPlayers.ContainsKey(player);
             }
         }
-        
+
         public bool TryGetPlayerJoinDate(Player player, out DateTimeOffset joinDate)
         {
             lock (PlayerCollectionLock)
@@ -134,30 +151,6 @@ namespace MatchmakingServer
                 return _knownPlayers.TryGetValue(player, out joinDate);
             }
         }
-        
-        public DateTimeOffset? LastServerInfoTimestamp { get; set; }
-        public DateTimeOffset? LastServerStatusTimestamp { get; set; }
-        public GameServerInfo? LastServerInfo { get; set; }
-        public GameServerStatus? LastStatusResponse { get; set; }
-
-
-        public int PrivilegedSlots { get; init; }
-
-        public int UnavailableSlots
-        {
-            get
-            {
-                if (LastServerInfo is null || LastServerInfo.PrivilegedSlots < 0)
-                {
-                    return JoiningPlayerCount + PrivilegedSlots;
-                }
-
-                return JoiningPlayerCount + LastServerInfo.PrivilegedSlots;
-            }
-        }
-
-        string IServerConnectionDetails.Ip => ServerIp;
-        int IServerConnectionDetails.Port => ServerPort;
 
         /// <summary>
         /// Gets the actual ip address from the game server info if present.
