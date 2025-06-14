@@ -5,6 +5,8 @@ using CommunityToolkit.Mvvm.Messaging;
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Networking.GameServer;
+using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 
@@ -20,6 +22,8 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     private readonly IOptionsMonitor<H2MLauncherSettings> _options;
     private readonly H2MCommunicationService _h2mCommunicationService;
     private readonly QueueingService _queueingService;
+    private readonly IGameServerInfoService<IServerConnectionDetails> _gameServerInfoService;
+    private readonly IMapsProvider _mapsProvider;
 
     private volatile int _isJoining;
     private SecureString? _lastServerPassword;
@@ -27,13 +31,17 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     public ServerJoinServiceBase(
         IOptionsMonitor<H2MLauncherSettings> options,
         H2MCommunicationService h2mCommunicationService,
-        QueueingService queueingService)
+        QueueingService queueingService,
+        IMapsProvider mapsProvider,
+        IGameServerInfoService<IServerConnectionDetails> gameServerInfoService)
     {
         _options = options;
         _h2mCommunicationService = h2mCommunicationService;
         _queueingService = queueingService;
 
         WeakReferenceMessenger.Default.RegisterAll(this);
+        _mapsProvider = mapsProvider;
+        _gameServerInfoService = gameServerInfoService;
     }
 
     /// <summary>
@@ -108,6 +116,34 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     }
 
     /// <summary>
+    /// Called when joining a server only by ip and port to get the server info required for the joining process.
+    /// </summary>
+    protected virtual async Task<IServerInfo?> GetServerInfo(IServerConnectionDetails server)
+    {
+        GameServerInfo? gameServerInfo = await _gameServerInfoService.GetInfoAsync(server, CancellationToken.None);
+        if (gameServerInfo is null)
+        {
+            return null;
+        }
+
+        ServerInfo serverInfo = new()
+        {
+            Ip = server.Ip,
+            Port = server.Port,
+            ServerName = gameServerInfo.HostName,
+            Clients = gameServerInfo.Clients,
+            Bots = gameServerInfo.Bots,
+            MaxClients = gameServerInfo.MaxClients,
+            HasMap = _mapsProvider.InstalledMaps.Contains(gameServerInfo.MapName) || !_options.CurrentValue.WatchGameDirectory,
+            IsPrivate = gameServerInfo.IsPrivate,
+            PrivilegedSlots = gameServerInfo.PrivilegedSlots,
+            RealPlayerCount = gameServerInfo.RealPlayerCount,
+        };
+
+        return serverInfo;
+    }
+
+    /// <summary>
     /// Initiate the joining process for the <paramref name="server"/> with the <paramref name="joinKind"/>.
     /// </summary>
     /// <param name="server">The server to join.</param>
@@ -171,7 +207,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     /// <param name="password">The password for the server.</param>
     /// <param name="joinKind">The kind of join operation.</param>
     /// <returns>A result that indicates the outcome of the join.</returns>
-    public async Task<JoinServerResult> JoinServer(ISimpleServerInfo server, string? password, JoinKind joinKind)
+    public async Task<JoinServerResult> JoinServerDirectly(ISimpleServerInfo server, string? password, JoinKind joinKind)
     {
         if (Interlocked.Exchange(ref _isJoining, 1) == 1)
         {
@@ -192,6 +228,28 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     }
 
     /// <summary>
+    /// Initiate the joining process for the <paramref name="server"/> with the <paramref name="joinKind"/>.
+    /// </summary>
+    /// <param name="server">The connection details of the server to join.</param>
+    /// <param name="joinKind">The kind of join operation.</param>
+    /// <returns>A result that indicates the outcome of the join.</returns>
+    public async Task<JoinServerResult> JoinServer(IServerConnectionDetails server, JoinKind joinKind)
+    {
+        if (_isJoining == 1)
+        {
+            return JoinServerResult.AlreadyJoining;
+        }
+
+        IServerInfo? serverInfo = await GetServerInfo(server);
+        if (serverInfo is null)
+        {
+            return JoinServerResult.ServerNotAvailable;
+        }
+
+        return await JoinServer(serverInfo, joinKind);
+    }
+
+    /// <summary>
     /// Tries to join the <see cref="LastServer"/> (if any).
     /// Skips all validation and tries to join directly.
     /// </summary>
@@ -203,7 +261,7 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
             return Task.FromResult(JoinServerResult.None);
         }
 
-        return JoinServer(LastServer, _lastServerPassword?.ToUnsecuredString(), JoinKind.Rejoin);
+        return JoinServerDirectly(LastServer, _lastServerPassword?.ToUnsecuredString(), JoinKind.Rejoin);
     }
 
     /// <summary>
@@ -229,6 +287,6 @@ public abstract class ServerJoinServiceBase : IServerJoinService, IRecipient<Joi
     /// </summary>
     void IRecipient<JoinRequestMessage>.Receive(JoinRequestMessage message)
     {
-        message.Reply(JoinServer(message.Server, message.Password, message.Kind));
+        message.Reply(JoinServerDirectly(message.Server, message.Password, message.Kind));
     }
 }

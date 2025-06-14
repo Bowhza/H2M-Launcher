@@ -112,4 +112,18 @@ public partial class MarqueeTextBox : ContentControl
     // Using a DependencyProperty as the backing store for Inlines.  This enables animation, styling, binding, etc...
     public static readonly DependencyProperty InlinesProperty =
         DependencyProperty.Register("Inlines", typeof(IEnumerable<Inline>), typeof(MarqueeTextBox), new PropertyMetadata(null));
+
+
+
+    public TextAlignment TextAlignment
+    {
+        get { return (TextAlignment)GetValue(TextAlignmentProperty); }
+        set { SetValue(TextAlignmentProperty, value); }
+    }
+
+    // Using a DependencyProperty as the backing store for TextAlignment.  This enables animation, styling, binding, etc...
+    public static readonly DependencyProperty TextAlignmentProperty =
+        DependencyProperty.Register("TextAlignment", typeof(TextAlignment), typeof(MarqueeTextBox), new PropertyMetadata(TextAlignment.Center));
+
+
 }

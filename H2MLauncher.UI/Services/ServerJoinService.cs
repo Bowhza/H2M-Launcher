@@ -4,6 +4,7 @@ using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
 using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.ViewModels;
@@ -21,8 +22,10 @@ public class ServerJoinService : ServerJoinServiceBase
         DialogService dialogService,
         IOptionsMonitor<H2MLauncherSettings> options,
         H2MCommunicationService h2mCommunicationService,
-        QueueingService queueingService)
-        : base(options, h2mCommunicationService, queueingService)
+        QueueingService queueingService,
+        IMapsProvider mapsProvider,
+        IGameServerInfoService<IServerConnectionDetails> gameServerInfoService)
+        : base(options, h2mCommunicationService, queueingService, mapsProvider, gameServerInfoService)
     {
         _dialogService = dialogService;
         _communicationService = h2mCommunicationService;

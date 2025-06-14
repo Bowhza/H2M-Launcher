@@ -10,6 +10,11 @@ public interface IServerJoinService
     event Action<ISimpleServerInfo, JoinKind>? ServerJoined;
 
     Task<JoinServerResult> JoinLastServer();
-    Task<JoinServerResult> JoinServer(ISimpleServerInfo server, string? password, JoinKind kind);
+    Task<JoinServerResult> JoinServerDirectly(ISimpleServerInfo server, string? password, JoinKind kind);
     Task<JoinServerResult> JoinServer(IServerInfo serverInfo, JoinKind kind);
+
+    /// <summary>
+    /// Joins a server only by connection details.
+    /// </summary>    
+    Task<JoinServerResult> JoinServer(IServerConnectionDetails server, JoinKind kind);
 }

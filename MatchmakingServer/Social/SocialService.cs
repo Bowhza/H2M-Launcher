@@ -15,7 +15,7 @@ namespace MatchmakingServer.Social;
 public class SocialService
 {
     private readonly ConcurrentDictionary<string, Player> _onlinePlayers = [];
-    private readonly Subject<IReadOnlyCollection<Player>> _playerStatusChanges = new();
+    private readonly Subject<StatusChangeNotification[]> _playerStatusChanges = new();
     private readonly Subject<(Player Player, ConnectedServerInfo? ConnectedServer)> _playerConnectedServerChanges = new();
 
     private readonly PartyService _partyService;
@@ -51,27 +51,27 @@ public class SocialService
         // We use a observable pipe to throttle fast subsequent player change notifications (such as leaving and immediately auto-creating a party)
         // so we can minimize noise and database calls.
         _playerStatusChanges
-            .SelectMany(players => players)
+            .SelectMany(notifications => notifications)
 
             // group by player to get a sequence for each player change
-            .GroupBy(player => player.Id)
+            .GroupBy(notification => notification.Player.Id)
 
             // debounce each player group, then merge into a single sequence
             .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(1)))
 
             // notify friends of each player
-            .SelectMany(player =>
+            .SelectMany(notification =>
                 Observable.FromAsync(async (ct) =>
                 {
                     await using var scope = _serviceScopeFactory.CreateAsyncScope();
 
-                    await TryNotifyOnlineFriendsOfStatusChange(player, scope);
+                    await TryNotifyStatusChange(notification, scope);
 
-                    return player;
+                    return notification;
                 })
             )
             .Subscribe(
-                onNext: (p) => _logger.LogTrace("Player status change notification pipe processed {player}", p),
+                onNext: (n) => _logger.LogTrace("Player status change notification pipe processed {player}", n.Player),
                 onError: (ex) => _logger.LogError(ex, "Error in player status change notification pipe")
             );
 
@@ -85,7 +85,7 @@ public class SocialService
 
            // handle server connectino update
            .SelectMany(x =>
-               Observable.FromAsync((ct) =>               
+               Observable.FromAsync((ct) =>
                    _playerServerTrackingService.HandlePlayerConnectionUpdate(x.Player, x.ConnectedServer, ct)
                )
            )
@@ -103,7 +103,7 @@ public class SocialService
             return Task.CompletedTask;
         }
 
-        if (player.GameStatus == gameStatus && 
+        if (player.GameStatus == gameStatus &&
             EqualityComparer<ConnectedServerInfo>.Default.Equals(player.LastConnectedServerInfo, connectedServer))
         {
             // no change
@@ -119,7 +119,7 @@ public class SocialService
 
         // handle connected server
         _playerConnectedServerChanges.OnNext((player, connectedServer));
-        _playerStatusChanges.OnNext([player]);
+        _playerStatusChanges.OnNext([new StatusChangeNotification(player, StatusChange.GameStatus)]);
 
         return Task.CompletedTask;
     }
@@ -151,7 +151,7 @@ public class SocialService
         await userManager.UpdatePlayerNameAsync(
             Guid.Parse(userId), newPlayerName, CancellationToken.None);
 
-        _playerStatusChanges.OnNext([player]);
+        _playerStatusChanges.OnNext([new StatusChangeNotification(player, StatusChange.PlayerName)]);
     }
 
     public async Task OnPlayerOnline(Player player)
@@ -188,6 +188,27 @@ public class SocialService
         }
     }
 
+    private async Task TryNotifyStatusChange(StatusChangeNotification notification, AsyncServiceScope serviceScope)
+    {
+        try
+        {
+            await TryNotifyOnlineFriendsOfStatusChange(notification.Player, serviceScope);
+
+
+            if (notification.NotifySelf && notification.StatusChange is StatusChange.MatchStatus)
+            {
+                // Match status update
+                await _hubContext.Clients
+                    .User(notification.Player.Id)
+                    .OnMatchStatusUpdated(notification.Player.ToMatchStatusDto());
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error while notifying users of status change ({@notification})", notification);
+        }
+    }
+
     private async Task TryNotifyOnlineFriendsOfStatusChange(Player player, AsyncServiceScope serviceScope)
     {
         try
@@ -200,21 +221,8 @@ public class SocialService
                     player.Id,
                     player.Name,
                     player.GameStatus,
-                    player.Party is not null
-                        ? new PartyStatusDto(
-                            player.Party.Id,
-                            player.Party.Members.Count,
-                            player.Party.Privacy is not PartyPrivacy.Closed,
-                            player.Party.ValidInvites.ToList())
-                        : null,
-                    player.PlayingServer is not null
-                        ? new MatchStatusDto(
-                            (player.PlayingServer.ServerIp, player.PlayingServer.ServerPort),
-                            player.PlayingServer.LastServerInfo?.HostName ?? player.PlayingServer.ServerName,
-                            player.PlayingServer.LastServerInfo?.GameType,
-                            player.PlayingServer.LastServerInfo?.MapName,
-                            player.PlayingServer.KnownPlayers[player])
-                        : null
+                    player.ToPartyStatusDto(),
+                    player.ToMatchStatusDto()
                 );
         }
         catch (Exception ex)
@@ -257,32 +265,32 @@ public class SocialService
 
     private void PartyService_PlayerRemovedFromParty(Party party, Player player)
     {
-        _playerStatusChanges.OnNext(party.Members.ToList());
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForMany(party.Members, StatusChange.PartyStatus));
     }
 
     private void PartyService_PlayerJoinedParty(Party party, Player joinedPlayer)
     {
-        _playerStatusChanges.OnNext(party.Members.ToList());
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForMany(party.Members, StatusChange.PartyStatus));
     }
 
     private void PartyService_PartyCreated(Party party)
     {
-        _playerStatusChanges.OnNext(party.Members.ToList());
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForMany(party.Members, StatusChange.PartyStatus));
     }
 
     private void PartyService_PartyClosed(Party party, IReadOnlyCollection<Player> removedPlayers)
     {
-        _playerStatusChanges.OnNext(removedPlayers);
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForMany(removedPlayers, StatusChange.PartyStatus));
     }
 
     private void PartyService_PartyPrivacyChanged(Party party, PartyPrivacy partyPrivacy)
     {
-        _playerStatusChanges.OnNext(party.Members.ToList());
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForMany(party.Members, StatusChange.PartyStatus));
     }
 
     private void PlayerServerTrackingService_PlayerJoinedServer(Player player, GameServer server)
     {
-        _playerStatusChanges.OnNext([player]);
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForOne(player, StatusChange.MatchStatus, notifySelf: true));
     }
 
     private void PlayerServerTrackingService_PlayerLeftServer(PlayerServerTrackingService.PlayerLeftEventArgs e)
@@ -294,6 +302,35 @@ public class SocialService
             return;
         }
 
-        _playerStatusChanges.OnNext([e.Player]);
+        _playerStatusChanges.OnNext(StatusChangeNotification.ForOne(e.Player, StatusChange.MatchStatus, notifySelf: true));
+    }
+
+    private enum StatusChange
+    {
+        OnlineStatus,
+        PartyStatus,
+        MatchStatus,
+        PlayerName,
+        GameStatus
+    }
+
+    private readonly record struct StatusChangeNotification(Player Player, StatusChange StatusChange)
+    {
+        public bool NotifySelf { get; init; }
+
+        public static StatusChangeNotification[] ForOne(Player player, StatusChange statusChange, bool notifySelf = false)
+        {
+            return [new StatusChangeNotification(player, statusChange) {
+                NotifySelf = notifySelf 
+            }];
+        }
+
+        public static StatusChangeNotification[] ForMany(IEnumerable<Player> players, StatusChange statusChange, bool notifySelf = false)
+        {
+            return [.. players.Select(p =>
+                new StatusChangeNotification(p, statusChange) {
+                    NotifySelf = notifySelf
+                })];
+        }
     }
 }

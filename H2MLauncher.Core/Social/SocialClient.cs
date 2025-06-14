@@ -41,6 +41,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     public GameStatus GameStatus { get; private set; }
     public OnlineStatus OnlineStatus { get; private set; }
+    public MatchStatusDto? MatchStatus { get; private set; }
 
     public ConnectedServerInfo? ConnectedServer { get; private set; }
 
@@ -406,6 +407,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         // set self to offline
         OnlineStatus = OnlineStatus.Online;
         GameStatus = GameStatus.None;
+        MatchStatus = null;
 
         StatusChanged?.Invoke();
 
@@ -416,7 +418,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             {
                 Status = OnlineStatus.Offline,
                 GameStatus = GameStatus.None,
-                PartyStatus = null
+                PartyStatus = null,
+                MatchStatus = null,
             };
         }
     }
@@ -480,6 +483,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             PartyStatus = partyStatus,
             MatchStatus = matchStatus,
         });
+
+        return Task.CompletedTask;
+    }
+
+    Task ISocialClient.OnMatchStatusUpdated(MatchStatusDto? matchStatus)
+    {
+        MatchStatus = matchStatus;
+
+        StatusChanged?.Invoke();
 
         return Task.CompletedTask;
     }

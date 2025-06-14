@@ -13,4 +13,6 @@ public interface ISocialClient
     Task OnFriendRequestReceived(FriendRequestDto request);
 
     Task OnUnfriended(string byFriendId);
+
+    Task OnMatchStatusUpdated(MatchStatusDto? matchStatus);
 }

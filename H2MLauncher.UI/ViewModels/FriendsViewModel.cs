@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
@@ -24,6 +25,7 @@ namespace H2MLauncher.UI.ViewModels
         private readonly SocialClient _socialClient;
         private readonly PartyClient _partyClient;
         private readonly DialogService _dialogService;
+        private readonly IServerJoinService _serverJoinService;
         private readonly IErrorHandlingService _errorHandlingService;
         private readonly IOptions<ResourceSettings> _resourceSettings;
         private readonly DispatcherTimer _timer;
@@ -40,6 +42,9 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private bool _isConnectionError = false;
+
+        [ObservableProperty]
+        private bool _isPartyConnected = false;
 
         public string Status
         {
@@ -107,10 +112,17 @@ namespace H2MLauncher.UI.ViewModels
 
         #endregion
 
-        public FriendsViewModel(SocialClient socialClient, PartyClient partyClient, DialogService dialogService, IErrorHandlingService errorHandlingService, IOptions<ResourceSettings> resourceSettings)
+        public FriendsViewModel(
+            SocialClient socialClient,
+            PartyClient partyClient,
+            DialogService dialogService,
+            IErrorHandlingService errorHandlingService,
+            IServerJoinService serverJoinService,
+            IOptions<ResourceSettings> resourceSettings)
         {
             _dialogService = dialogService;
             _errorHandlingService = errorHandlingService;
+            _serverJoinService = serverJoinService;
             _socialClient = socialClient;
             _socialClient.Context.UserChanged += ClientContext_UserChanged;
 
@@ -222,6 +234,9 @@ namespace H2MLauncher.UI.ViewModels
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    bool isConnectionLoss = IsPartyConnected;
+
+                    IsPartyConnected = false;
                     RefreshPeople();
 
                     OnPropertyChanged(nameof(PartyId));
@@ -230,13 +245,17 @@ namespace H2MLauncher.UI.ViewModels
                     OnPropertyChanged(nameof(IsPartyGuest));
                     OnPropertyChanged(nameof(PartyStatus));
 
-                    _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                    if (isConnectionLoss)
+                    {
+                        _dialogService.OpenTextDialog("Party", "Connection to party was lost.");
+                    }
                 });
             }
             else
             {
                 Application.Current.Dispatcher.Invoke(() =>
                 {
+                    IsPartyConnected = true;
                     OnPropertyChanged(nameof(PartyStatus));
                 });
             }
@@ -380,6 +399,7 @@ namespace H2MLauncher.UI.ViewModels
                 {
                     selfViewModel.Status = _socialClient.OnlineStatus;
                     selfViewModel.GameStatus = _socialClient.GameStatus;
+                    selfViewModel.PlayingServer = CreatePlayingServerViewModel(_socialClient.MatchStatus);
                 }
             });
         }
@@ -541,7 +561,7 @@ namespace H2MLauncher.UI.ViewModels
         private void AddFriend(FriendDto friend)
         {
             PartyPlayerInfo? partyPlayer = _partyClient.Members?.FirstOrDefault(m => m.Id == friend.Id);
-            FriendViewModel friendViewModel = new(friend.Id, _partyClient, _socialClient, _dialogService)
+            FriendViewModel friendViewModel = new(friend.Id, _partyClient, _socialClient, _dialogService, _serverJoinService)
             {
                 Name = friend.PlayerName ?? friend.UserName,
                 UserName = friend.UserName,
@@ -567,7 +587,7 @@ namespace H2MLauncher.UI.ViewModels
         {
             bool isSelf = _partyClient.IsSelf(member);
             FriendDto? friend = _socialClient.Friends?.FirstOrDefault(f => f.Id == member.Id);
-            FriendViewModel friendViewModel = new(member.Id, _partyClient, _socialClient, _dialogService)
+            FriendViewModel friendViewModel = new(member.Id, _partyClient, _socialClient, _dialogService, _serverJoinService)
             {
                 Name = member.Name,
                 UserName = friend?.UserName ?? (isSelf ? _socialClient.Context.UserName ?? "" : member.UserName),
@@ -579,25 +599,10 @@ namespace H2MLauncher.UI.ViewModels
                 IsSelf = isSelf,
                 PartySize = _partyClient.Members?.Count ?? 0,
                 PartyId = friend?.PartyStatus?.PartyId,
+                PlayingServer = CreatePlayingServerViewModel(isSelf ? _socialClient.MatchStatus : friend?.MatchStatus),
             };
 
             Friends.Add(friendViewModel);
-        }
-
-        private PlayingServerViewModel? CreatePlayingServerViewModel(MatchStatusDto? matchStatus)
-        {
-            if (matchStatus is null)
-            {
-                return null;
-            }
-
-            return new()
-            {
-                ServerName = matchStatus.ServerName,
-                MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
-                GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
-                JoinedAt = matchStatus.JoinedAt,
-            };
         }
 
         private void UpdateFriend(FriendDto friend)
@@ -618,6 +623,24 @@ namespace H2MLauncher.UI.ViewModels
                                              friend.PartyStatus.Invites.Contains(UserId);
                 friendViewModel.PlayingServer = CreatePlayingServerViewModel(friend.MatchStatus);
             }
+        }
+
+        private PlayingServerViewModel? CreatePlayingServerViewModel(MatchStatusDto? matchStatus)
+        {
+            if (matchStatus is null)
+            {
+                return null;
+            }
+
+            return new()
+            {
+                Ip = matchStatus.Server.Ip,
+                Port = matchStatus.Server.Port,
+                ServerName = matchStatus.ServerName,
+                MapDisplayName = _resourceSettings.Value.GetMapDisplayName(matchStatus.MapName ?? ""),
+                GameTypeDisplayName = _resourceSettings.Value.GetGameTypeDisplayName(matchStatus.GameMode ?? ""),
+                JoinedAt = matchStatus.JoinedAt,
+            };
         }
 
         public void Dispose()
