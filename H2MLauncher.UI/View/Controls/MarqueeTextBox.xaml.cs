@@ -38,6 +38,8 @@ public partial class MarqueeTextBox : ContentControl
         FrameworkElement textBox = FindTextBox();
         Canvas container = FindContainer();
 
+        Canvas.SetLeft(textBox, 0);
+
         double scrollSpan = container.Width - textBox.ActualWidth;
         if (scrollSpan >= 0)
         {
