@@ -1,4 +1,4 @@
-﻿namespace MatchmakingServer.Core.Social;
+﻿namespace H2MLauncher.Core.Social;
 
 public record FriendDto(
     string Id, 
@@ -7,4 +7,5 @@ public record FriendDto(
     OnlineStatus Status, 
     GameStatus GameStatus,
     PartyStatusDto? PartyStatus,
+    MatchStatusDto? MatchStatus,
     DateTimeOffset FriendsSince);

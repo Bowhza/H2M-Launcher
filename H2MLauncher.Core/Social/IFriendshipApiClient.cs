@@ -1,6 +1,4 @@
-﻿using MatchmakingServer.Core.Social;
-
-using Refit;
+﻿using Refit;
 
 namespace H2MLauncher.Core.Social;
 

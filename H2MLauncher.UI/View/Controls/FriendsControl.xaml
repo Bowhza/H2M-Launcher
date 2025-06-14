@@ -399,7 +399,7 @@
             </Border.Style>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}">            
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden" Visibility="{Binding HasFriends, Converter={StaticResource booleanToVisibilityConverter}}">
             <StackPanel Grid.Row="1" TextBlock.FontFamily="Consolas">
                 <!-- No party -->
                 <Border Background="{DynamicResource TransparentDark400}" Grid.Row="1" Margin="0,5" BorderThickness="0">
@@ -604,7 +604,76 @@
                                                         </TextBox.Style>
                                                     </TextBox>
                                                 </StackPanel>
-                                                <Separator Margin="0,5" Visibility="{Binding IsInThirdParty, Converter={StaticResource booleanToVisibilityConverter}}" />
+                                                <Separator Margin="0,5">
+                                                    <Separator.Style>
+                                                        <Style TargetType="Separator">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding IsInThirdParty}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding HasPlayingServer}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Separator.Style>
+                                                </Separator>
+
+                                                <!-- Playing Server -->
+                                                <Border Padding="7" CornerRadius="5" Background="{DynamicResource TransparentDark200}" Margin="0,5">
+                                                    <Border.Style>
+                                                        <Style TargetType="Border">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding PlayingServer}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Border.Style>
+                                                    <Grid HorizontalAlignment="Stretch">
+                                                        <Grid.RowDefinitions>
+                                                            <RowDefinition/>
+                                                            <RowDefinition/>
+                                                            <RowDefinition/>
+                                                            <RowDefinition/>
+                                                        </Grid.RowDefinitions>
+                                                        <TextBlock Text="In Match" FontWeight="Bold" Margin="0,0,0,3"/>
+
+                                                        <!-- Timer -->
+                                                        <TextBlock FontFamily="Consolas" Grid.Row="0" HorizontalAlignment="Right" Text="{Binding PlayingServer.PlayingTime, StringFormat={}{0:mm}:{0:ss}}" Margin="0" />
+
+                                                        <!-- Game mode and map -->
+                                                        <TextBlock Grid.Row="1" Text="{Binding PlayingServer.Status}" FontSize="10" Margin="0,0,0,2"/>
+
+                                                        <!-- Server Name -->
+                                                        <local:MarqueeTextBox Grid.Row="2" FontSize="10" HorizontalContentAlignment="Stretch" TextAlignment="Left"
+                                                                              Inlines="{Binding PlayingServer.ServerName, Converter={StaticResource HostNameColorConverter}}">
+                                                        </local:MarqueeTextBox>
+
+                                                        <!-- Join Button -->
+                                                        <Button Command="{Binding JoinServerCommand }"
+                                                                Content="▶️" ToolTip="Join server" 
+                                                                Grid.Row="0" Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                                                Width="25" Height="25">
+                                                            <Button.Style>
+                                                                <Style TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
+                                                                    <Setter Property="Visibility" 
+                                                                            Value="{Binding IsMouseOver, 
+                                                                                            RelativeSource={RelativeSource AncestorType=Border,
+                                                                                                                           AncestorLevel=1}, 
+                                                                                            Converter={StaticResource booleanToVisibilityConverter}}"/>
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsSelf}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Button.Style>
+                                                        </Button>
+                                                    </Grid>
+                                                </Border>
                                                 <Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
                                                 <Button Content="Join Party" Command="{Binding JoinPartyCommand}" Visibility="{Binding CanJoinParty, Converter={StaticResource booleanToVisibilityConverter}}"

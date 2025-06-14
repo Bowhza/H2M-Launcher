@@ -1,8 +1,8 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Social;
 
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Parties;
 
 namespace MatchmakingServer
@@ -12,6 +12,7 @@ namespace MatchmakingServer
         public required string Id { get; init; }
         public required string Name { get; set; }
         public required string UserName { get; init; }
+        public CancellationToken DisconnectedToken { get; init; }
 
         /// <summary>
         /// Gets the connection id for the queueing hub.
@@ -39,7 +40,12 @@ namespace MatchmakingServer
         /// <summary>
         /// The server the player is queued or joined.
         /// </summary>
-        public GameServer? Server { get; set; }
+        public GameServer? QueuedServer { get; set; }
+
+        /// <summary>
+        /// The server the player is currently playing on.
+        /// </summary>
+        public GameServer? PlayingServer { get; set; }
 
         private Party? _party = null;
 
@@ -65,6 +71,8 @@ namespace MatchmakingServer
         #region Social
 
         public GameStatus GameStatus { get; set; }
+
+        public ConnectedServerInfo? LastConnectedServerInfo { get; set; }
 
         #endregion
 

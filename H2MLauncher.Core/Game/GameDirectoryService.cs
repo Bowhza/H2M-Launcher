@@ -3,6 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
 
+using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 
@@ -11,7 +12,7 @@ using Microsoft.Extensions.Options;
 
 namespace H2MLauncher.Core.Services
 {
-    public sealed partial class GameDirectoryService : IDisposable
+    public sealed partial class GameDirectoryService : IGameConfigProvider, IDisposable
     {
         public record ConfigMpContent(string? PlayerName, string? LastHostName, int MaxFps);
 

@@ -76,14 +76,18 @@ builder.Services.AddHttpClient<HMWMasterService>()
     });
 
 builder.Services.AddTransient<IErrorHandlingService, LoggingErrorHandlingService>();
-builder.Services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
+builder.Services.AddSingleton<IMasterServerService, HMWMasterService>();
 
 builder.Services.AddTransient<UdpGameServerCommunication>();
 builder.Services.AddSingleton<GameServerCommunicationService<GameServer>>();
-builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, GameServerCommunicationService<GameServer>>("UDP", (sp, _) =>
+builder.Services.AddTransient<IGameServerInfoService<GameServer>, HttpGameServerInfoService<GameServer>>();
+
+builder.Services.AddKeyedSingleton<IGameServerStatusService<GameServer>>("UDP", (sp, key) =>
     sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
-builder.Services.AddKeyedSingleton<IGameServerInfoService<GameServer>, HttpGameServerInfoService<GameServer>>("TCP");
-builder.Services.AddTransient<IGameServerInfoService<GameServer>, TcpUdpDynamicGameServerInfoService<GameServer>>();
+
+builder.Services.AddKeyedSingleton<IGameServerCommunicationService<GameServer>>("UDP", (sp, key) => 
+    sp.GetRequiredService<GameServerCommunicationService<GameServer>>());
+
 builder.Services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
 
 builder.Services.AddSingleton<ServerInstanceCache>();
@@ -99,6 +103,8 @@ builder.Services.AddHostedService<PlaylistsSeedingService>();
 builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddSingleton<SocialService>();
+builder.Services.AddSingleton<GameServerService>();
+builder.Services.AddSingleton<IPlayerServerTrackingService, PlayerServerTrackingService>();
 builder.Services.AddMemoryCache();
 
 // Social
