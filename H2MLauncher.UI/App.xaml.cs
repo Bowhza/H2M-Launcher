@@ -48,6 +48,8 @@ namespace H2MLauncher.UI
     public partial class App : Application
     {
         public static IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static CustomizationManager CustomizationManager { get; private set; } = null!;
+
         private H2MLauncherSettings _defaultSettings = null!;
 
         protected override void OnStartup(StartupEventArgs e)
@@ -80,6 +82,9 @@ namespace H2MLauncher.UI
             // NOTE: this is really stupid but necessary to have the latest urls we just set above available
             config.Reload();
 
+            CustomizationManager = ServiceProvider.GetRequiredService<CustomizationManager>();
+            ServiceProvider.GetRequiredService<ThemeFileWatcher>();
+
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
 
@@ -100,6 +105,7 @@ namespace H2MLauncher.UI
         private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
             services.AddSingleton<IConfiguration>(config);
+            services.AddSingleton<IConfigurationRoot>(config); // add configuration root for WritableOptions to reload
 
             services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
                 section: config.GetSection(Constants.LauncherSettingsSection),
@@ -170,6 +176,7 @@ namespace H2MLauncher.UI
             services.AddTransient<SocialOverviewViewModel>();
             services.AddSingleton<CustomizationManager>();
             services.AddTransient<CustomizationDialogViewModel>();
+            services.AddSingleton<ThemeFileWatcher>();
 
             // online services
             services.AddSingleton<OnlineServiceManager>();
@@ -281,7 +288,7 @@ namespace H2MLauncher.UI
                 try
                 {
                     var dialogService = ServiceProvider?.GetService<DialogService>();
-                    if (dialogService != null)
+                    if (dialogService is not null)
                     {
                         dialogService.OpenTextDialog("Error", e.Exception.Message);
                     }
@@ -289,6 +296,19 @@ namespace H2MLauncher.UI
                     {
                         MessageBox.Show(e.Exception.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
+
+                    // reset theme just in case so the next restart works
+                    ServiceProvider?.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
+                    {
+                        return settings with
+                        {
+                            Customization = settings.Customization is null ? null : settings.Customization with
+                            {
+                                Themes = [],
+                                BackgroundImagePath = null
+                            }
+                        };
+                    });
                 }
                 catch (Exception ex)
                 {

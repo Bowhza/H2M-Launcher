@@ -13,7 +13,7 @@
              Width="300"
              d:DataContext="{d:DesignInstance Type=dia:TextDialogViewModel}"
              d:Foreground="White"
-             d:Background="Black">
+             d:Background="{DynamicResource DialogBackground}">
     <Grid Width="260" Margin="0,15,0,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>

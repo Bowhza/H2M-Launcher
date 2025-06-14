@@ -44,7 +44,7 @@
                             ItemsSource="{Binding ElementName=Root, Path=ItemsSource}"
                             ItemTemplate="{Binding ItemTemplate, ElementName=Root}"                            
                             SnapsToDevicePixels="True"
-                            Foreground="White">
+                            Foreground="{DynamicResource TextLight}">
                         <ItemsControl.Template>
                             <ControlTemplate>
                                 <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
