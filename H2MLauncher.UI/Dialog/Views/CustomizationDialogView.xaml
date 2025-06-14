@@ -9,18 +9,19 @@
              xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
              xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib" 
              MinHeight="250" MinWidth="300"
              Height="Auto"
              Width="400"
              d:DataContext="{d:DesignInstance Type=vm:CustomizationDialogViewModel}"
-             d:Foreground="White"
-             d:Background="Black">
+             d:Foreground="{DynamicResource TextLight}"
+             d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Background" Value="#33000000"/>
-                <Setter Property="CaretBrush" Value="White"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+                <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
 
@@ -37,9 +38,80 @@
             <Setter Property="MaxWidth" Value="400" />
         </Style>
 
+
+
+
+        <Style x:Key="{x:Type ComboBox}" TargetType="{x:Type ComboBox}">
+            <Setter Property="SnapsToDevicePixels" Value="true" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Background" Value="{DynamicResource ComboBoxBackgroundColor}"/>
+            <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+            <Setter Property="Margin" Value="6"/>
+            <Setter Property="Padding" Value="3,3,5,3"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type ComboBox}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border Name="Border" Grid.ColumnSpan="2" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
+                            <ToggleButton Name="ToggleButton2" Focusable="False" IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press" Grid.ColumnSpan="2" Background="Transparent"/>
+                            <!-- Allows clicking anywhere on the combobox, not only the visible button on the right -->
+                            <ToggleButton Focusable="false" Grid.Column="1" x:Name="ToggleButton" IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" ClickMode="Press" Template="{StaticResource ComboBoxToggleButton}"/>
+                            <ContentPresenter HorizontalAlignment="Left" Margin="{TemplateBinding Control.Padding}" x:Name="ContentSite" VerticalAlignment="Center" Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltTemplate}" ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}" IsHitTestVisible="False" />
+
+                            <TextBox Visibility="Hidden"  HorizontalAlignment="Left" Margin="{TemplateBinding Control.Padding}" x:Name="PART_EditableTextBox" Style="{x:Null}" VerticalAlignment="Center" Focusable="True" Background="Transparent"  />
+
+                            <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" x:Name="Popup" Focusable="False" AllowsTransparency="True" PopupAnimation="Slide">
+                                <Grid MaxHeight="{TemplateBinding MaxDropDownHeight}" MinWidth="{TemplateBinding ActualWidth}" x:Name="DropDown" SnapsToDevicePixels="True">
+                                    <Border x:Name="DropDownBorder" Background="{StaticResource ComboBoxBackgroundColor}" BorderBrush="{StaticResource ControlBorderBrush}" BorderThickness="1" Padding="0,4">
+                                        <ScrollViewer SnapsToDevicePixels="True" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" CanContentScroll="True" Style="{x:Null}" >
+                                            <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                        </ScrollViewer>
+                                    </Border>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltTemplate" Value="{x:Null}">
+                                <Setter Property="ContentTemplate" Value="{Binding SelectionBoxItemTemplate, RelativeSource={RelativeSource TemplatedParent}}" TargetName="ContentSite" />
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="false">
+                                <Setter Property="MinHeight" Value="95" TargetName="DropDownBorder" />
+                            </Trigger>
+                            <Trigger Property="IsGrouping" Value="true">
+                                <Setter Property="ScrollViewer.CanContentScroll" Value="false" />
+                            </Trigger>
+                            <Trigger Property="IsEditable" Value="true">
+                                <Setter Property="IsTabStop" Value="false" />
+                                <Setter Property="Visibility" Value="Visible" TargetName="PART_EditableTextBox" />
+                                <Setter Property="Visibility" Value="Hidden" TargetName="ContentSite" />
+                            </Trigger>
+
+                            <Trigger Property="IsMouseOver" Value="true" SourceName="ToggleButton2">
+                                <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                            </Trigger>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter Property="IsEnabled" Value="False"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+
     </UserControl.Resources>
     <Grid Margin="25,15,25,0">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -55,22 +127,22 @@
                    TextAlignment="Center" FontWeight="Bold" FontSize="15" Height="25" Grid.ColumnSpan="2"
                    Margin="0,0,0,15"/>
 
-        <TextBlock Text="Background Image:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Left"/>
-        <Border Grid.Row="1" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">
+        <TextBlock Text="Background Media:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Left"/>
+        <Border Grid.Row="1" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
             <DockPanel>
-                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">                    
-                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetImageCommand}"
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetBackgroundMediaCommand}"
                             DockPanel.Dock="Right" Margin="0,0,0,0">
                         <TextBlock Text="❌" Padding="0,0,0,0" FontSize="10" ToolTip="Reset to default"/>
                     </Button>
-                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectImageCommand}"
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectBackgroundMediaCommand}"
                             DockPanel.Dock="Right" Margin="2,0,0,0">
-                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
+                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13" ToolTip="Select image or video file"/>
                     </Button>
                 </StackPanel>
-                
+
                 <TextBox Text="{Binding BackgroundImageUrl, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Image'}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="White" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Style.Triggers>
@@ -96,12 +168,285 @@
             </DockPanel>
         </Border>
 
-        <TextBlock Text="Background Blur:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
-        <DockPanel Grid.Row="2" Grid.Column="1">
+        <TextBlock Text="Error while loading background image." Grid.Row="2" Grid.Column="1" Foreground="DarkRed" Margin="0,0,0,10"
+                   Visibility="{Binding Customization.BackgroundImageLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
+
+        <TextBlock Text="Background Blur:" Grid.Row="3" Margin="15,10" HorizontalAlignment="Left"/>
+        <DockPanel Grid.Row="3" Grid.Column="1">
             <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="#222" Foreground="White" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
+                     Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
             <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
+
+        <TextBlock Text="Custom Theme:" Grid.Row="4" Margin="15,10" HorizontalAlignment="Left"/>
+        <Border Grid.Row="4" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Margin="2,0,0,0">
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding ResetThemeCommand}"
+                                DockPanel.Dock="Right" Margin="0,0,0,0">
+                        <TextBlock Text="❌" Padding="0,0,0,0" FontSize="10" ToolTip="Reset to default"/>
+                    </Button>
+                    <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectThemeCommand}"
+                            DockPanel.Dock="Right" Margin="2,0,0,0">
+                        <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
+                    </Button>
+                </StackPanel>
+
+                <TextBox Text="{Binding LoadedThemePath, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Theme'}" BorderThickness="0" IsReadOnly="True" 
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox">
+                            <Style.Triggers>
+                                <Trigger Property="IsFocused" Value="True">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="BorderThickness" Value="0"/>
+                                </Trigger>
+                                <DataTrigger Binding="{Binding IsKeyboardFocused, RelativeSource={RelativeSource Self}}" Value="False">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TextBox">
+                                                <TextBlock Margin="2,0,0,0" Cursor="IBeam" Text="{TemplateBinding Text}" TextTrimming="CharacterEllipsis" />
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+            </DockPanel>
+        </Border>
+
+        <TextBlock Text="Error while loading theme." Grid.Row="5" Grid.Column="1" Foreground="DarkRed" Margin="0,0,0,10"
+           Visibility="{Binding Customization.ThemeLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
+
+        <CheckBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" 
+                  Foreground="{DynamicResource TextLight}" Margin="0,7" 
+                  VerticalAlignment="Center"
+                  Content="Enable Hot Reload" IsChecked="{Binding Customization.HotReloadThemes}"
+                  ToolTip="Automatically reload the theme if the file changes."/>
+
+
+        <TextBlock Grid.Row="7" Grid.ColumnSpan="2" Visibility="{Binding LoadThemesCommand.IsRunning, Converter={StaticResource booleanToVisibilityConverter}}"
+                   Text="Loading themes..." VerticalAlignment="Center" HorizontalAlignment="Center" Margin="0,10,0,0"
+                   />
+        <ListBox Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Height="200" KeyboardNavigation.DirectionalNavigation="Contained"
+                 ItemsSource="{Binding Themes}" SelectedItem="{Binding ActiveTheme}" Margin="0,10,0,0">
+            <ListBox.Style>
+                <Style TargetType="ListBox">
+                    <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+                </Style>
+            </ListBox.Style>
+
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="ListBoxItem">
+                    <EventSetter Event="GotKeyboardFocus" Handler="ListBoxItem_GotKeyboardFocus"/>
+                    <EventSetter Event="GotFocus" Handler="ListBoxItem_GotFocus"/>
+                    <Setter Property="SnapsToDevicePixels" Value="true" />
+                    <Setter Property="OverridesDefaultStyle" Value="true" />
+                    <Setter Property="Padding" Value="5,2"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListBoxItem">
+                                <Grid x:Name="Border" Margin="{TemplateBinding Margin}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Border Padding="{TemplateBinding Padding}"
+                                            SnapsToDevicePixels="true">
+                                        <Border.Background>
+                                            <SolidColorBrush Color="Transparent" />
+                                        </Border.Background>
+
+                                        <ContentPresenter />
+                                    </Border>
+
+                                    <StackPanel x:Name="ActionButtons" Grid.Column="0" Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Border x:Name="ActiveBadge" Height="20" Padding="5,0" Background="Green" CornerRadius="5" Margin="0,0,5,0">
+                                            <TextBlock Text="🗸 Active" VerticalAlignment="Center"/>
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+
+                                        <Border Height="20" Padding="5,0" Background="{DynamicResource ControlBackgroundDisabled}" CornerRadius="5" Margin="0,0,5,0">
+                                            <TextBlock Text="Loading..." VerticalAlignment="Center" Foreground="{DynamicResource ControlForegroundDisabled}"/>
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsLoading}" Value="True">
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+
+                                        <!-- Kebab menu button -->
+                                        <ToggleButton x:Name="KebabMenuButton" Content="⋮" Margin="0,5,5,5" Width="0"
+                                                      FontSize="15" Style="{DynamicResource LinkToggleButtonStyle}"
+                                                      Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}, ConverterParameter={x:Static Visibility.Hidden}}">
+                                        </ToggleButton>
+
+                                        <!-- Kebab menu popup -->
+                                        <Popup IsOpen="{Binding IsChecked, ElementName=KebabMenuButton}" 
+                                               PlacementTarget="{Binding ElementName=KebabMenuButton}"
+                                               Placement="Bottom" 
+                                               StaysOpen="False"
+                                               VerticalOffset="10"
+                                               HorizontalOffset="-80"
+                                               Width="120">
+                                            <Border Focusable="True" Background="{DynamicResource BrushNeutral900}" 
+                                                    BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1"
+                                                    Opacity="1">
+
+                                                <Menu Background="Transparent" Margin="5">
+                                                    <Menu.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <StackPanel/>
+                                                        </ItemsPanelTemplate>
+                                                    </Menu.ItemsPanel>
+                                                    <MenuItem Header="Open folder"  Command="{Binding OpenFolderCommand}" Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                                             Padding="5,2" Margin="0,2,0,0" HorizontalAlignment="Stretch"
+                                                             Foreground="{DynamicResource TextLight}" />
+
+                                                    <MenuItem Command="{Binding DeleteCommand}" Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}}"
+                                                            Padding="5,2" Margin="0,2,0,0" Foreground="DarkRed" HorizontalContentAlignment="Center"
+                                                            Header="Delete" Icon="❌"
+                                                            />
+                                                </Menu>
+                                            </Border>
+                                        </Popup>
+                                    </StackPanel>
+                                </Grid>
+
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimarySelected}"/>
+                                        <!--<Setter Property="Foreground" Value="{DynamicResource ControlPrimaryForeground}" />-->
+                                    </Trigger>
+                                    <MultiTrigger>
+                                        <MultiTrigger.Conditions>
+                                            <Condition Property="IsMouseOver" Value="True"/>
+                                            <Condition Property="IsSelected" Value="False"/>
+                                        </MultiTrigger.Conditions>
+                                        <Setter TargetName="Border" Property="Background" Value="{DynamicResource TransparentLight200}"/>
+                                    </MultiTrigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="ActiveBadge" Property="Opacity" Value="0.5"/>
+                                        <Trigger.EnterActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation 
+                                                          Storyboard.TargetName="KebabMenuButton" 
+                                                          Storyboard.TargetProperty="Width"
+                                                          To="20" Duration="0:0:0.1" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.EnterActions>
+                                        <Trigger.ExitActions>
+                                            <BeginStoryboard>
+                                                <Storyboard>
+                                                    <DoubleAnimation 
+                                                      Storyboard.TargetName="KebabMenuButton" 
+                                                      Storyboard.TargetProperty="Width"
+                                                      To="0" Duration="0:0:0.1" />
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </Trigger.ExitActions>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid HorizontalAlignment="Stretch" x:Name="Grid" Margin="2,4">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                            <RowDefinition/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Theme icon -->
+                        <Border Grid.RowSpan="3" Margin="0,5,5,5" CornerRadius="5" Height="40" Width="40" VerticalAlignment="Top" HorizontalAlignment="Left"
+                                 RenderOptions.BitmapScalingMode="Fant" ToolTip="{Binding Description}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Icon}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Border.Background>
+                                <ImageBrush ImageSource="{Binding Icon}" Stretch="UniformToFill" />
+                            </Border.Background>
+                        </Border>
+
+
+
+                        <!-- Theme name -->
+                        <TextBlock Text="{Binding ThemeName}" VerticalAlignment="Center" FontSize="13" Padding="0,0,0,2" Grid.Column="1">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding IsDefault}" Value="True">
+                                            <Setter Property="FontWeight" Value="Bold"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+
+                        <!-- Author -->
+                        <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,5" Text="{Binding Author, StringFormat={}by {0}}" FontWeight="Bold" FontSize="10" Foreground="{DynamicResource BrushNeutral300}" VerticalAlignment="Center">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Author}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+
+
+
+                        <TextBlock Text="{Binding Description}" Margin="0,0,0,3" Grid.Row="2" FontSize="10" MaxWidth="275" Opacity="0.7"
+                                   HorizontalAlignment="Left" TextTrimming="CharacterEllipsis" TextWrapping="Wrap" MaxHeight="30" Grid.Column="1">
+                        </TextBlock>
+
+
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+
+        <Button Content="Import Theme..." Grid.Column="1" Grid.Row="8" Margin="0,10" Padding="10,5" HorizontalAlignment="Right"
+                Command="{Binding ImportThemeCommand}"/>
 
         <Grid Grid.Row="11" Grid.ColumnSpan="2" Margin="0,20,0,15">
             <Grid.ColumnDefinitions>

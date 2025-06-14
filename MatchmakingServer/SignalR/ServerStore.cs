@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 
 namespace MatchmakingServer.SignalR
 {
+
     public sealed class ServerStore
     {
         private readonly IOptionsMonitor<ServerSettings> _serverSettings;
@@ -19,6 +20,11 @@ namespace MatchmakingServer.SignalR
             Servers = _servers;
             _serverSettings = serverSettings;
         }
+        
+        public bool TryGetServer(string ipAddress, int port, out GameServer? server)
+        {            
+            return _servers.TryGetValue((ipAddress, port), out server);
+        }
 
         public GameServer? TryAddServer(string serverIp, int serverPort, string? serverName = null)
         {
@@ -29,7 +35,7 @@ namespace MatchmakingServer.SignalR
             // server does not have a queue yet, create new
             GameServer server = new()
             {
-                InstanceId = Guid.NewGuid().ToString(),
+                Id = Guid.NewGuid().ToString(),
                 ServerIp = serverIp,
                 ServerPort = serverPort,
                 ServerName = serverName ?? "",
@@ -55,7 +61,7 @@ namespace MatchmakingServer.SignalR
                 // server does not have a queue yet, create new
                 GameServer server = new()
                 {
-                    InstanceId = Guid.NewGuid().ToString(),
+                    Id = Guid.NewGuid().ToString(),
                     ServerIp = serverIp,
                     ServerPort = serverPort,
                     ServerName = serverName ?? "",

@@ -120,7 +120,7 @@ public class MatchmakingService : BackgroundService
             Task getInfoCompleted = await _gameServerInfoService.SendGetInfoAsync(servers, (e) =>
             {
                 e.Server.LastServerInfo = e.ServerInfo;
-                e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+                e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
 
                 respondingServers.Add(e.Server);
             }, timeoutInMs: 2000, cancellationToken: cancellationToken);

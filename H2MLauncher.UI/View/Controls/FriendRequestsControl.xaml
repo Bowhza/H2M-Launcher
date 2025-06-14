@@ -59,7 +59,7 @@
                                               VerticalAlignment="Center"
                                               Margin="5,0"/>
                             <Path x:Name="arrow" Data="M 0 0 L 6 6 L 12 0"
-                                  Stroke="White" Opacity="0.8" Margin="12,0"
+                                  Stroke="{DynamicResource TextLight}" Opacity="0.8" Margin="12,0"
                                   StrokeThickness="1.8"
                                   HorizontalAlignment="Right"
                                   VerticalAlignment="Center"
@@ -111,7 +111,7 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <TextBlock Foreground="White" Opacity="0.8" FontSize="12"
+                                <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
                                            VerticalAlignment="Center">
                                     <TextBlock.Text>
                                         <MultiBinding StringFormat="{} {0} — {1}">
@@ -160,7 +160,7 @@
             </Setter>
         </Style>
     </UserControl.Resources>
-    <Grid Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="White" VerticalAlignment="Stretch"
+    <Grid Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Stretch"
                 TextBlock.FontFamily="Consolas">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -168,7 +168,7 @@
         </Grid.RowDefinitions>
 
         <!-- Search Friends -->
-        <StackPanel Visibility="Visible" Background="#66000000" Margin="0,5" x:Name="SearchFriendsPanel">
+        <StackPanel Visibility="Visible" Background="{DynamicResource TransparentDark400}" Margin="0,5" x:Name="SearchFriendsPanel">
             <!-- Search Query -->
             <Grid Grid.Column="1" VerticalAlignment="Center" Margin="0,10,0,0">
                 <TextBox TabIndex="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" FontSize="16" 
@@ -182,7 +182,7 @@
                 <!-- Hint -->
                 <TextBlock IsHitTestVisible="False" Text="Find users by ID or name"
                            VerticalAlignment="Center" HorizontalAlignment="Stretch" 
-                           Padding="3,0,0,0" Margin="10,0,10,0" Foreground="DarkGray">
+                           Padding="3,0,0,0" Margin="10,0,10,0" Foreground="{DynamicResource TextHint}">
                     <TextBlock.Style>
                         <Style TargetType="{x:Type TextBlock}">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -236,7 +236,7 @@
                                 </Grid.RowDefinitions>
 
                                 <!-- Player name -->
-                                <TextBlock Foreground="White" FontSize="13"
+                                <TextBlock Foreground="{DynamicResource TextLight}" FontSize="13"
                                                VerticalAlignment="Center" Margin="0,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -263,7 +263,7 @@
                                                 CommandParameter="{Binding Id}" Padding="10,0" 
                                                 HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
                                                 VerticalAlignment="Center" Height="25" FontWeight="ExtraLight"
-                                                Background="#33ffffff">
+                                                Background="{DynamicResource TransparentLight200}">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource AcceptButtonStyle}">
                                                 <Setter Property="Content" Value="Add friend"/>
@@ -288,16 +288,16 @@
 
         <!-- No friend requests -->
         <Border Visibility="{Binding HasRequests, Converter={StaticResource InverseBoolToVisibilityConverter}}" 
-                BorderBrush="#444" Background="#88000000" VerticalAlignment="Stretch" Margin="0,5" Grid.Row="1">
+                BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Background="{DynamicResource TransparentDark500}" VerticalAlignment="Stretch" Margin="0,5" Grid.Row="1">
             <TextBlock Margin="0,5"  Padding="0,5" Text="No pending friend requests." HorizontalAlignment="Center"/>
         </Border>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
 
             <!-- Friend Requests list -->
-            <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="#66000000"
-                      BorderBrush="#444" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
-                      KeyboardNavigation.DirectionalNavigation="Contained" VerticalAlignment="Top">
+            <ItemsControl ItemsSource="{Binding Requests, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="{DynamicResource TransparentDark400}"
+                          BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Visibility="{Binding HasRequests, Converter={StaticResource booleanToVisibilityConverter}}"
+                          KeyboardNavigation.DirectionalNavigation="Contained" VerticalAlignment="Top">
                 <ItemsControl.GroupStyle>
                     <GroupStyle>
                         <GroupStyle.ContainerStyle>
@@ -306,11 +306,11 @@
                                     <Setter.Value>
                                         <ControlTemplate TargetType="{x:Type GroupItem}">
                                             <Expander IsExpanded="True"
-                                              Header="{Binding}"
-                                              Background="Transparent" 
-                                              Foreground="White" 
-                                              BorderBrush="#33FFFFFF" BorderThickness="0,0,0,1" Margin="0,5,0,3"
-                                              Style="{StaticResource SleekExpanderStyle}">
+                                                      Header="{Binding}"
+                                                      Background="Transparent" 
+                                                      Foreground="{DynamicResource TextLight}" 
+                                                      BorderBrush="{DynamicResource TransparentLight200}" BorderThickness="0,0,0,1" Margin="0,5,0,3"
+                                                      Style="{StaticResource SleekExpanderStyle}">
                                                 <ItemsPresenter/>
                                             </Expander>
                                         </ControlTemplate>
@@ -322,31 +322,7 @@
                 </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ToggleButton x:Name="border" Padding="7,5,10,0" Foreground="White">
-                            <ToggleButton.Style>
-                                <Style TargetType="{x:Type ToggleButton}">
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ToggleButton">
-                                                <Border Name="Bd"
-                                                        Padding="{TemplateBinding Padding}"
-                                                        TextBlock.Foreground="{TemplateBinding Foreground}"
-                                                        TextElement.Foreground="{TemplateBinding Foreground}"
-                                                        Background="Transparent">
-                                                    <ContentPresenter />
-                                                </Border>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter TargetName="Bd" Property="Background" Value="#11FFFFFF"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ToggleButton.Style>
-
+                        <ToggleButton x:Name="border" Padding="7,5,10,0" Foreground="{DynamicResource TextLight}" Style="{DynamicResource TransparentItemToggleButton}">
                             <Grid Height="50">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -359,8 +335,8 @@
 
                                 <!-- Player name -->
                                 <TextBlock ui:TextBlockExtensions.BindableInlines="{Binding Name, Converter={StaticResource HostNameColorConverter}}" 
-                                   Foreground="White" FontSize="15"
-                                   VerticalAlignment="Center" Margin="0,0,0,0">
+                                           Foreground="{DynamicResource TextLight}" FontSize="15"
+                                           VerticalAlignment="Center" Margin="0,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -382,18 +358,18 @@
                                 <!-- Accept / Decline -->
                                 <StackPanel Orientation="Horizontal" Grid.Column="1">
                                     <Button Content="✔️" Command="{Binding AcceptRequestCommand}" Padding="0" 
-                                    HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
-                                    VerticalAlignment="Center" Height="25" Width="25" FontWeight="ExtraLight"
-                                    ToolTip="Accept the friend request" Background="#33ffffff">
+                                            HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"
+                                            VerticalAlignment="Center" Height="25" Width="25" FontWeight="ExtraLight"
+                                            ToolTip="Accept the friend request" Background="{DynamicResource TransparentLight200}">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource AcceptButtonStyle}">
                                             </Style>
                                         </Button.Style>
                                     </Button>
                                     <Button Content="❌" Command="{Binding RejectRequestCommand}" Padding="0" 
-                                    HorizontalAlignment="Right" Grid.Column="1" Margin="3,0,0,0" FontWeight="ExtraLight"
-                                    VerticalAlignment="Center" Height="25" Width="25" Background="#33ffffff"
-                                    ToolTip="Reject the friend request">
+                                            HorizontalAlignment="Right" Grid.Column="1" Margin="3,0,0,0" FontWeight="ExtraLight"
+                                            VerticalAlignment="Center" Height="25" Width="25" Background="{DynamicResource TransparentLight200}"
+                                            ToolTip="Reject the friend request">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource RejectButtonStyle}">
                                             </Style>
@@ -414,9 +390,9 @@
                                 </StackPanel>
 
                                 <TextBlock Text="{Binding Created, StringFormat=d}" FontSize="10" 
-                                   HorizontalAlignment="Center" Grid.Column="1"
-                                   Grid.Row="1"  Margin="0,0,0,5"
-                                   VerticalAlignment="Bottom">
+                                           HorizontalAlignment="Center" Grid.Column="1"
+                                           Grid.Row="1"  Margin="0,0,0,5"
+                                           VerticalAlignment="Bottom">
                                 </TextBlock>
                             </Grid>
                         </ToggleButton>

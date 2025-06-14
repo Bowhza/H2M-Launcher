@@ -89,7 +89,7 @@ namespace MatchmakingServer.Controllers
                 GameServer server = _serverStore.GetOrAddServer(connDetails.Ip, connDetails.Port);
 
                 if (server.LastServerInfo is null ||
-                    DateTime.Now - server.LastSuccessfulPingTimestamp >= TimeSpan.FromMinutes(1))
+                    DateTime.Now - server.LastServerInfoTimestamp >= TimeSpan.FromMinutes(1))
                 {
                     serversToRequest.Add(server);
                 }
@@ -162,7 +162,7 @@ namespace MatchmakingServer.Controllers
                         playerCount += server.PlayerQueue.Count;
 
                         if (server.LastServerInfo is not null &&
-                            DateTime.Now - server.LastSuccessfulPingTimestamp < TimeSpan.FromMinutes(1))
+                            DateTime.Now - server.LastServerInfoTimestamp < TimeSpan.FromMinutes(1))
                         {
                             // use player count of last server info
                             playerCount += server.LastServerInfo.RealPlayerCount;
@@ -223,7 +223,7 @@ namespace MatchmakingServer.Controllers
                 Task getInfoCompleted = await _tcpGameServerCommunicationService.SendGetInfoAsync(servers, (e) =>
                 {
                     e.Server.LastServerInfo = e.ServerInfo;
-                    e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+                    e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
 
                     respondingServers.Add(e.Server);
                 }, timeoutInMs: 2000, cancellationToken: cancellationToken);

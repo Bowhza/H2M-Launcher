@@ -6,8 +6,6 @@ using CommunityToolkit.Mvvm.Input;
 using H2MLauncher.Core.Social;
 using H2MLauncher.UI.Dialog;
 
-using MatchmakingServer.Core.Social;
-
 
 namespace H2MLauncher.UI.ViewModels;
 

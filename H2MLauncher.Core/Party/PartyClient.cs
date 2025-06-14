@@ -1,6 +1,4 @@
-﻿using System.Collections.Immutable;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
+﻿using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
@@ -11,8 +9,6 @@ using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.Core.Utilities.SignalR;
-
-using MatchmakingServer.Core.Party;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Logging;
@@ -369,6 +365,16 @@ namespace H2MLauncher.Core.Party
             return base.OnConnected(cancellationToken);
         }
 
+        protected override Task OnReconnecting(Exception? exception)
+        {
+            _logger.LogDebug(exception, "Party client reconnecting {state}", Connection.State);
+
+            _currentParty = null;
+            _isPartyLeader = false;
+
+            return base.OnReconnecting(exception);
+        }
+
         protected override Task OnReconnected(string? connectionId)
         {
             if (_autoCreateParty)
@@ -399,7 +405,7 @@ namespace H2MLauncher.Core.Party
         {
             _logger.LogDebug("Party server changed: {serverIp}:{serverPort}, joining...", server.ServerIp, server.ServerPort);
 
-            return _serverJoinService.JoinServer(server, null, JoinKind.FromParty);
+            return _serverJoinService.JoinServerDirectly(server, null, JoinKind.FromParty);
         }
 
         Task IPartyClient.OnKickedFromParty()

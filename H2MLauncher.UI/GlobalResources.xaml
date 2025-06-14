@@ -3,12 +3,207 @@
                     xmlns:local="clr-namespace:H2MLauncher.UI;assembly=H2MLauncher.UI" 
                     xmlns:converters="clr-namespace:H2MLauncher.UI.Converters;assembly=H2MLauncher.UI" 
                     xmlns:dialog="clr-namespace:H2MLauncher.UI.Dialog;assembly=H2MLauncher.UI" 
+                    xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels;assembly=H2MLauncher.UI" 
                     xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
                     xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI" 
+                    xmlns:system="clr-namespace:System;assembly=mscorlib"
+                    xmlns:gif="clr-namespace:XamlAnimatedGif;assembly=XamlAnimatedGif"
                     x:Name="GlobalResources">
+
+    <system:String x:Key="CurrentThemeDirectory">pack://application:,,,/H2MLauncher.UI;component/</system:String>
+    
+    <!-- Converters -->
+    <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
+    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+    <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
+    <converters:EmptyItemConverter x:Key="emptyItemConverter" />
+    <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
+    <converters:NegatingConverter x:Key="NegatingConverter" />
+    <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
+    <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
+    <converters:StringUriConverter x:Key="StringUriConverter"/>
+    <converters:UrlCombinerConverter x:Key="UrlCombinerConverter" />
+
+    <!-- Contrast Colors -->
+    <Color x:Key="ColorLight">White</Color>
+    <Color x:Key="ColorBlack">Black</Color>
+
+    <!-- Neutral Color Palette -->
+    <Color x:Key="ColorNeutral50">GhostWhite</Color>
+    <Color x:Key="ColorNeutral100">#e7e7e7</Color>
+    <Color x:Key="ColorNeutral250">LightGray</Color>
+    <Color x:Key="ColorNeutral200">#CCC</Color>
+    <Color x:Key="ColorNeutral300">DarkGray</Color>
+    <Color x:Key="ColorNeutral400">#888888</Color>
+    <Color x:Key="ColorNeutral500">#6d6d6d</Color>
+    <Color x:Key="ColorNeutral600">#444</Color>
+    <Color x:Key="ColorNeutral700">#373737</Color>
+    <Color x:Key="ColorNeutral800">#262626</Color>
+    <Color x:Key="ColorNeutral900">#171717</Color>
+    <Color x:Key="ColorNeutral950">#0a0a0a</Color>
+
+    <!-- Primary Color Palette -->
+    <Color x:Key="ColorPrimary100">#ffd1a5</Color>
+    <Color x:Key="ColorPrimary200">#fdba74</Color>
+    <Color x:Key="ColorPrimary300">Orange</Color>
+    <Color x:Key="ColorPrimary400">#E59400</Color>
+    <Color x:Key="ColorPrimary500">DarkOrange</Color>
+    <Color x:Key="ColorPrimary600">OrangeRed</Color>
+    <Color x:Key="ColorPrimary700">#cc2f02</Color>
+    <Color x:Key="ColorPrimary800">#a1250b</Color>
+    <Color x:Key="ColorPrimary900">DarkRed</Color>
+    <Color x:Key="ColorPrimary950">#460d04</Color>
+
+    <!-- Secondary Color Palette -->
+    <Color x:Key="ColorSecondary100">#c9ffc4</Color>
+    <Color x:Key="ColorSecondary200">#98ff90</Color>
+    <Color x:Key="ColorSecondary300">#56ff50</Color>
+    <Color x:Key="ColorSecondary400">#00ff00</Color>
+    <Color x:Key="ColorSecondary500">#7cfc00</Color>
+    <Color x:Key="ColorSecondary600">#32CD32</Color>
+    <Color x:Key="ColorSecondary700">#008b07</Color>
+    <Color x:Key="ColorSecondary800">#076d0d</Color>
+    <Color x:Key="ColorSecondary900">#0b5c11</Color>
+    <Color x:Key="ColorSecondary950">#003406</Color>
+
+
+    <!--  Brushes -->
+    <SolidColorBrush x:Key="TextDark" Color="{DynamicResource ColorBlack}" />
+    <SolidColorBrush x:Key="TextLight" Color="{DynamicResource ColorLight}" />
+    <SolidColorBrush x:Key="TextHint" Color="{DynamicResource ColorNeutral300}" />
+
+    <SolidColorBrush x:Key="ControlBackground" Color="{DynamicResource ColorNeutral700}" />
+    <SolidColorBrush x:Key="ControlBackgroundDisabled" Color="{DynamicResource ColorNeutral600}" />
+    <SolidColorBrush x:Key="ControlForegroundDisabled" Color="{DynamicResource ColorNeutral200}" />
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="{DynamicResource ColorNeutral300}" />
+    <SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
+
+    <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
+    <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
+
+    <!-- Primary Brushes -->
+    <SolidColorBrush x:Key="BrushPrimary100" Color="{DynamicResource ColorPrimary100}" />
+    <SolidColorBrush x:Key="BrushPrimary200" Color="{DynamicResource ColorPrimary200}" />
+    <SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
+    <SolidColorBrush x:Key="BrushPrimary400" Color="{DynamicResource ColorPrimary400}" />
+    <SolidColorBrush x:Key="BrushPrimary500" Color="{DynamicResource ColorPrimary500}" />
+    <SolidColorBrush x:Key="BrushPrimary600" Color="{DynamicResource ColorPrimary600}" />
+    <SolidColorBrush x:Key="BrushPrimary700" Color="{DynamicResource ColorPrimary700}" />
+    <SolidColorBrush x:Key="BrushPrimary800" Color="{DynamicResource ColorPrimary800}" />
+    <SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
+    <SolidColorBrush x:Key="BrushPrimary950" Color="{DynamicResource ColorPrimary950}" />
+
+    <SolidColorBrush x:Key="ControlPrimary" Color="{DynamicResource ColorPrimary500}" />
+    <SolidColorBrush x:Key="ControlPrimaryHover" Color="{DynamicResource ColorPrimary400}" />
+    <SolidColorBrush x:Key="ControlPrimarySelected" Color="{DynamicResource ColorPrimary500}" />
+    <SolidColorBrush x:Key="ControlPrimaryPressed" Color="{DynamicResource ColorPrimary600}" />
+    <SolidColorBrush x:Key="ControlPrimaryForeground" Color="{DynamicResource ColorBlack}" />
+
+    <!-- Secondary Brushes -->
+    <SolidColorBrush x:Key="BrushSecondary" Color="{DynamicResource ColorSecondary500}"/>
+    <SolidColorBrush x:Key="BrushSecondary100" Color="{DynamicResource ColorSecondary100}"/>
+    <SolidColorBrush x:Key="BrushSecondary200" Color="{DynamicResource ColorSecondary200}"/>
+    <SolidColorBrush x:Key="BrushSecondary300" Color="{DynamicResource ColorSecondary300}"/>
+    <SolidColorBrush x:Key="BrushSecondary400" Color="{DynamicResource ColorSecondary400}"/>
+    <SolidColorBrush x:Key="BrushSecondary500" Color="{DynamicResource ColorSecondary500}"/>
+    <SolidColorBrush x:Key="BrushSecondary600" Color="{DynamicResource ColorSecondary600}"/>
+    <SolidColorBrush x:Key="BrushSecondary700" Color="{DynamicResource ColorSecondary700}"/>
+    <SolidColorBrush x:Key="BrushSecondary800" Color="{DynamicResource ColorSecondary800}"/>
+    <SolidColorBrush x:Key="BrushSecondary900" Color="{DynamicResource ColorSecondary900}"/>
+    <SolidColorBrush x:Key="BrushSecondary950" Color="{DynamicResource ColorSecondary950}"/>
+
+
+    <!-- Neutral Brushes -->
+    <SolidColorBrush x:Key="BrushNeutral" Color="{DynamicResource ColorNeutral400}"/>
+    <SolidColorBrush x:Key="BrushNeutralLight" Color="{DynamicResource ColorNeutral250}"/>
+    <SolidColorBrush x:Key="BrushNeutralDark" Color="{DynamicResource ColorNeutral700}"/>
+    <SolidColorBrush x:Key="BrushNeutral100" Color="{DynamicResource ColorNeutral100}"/>
+    <SolidColorBrush x:Key="BrushNeutral200" Color="{DynamicResource ColorNeutral200}"/>
+    <SolidColorBrush x:Key="BrushNeutral250" Color="{DynamicResource ColorNeutral250}"/>
+    <SolidColorBrush x:Key="BrushNeutral300" Color="{DynamicResource ColorNeutral300}"/>
+    <SolidColorBrush x:Key="BrushNeutral400" Color="{DynamicResource ColorNeutral400}"/>
+    <SolidColorBrush x:Key="BrushNeutral500" Color="{DynamicResource ColorNeutral500}"/>
+    <SolidColorBrush x:Key="BrushNeutral600" Color="{DynamicResource ColorNeutral600}"/>
+    <SolidColorBrush x:Key="BrushNeutral700" Color="{DynamicResource ColorNeutral700}"/>
+    <SolidColorBrush x:Key="BrushNeutral800" Color="{DynamicResource ColorNeutral800}"/>
+    <SolidColorBrush x:Key="BrushNeutral900" Color="{DynamicResource ColorNeutral900}"/>
+    <SolidColorBrush x:Key="BrushNeutral950" Color="{DynamicResource ColorNeutral950}"/>
+
+    <!-- Transparent Dark Brushes -->
+    <SolidColorBrush x:Key="TransparentDark100" Color="{DynamicResource ColorBlack}" Opacity="0.1"/>
+    <SolidColorBrush x:Key="TransparentDark200" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
+    <SolidColorBrush x:Key="TransparentDark300" Color="{DynamicResource ColorBlack}" Opacity="0.3"/>
+    <SolidColorBrush x:Key="TransparentDark400" Color="{DynamicResource ColorBlack}" Opacity="0.4"/>
+    <SolidColorBrush x:Key="TransparentDark500" Color="{DynamicResource ColorBlack}" Opacity="0.5"/>
+    <SolidColorBrush x:Key="TransparentDark600" Color="{DynamicResource ColorBlack}" Opacity="0.6"/>
+    <SolidColorBrush x:Key="TransparentDark700" Color="{DynamicResource ColorBlack}" Opacity="0.7"/>
+    <SolidColorBrush x:Key="TransparentDark800" Color="{DynamicResource ColorBlack}" Opacity="0.8"/>
+    <SolidColorBrush x:Key="TransparentDark900" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
+
+    <!-- Transparent White Brushes -->
+    <SolidColorBrush x:Key="TransparentLight100" Color="{DynamicResource ColorLight}" Opacity="0.1"/>
+    <SolidColorBrush x:Key="TransparentLight200" Color="{DynamicResource ColorLight}" Opacity="0.2"/>
+    <SolidColorBrush x:Key="TransparentLight300" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
+    <SolidColorBrush x:Key="TransparentLight400" Color="{DynamicResource ColorLight}" Opacity="0.4"/>
+    <SolidColorBrush x:Key="TransparentLight500" Color="{DynamicResource ColorLight}" Opacity="0.5"/>
+    <SolidColorBrush x:Key="TransparentLight600" Color="{DynamicResource ColorLight}" Opacity="0.6"/>
+    <SolidColorBrush x:Key="TransparentLight700" Color="{DynamicResource ColorLight}" Opacity="0.7"/>
+    <SolidColorBrush x:Key="TransparentLight800" Color="{DynamicResource ColorLight}" Opacity="0.8"/>
+    <SolidColorBrush x:Key="TransparentLight900" Color="{DynamicResource ColorLight}" Opacity="0.9"/>
+
+    <!-- TextBox Brushes -->
+    <SolidColorBrush x:Key="TextBoxBackgroundDark" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
+    <SolidColorBrush x:Key="TextBoxBorderBrush" Color="{DynamicResource ColorNeutral400}"/>
+
+    <!-- Transparent Item Brushes -->
+    <SolidColorBrush x:Key="ItemTransparentHover" Color="{DynamicResource ColorLight}" Opacity="0.07"/>
+    <SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
+    <SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
+
+    <!-- Main Window -->    
+    
+    <Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
+        <!-- Hide this container to hide the background image and expose the background brush -->
+        <Setter Property="Visibility" Value="Visible"/>
+        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <!-- Brush for the background of the main window behind the image -->
+    <SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorBlack}"/>
+
+    <!-- Brush for the border of the main window -->
+    <SolidColorBrush x:Key="MainWindowBorderBrush" Color="Transparent"/>
+
+    <!-- Background image source of the main window -->
+    <ImageSource x:Key="{x:Static local:Constants.BackgroundImageSourceKey}">/Assets/Background.jpg</ImageSource>
+    <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
+    
+    <!-- Background video source -->
+    <x:Null x:Key="BackgroundVideoSource"></x:Null>
+    <!--<system:String x:Key="BackgroundVideoSource">preview.gif</system:String>-->
+
+    <!-- Background controls (put any elements or media here) -->
+    <DataTemplate x:Key="BackgroundControlTemplate" DataType="{x:Type vm:ServerBrowserViewModel}">
+        
+    </DataTemplate>
+
+
+    <!-- Default style for all controls -->
+    <Style TargetType="{x:Type Control}">
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+    </Style>
+    
+
+    <!-- Status Bar -->
+    <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
+        <Setter Property="Foreground" Value="{DynamicResource BrushNeutral200}" />
+        <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
     <Style TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="#373737" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
@@ -24,26 +219,26 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E59400" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -52,8 +247,8 @@
     </Style>
 
     <Style x:Key="TextBoxButtonStyle" TargetType="{x:Type Button}">
-        <Setter Property="Background" Value="#373737" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
@@ -62,7 +257,7 @@
                     <Border CornerRadius="0,4,4,0" x:Name="border"
                         Background="{TemplateBinding Background}"
                         Padding="{TemplateBinding Padding}"
-                            BorderBrush="DarkGray" 
+                            BorderBrush="{DynamicResource ControlBorderBrush}" 
                             BorderThickness="1,0,0,0">
                         <Grid>
                             <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
@@ -71,26 +266,26 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#E59400" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -100,7 +295,7 @@
 
     <Style x:Key="WindowButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="BorderThickness" Value="0" />
         <Setter Property="Template">
@@ -118,19 +313,19 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="#66FFFFFF" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource TransparentLight400}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -140,7 +335,7 @@
 
     <Style x:Key="DiscordWindowButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -156,18 +351,18 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#5865F2" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -177,7 +372,7 @@
 
     <Style x:Key="AcceptButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -193,18 +388,18 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="#34b233" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -214,7 +409,7 @@
 
     <Style x:Key="RejectButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="Padding" Value="0" />
         <Setter Property="Template">
             <Setter.Value>
@@ -230,18 +425,18 @@
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
                             <Setter TargetName="border" Property="Background" Value="Red" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter TargetName="border" Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="border" Property="Background" Value="#444" />
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
                             <Setter TargetName="border" Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -251,7 +446,7 @@
 
     <Style x:Key="LinkButtonStyle" TargetType="{x:Type Button}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -272,7 +467,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
@@ -281,12 +476,12 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Foreground" Value="#E59400" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlPrimaryHover}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -295,14 +490,14 @@
     </Style>
 
     <Style x:Key="TransparentButtonStyle" TargetType="{x:Type Button}" BasedOn="{StaticResource WindowButtonStyle}">
-        <Setter Property="Background" Value="#33000000" />
+        <Setter Property="Background" Value="{DynamicResource TransparentDark200}" />
         <Setter Property="BorderThickness" Value="0.5" />
-        <Setter Property="BorderBrush" Value="#44000000" />
+        <Setter Property="BorderBrush" Value="{DynamicResource TransparentDark300}" />
     </Style>
 
     <Style TargetType="{x:Type ToggleButton}">
-        <Setter Property="Background" Value="#373737" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{DynamicResource ControlBackground}" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -320,24 +515,24 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#E59400" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" Value="OrangeRed" />
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
                             <Setter Property="Foreground" Value="LightBlue" />
                         </Trigger>
                         <Trigger Property="IsFocused" Value="False">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsChecked" Value="False">
-                            <Setter Property="Foreground" Value="DarkRed" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrushPrimary900}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -347,7 +542,7 @@
 
     <Style x:Key="LinkToggleButtonStyle" TargetType="{x:Type ToggleButton}">
         <Setter Property="Background" Value="Transparent" />
-        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="BorderBrush" Value="Transparent" />
@@ -366,7 +561,7 @@
                     </Border>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
                         </Trigger>
 
                         <Trigger Property="IsFocused" Value="True">
@@ -375,12 +570,12 @@
                         </Trigger>
 
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Foreground" Value="#E59400" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlPrimaryHover}" />
                         </Trigger>
 
                         <Trigger Property="IsEnabled" Value="False">
                             <Setter Property="Opacity" Value="0.7" />
-                            <Setter Property="Foreground" Value="#CCC" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
                         </Trigger>
                     </ControlTemplate.Triggers>
                 </ControlTemplate>
@@ -399,43 +594,36 @@
                 x:Name="Border"
                 Grid.ColumnSpan="2"
                 CornerRadius="0"
-                Background="#FF3F3F3F"
-                BorderBrush="#FF97A0A5"
+                Background="{DynamicResource ControlBackground}"
+                BorderBrush="{DynamicResource ControlBorderBrush}"
                 BorderThickness="0" />
-            <!--<Border 
-                  Grid.Column="0"
-                  CornerRadius="0" 
-                  Margin="1" 
-                  Background="#FF3F3F3F" 
-                  BorderBrush="#FF97A0A5"
-                  BorderThickness="0,0,0,0" />-->
             <Path
                 x:Name="Arrow"
                 Grid.Column="1"
-                Fill="White"
+                Fill="{DynamicResource TextLight}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z" />
         </Grid>
         <ControlTemplate.Triggers>
             <Trigger Property="ToggleButton.IsMouseOver" Value="true">
-                <Setter TargetName="Border" Property="Background" Value="#E59400" />
-                <Setter Property="Background" Value="#E59400" />
-                <Setter Property="Foreground" Value="White" />
+                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                <Setter Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
             </Trigger>
             <Trigger Property="ToggleButton.IsChecked" Value="true">
-                <Setter TargetName="Border" Property="Background" Value="#E59400" />
-                <Setter Property="Foreground" Value="DarkRed" />
+                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
+                <Setter Property="Foreground" Value="{DynamicResource BrushPrimary900}" />
             </Trigger>
             <Trigger Property="IsEnabled" Value="False">
                 <Setter TargetName="Border" Property="BorderBrush" Value="Transparent" />
-                <Setter Property="Foreground" Value="#888888" />
-                <Setter TargetName="Arrow" Property="Fill" Value="#888888" />
+                <Setter Property="Foreground" Value="{DynamicResource BrushNeutral}" />
+                <Setter TargetName="Arrow" Property="Fill" Value="{DynamicResource BrushNeutral}" />
             </Trigger>
 
             <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="OrangeRed" />
-                <Setter Property="Foreground" Value="White" />
+                <Setter Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
             </Trigger>
         </ControlTemplate.Triggers>
     </ControlTemplate>
@@ -444,13 +632,13 @@
         <Border x:Name="PART_ContentHost" Focusable="False" Background="{TemplateBinding Background}" />
     </ControlTemplate>
 
-    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="#373737" />
-    <SolidColorBrush x:Key="ComboBoxForegroundColor" Color="White" />
-    <SolidColorBrush x:Key="ComboBoxPopupBorderColor" Color="#AAA" />
+    <SolidColorBrush x:Key="ComboBoxBackgroundColor" Color="{DynamicResource ColorNeutral700}" />
+    <SolidColorBrush x:Key="ComboBoxForegroundColor" Color="{DynamicResource ColorLight}" />
+    <SolidColorBrush x:Key="ComboBoxPopupBorderColor" Color="{DynamicResource ColorNeutral300}" />
 
     <Style TargetType="{x:Type ComboBox}">
-        <Setter Property="Background" Value="{StaticResource ComboBoxBackgroundColor}" />
-        <Setter Property="Foreground" Value="{StaticResource ComboBoxForegroundColor}" />
+        <Setter Property="Background" Value="{DynamicResource ComboBoxBackgroundColor}" />
+        <Setter Property="Foreground" Value="{DynamicResource ComboBoxForegroundColor}" />
         <Setter Property="SnapsToDevicePixels" Value="True" />
         <Setter Property="VerticalContentAlignment" Value="Center" />
         <Setter Property="Template">
@@ -499,9 +687,9 @@
                               MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                 <Border 
                                 x:Name="DropDownBorder"
-                                Background="{StaticResource ComboBoxBackgroundColor}"
+                                Background="{DynamicResource ComboBoxBackgroundColor}"
                                 BorderThickness="1"
-                                BorderBrush="{StaticResource ComboBoxPopupBorderColor}"/>
+                                BorderBrush="{DynamicResource ComboBoxPopupBorderColor}"/>
                                 <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
                                     <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
                                 </ScrollViewer>
@@ -513,7 +701,7 @@
                             <Setter TargetName="DropDownBorder" Property="MinHeight" Value="95" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="false">
-                            <Setter Property="Foreground" Value="#888888" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrushNeutral}" />
                         </Trigger>
                         <Trigger Property="IsGrouping" Value="true">
                             <Setter Property="ScrollViewer.CanContentScroll" Value="false" />
@@ -535,12 +723,12 @@
 
     <Style TargetType="{x:Type DataGridColumnHeader}">
         <Setter Property="FontWeight" Value="Bold"/>
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type DataGridColumnHeader}">
-                    <Border Background="#373737"
-                            BorderBrush="DarkGray"
+                    <Border Background="{DynamicResource ControlBackground}"
+                            BorderBrush="{DynamicResource ControlBorderBrush}"
                             BorderThickness="0,0,1,1">
                         <Grid Name="HeaderGrid">
                             <Grid.ColumnDefinitions>
@@ -552,20 +740,20 @@
 
 
                             <Path x:Name="SortArrow" Visibility="Collapsed" Data="M0,0 L1,0 0.5,1 z" Stretch="Fill"
-                                  Grid.Column="1" Width="8" Height="6" Fill="White" Margin="0,0,8,0"
+                                  Grid.Column="1" Width="8" Height="6" Fill="{DynamicResource TextLight}" Margin="0,0,8,0"
                                   VerticalAlignment="Center" RenderTransformOrigin="0.5,0.4" />
                         </Grid>
                     </Border>
 
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="Orange" />
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource BrushPrimary300}" />
                         </Trigger>
                         <Trigger Property="IsPressed" Value="True">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="DarkOrange" />                            
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource ControlPrimarySelected}" />
                         </Trigger>
                         <Trigger Property="SortDirection" Value="Ascending">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="DarkOrange" />
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource ControlPrimarySelected}" />
                             <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
                             <Setter TargetName="SortArrow" Property="RenderTransform">
                                 <Setter.Value>
@@ -574,7 +762,7 @@
                             </Setter>
                         </Trigger>
                         <Trigger Property="SortDirection" Value="Descending">
-                            <Setter Property="Background" TargetName="HeaderGrid" Value="DarkOrange" />
+                            <Setter Property="Background" TargetName="HeaderGrid" Value="{DynamicResource ControlPrimarySelected}" />
                             <Setter TargetName="SortArrow" Property="Visibility" Value="Visible" />
                         </Trigger>
                     </ControlTemplate.Triggers>
@@ -623,14 +811,14 @@
                              VerticalAlignment="Center" 
                              Margin="3,3,23,3"
                              Focusable="True" 
-                             Background="{StaticResource ComboBoxBackgroundColor}"
+                             Background="{DynamicResource ComboBoxBackgroundColor}"
                              Foreground="Green"
                              Visibility="Hidden"
                              IsReadOnly="{TemplateBinding IsReadOnly}"/>
 
                         <Popup IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" x:Name="Popup" Focusable="False" AllowsTransparency="True" PopupAnimation="Slide">
                             <Grid MaxHeight="{TemplateBinding MaxDropDownHeight}" MinWidth="{TemplateBinding ActualWidth}" x:Name="DropDown" SnapsToDevicePixels="True">
-                                <Border x:Name="DropDownBorder" Background="{StaticResource ComboBoxBackgroundColor}" BorderBrush="{StaticResource ComboBoxPopupBorderColor}" BorderThickness="1" Padding="0,4">
+                                <Border x:Name="DropDownBorder" Background="{DynamicResource ComboBoxBackgroundColor}" BorderBrush="{DynamicResource ComboBoxPopupBorderColor}" BorderThickness="1" Padding="0,4">
                                     <ScrollViewer SnapsToDevicePixels="True" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" 
                                                   CanContentScroll="True" Style="{x:Null}"
                                                   MaxHeight="100">
@@ -672,15 +860,15 @@
     </Style>
 
     <Style TargetType="{x:Type TabItem}">
-        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
         <Setter Property="FontWeight" Value="Bold" />
         <Setter Property="FontFamily" Value="Consolas" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type TabItem}">
                     <Grid>
-                        <Border Name="Border" Margin="0,4,-1,0" Background="#333" CornerRadius="2,6,0,0"
-                                BorderBrush="DarkGray" BorderThickness="1,1,1,1">
+                        <Border Name="Border" Margin="0,4,-1,0" Background="{DynamicResource ControlBackground}" CornerRadius="2,6,0,0"
+                                BorderBrush="{DynamicResource ControlBorderBrush}" BorderThickness="1,1,1,1">
                             <ContentPresenter 
                                     x:Name="ContentSite" VerticalAlignment="Center"
                                     HorizontalAlignment="Center"
@@ -690,8 +878,8 @@
                     </Grid>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsSelected" Value="True">
-                            <Setter TargetName="Border" Property="Background" Value="DarkOrange" />
-                            <Setter Property="Foreground" Value="Black" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimarySelected}" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlPrimaryForeground}" />
                             <Setter TargetName="Border" Property="BorderThickness" Value="1,1,1,0" />
                             <Setter TargetName="Border" Property="Margin" Value="0,0,-4,0" />
                             <Setter Property="Panel.ZIndex" Value="100" />
@@ -702,12 +890,12 @@
                                 <Condition Property="IsSelected" Value="False"/>
                             </MultiTrigger.Conditions>
                             <MultiTrigger.Setters>
-                                <Setter TargetName="Border" Property="Background" Value="#E59400" />
+                                <Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimaryHover}" />
                             </MultiTrigger.Setters>
                         </MultiTrigger>
                         <Trigger Property="IsEnabled" Value="False">
-                            <Setter TargetName="Border" Property="Background" Value="Gray" />
-                            <Setter Property="Foreground" Value="DarkGray" />
+                            <Setter TargetName="Border" Property="Background" Value="{DynamicResource BrushNeutral}" />
+                            <Setter Property="Foreground" Value="{DynamicResource BrushNeutralLight}" />
                         </Trigger>
                         <DataTrigger Binding="{Binding Path=HorizontalAlignment, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type TabPanel}}}"
                                      Value="Center">
@@ -719,12 +907,144 @@
         </Setter>
     </Style>
 
-    <BooleanToVisibilityConverter x:Key="booleanToVisibilityConverter" />
-    <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
-    <converters:InvertableBooleanToVisibilityConverter x:Key="invertableBooleanToVisibilityConverter"/>
-    <converters:EmptyItemConverter x:Key="emptyItemConverter" />
-    <converters:HostNameColorConverter x:Key="HostNameColorConverter" />
-    <converters:NegatingConverter x:Key="NegatingConverter" />
-    <converters:BooleanToEditConverter x:Key="BoolToEditConverter" />
-    <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
+
+    <Style x:Key="TransparentItemToggleButton" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Name="Bd"
+                            Padding="{TemplateBinding Padding}"
+                            TextBlock.Foreground="{TemplateBinding Foreground}"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
+                            Background="{TemplateBinding Background}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemTransparentHover}"/>
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemTransparentPressed}"/>
+                        </Trigger>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemTransparentChecked}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource TransparentLight200}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="TransparentItem" TargetType="{x:Type ContentControl}">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ContentControl">
+                    <Border Name="Bd"
+                            Padding="{TemplateBinding Padding}"
+                            TextBlock.Foreground="{TemplateBinding Foreground}"
+                            TextElement.Foreground="{TemplateBinding Foreground}"
+                            Background="{TemplateBinding Background}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource ItemTransparentHover}"/>
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Path=IsOpen, ElementName=DetailsPopup}" Value="True">
+                <Setter Property="Background" Value="{DynamicResource TransparentDark200}" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+
+    <Style x:Key="SocialPanelBorderStyle" TargetType="Border">
+        <Setter Property="CornerRadius" Value="5,5,0,0"/>
+        <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style x:Key="SocialTabControlStyle" TargetType="TabControl">
+        <Setter Property="Background" Value="{DynamicResource TransparentDark400}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Style.Resources>
+            <Style TargetType="{x:Type TabPanel}">
+                <!-- Center tabs -->
+                <Setter Property="HorizontalAlignment" Value="Center" />
+            </Style>
+        </Style.Resources>
+    </Style>
+
+
+    <SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
+
+    <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
+        <Setter Property="RowBackground" Value="Transparent"/>
+        <Setter Property="Background" Value="{DynamicResource DialogBackground}"/>
+        <Setter Property="Opacity" Value="0.9"/>
+        <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style x:Key="ServerDataGridRowStyle" TargetType="DataGridRow">
+        <!-- Enable focus and tab navigation for row -->
+        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+        <Setter Property="Opacity" Value="0.9"></Setter>
+
+        <Style.Triggers>
+            <!-- Selection box -->
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="BorderBrush" Value="{DynamicResource BrushSecondary}" />
+                <Setter Property="BorderThickness" Value="0 1" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="ServerDataGridCellStyle" TargetType="DataGridCell">
+        <Setter Property="TextBlock.TextAlignment" Value="Left" />
+        <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextLight}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="VerticalAlignment" Value="Stretch"/>
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+        <!-- Custom template to center content -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type DataGridCell}">
+                    <Grid Background="{TemplateBinding Background}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <!-- Disable focus for cells -->
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Focusable" Value="True"/>
+        <Setter Property="IsTabStop" Value="False"/>
+
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <!-- Selection background -->
+                <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

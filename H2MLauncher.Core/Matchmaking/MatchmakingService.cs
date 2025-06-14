@@ -17,10 +17,10 @@ namespace H2MLauncher.Core.Matchmaking;
 public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 {
     private readonly ILogger<MatchmakingService> _logger;
-    private readonly IGameServerInfoService<ServerConnectionDetails> _gameServerInfoService;
-    private readonly IMapsProvider _mapsProvider;
-    private readonly IGameDetectionService _gameDetectionService;
+    private readonly IGameServerInfoService<IServerConnectionDetails> _gameServerInfoService;
     private readonly IGameCommunicationService _gameCommunicationService;
+    private readonly IGameDetectionService _gameDetectionService;
+    private readonly IMapsProvider _mapsProvider;
     private readonly IPlaylistService _playlistService;
     private readonly IOptionsMonitor<H2MLauncherSettings> _options;
     private readonly OnlineServiceManager _onlineServiceManager;
@@ -77,19 +77,19 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     public MatchmakingService(
         OnlineServiceManager onlineServiceManager,
         ILogger<MatchmakingService> logger,
-        IGameServerInfoService<ServerConnectionDetails> gameServerInfoService,
-        IMapsProvider mapsProvider,
-        IGameDetectionService gameDetectionService,
+        IGameServerInfoService<IServerConnectionDetails> gameServerInfoService,
         IGameCommunicationService gameCommunicationService,
+        IGameDetectionService gameDetectionService,
+        IMapsProvider mapsProvider,
         IPlaylistService playlistService,
         IOptionsMonitor<H2MLauncherSettings> options,
         HubConnection connection) : base(connection)
     {
         _logger = logger;
         _gameServerInfoService = gameServerInfoService;
-        _mapsProvider = mapsProvider;
-        _gameDetectionService = gameDetectionService;
         _gameCommunicationService = gameCommunicationService;
+        _gameDetectionService = gameDetectionService;
+        _mapsProvider = mapsProvider;
         _playlistService = playlistService;
         _options = options;
         _onlineServiceManager = onlineServiceManager;
@@ -245,6 +245,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
     {
         try
         {
+
 #if DEBUG == false
             if (!_options.CurrentValue.ServerQueueing ||
                 !_options.CurrentValue.GameMemoryCommunication ||

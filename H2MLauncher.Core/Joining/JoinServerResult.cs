@@ -6,6 +6,7 @@ public enum JoinServerResult
     MissingMap,
     ServerFull,
     JoinFailed,
+    ServerNotAvailable,
     QueueJoined,
     QueueUnavailable,
     GameNotRunning,
