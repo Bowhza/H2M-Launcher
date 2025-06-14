@@ -14,8 +14,8 @@
              Height="Auto"
              Width="400"
              d:DataContext="{d:DesignInstance Type=vm:MatchmakingViewModel}"
-             d:Foreground="White"
-             d:Background="Black">
+             d:Foreground="{DynamicResource TextLight}"
+             d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
         <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
@@ -99,7 +99,7 @@
 
         <!-- Playlist selection -->
         <ComboBox Grid.Row="1" Grid.ColumnSpan="2" Text="Default Playlist" SelectedItem="{Binding SelectedPlaylist}"
-                  Height="25" Width="300" Foreground="White" Margin="0,0,0,10" ItemsSource="{Binding Playlists}"
+                  Height="25" Width="300" Foreground="{DynamicResource TextLight}" Margin="0,0,0,10" ItemsSource="{Binding Playlists}"
                   Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
             <ComboBox.ItemTemplate>
                 <DataTemplate>
@@ -138,14 +138,14 @@
                         <TextBlock Text="Max Ping:" Grid.Row="1" Margin="15,10" HorizontalAlignment="Right"/>
                         <DockPanel Grid.Row="1" Grid.Column="1">
                             <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" PreviewTextInput="NumberTextBox_PreviewTextInput" Margin="0,0,10,0" VerticalAlignment="Center" 
-                                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                                     Background="#222" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
                             <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
                         </DockPanel>
 
                         <TextBlock Text="Min Players:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Right"/>
                         <DockPanel Grid.Row="2" Grid.Column="1">
                             <TextBox Text="{Binding MinPlayers, UpdateSourceTrigger=PropertyChanged}" Width="30" IsReadOnly="True" Margin="0,0,10,0" VerticalAlignment="Center" 
-                                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                                     Background="#222" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
                             <Slider Minimum="1" Maximum="18"  Value="{Binding MinPlayers}" Width="Auto" VerticalAlignment="Center" />
                         </DockPanel>
 
@@ -153,12 +153,12 @@
                         <DockPanel Grid.Row="3" Grid.Column="1">
                             <TextBox Text="{Binding MaxScore, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource UnsetIntConverter}, ConverterParameter=None}" 
                                      PreviewTextInput="NumberTextBox_PreviewTextInput" Width="45" Margin="0,0,10,0" VerticalAlignment="Center" 
-                                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                                     Background="#222" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
                             <Slider Minimum="-1" Maximum="10000"  Value="{Binding MaxScore}" Width="Auto" VerticalAlignment="Center" />
                         </DockPanel>
 
                         <CheckBox Grid.Row="4" Grid.Column="1"
-                                  Foreground="White" Margin="0,7" 
+                                  Foreground="{DynamicResource TextLight}" Margin="0,7" 
                                   VerticalAlignment="Center"
                                   Content="Try to find fresh match" 
                                   IsChecked="{Binding FindFreshMatch}"/>

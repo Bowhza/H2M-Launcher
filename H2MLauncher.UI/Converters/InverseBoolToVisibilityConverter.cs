@@ -14,7 +14,9 @@ namespace H2MLauncher.UI.Converters
                 return null;
             }
 
-            return !boolValue ? Visibility.Visible : Visibility.Collapsed;
+            Visibility notVisible = parameter is Visibility v ? v : Visibility.Collapsed;
+
+            return !boolValue ? Visibility.Visible : notVisible;
         }
 
         public object? ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
