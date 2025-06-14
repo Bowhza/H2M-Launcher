@@ -129,21 +129,8 @@ public sealed class FriendshipsService(
                 player.Name,
                 OnlineStatus.Online,
                 player.GameStatus,
-                player.Party is not null
-                        ? new PartyStatusDto(
-                            player.Party.Id,
-                            player.Party.Members.Count,
-                            player.Party.Privacy is not PartyPrivacy.Closed,
-                            player.Party.ValidInvites.ToList())
-                        : null,
-                player.PlayingServer is not null
-                        ? new MatchStatusDto(
-                            (player.PlayingServer.ServerIp, player.PlayingServer.ServerPort),
-                            player.PlayingServer.LastServerInfo?.HostName ?? player.PlayingServer.ServerName,
-                            player.PlayingServer.LastServerInfo?.GameType,
-                            player.PlayingServer.LastServerInfo?.MapName,
-                            player.PlayingServer.KnownPlayers[player])
-                        : null,
+                player.ToPartyStatusDto(),
+                player.ToMatchStatusDto(),
                 friendsSince);
         }
     }

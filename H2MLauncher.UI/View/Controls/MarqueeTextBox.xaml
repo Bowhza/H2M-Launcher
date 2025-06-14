@@ -16,9 +16,11 @@
                     Visibility="{TemplateBinding Visibility}" Height="{Binding ActualHeight, ElementName=textBox}"
                     SizeChanged="Container_SizeChanged" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                     >
-                <TextBlock x:Name="textBox" SizeChanged="TextBox_SizeChanged" Canvas.Left="0"
+                <TextBlock x:Name="textBox" SizeChanged="TextBox_SizeChanged" Canvas.Left="0" 
+                           MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
                            TextWrapping="NoWrap" Height="{TemplateBinding Height}"
-                           VerticalAlignment="Center"
+                           TextAlignment="{Binding TextAlignment, RelativeSource={RelativeSource TemplatedParent}}"
+                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
                            Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}"
                            ui:TextBlockExtensions.BindableInlines="{Binding Inlines, RelativeSource={RelativeSource TemplatedParent}}">
                     <TextBlock.RenderTransform>

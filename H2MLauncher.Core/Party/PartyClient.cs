@@ -365,6 +365,16 @@ namespace H2MLauncher.Core.Party
             return base.OnConnected(cancellationToken);
         }
 
+        protected override Task OnReconnecting(Exception? exception)
+        {
+            _logger.LogDebug(exception, "Party client reconnecting {state}", Connection.State);
+
+            _currentParty = null;
+            _isPartyLeader = false;
+
+            return base.OnReconnecting(exception);
+        }
+
         protected override Task OnReconnected(string? connectionId)
         {
             if (_autoCreateParty)
@@ -395,7 +405,7 @@ namespace H2MLauncher.Core.Party
         {
             _logger.LogDebug("Party server changed: {serverIp}:{serverPort}, joining...", server.ServerIp, server.ServerPort);
 
-            return _serverJoinService.JoinServer(server, null, JoinKind.FromParty);
+            return _serverJoinService.JoinServerDirectly(server, null, JoinKind.FromParty);
         }
 
         Task IPartyClient.OnKickedFromParty()

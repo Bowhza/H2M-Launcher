@@ -307,7 +307,7 @@ namespace H2MLauncher.UI.ViewModels
             IsJoining = true;
             JoiningServer = ServerIp + ":" + ServerPort;
 
-            JoinServerResult joinResult = await _serverJoinService.JoinServer(
+            JoinServerResult joinResult = await _serverJoinService.JoinServerDirectly(
                 server: _queueingService.QueuedServer,
                 password: _queueingService.QueuedServer.Password,
                 kind: JoinKind.Forced);
