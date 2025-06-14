@@ -62,8 +62,8 @@
     <Color x:Key="ColorSecondary500">#7cfc00</Color>
     <Color x:Key="ColorSecondary600">#32CD32</Color>
     <Color x:Key="ColorSecondary700">#008b07</Color>
-    <Color x:Key="ColorSecondary800">#008b07</Color>
-    <Color x:Key="ColorSecondary900">#008b07</Color>
+    <Color x:Key="ColorSecondary800">#076d0d</Color>
+    <Color x:Key="ColorSecondary900">#0b5c11</Color>
     <Color x:Key="ColorSecondary950">#003406</Color>
 
 
