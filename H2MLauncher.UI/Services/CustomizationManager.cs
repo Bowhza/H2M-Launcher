@@ -104,6 +104,7 @@ public partial class CustomizationManager : ObservableObject
             {
             LoadTheme(customizationSettings.Themes[0]);
         }
+        }
 
         HotReloadThemes = customizationSettings?.HotReloadThemes ?? false;
     }
