@@ -68,7 +68,10 @@
         <FrameworkElement x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
         <FrameworkElement x:Name="BackgroundMediaUriGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundVideoSource}" />
 
-        <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}" />
+        <Border CornerRadius="10" 
+                Background="{DynamicResource MainWindowBackgroundBrush}" 
+                BorderBrush="{DynamicResource MainWindowBorderBrush}" 
+                BorderThickness="1" />
         <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged" Style="{DynamicResource BackgroundImageContainerStyle}">
             <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5">
                 <Grid.Resources>

@@ -171,6 +171,9 @@
     <!-- Brush for the background of the main window behind the image -->
     <SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorBlack}"/>
 
+    <!-- Brush for the border of the main window -->
+    <SolidColorBrush x:Key="MainWindowBorderBrush" Color="Transparent"/>
+
     <!-- Background image source of the main window -->
     <ImageSource x:Key="{x:Static local:Constants.BackgroundImageSourceKey}">/Assets/Background.jpg</ImageSource>
     <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
