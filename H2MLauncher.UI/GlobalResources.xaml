@@ -194,6 +194,11 @@
         <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
     </Style>
 
+    <!-- Default style for all text blocks -->
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+    </Style>
+
 
     <!-- Status Bar -->
     <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">

@@ -30,6 +30,11 @@
                     <DataTemplate DataType="{x:Type vm:FriendRequestsViewModel}">
                         <local:FriendRequestsControl />
                     </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:RecentPlayersViewModel}">
+                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center">
+                            Coming soon :)
+                        </TextBlock>
+                    </DataTemplate>
                 </TabControl.Resources>
                 <TabControl.ItemTemplate>
                     <DataTemplate>
@@ -59,6 +64,11 @@
                                             <Setter TargetName="Badge" Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
+                                </DataTemplate>
+
+                                <!-- Recents header -->
+                                <DataTemplate DataType="{x:Type vm:RecentPlayersViewModel}">
+                                    <TextBlock Text="Recents"/>
                                 </DataTemplate>
                             </ContentControl.Resources>
                         </ContentControl>

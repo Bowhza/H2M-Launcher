@@ -15,7 +15,12 @@ namespace H2MLauncher.UI.ViewModels
         {
             Friends = friendsViewModel;
             FriendRequests = friendRequestsViewModel;
-            Tabs = [Friends, FriendRequests];
+            Tabs = [Friends, FriendRequests, new RecentPlayersViewModel()];
         }
+    }
+
+    public sealed partial class RecentPlayersViewModel : ObservableObject
+    {
+        
     }
 }
