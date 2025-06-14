@@ -165,7 +165,7 @@
     <Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
         <!-- Hide this container to hide the background image and expose the background brush -->
         <Setter Property="Visibility" Value="Visible"/>
-        <Setter Property="Opacity" Value="0.8"/>
+        <Setter Property="Opacity" Value="1"/>
     </Style>
 
     <!-- Brush for the background of the main window behind the image -->

@@ -375,7 +375,7 @@
             </ListBox.ItemContainerStyle>
             <ListBox.ItemTemplate>
                 <DataTemplate>
-                    <Grid HorizontalAlignment="Stretch" x:Name="Grid">
+                    <Grid HorizontalAlignment="Stretch" x:Name="Grid" Margin="2,4">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
