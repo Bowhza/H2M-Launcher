@@ -68,9 +68,9 @@
         <FrameworkElement x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
         <FrameworkElement x:Name="BackgroundMediaUriGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundVideoSource}" />
 
-        <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}"/>
-        <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
-            <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5" Opacity="0.8">
+        <Border CornerRadius="10" Background="{DynamicResource MainWindowBackgroundBrush}" />
+        <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged" Style="{DynamicResource BackgroundImageContainerStyle}">
+            <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5">
                 <Grid.Resources>
                     <Storyboard x:Key="FadeInStoryboard">
                         <DoubleAnimation Storyboard.TargetProperty="Opacity"
@@ -83,14 +83,14 @@
                             <!-- Stack image and video inside a grid - make sure it always fills the parent container -->
                             <Grid Width="{Binding Path=ActualWidth, ElementName=ImageContainer}" HorizontalAlignment="Stretch"
                                   Height="{Binding Path=ActualHeight, ElementName=ImageContainer}" VerticalAlignment="Stretch">
-                                
+
                                 <!-- Background image -->
                                 <Image x:Name="BackgroundImageBrush" Opacity="1" Stretch="UniformToFill" >
                                     <Image.Source>
                                         <DynamicResource ResourceKey="{x:Static local:Constants.BackgroundImageSourceKey}"/>
                                     </Image.Source>
                                 </Image>
-                                
+
                                 <!-- Background video -->
                                 <controls:LoopingMediaElement 
                                               Stretch="UniformToFill" d:Source="Assets/Background.jpg"
@@ -108,7 +108,7 @@
                                     </controls:LoopingMediaElement.Source>
                                     <controls:LoopingMediaElement.Style>
                                         <Style TargetType="MediaElement">
-                                            <Style.Triggers>                                                
+                                            <Style.Triggers>
                                                 <!-- Fade in video once loaded -->
                                                 <EventTrigger RoutedEvent="MediaElement.MediaOpened">
                                                     <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
@@ -127,8 +127,8 @@
                     </VisualBrush>
                 </Grid.Background>
                 <Grid.Style>
-                    <Style TargetType="Grid" BasedOn="{StaticResource BackgroundImageContainerStyle}">
-                        <!-- Compensate for the blur effect by non-linearly zooming in to prevent dark edges -->
+                    <Style TargetType="Grid">
+                        <!--Compensate for the blur effect by non-linearly zooming in to prevent dark edges-->
                         <Setter Property="Margin" 
                                 Value="{Binding DataContext, 
                                                 ElementName=BackgroundBlurGetter, 
