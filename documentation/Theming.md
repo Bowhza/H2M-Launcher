@@ -42,6 +42,8 @@ Note that this is only really intended for testing and creating themes, as the f
 
 
 > **Tip:** When working on a theme file, activate the `Enable Hot Reload` option to see your changes live (can lead to crashes if there are serious errors).
+> 
+>  Also, some changes might need a restart to apply correctly.
 
 
 Next, we will describe the resources in detail and how to customize them.
