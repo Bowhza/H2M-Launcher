@@ -81,7 +81,7 @@ namespace H2MLauncher.UI.ViewModels
             _customization = customization;
 
             BackgroundImageUrl = options.CurrentValue.Customization?.BackgroundImagePath;
-            LoadedThemePath = options.CurrentValue.Customization?.Themes?.FirstOrDefault();
+            LoadedThemePath = Path.GetFileName(options.CurrentValue.Customization?.Themes?.FirstOrDefault());
 
             _defaultThemeViewModel = new()
             {
