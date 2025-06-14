@@ -25,9 +25,10 @@ namespace H2MLauncher.UI.Services
             string? currentTheme = optionsMonitor.CurrentValue.Customization?.Themes?.FirstOrDefault();
             optionsMonitor.OnChange((settings, _) =>
             {
-                if (settings.Customization?.HotReloadThemes == true)
-                {
-                    string? newTheme = settings.Customization?.Themes?.FirstOrDefault();
+                string? newTheme = settings.Customization?.Themes?.FirstOrDefault();
+
+                if (settings.Customization?.HotReloadThemes == true && File.Exists(newTheme))
+                {                    
                     if (currentTheme == newTheme && _fileSystemWatcher is not null)
                     {
                         return;
@@ -43,6 +44,7 @@ namespace H2MLauncher.UI.Services
             });
 
             if (currentTheme is not null && 
+                File.Exists(currentTheme) &&
                 optionsMonitor.CurrentValue.Customization?.HotReloadThemes == true)
             {
                 WatchThemes(currentTheme);

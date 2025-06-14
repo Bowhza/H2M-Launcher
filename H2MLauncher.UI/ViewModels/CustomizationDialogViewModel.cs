@@ -16,8 +16,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Win32;
 
-using static System.Net.Mime.MediaTypeNames;
-
 namespace H2MLauncher.UI.ViewModels
 {
     public partial class ThemeViewModel : ObservableObject
@@ -136,16 +134,12 @@ namespace H2MLauncher.UI.ViewModels
                             }
 
                             // find theme file
-                            List<string> validThemeFileNames = ["theme", $"{Path.GetDirectoryName(themeDir)}"];
-                            if (metadata is not null)
-                            {
-                                validThemeFileNames.Add(metadata.Id);
-                            }
+                            List<string> validThemeFileNames = GetValidThemeFileNames(Path.GetDirectoryName(themeDir), metadata).ToList();                            
 
                             string? themeFile = null;
                             foreach ((string xamlFile, int i) in Directory.EnumerateFiles(themeDir, "*.xaml").Select((file, i) => (file, i)))
                             {
-                                if (validThemeFileNames.Contains(Path.GetFileNameWithoutExtension(xamlFile)))
+                                if (validThemeFileNames.Contains(xamlFile.ToLowerInvariant()))
                                 {
                                     themeFile = xamlFile;
                                     break;
@@ -221,26 +215,26 @@ namespace H2MLauncher.UI.ViewModels
                 ThemeFile = xamlFile,
                 Icon = iconFile,
                 Author = author,
-                Description = description ?? Path.GetFileName(xamlFile)
+                Description = description ?? $"{Path.GetFileName(Path.GetDirectoryName(xamlFile))}\\{Path.GetFileName(xamlFile)}"
             };
 
             theme.DeleteCommand = new RelayCommand(() =>
             {
-                if (ActiveTheme == theme)
-                {
-                    ActiveTheme = _defaultThemeViewModel;
-                }                
-
                 try
                 {
                     bool? delete = _dialogService.OpenTextDialog(
                         title: "Delete Theme Pack",
-                        text: $"Do you want to delete the theme '{theme.ThemeName}' with all it's files?",
+                        text: $"Are you sure you want to delete the theme '{theme.ThemeName}' with all it's files ({Path.GetDirectoryName(xamlFile)}\\)?",
                         acceptButtonText: "Delete");
 
                     if (delete != true)
                     {
                         return;
+                    }
+
+                    if (ActiveTheme == theme)
+                    {
+                        ActiveTheme = _defaultThemeViewModel;
                     }
 
                     Themes.Remove(theme);
@@ -395,6 +389,17 @@ namespace H2MLauncher.UI.ViewModels
             return false;
         }
 
+        private static IEnumerable<string> GetValidThemeFileNames(string? themeFolderName, ThemeMetadata? metadata)
+        {
+            yield return "theme.xaml";
+
+            if (themeFolderName is not null)
+                yield return $"{themeFolderName}.xaml";
+
+            if (metadata is not null)
+                yield return $"{metadata.Id}.xaml";
+        }
+
         private async Task<bool> ImportThemePack(string packFile)
         {
             ZipArchive zipArchive = ZipFile.OpenRead(packFile);
@@ -413,7 +418,26 @@ namespace H2MLauncher.UI.ViewModels
                 return false;
             }
 
-            string targetFolder = Path.Combine(Constants.ThemesDir, Path.GetFileNameWithoutExtension(packFile));
+            List<ZipArchiveEntry> rootXamlFiles = zipArchive.Entries
+                .Where(e => e.FullName.EndsWith(".xaml") && e.FullName == e.Name)
+                .ToList();
+            if (rootXamlFiles.Count == 0)
+            {
+                _errorHandlingService.HandleError("Invalid theme pack: no xaml file found.");
+                return false;
+            }
+
+            string themeFolderName = Path.GetFileNameWithoutExtension(packFile);
+            List<string> validThemeFileNames = GetValidThemeFileNames(themeFolderName, metadata).ToList();
+
+            if (rootXamlFiles.Count > 1 && !rootXamlFiles.Any(e => validThemeFileNames.Contains(e.Name)))
+            {
+                _errorHandlingService.HandleError(
+                    $"Invalid theme pack: no xaml file with valid name (must be any of {string.Join(',', validThemeFileNames)}).");
+                return false;
+            }
+
+            string targetFolder = Path.Combine(Constants.ThemesDir, themeFolderName);
             if (Directory.Exists(targetFolder))
             {
                 ThemeViewModel? existingTheme = Themes.FirstOrDefault(t => t.ThemeFile is not null && t.ThemeFile.StartsWith(targetFolder));

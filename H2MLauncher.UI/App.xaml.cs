@@ -105,6 +105,7 @@ namespace H2MLauncher.UI
         private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
             services.AddSingleton<IConfiguration>(config);
+            services.AddSingleton<IConfigurationRoot>(config); // add configuration root for WritableOptions to reload
 
             services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
                 section: config.GetSection(Constants.LauncherSettingsSection),

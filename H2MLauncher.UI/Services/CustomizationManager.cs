@@ -93,6 +93,15 @@ public partial class CustomizationManager : ObservableObject
         if (customizationSettings?.Themes is not null &&
             customizationSettings.Themes.Count > 0)
         {
+            if (!File.Exists(customizationSettings.Themes[0]))
+            {
+                UpdateCustomizationSettings(settings => settings with
+                {
+                    Themes = []
+                });
+            }
+            else
+            {
             LoadTheme(customizationSettings.Themes[0]);
         }
 
