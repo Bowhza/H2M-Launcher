@@ -9,7 +9,6 @@ namespace H2MLauncher.UI.Converters;
 
 public partial class HostNameColorConverter : IValueConverter
 {
-    private static readonly FontFamily Font = new("Consolas");
     private static readonly SolidColorBrush LighterBlueBrush = new(Color.FromRgb(37, 62, 235));
 
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
@@ -18,8 +17,9 @@ public partial class HostNameColorConverter : IValueConverter
         {
             return Array.Empty<Run>();
         }
-
-        Style? runStyle = parameter as Style;
+        
+        Style? runStyle = parameter as Style;        
+        Brush whiteBrush = (Application.Current.TryFindResource("TextLight") as Brush) ?? Brushes.White;
 
         List<Run> runs = [];
         MatchCollection matches = ColorRegex().Matches(hostname);
@@ -30,7 +30,7 @@ public partial class HostNameColorConverter : IValueConverter
                 runs.Add(new Run()
                 {
                     Text = hostname[..matches[0].Index],
-                    Foreground = Brushes.White,
+                    Foreground = whiteBrush,
                     Style = runStyle
                 });
             }
@@ -46,9 +46,9 @@ public partial class HostNameColorConverter : IValueConverter
                     "^4" => LighterBlueBrush,
                     "^5" => Brushes.Cyan,
                     "^6" => Brushes.Magenta,
-                    "^7" => Brushes.White,
+                    "^7" => whiteBrush,
                     "^8" => Brushes.DimGray,
-                    _ => Brushes.White, // ^: rainbow
+                    _ => whiteBrush, // ^: rainbow
                 };
                 runs.Add(new Run()
                 {
@@ -63,7 +63,7 @@ public partial class HostNameColorConverter : IValueConverter
             runs.Add(new Run()
             {
                 Text = hostname,
-                Foreground = Brushes.White,
+                Foreground = whiteBrush,
                 Style = runStyle
             });
         }

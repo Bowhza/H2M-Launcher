@@ -14,11 +14,11 @@
         Background="Transparent"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
-        Foreground="White"
+        Foreground="{DynamicResource TextLight}"
         WindowStartupLocation="CenterOwner" Loaded="Window_Loaded" WindowStyle="None">
     <Window.Template>
         <ControlTemplate TargetType="{x:Type Window}">
-            <Border CornerRadius="10" BorderBrush="GhostWhite" BorderThickness="1" Background="Black" Opacity="1">
+            <Border CornerRadius="10" BorderBrush="{DynamicResource DialogBorderBrush}" BorderThickness="1" Background="{DynamicResource DialogBackground}" Opacity="1">
                 <ContentPresenter Content="{TemplateBinding Content}"/>
             </Border>
         </ControlTemplate>

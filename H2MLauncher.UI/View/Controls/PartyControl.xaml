@@ -9,7 +9,7 @@
              MinWidth="150"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:PartyViewModel}">
-    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="#66000000">
+    <Border BorderThickness="0.5" BorderBrush="#333333" CornerRadius="6" Background="{DynamicResource TransparentDark400}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -17,11 +17,11 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TextBlock Text="In Party" Foreground="White" HorizontalAlignment="Center" Margin="10,5" 
+            <TextBlock Text="In Party" Foreground="{DynamicResource TextLight}" HorizontalAlignment="Center" Margin="10,5" 
                        FontSize="15" FontWeight="Bold" />
             <StackPanel Grid.Row="1" x:Name="PartyPanel" Margin="6">
                 <TextBlock Text="{Binding Members.Count, StringFormat={}{0} Members}"
-                           Margin="3,0" FontSize="13" Foreground="White" />
+                           Margin="3,0" FontSize="13" Foreground="{DynamicResource TextLight}" />
                 <ItemsControl ItemsSource="{Binding Members}" Margin="0,5" Padding="0,5" Background="#88000000"
                               Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}">
                     <ItemsControl.ItemTemplate>
@@ -33,7 +33,7 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <TextBlock ui:TextBlockExtensions.BindableInlines="{Binding Name, Converter={StaticResource HostNameColorConverter}}" 
-                                               Foreground="White" FontSize="15" 
+                                               Foreground="{DynamicResource TextLight}" FontSize="15" 
                                                VerticalAlignment="Center" Margin="0,0,0,0">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -118,7 +118,7 @@
                 </Button>
             </StackPanel>
             <StackPanel Grid.Row="2" VerticalAlignment="Center" Margin="0,3">
-                <TextBlock Text="{Binding PartyId}" Foreground="White" Margin="5"
+                <TextBlock Text="{Binding PartyId}" Foreground="{DynamicResource TextLight}" Margin="5"
                         Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>
                 <Button Height="25" Width="80" Content="Copy ID" Command="{Binding CopyPartyIdCommand}" Margin="5"
                      Visibility="{Binding IsPartyActive, Converter={StaticResource booleanToVisibilityConverter}}"/>

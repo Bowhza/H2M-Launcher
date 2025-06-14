@@ -12,8 +12,8 @@
              Height="Auto"
              Width="400"
              d:DataContext="{d:DesignInstance Type=vm:SettingsViewModel}"
-             d:Foreground="White"
-             d:Background="Black">
+             d:Foreground="{DynamicResource TextLight}"
+             d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
         <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
@@ -28,9 +28,9 @@
 
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Background" Value="#33000000"/>
-                <Setter Property="CaretBrush" Value="White"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+                <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
 
@@ -76,14 +76,14 @@
         <TextBox Text="{Binding HmwMasterServerUrl}" Grid.Row="1" Grid.Column="1" Height="20"/>
 
         <TextBlock Text="Game Location:" Grid.Row="2" Margin="15,10" HorizontalAlignment="Left"/>
-        <Border Grid.Row="2" Grid.Column="1" BorderBrush="#888" Background="#33000000" BorderThickness="1" Height="26">
+        <Border Grid.Row="2" Grid.Column="1" BorderBrush="{DynamicResource TextBoxBorderBrush}" Background="{DynamicResource TextBoxBackgroundDark}" BorderThickness="1" Height="26">
             <DockPanel>
                 <Button Style="{StaticResource LinkButtonStyle}" Command="{Binding SelectGameDirectoryCommand}"
                         Width="30" DockPanel.Dock="Right" Margin="2,0,0,0">
                     <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
                 </Button>
                 <TextBox Text="{Binding MwrLocation}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="White" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Style.Triggers>
@@ -110,13 +110,13 @@
         </Border>
 
         <CheckBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" 
-              Foreground="White" Margin="0,7" 
+              Foreground="{DynamicResource TextLight}" Margin="0,7" 
               VerticalAlignment="Center"
               Content="Enable game communication" IsChecked="{Binding GameCommunicationEnabled}"
               ToolTip="Enables communication with the game by reading certain values (such as connection state) from the game's memory. This is required for certain features."/>
 
         <CheckBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" 
-              Foreground="White" Margin="0,7" 
+              Foreground="{DynamicResource TextLight}" Margin="0,7" 
               VerticalAlignment="Center"
               Content="Enable server queueing" IsChecked="{Binding ServerQueueingEnabled}" IsEnabled="{Binding CanEnableServerQueueing}"
               ToolTip="Enables automatically joining into a queue when a server is full (or assumed to be based on predefined privileged slots). Requires 'Game Communication' to be enabled."/>
@@ -124,7 +124,7 @@
         <Grid Grid.Row="6" Grid.ColumnSpan="2" Margin="0,25,0,15">
             <Separator Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center"/>
             <TextBlock Text="Key Bindings" FontWeight="Bold" FontSize="14" Grid.Row="5" Grid.ColumnSpan="2"
-                   HorizontalAlignment="Center" Background="Black" Padding="12,0" Margin="0,-2,0,0"/>
+                   HorizontalAlignment="Center" Background="{DynamicResource DialogBackground}" Padding="12,0" Margin="0,-2,0,0"/>
         </Grid>
 
         <TextBlock Text="Reconnect:" Grid.Row="7" Margin="15,10" HorizontalAlignment="Right"/>
