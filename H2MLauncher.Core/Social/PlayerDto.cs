@@ -1,4 +1,4 @@
-﻿namespace MatchmakingServer.Core.Social;
+﻿namespace H2MLauncher.Core.Social;
 
 public record PlayerDto(
     string Id,

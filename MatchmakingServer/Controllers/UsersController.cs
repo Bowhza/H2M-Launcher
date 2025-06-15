@@ -1,4 +1,6 @@
-﻿using MatchmakingServer.Authentication;
+﻿using H2MLauncher.Core.Social;
+
+using MatchmakingServer.Authentication;
 using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.Database.Entities;
