@@ -10,7 +10,7 @@
     <Border Background="{Binding Background, ElementName=root}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Border.Style>
             <Style TargetType="Border">
-                <Setter Property="BorderBrush" Value="#888"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource BrushNeutral400}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsEditing}" Value="True">
@@ -41,7 +41,7 @@
                  PreviewKeyUp="ShortcutTextBox_PreviewKeyUp">
                 <TextBox.Style>
                     <Style TargetType="TextBox">
-                        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
+                        <Setter Property="Foreground" Value="{DynamicResource TextBoxForegroundDark}" />
                         <Style.Triggers>
                             <Trigger Property="IsFocused" Value="True">
                                 <Setter Property="BorderThickness" Value="0"/>

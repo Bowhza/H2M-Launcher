@@ -297,7 +297,7 @@
                                         <!-- Kebab menu button -->
                                         <ToggleButton x:Name="KebabMenuButton" Content="⋮" Margin="0,5,5,5" Width="0"
                                                       FontSize="15" Style="{DynamicResource LinkToggleButtonStyle}"
-                                                      Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}, ConverterParameter={x:Static Visibility.Hidden}}">
+                                                      Visibility="{Binding IsInternal, Converter={StaticResource InverseBoolToVisibilityConverter}, ConverterParameter={x:Static Visibility.Hidden}}">
                                         </ToggleButton>
 
                                         <!-- Kebab menu popup -->
