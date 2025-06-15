@@ -53,6 +53,7 @@
 	<Color x:Key="NyanGray">#999</Color>
 
 	<SolidColorBrush x:Key="NyanBeigeBrush" Color="{DynamicResource NyanBeige}"/>
+    <SolidColorBrush x:Key="NyanDarkPinkBrush" Color="{DynamicResource NyanDarkPink}"/>
 	<SolidColorBrush x:Key="NyanGrayBrush" Color="{DynamicResource NyanGray}"/>
 
 	<LinearGradientBrush x:Key="RainbowBrush" StartPoint="0,0.5" EndPoint="1,0.5">
@@ -93,7 +94,7 @@
 	<SolidColorBrush x:Key="ControlPrimaryHover" Color="{DynamicResource ColorPrimary400}" />
 	<SolidColorBrush x:Key="ControlPrimarySelected" Color="{DynamicResource ColorPrimary500}" />
 	<SolidColorBrush x:Key="ControlPrimaryPressed" Color="{DynamicResource ColorPrimary600}" />
-	<SolidColorBrush x:Key="ControlPrimaryForeground" Color="{DynamicResource ColorBlack}" />
+    <SolidColorBrush x:Key="ControlPrimaryForeground" Color="{DynamicResource NyanDarkPink}" />
 	<SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
 	<SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
 
@@ -195,7 +196,7 @@
 					<Border CornerRadius="4" x:Name="border"
 							Background="{TemplateBinding Background}"
 							Padding="{TemplateBinding Padding}"
-							BorderThickness="1"
+							BorderThickness="1" RenderOptions.EdgeMode="Aliased"
 							BorderBrush="{DynamicResource TextDark}">
 						<Grid>
 							<ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
@@ -214,10 +215,10 @@
 						</Trigger>
 
 						<Trigger Property="IsFocused" Value="True">
-							<Setter Property="Foreground" Value="LightBlue" />
+							<Setter Property="Foreground" Value="{DynamicResource NyanBeigeBrush}" />
 						</Trigger>
 						<Trigger Property="IsFocused" Value="False">
-							<Setter Property="Foreground" Value="{DynamicResource TextDark}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextDark}" />
 						</Trigger>
 
 						<Trigger Property="IsEnabled" Value="False">
@@ -286,7 +287,7 @@
 
 	<Style x:Key="SocialTabControlStyle" TargetType="TabControl">
 		<Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
-		<Setter Property="BorderThickness" Value="2"/>
+		<Setter Property="BorderThickness" Value="1"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource NyanBeigeBrush}"/>
 		<Style.Resources>
 			<Style TargetType="{x:Type TabPanel}">
@@ -298,12 +299,12 @@
 
 	<Style x:Key="ServerTabControlStyle" TargetType="TabControl">
 		<Setter Property="Background" Value="Transparent"/>
-		<Setter Property="BorderThickness" Value="2"/>
+		<Setter Property="BorderThickness" Value="1.5"/>
 		<Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
 	</Style>
 
 	<Style TargetType="{x:Type TabItem}">
-		<Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
 		<Setter Property="FontWeight" Value="Bold" />
 		<Setter Property="FontFamily" Value="Consolas" />
 		<Setter Property="Template">
@@ -311,8 +312,8 @@
 				<ControlTemplate TargetType="{x:Type TabItem}">
 					<Grid>
 						<Border Name="Border" Margin="0,4,-1,0" 
-								Background="#999" CornerRadius="2,6,0,0"
-								BorderBrush="{DynamicResource TextDark}" BorderThickness="2">
+								Background="#999" CornerRadius="2,6,0,0" RenderOptions.EdgeMode="Aliased"
+								BorderBrush="{DynamicResource TextDark}" BorderThickness="1.5">
 							<Border Name="InnerBorder" BorderBrush="Transparent" BorderThickness="2" CornerRadius="2,6,0,0">
 							<ContentPresenter 
 									x:Name="ContentSite" VerticalAlignment="Center"
@@ -326,7 +327,7 @@
 						<Trigger Property="IsSelected" Value="True">
 							<Setter TargetName="Border" Property="Background" Value="{DynamicResource ControlPrimarySelected}" />
 							<Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource TextDark}" />
-							<Setter Property="Foreground" Value="{DynamicResource ControlPrimaryForeground}" />
+                            <Setter Property="Foreground" Value="{DynamicResource NyanDarkPinkBrush}" />
 							<Setter TargetName="Border" Property="BorderThickness" Value="2,2,2,0" />
 							<Setter TargetName="Border" Property="Margin" Value="0,0,-4,0" />
 							<Setter Property="Panel.ZIndex" Value="100" />
