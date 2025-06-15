@@ -14,6 +14,7 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.UI.Services;
 
+
 public partial class CustomizationManager : ObservableObject
 {
     internal const string DefaultResourceDirectory = "pack://application:,,,/H2MLauncher.UI;component";
@@ -93,7 +94,9 @@ public partial class CustomizationManager : ObservableObject
         if (customizationSettings?.Themes is not null &&
             customizationSettings.Themes.Count > 0)
         {
-            if (!File.Exists(customizationSettings.Themes[0]))
+            string selectedThemeFile = customizationSettings.Themes[0];
+            bool isInternal = selectedThemeFile.StartsWith(Constants.EmbeddedThemesAbsolutePath);
+            if (isInternal ? !Uri.TryCreate(selectedThemeFile, UriKind.Absolute, out Uri? themeResourceUri) : !File.Exists(selectedThemeFile))
             {
                 UpdateCustomizationSettings(settings => settings with
                 {
@@ -102,8 +105,8 @@ public partial class CustomizationManager : ObservableObject
             }
             else
             {
-            LoadTheme(customizationSettings.Themes[0]);
-        }
+                LoadTheme(customizationSettings.Themes[0]);
+            }
         }
 
         HotReloadThemes = customizationSettings?.HotReloadThemes ?? false;
@@ -248,15 +251,19 @@ public partial class CustomizationManager : ObservableObject
             {
                 string themeDirectory = Path.GetDirectoryName(xamlPath)! + '\\';
 
+                bool isEmbedded = xamlPath.StartsWith("pack://application");
+
                 // load resource dictionary
-                using FileStream stream = new(xamlPath, FileMode.Open, FileAccess.Read);
+                using Stream stream = isEmbedded
+                    ? Application.GetResourceStream(new Uri(xamlPath)).Stream
+                    : new FileStream(xamlPath, FileMode.Open, FileAccess.Read);
 
                 ParserContext parserContext = new()
                 {
                     // Critical: this makes relative URIs work!
-                    BaseUri = new Uri(themeDirectory, UriKind.Absolute)
+                    BaseUri = new Uri(isEmbedded ? xamlPath.Substring(0, xamlPath.LastIndexOf('/') + 1) : themeDirectory, UriKind.Absolute)
                 };
-                
+
                 ResourceDictionary resourceDictionary = (ResourceDictionary)XamlReader.Load(stream, parserContext);
 
                 // remove old one
@@ -295,19 +302,20 @@ public partial class CustomizationManager : ObservableObject
         if (Application.Current.Resources.MergedDictionaries.Count > 1)
         {
             Application.Current.Resources.MergedDictionaries.RemoveAt(1);
-
-            // reset resource directory
-            Application.Current.Resources.Remove(Constants.CurrentThemeDirectoryKey);
-            CurrentThemeDirectory = DefaultResourceDirectory;
-            CurrentThemeFile = null;
-
-            UpdateCustomizationSettings(settings => settings with
-            {
-                Themes = []
-            });
-
-            ThemeLoadingError = false;
         }
+
+        // reset resource directory
+        Application.Current.Resources.Remove(Constants.CurrentThemeDirectoryKey);
+        CurrentThemeDirectory = DefaultResourceDirectory;
+        CurrentThemeFile = null;
+
+        UpdateCustomizationSettings(settings => settings with
+        {
+            Themes = []
+        });
+
+        ThemeLoadingError = false;
+
     }
 
     partial void OnBackgroundBlurChanged(double value)
