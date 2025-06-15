@@ -364,7 +364,7 @@ Additional files that support the theme, such as gifs or other media.
 
 > **Make sure to include any images and videos used in your .xaml theme and reference them with a relative path.**
 
-## Importing a theme pack
+## Importing a Theme Pack
 
 To import a theme pack you downloaded:
 - Go to the **Customization Settings** (wand icon on the bottom right)
