@@ -314,8 +314,7 @@
 
                     <!-- Server tabs -->
                     <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
-                                Grid.RowSpan="2" Margin="0,10,0,5" BorderThickness="1" 
-                                BorderBrush="{DynamicResource ControlBorderBrush}" Background="Transparent" >
+                                Grid.RowSpan="2" Margin="0,10,0,5" Style="{DynamicResource ServerTabControlStyle}" >
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <TextBlock Text="{Binding TabName}"/>
@@ -458,18 +457,19 @@
                                             <DataGridTemplateColumn Header="Favourite" MinWidth="69" SortMemberPath="IsFavorite" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
-                                                        Command="{Binding DataContext.ToggleFavouriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                        CommandParameter="{Binding}"
-                                                        HorizontalAlignment="Center" 
-                                                        VerticalAlignment="Center"
-                                                        FontSize="16"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Margin="5,0,0,0"
-                                                        Focusable="False"
-                                                        IsTabStop="False" 
-                                                        Cursor="Hand"/>
+                                                        <Button Style="{StaticResource LinkButtonStyle}"
+                                                                Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
+                                                                Command="{Binding DataContext.ToggleFavouriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                CommandParameter="{Binding}"
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"
+                                                                FontSize="16"
+                                                                Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Margin="5,0,0,0"
+                                                                Focusable="False"
+                                                                IsTabStop="False" 
+                                                                Cursor="Hand"/>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>

@@ -153,6 +153,7 @@
 
     <!-- TextBox Brushes -->
     <SolidColorBrush x:Key="TextBoxBackgroundDark" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
+    <SolidColorBrush x:Key="TextBoxForegroundDark" Color="{DynamicResource ColorLight}"/>
     <SolidColorBrush x:Key="TextBoxBorderBrush" Color="{DynamicResource ColorNeutral400}"/>
 
     <!-- Transparent Item Brushes -->
@@ -990,6 +991,13 @@
     </Style>
 
 
+    <Style x:Key="ServerTabControlStyle" TargetType="TabControl">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+    </Style>
+
+
     <SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
 
     <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
@@ -1046,5 +1054,14 @@
                 <Setter Property="Background" Value="{DynamicResource BrushNeutral800}"/>
             </Trigger>
         </Style.Triggers>
+    </Style>
+
+    <!-- Dark TextBox used in dialogs on dark background -->
+    <Style x:Key="TransparentDarkTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Style.Setters>
+            <Setter Property="Foreground" Value="{DynamicResource TextBoxForegroundDark}"/>
+            <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
+            <Setter Property="CaretBrush" Value="{DynamicResource TextBoxForegroundDark}"/>
+        </Style.Setters>
     </Style>
 </ResourceDictionary>
