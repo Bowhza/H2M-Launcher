@@ -166,7 +166,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Title -->
-                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource TextLight}"/>
+                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Style="{DynamicResource TitleStyle}"/>
 
                     <!-- Socials -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
@@ -257,10 +257,10 @@
 
                     <!-- Player / Server count -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
-                        <Label Content="Total Players:" Foreground="{DynamicResource TextLight}" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
-                        <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="{DynamicResource TextLight}" />
-                        <Label Content="Total Servers:" Foreground="{DynamicResource TextLight}"/>
-                        <Label Content="{Binding SelectedTab.TotalServers}" Foreground="{DynamicResource TextLight}" />
+                        <Label Content="Total Players:" HorizontalAlignment="Left" Margin="-5,0,0,0" Style="{DynamicResource SubTitleStyle}"/>
+                        <Label Content="{Binding SelectedTab.TotalPlayers}" Style="{DynamicResource CountNumberStyle}"/>
+                        <Label Content="Total Servers:" Style="{DynamicResource SubTitleStyle}"/>
+                        <Label Content="{Binding SelectedTab.TotalServers}" Style="{DynamicResource CountNumberStyle}"/>
                     </StackPanel>
 
                     <!-- Text Filter -->
@@ -324,7 +324,7 @@
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <Grid>
                                     <!-- Opaque background for the header row -->
-                                    <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="0, 0, 0, 5"></Rectangle>
+                                    <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="-2, -2, -2, 5"></Rectangle>
                                     <view:CustomDataGrid
                                         x:Name="serverDataGrid" 
                                         Style="{DynamicResource ServerDataGridStyle}" 
@@ -351,12 +351,12 @@
                                         SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
                                         <DataGrid.Resources>
                                             <DataGridTextColumn 
-                                            x:Key="ThatPeskyColumn"
-                                            Header="Last played" 
-                                            Visibility="{Binding Path=DataContext.IsRecentsSelected, Source={x:Reference mainWindow}, Converter={StaticResource booleanToVisibilityConverter}}" 
-                                            SortMemberPath="SortPath"
-                                            SortDirection="Descending"
-                                            Binding="{Binding LastPlayed}"/>
+                                                x:Key="ThatPeskyColumn"
+                                                Header="Last played" 
+                                                Visibility="{Binding Path=DataContext.IsRecentsSelected, Source={x:Reference mainWindow}, Converter={StaticResource booleanToVisibilityConverter}}" 
+                                                SortMemberPath="SortPath"
+                                                SortDirection="Descending"
+                                                Binding="{Binding LastPlayed}"/>
                                         </DataGrid.Resources>
                                         <DataGrid.InputBindings>
                                             <!-- Key shortcut commands for row -->

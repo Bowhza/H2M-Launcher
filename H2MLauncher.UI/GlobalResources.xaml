@@ -161,7 +161,7 @@
     <SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
     <SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
 
-    <!-- Main Window -->    
+    <!-- Main Window -->
     
     <Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
         <!-- Hide this container to hide the background image and expose the background brush -->
@@ -194,7 +194,19 @@
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
     </Style>
-    
+
+
+    <!-- Title -->
+    <Style x:Key="TitleStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+    </Style>
+
+    <!-- Sub Title (player count etc.) -->
+    <Style x:Key="SubTitleStyle" TargetType="FrameworkElement">
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextLight}"/>
+    </Style>
+
+    <Style x:Key="CountNumberStyle" TargetType="{x:Type FrameworkElement}" BasedOn="{StaticResource SubTitleStyle}"/>
 
     <!-- Status Bar -->
     <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
@@ -1063,5 +1075,11 @@
             <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource TextBoxForegroundDark}"/>
         </Style.Setters>
+    </Style>
+
+    <SolidColorBrush x:Key="DialogForeground" Color="{DynamicResource ColorLight}"/>
+
+    <Style x:Key="DialogTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource DialogForeground}" />
     </Style>
 </ResourceDictionary>

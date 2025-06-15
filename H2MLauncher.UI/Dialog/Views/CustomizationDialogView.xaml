@@ -17,14 +17,6 @@
              d:Foreground="{DynamicResource TextLight}"
              d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
-        <Style TargetType="{x:Type TextBox}">
-            <Style.Setters>
-                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
-                <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
-                <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
-            </Style.Setters>
-        </Style>
-
         <Style TargetType="ToolTip">
             <Style.Resources>
                 <Style TargetType="ContentPresenter">
@@ -142,7 +134,7 @@
                 </StackPanel>
 
                 <TextBox Text="{Binding BackgroundImageUrl, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Image'}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource DialogForeground}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Style.Triggers>
@@ -174,7 +166,7 @@
         <TextBlock Text="Background Blur:" Grid.Row="3" Margin="15,10" HorizontalAlignment="Left"/>
         <DockPanel Grid.Row="3" Grid.Column="1">
             <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
+                     Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource DialogForeground}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
             <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 
@@ -193,7 +185,7 @@
                 </StackPanel>
 
                 <TextBox Text="{Binding LoadedThemePath, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Theme'}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource DialogForeground}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Style.Triggers>
@@ -223,7 +215,7 @@
            Visibility="{Binding Customization.ThemeLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
 
         <CheckBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" 
-                  Foreground="{DynamicResource TextLight}" Margin="0,7" 
+                  Foreground="{DynamicResource DialogForeground}" Margin="0,7" 
                   VerticalAlignment="Center"
                   Content="Enable Hot Reload" IsChecked="{Binding Customization.HotReloadThemes}"
                   ToolTip="Automatically reload the theme if the file changes."/>
@@ -237,7 +229,7 @@
             <ListBox.Style>
                 <Style TargetType="ListBox">
                     <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
-                    <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+                    <Setter Property="Foreground" Value="{DynamicResource DialogForeground}"/>
                 </Style>
             </ListBox.Style>
 
@@ -320,7 +312,7 @@
                                                     </Menu.ItemsPanel>
                                                     <MenuItem Header="Open folder"  Command="{Binding OpenFolderCommand}" Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                                              Padding="5,2" Margin="0,2,0,0" HorizontalAlignment="Stretch"
-                                                             Foreground="{DynamicResource TextLight}" />
+                                                             Foreground="{DynamicResource DialogForeground}" />
 
                                                     <MenuItem Command="{Binding DeleteCommand}" Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}}"
                                                             Padding="5,2" Margin="0,2,0,0" Foreground="DarkRed" HorizontalContentAlignment="Center"
