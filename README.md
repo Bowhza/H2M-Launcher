@@ -24,6 +24,7 @@
 - [Party System](#party-system)
 - [Add Friends](#add-friends)
 - [Game Detection](#game-detection)
+- [Customization](#customization)
 - [Settings & Other](#settings--other)
 
 ### Server Browser
@@ -108,6 +109,15 @@ Pending friend requests will appear in the **Requests** tab and can be accepted 
 - Detect whether the game is running.
 - Detect whether the player is in the menu or connected to a server.
 - Automatically set the game location if unset in settings and the game is detected.
+
+### Customization
+
+<img src="./Images/Customization-Dialog.png">
+
+- Select a custom background image or video.
+- Switch between different themes.
+- Import theme packs (zip files) made by other users.
+- See the [Theming documentation](documentation/Theming.md) for how to create themes.
 
 ### Settings & Other
 
