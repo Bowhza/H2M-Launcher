@@ -26,13 +26,7 @@
             </Style.Triggers>
         </Style>
 
-        <Style TargetType="{x:Type TextBox}">
-            <Style.Setters>
-                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
-                <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
-                <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
-            </Style.Setters>
-        </Style>
+        <Style TargetType="{x:Type TextBox}" BasedOn="{StaticResource TransparentDarkTextBoxStyle}"/>
 
         <Style TargetType="ToolTip">
             <Style.Resources>
@@ -83,7 +77,7 @@
                     <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
                 </Button>
                 <TextBox Text="{Binding MwrLocation}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextLight}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextBoxForegroundDark}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
                         <Style TargetType="TextBox">
                             <Style.Triggers>

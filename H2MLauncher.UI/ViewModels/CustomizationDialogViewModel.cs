@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
@@ -26,6 +27,7 @@ namespace H2MLauncher.UI.ViewModels
         public string? Author { get; init; }
         public string? Description { get; init; }
 
+        public bool IsInternal => ThemeFile is null || ThemeFile.StartsWith(Constants.EmbeddedThemesAbsolutePath);
         public bool IsDefault { get; init; }
 
         [ObservableProperty]
@@ -44,6 +46,9 @@ namespace H2MLauncher.UI.ViewModels
 
     public partial class CustomizationDialogViewModel : DialogViewModelBase
     {
+        private const string MetadataFileName = "metadata.json";
+        private const string IconName = "icon";
+
         private readonly CustomizationManager _customization;
         private readonly IOptionsMonitor<H2MLauncherSettings> _options;
         private readonly IErrorHandlingService _errorHandlingService;
@@ -62,9 +67,6 @@ namespace H2MLauncher.UI.ViewModels
 
         [ObservableProperty]
         private ThemeViewModel? _activeTheme;
-
-        [ObservableProperty]
-        private bool _loadingThemes;
 
         public CustomizationManager Customization => _customization;
 
@@ -102,110 +104,200 @@ namespace H2MLauncher.UI.ViewModels
                 new JsonSerializerOptions() { PropertyNameCaseInsensitive = true });
         }
 
+        #region Theme Loading
+
+        private static string? TryFindThemeFile(string? themeFolderName, ThemeMetadata? metadata, IEnumerable<string> xamlFiles)
+        {
+            List<string> validThemeFileNames = GetValidThemeFileNames(themeFolderName, metadata).ToList();
+
+            string? themeFile = null;
+            foreach ((string xamlFile, int i) in xamlFiles.Select((file, i) => (file, i)))
+            {
+                if (validThemeFileNames.Contains(xamlFile.ToLowerInvariant()))
+                {
+                    themeFile = xamlFile;
+                    return themeFile;
+                }
+
+                // if there's a single xaml file, accept that too
+                if (i == 0)
+                {
+                    themeFile = xamlFile;
+                }
+                else
+                {
+                    themeFile = null;
+                }
+            }
+
+            return themeFile;
+        }
+
+        private async Task<bool> LoadAndAddThemeFromResource(string themeFolderName, IEnumerable<string> files)
+        {
+            try
+            {
+                ThemeMetadata? metadata = null;
+
+                // find metadata
+                string? metadataResourceName = files.FirstOrDefault(r => r.Equals(MetadataFileName, StringComparison.InvariantCultureIgnoreCase));
+                if (metadataResourceName is not null)
+                {
+                    using Stream? metadataStream = ResourceHelper.GetWpfResourceStream(
+                        $"{Constants.EmbeddedThemesRelativePath}/{themeFolderName}/{metadataResourceName}");
+
+                    if (metadataStream is not null)
+                    {
+                        metadata = await DeserializeThemeMetadata(metadataStream);
+                        if (metadata is null)
+                        {
+                            // invalid metadata
+                            return false;
+                        }
+                    }
+                }
+
+                // find theme file (only files directly in this folder count)
+                string? themeFileName = TryFindThemeFile(themeFolderName, metadata, files.Where(r => r.EndsWith(".xaml") && !r.Contains('/')));
+                if (themeFileName is null)
+                {
+                    return false;
+                }
+
+                // create the absolute theme file path
+                string themeFile = $"{Constants.EmbeddedThemesAbsolutePath}/{themeFolderName}/{themeFileName}";
+
+                if (Themes.Any(t => t.ThemeFile == themeFile))
+                {
+                    // theme already added
+                    return false;
+                }
+
+                string themeName = metadata?.Name ?? Path.GetFileNameWithoutExtension(themeFile);
+                string? iconFile = files.Where(r => r.StartsWith(IconName + ".") && !r.Contains('/')).FirstOrDefault();
+
+                if (iconFile is not null)
+                    iconFile = $"{Constants.EmbeddedThemesAbsolutePath}/{themeFolderName}/{iconFile}";
+
+                AddTheme(themeName, themeFile, iconFile, metadata?.Author, metadata?.Description);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while loading embedded theme at {themeFolder}", themeFolderName);
+                return false;
+            }
+        }
+
+        private async Task<bool> LoadAndAddTheme(string themeDir)
+        {
+            try
+            {
+                ThemeMetadata? metadata = null;
+
+                // find metadata file
+                string metadataFileName = Path.Combine(themeDir, MetadataFileName);
+                if (File.Exists(metadataFileName))
+                {
+                    using FileStream metadataFileStream = File.OpenRead(metadataFileName);
+                    metadata = await DeserializeThemeMetadata(metadataFileStream);
+                    if (metadata is null)
+                    {
+                        // invalid metadata
+                        return false;
+                    }
+                }
+
+                // find theme file
+                string? themeFile = TryFindThemeFile(
+                    Path.GetDirectoryName(themeDir),
+                    metadata,
+                    Directory.EnumerateFiles(themeDir, "*.xaml").Select(path => Path.GetFileName(path)));
+
+                if (themeFile is null)
+                {
+                    // theme file not found
+                    return false;
+                }
+
+                themeFile = Path.Combine(themeDir, themeFile);
+
+                if (Themes.Any(t => t.ThemeFile == themeFile))
+                {
+                    // theme already added
+                    return false;
+                }
+
+                string themeName = metadata?.Name ?? Path.GetFileNameWithoutExtension(themeFile);
+                string? iconFile = Directory.EnumerateFiles(themeDir, $"{IconName}.*").FirstOrDefault();
+
+                AddTheme(themeName, themeFile, iconFile, metadata?.Author, metadata?.Description);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error while loading theme at {themeFolder}", themeDir);
+                return false;
+            }
+        }
+
 
         [RelayCommand]
         private async Task LoadThemes()
         {
-            LoadingThemes = true;
             try
             {
                 Themes.Clear();
                 Themes.Add(_defaultThemeViewModel);
 
+                // First load the embedded themes
+                IEnumerable<IGrouping<string, string>> resourcesGroupedByThemeFolder =
+                ResourceHelper
+                    .GetResourcesUnder(Constants.EmbeddedThemesRelativePath)
+                    .GroupBy(r => r[..r.IndexOf('/')], r => r.Substring(r.IndexOf('/') + 1));
+
+                foreach (IGrouping<string, string> grp in resourcesGroupedByThemeFolder)
+                {
+                    string themeFolderName = grp.Key;
+                    await LoadAndAddThemeFromResource(themeFolderName, grp);
+                }
+
+                // Then the ones from the users themes folder
                 if (Directory.Exists(Constants.ThemesDir))
                 {
                     foreach (string themeDir in Directory.EnumerateDirectories(Constants.ThemesDir))
                     {
-                        try
-                        {
-                            ThemeMetadata? metadata = null;
-
-                            // find metadata file
-                            string metadataFileName = Path.Combine(themeDir, "metadata.json");
-                            if (File.Exists(metadataFileName))
-                            {
-                                using FileStream metadataFileStream = File.OpenRead(metadataFileName);
-                                metadata = await DeserializeThemeMetadata(metadataFileStream);
-                                if (metadata is null)
-                                {
-                                    // invalid metadata
-                                    continue;
-                                }
-                            }
-
-                            // find theme file
-                            List<string> validThemeFileNames = GetValidThemeFileNames(Path.GetDirectoryName(themeDir), metadata).ToList();                            
-
-                            string? themeFile = null;
-                            foreach ((string xamlFile, int i) in Directory.EnumerateFiles(themeDir, "*.xaml").Select((file, i) => (file, i)))
-                            {
-                                if (validThemeFileNames.Contains(xamlFile.ToLowerInvariant()))
-                                {
-                                    themeFile = xamlFile;
-                                    break;
-                                }
-
-                                // if there's a single xaml file, accept that too
-                                if (i == 0)
-                                {
-                                    themeFile = xamlFile;
-                                }
-                                else
-                                {
-                                    themeFile = null;
-                                }
-                            }
-
-                            if (themeFile is null)
-                            {
-                                // theme file not found
-                                continue;
-                            }
-
-                            if (Themes.Any(t => t.ThemeFile == themeFile))
-                            {
-                                // theme already added
-                                continue;
-                            }
-
-                            string themeName = metadata?.Name ?? Path.GetFileNameWithoutExtension(themeFile);
-                            string? iconFile = Directory.EnumerateFiles(themeDir, "icon.*").FirstOrDefault();
-
-                            AddTheme(themeName, themeFile, iconFile, metadata?.Author, metadata?.Description);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error while loading theme at {themeFolder}", themeDir);
-                        }
+                        await LoadAndAddTheme(themeDir);
                     }
                 }
 
                 // Determine active theme
                 string? currentThemeFilePath = _options.CurrentValue.Customization?.Themes?.FirstOrDefault();
 
-                ThemeViewModel currentTheme = string.IsNullOrEmpty(currentThemeFilePath)
+
+                ThemeViewModel? currentTheme = string.IsNullOrEmpty(currentThemeFilePath)
                     ? _defaultThemeViewModel
                     : Themes.FirstOrDefault(t =>
                             t.ThemeFile is not null && string.Equals(
                                 Path.GetFullPath(t.ThemeFile).TrimEnd('\\'),
                                 Path.GetFullPath(currentThemeFilePath).TrimEnd('\\'),
                                 StringComparison.InvariantCultureIgnoreCase)
-                      ) ?? _defaultThemeViewModel;
+                      ) ?? null;
 
-                currentTheme.IsActive = true;
-                currentTheme.IsLoadingError = _customization.ThemeLoadingError;
+                if (currentTheme is not null)
+                {
+                    currentTheme.IsActive = true;
+                }
 
                 ActiveTheme = currentTheme;
             }
-            catch
+            catch (Exception ex)
             {
-
-            }
-            finally
-            {
-                LoadingThemes = false;
+                _logger.LogError(ex, "Error while loading themes");
             }
         }
+
+        #endregion
 
         private void AddTheme(string name, string xamlFile, string? iconFile, string? author, string? description)
         {
@@ -368,6 +460,19 @@ namespace H2MLauncher.UI.ViewModels
             LoadedThemePath = null;
         }
 
+        #region Theme Import
+
+        private static IEnumerable<string> GetValidThemeFileNames(string? themeFolderName, ThemeMetadata? metadata)
+        {
+            yield return "theme.xaml";
+
+            if (themeFolderName is not null)
+                yield return $"{themeFolderName}.xaml";
+
+            if (metadata is not null)
+                yield return $"{metadata.Id}.xaml";
+        }
+
         private static bool ImportXamlTheme(string xamlFile)
         {
             string name = Path.GetFileNameWithoutExtension(xamlFile);
@@ -387,17 +492,6 @@ namespace H2MLauncher.UI.ViewModels
             }
 
             return false;
-        }
-
-        private static IEnumerable<string> GetValidThemeFileNames(string? themeFolderName, ThemeMetadata? metadata)
-        {
-            yield return "theme.xaml";
-
-            if (themeFolderName is not null)
-                yield return $"{themeFolderName}.xaml";
-
-            if (metadata is not null)
-                yield return $"{metadata.Id}.xaml";
         }
 
         private async Task<bool> ImportThemePack(string packFile)
@@ -495,6 +589,8 @@ namespace H2MLauncher.UI.ViewModels
                 _errorHandlingService.HandleException(ex, "Error while importing theme");
             }
         }
+
+        #endregion
 
         private record ThemeMetadata
         {
