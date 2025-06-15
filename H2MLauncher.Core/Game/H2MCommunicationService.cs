@@ -273,7 +273,7 @@ namespace H2MLauncher.Core.Game
 
                 foreach (string command in commands)
                 {
-                    if (WriteToConsoleInput(command + "\r"))
+                    if (!WriteToConsoleInput(command + "\r"))
                     {
                         _logger.LogWarning("Could not write command {command} to console input", command);
                     }

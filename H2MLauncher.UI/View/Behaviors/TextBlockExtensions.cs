@@ -28,10 +28,14 @@ namespace H2MLauncher.UI
                 return;
             }
 
-            if (target != null)
+            if (target is not null)
             {
                 target.Inlines.Clear();
-                target.Inlines.AddRange(((System.Collections.IEnumerable)e.NewValue));
+
+                if (e.NewValue is not null)
+                {
+                    target.Inlines.AddRange(((System.Collections.IEnumerable)e.NewValue));
+                }
             }
         }
     }
