@@ -27,7 +27,6 @@ namespace MatchmakingServer.Controllers
         private readonly IMemoryCache _memoryCache;
         private readonly ServerStore _serverStore;
         private readonly MatchmakingService _matchmakingService;
-        private readonly IGameServerInfoService<GameServer> _udpGameServerCommunicationService;
         private readonly IGameServerInfoService<GameServer> _tcpGameServerCommunicationService;
         private readonly ILogger<PlaylistsController> _logger;
 
@@ -39,8 +38,7 @@ namespace MatchmakingServer.Controllers
             MatchmakingService matchmakingService,
             ServerStore serverStore,
             IMemoryCache memoryCache,
-            [FromKeyedServices("UDP")] IGameServerInfoService<GameServer> udpGameServerCommunicationService,
-            [FromKeyedServices("TCP")] IGameServerInfoService<GameServer> tcpGameServerCommunicationService,
+            IGameServerInfoService<GameServer> tcpGameServerCommunicationService,
             ILogger<PlaylistsController> logger,
             PlaylistStore playlistStore)
         {
@@ -49,7 +47,6 @@ namespace MatchmakingServer.Controllers
             _matchmakingService = matchmakingService;
             _serverStore = serverStore;
             _memoryCache = memoryCache;
-            _udpGameServerCommunicationService = udpGameServerCommunicationService;
             _tcpGameServerCommunicationService = tcpGameServerCommunicationService;
             _logger = logger;
             _playlistStore = playlistStore;
@@ -93,7 +90,7 @@ namespace MatchmakingServer.Controllers
                 GameServer server = _serverStore.GetOrAddServer(connDetails.Ip, connDetails.Port);
 
                 if (server.LastServerInfo is null ||
-                    DateTime.Now - server.LastSuccessfulPingTimestamp >= TimeSpan.FromMinutes(1))
+                    DateTime.Now - server.LastServerInfoTimestamp >= TimeSpan.FromMinutes(1))
                 {
                     serversToRequest.Add(server);
                 }
@@ -166,7 +163,7 @@ namespace MatchmakingServer.Controllers
                         playerCount += server.PlayerQueue.Count;
 
                         if (server.LastServerInfo is not null &&
-                            DateTime.Now - server.LastSuccessfulPingTimestamp < TimeSpan.FromMinutes(1))
+                            DateTime.Now - server.LastServerInfoTimestamp < TimeSpan.FromMinutes(1))
                         {
                             // use player count of last server info
                             playerCount += server.LastServerInfo.RealPlayerCount;
@@ -182,35 +179,29 @@ namespace MatchmakingServer.Controllers
 
                     _logger.LogDebug("Requesting game server info for {numServers}", serverToRequest.Count);
 
-                    if (playlist.Id.StartsWith("HMW", StringComparison.OrdinalIgnoreCase))
+                    CancellationTokenSource timeoutCancellation = new(3000);
+                    try
                     {
-                        CancellationTokenSource timeoutCancellation = new(1500);
-                        try
-                        {
-                            // request HMW servers with HTTP
-                            await serverToRequest
-                                .Select((s) => _tcpGameServerCommunicationService.GetInfoAsync(s, timeoutCancellation.Token).ContinueWith(t =>
+                        // request HMW servers with HTTP
+                        await serverToRequest
+                            .Select((s) =>
+                            {
+                                return _tcpGameServerCommunicationService.GetInfoAsync(s, timeoutCancellation.Token)
+                                .ContinueWith(t =>
                                 {
                                     if (t.IsCompletedSuccessfully && t.Result is not null)
                                     {
+                                        _logger.LogInformation("{serverName}: {playerCount}", t.Result.HostName, t.Result.Clients - t.Result.Bots);
                                         Interlocked.Add(ref playerCount, t.Result.Clients - t.Result.Bots);
                                     }
-                                }))
-                                .WhenAll();
-                        }
-                        catch (OperationCanceledException) { }
-                        finally
-                        {
-                            timeoutCancellation.Dispose();
-                        }
+                                });
+                            })
+                            .WhenAll();
                     }
-                    else
+                    catch (OperationCanceledException) { }
+                    finally
                     {
-                        // request server info of all remaining servers
-                        playerCount += await _udpGameServerCommunicationService
-                             .GetAllInfoAsync(serverToRequest, requestTimeoutInMs: 1000)
-                             .Select(r => r.info?.RealPlayerCount ?? 0)
-                             .SumAsync();
+                        timeoutCancellation.Dispose();
                     }
 
                     return playerCount;
@@ -233,7 +224,7 @@ namespace MatchmakingServer.Controllers
                 Task getInfoCompleted = await _tcpGameServerCommunicationService.SendGetInfoAsync(servers, (e) =>
                 {
                     e.Server.LastServerInfo = e.ServerInfo;
-                    e.Server.LastSuccessfulPingTimestamp = DateTimeOffset.Now;
+                    e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
 
                     respondingServers.Add(e.Server);
                 }, timeoutInMs: 2000, cancellationToken: cancellationToken);

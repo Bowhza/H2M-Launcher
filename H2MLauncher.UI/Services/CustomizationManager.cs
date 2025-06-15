@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Windows;
+using System.Windows.Markup;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -12,21 +14,42 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.UI.Services;
 
+
 public partial class CustomizationManager : ObservableObject
 {
-    internal const string DefaultBackgroundImagePath = "pack://application:,,,/H2MLauncher.UI;component/Assets/Background.jpg";
+    internal const string DefaultResourceDirectory = "pack://application:,,,/H2MLauncher.UI;component";
+    internal const string DefaultBackgroundImagePath = DefaultResourceDirectory + "/Assets/Background.jpg";
     internal const double DefaultBackgroundBlur = 0;
 
     private readonly IWritableOptions<H2MLauncherSettings> _settings;
+
+    // Callback from the UI that the media element has loaded the source
+    private TaskCompletionSource _backgroundVideoLoadCompletionSource = new();
 
     [ObservableProperty]
     private ImageSource _backgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
 
     [ObservableProperty]
-    private bool _loadingError;
+    private Uri? _backgroundVideo;
+
+    [ObservableProperty]
+    private bool _backgroundImageLoadingError;
 
     [ObservableProperty]
     private double _backgroundBlur = 0;
+
+    [ObservableProperty]
+    private bool _themeLoadingError;
+
+    [ObservableProperty]
+    private bool _hotReloadThemes;
+
+    [ObservableProperty]
+    private string _currentThemeDirectory = DefaultResourceDirectory;
+
+    [ObservableProperty]
+    private string? _currentThemeFile;
+
 
     public CustomizationManager(IWritableOptions<H2MLauncherSettings> settings)
     {
@@ -36,52 +59,118 @@ public partial class CustomizationManager : ObservableObject
     /// <summary>
     /// Load the initial background image from the settings.
     /// </summary>
-    public void LoadInitialValues()
+    public async Task LoadInitialValues()
     {
-        BackgroundBlur = _settings.Value.Customization?.BackgroundBlur ?? DefaultBackgroundBlur;
+        // Set the theme directory
+        LauncherCustomizationSettings? customizationSettings = _settings.Value.Customization;
 
-        if (string.IsNullOrEmpty(_settings.Value.Customization?.BackgroundImagePath))
+        // Background blur
+        BackgroundBlur = customizationSettings?.BackgroundBlur ?? DefaultBackgroundBlur;
+        SetResourceInBaseTheme(Constants.BackgroundImageBlurRadiusKey, BackgroundBlur);
+
+        // Background media
+        if (string.IsNullOrEmpty(customizationSettings?.BackgroundImagePath))
         {
-            LoadDefaultImage();
-            return;
+            // no custom image or video set
+            SetDefaultBackgroundImage(resetSetting: false);
         }
-
-        if (!TryLoadImage(_settings.Value.Customization!.BackgroundImagePath, out var image))
+        else if (TryLoadImage(customizationSettings.BackgroundImagePath, out ImageSource? image))
         {
-            LoadingError = true;
-            LoadDefaultImage();
+            SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
+            BackgroundImage = image;
+        }
+        else if (await TryLoadBackgroundVideo(customizationSettings.BackgroundImagePath))
+        {
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, customizationSettings.BackgroundImagePath);
+            BackgroundVideo = new Uri(customizationSettings.BackgroundImagePath);
         }
         else
         {
-            BackgroundImage = image;
-        }        
+            // something went wrong trying to load it
+            BackgroundImageLoadingError = true;
+        }
+
+        // Theme
+        if (customizationSettings?.Themes is not null &&
+            customizationSettings.Themes.Count > 0)
+        {
+            string selectedThemeFile = customizationSettings.Themes[0];
+            bool isInternal = selectedThemeFile.StartsWith(Constants.EmbeddedThemesAbsolutePath);
+            if (isInternal ? !Uri.TryCreate(selectedThemeFile, UriKind.Absolute, out Uri? themeResourceUri) : !File.Exists(selectedThemeFile))
+            {
+                UpdateCustomizationSettings(settings => settings with
+                {
+                    Themes = []
+                });
+            }
+            else
+            {
+                LoadTheme(customizationSettings.Themes[0]);
+            }
+        }
+
+        HotReloadThemes = customizationSettings?.HotReloadThemes ?? false;
     }
 
-    public bool LoadImage(string imageFileName)
+    public async Task<bool> LoadMedia(string mediaFileName)
     {
-        if (TryLoadImage(imageFileName, out ImageSource? image))
+        if (TryLoadImage(mediaFileName, out ImageSource? image))
         {
+            SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, image);
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, null);
+
             BackgroundImage = image;
-            LoadingError = false;
+            BackgroundImageLoadingError = false;
 
             UpdateCustomizationSettings(settings => settings with
             {
-                BackgroundImagePath = imageFileName
+                BackgroundImagePath = mediaFileName
+            });
+
+            return true;
+        }
+        else if (await TryLoadBackgroundVideo(mediaFileName))
+        {
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, mediaFileName);
+            SetDefaultBackgroundImage(resetSetting: false);
+
+            BackgroundVideo = new Uri(mediaFileName);
+            BackgroundImageLoadingError = false;
+
+            UpdateCustomizationSettings(settings => settings with
+            {
+                BackgroundImagePath = mediaFileName
             });
 
             return true;
         }
         else
         {
-            LoadingError = true;
+            BackgroundImageLoadingError = true;
             return false;
         }
     }
 
-    public void LoadDefaultImage()
+    public void ResetBackgroundMedia()
+    {
+        // Reset video
+        SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, null);
+        BackgroundVideo = null;
+
+        // Reset image
+        SetDefaultBackgroundImage(resetSetting: true);
+    }
+
+    private void SetDefaultBackgroundImage(bool resetSetting = true)
     {
         BackgroundImage = new BitmapImage(new Uri(DefaultBackgroundImagePath));
-        LoadingError = false;
+        BackgroundImageLoadingError = false;
+        SetResourceInBaseTheme(Constants.BackgroundImageSourceKey, BackgroundImage);
+
+        if (!resetSetting)
+        {
+            return;
+        }
 
         UpdateCustomizationSettings(settings => settings with
         {
@@ -115,11 +204,135 @@ public partial class CustomizationManager : ObservableObject
         }
     }
 
+    private async Task<bool> TryLoadBackgroundVideo(string path)
+    {
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return false;
+            }
+
+            // Cancel previous loading callback and create new
+            _backgroundVideoLoadCompletionSource.TrySetCanceled();
+            _backgroundVideoLoadCompletionSource = new();
+
+            using CancellationTokenSource timeoutCancellation = new(TimeSpan.FromSeconds(15));
+            using CancellationTokenRegistration reg = timeoutCancellation.Token.Register(() => _backgroundVideoLoadCompletionSource.TrySetCanceled());
+
+            // Set the resource so the MediaElement starts loading
+            SetResourceInBaseTheme(Constants.BackgroundVideoSourceKey, path);
+
+            // Wait for the media to be opened in the UI
+            await _backgroundVideoLoadCompletionSource.Task;
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public void OnBackgroundMediaLoaded()
+    {
+        _backgroundVideoLoadCompletionSource.TrySetResult();
+    }
+
+    public void OnBackgroundMediaFailed(Exception exception)
+    {
+        _backgroundVideoLoadCompletionSource.TrySetException(exception);
+    }
+
+    public bool LoadTheme(string xamlPath)
+    {
+        try
+        {
+            return Application.Current.Dispatcher.Invoke(() =>
+            {
+                string themeDirectory = Path.GetDirectoryName(xamlPath)! + '\\';
+
+                bool isEmbedded = xamlPath.StartsWith("pack://application");
+
+                // load resource dictionary
+                using Stream stream = isEmbedded
+                    ? Application.GetResourceStream(new Uri(xamlPath)).Stream
+                    : new FileStream(xamlPath, FileMode.Open, FileAccess.Read);
+
+                ParserContext parserContext = new()
+                {
+                    // Critical: this makes relative URIs work!
+                    BaseUri = new Uri(isEmbedded ? xamlPath.Substring(0, xamlPath.LastIndexOf('/') + 1) : themeDirectory, UriKind.Absolute)
+                };
+
+                ResourceDictionary resourceDictionary = (ResourceDictionary)XamlReader.Load(stream, parserContext);
+
+                // remove old one
+                if (Application.Current.Resources.MergedDictionaries.Count > 1)
+                {
+                    Application.Current.Resources.MergedDictionaries.RemoveAt(1);
+                }
+
+                // set theme directory resource
+                CurrentThemeDirectory = themeDirectory;
+                Application.Current.Resources[Constants.CurrentThemeDirectoryKey] = themeDirectory;
+
+                // add new one
+                Application.Current.Resources.MergedDictionaries.Add(resourceDictionary);
+
+                UpdateCustomizationSettings(settings => settings with
+                {
+                    Themes = [xamlPath]
+                });
+
+                CurrentThemeFile = xamlPath;
+                ThemeLoadingError = false;
+                return true;
+            });
+        }
+        catch
+        {
+            ThemeLoadingError = true;
+            GC.Collect(); // force garbage collection to free locked file resource
+            return false;
+        }
+    }
+
+    public void ResetTheme()
+    {
+        if (Application.Current.Resources.MergedDictionaries.Count > 1)
+        {
+            Application.Current.Resources.MergedDictionaries.RemoveAt(1);
+        }
+
+        // reset resource directory
+        Application.Current.Resources.Remove(Constants.CurrentThemeDirectoryKey);
+        CurrentThemeDirectory = DefaultResourceDirectory;
+        CurrentThemeFile = null;
+
+        UpdateCustomizationSettings(settings => settings with
+        {
+            Themes = []
+        });
+
+        ThemeLoadingError = false;
+
+    }
+
     partial void OnBackgroundBlurChanged(double value)
     {
+        SetResourceInBaseTheme(Constants.BackgroundImageBlurRadiusKey, value);
+
         UpdateCustomizationSettings(settings => settings with
         {
             BackgroundBlur = value
+        });
+    }
+
+    partial void OnHotReloadThemesChanged(bool value)
+    {
+        UpdateCustomizationSettings(settings => settings with
+        {
+            HotReloadThemes = value
         });
     }
 
@@ -129,5 +342,10 @@ public partial class CustomizationManager : ObservableObject
         {
             Customization = update(settings.Customization ?? new())
         });
+    }
+
+    private static void SetResourceInBaseTheme(object resourceKey, object? value)
+    {
+        Application.Current.Resources.MergedDictionaries[0][resourceKey] = value;
     }
 }

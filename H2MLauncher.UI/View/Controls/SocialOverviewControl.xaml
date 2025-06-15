@@ -12,7 +12,7 @@
              mc:Ignorable="d"
              d:Background="#242"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:SocialOverviewViewModel}">
-    <Border BorderThickness="0" BorderBrush="#FF97A0A5" CornerRadius="5,5,0,0" Background="#33000000">
+    <Border Style="{DynamicResource SocialPanelBorderStyle}">
         <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -20,19 +20,20 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <TabControl ItemsSource="{Binding Tabs}"
-                        Background="#66000000" Grid.Row="1" VerticalAlignment="Stretch" Margin="0,5,0,0"
-                        BorderThickness="1" SelectedIndex="0">
+            <TabControl ItemsSource="{Binding Tabs}" Style="{DynamicResource SocialTabControlStyle}"
+                        Grid.Row="1" VerticalAlignment="Stretch" Margin="0,5,0,0"
+                        SelectedIndex="0">
                 <TabControl.Resources>
-                    <Style TargetType="{x:Type TabPanel}">
-                        <Setter Property="HorizontalAlignment" Value="Center" />
-                    </Style>
-                    
                     <DataTemplate DataType="{x:Type vm:FriendsViewModel}">
                         <local:FriendsControl />
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type vm:FriendRequestsViewModel}">
                         <local:FriendRequestsControl />
+                    </DataTemplate>
+                    <DataTemplate DataType="{x:Type vm:RecentPlayersViewModel}">
+                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource TextLight}">
+                            Coming soon :)
+                        </TextBlock>
                     </DataTemplate>
                 </TabControl.Resources>
                 <TabControl.ItemTemplate>
@@ -50,10 +51,10 @@
                                         <TextBlock Text="Requests"/>
                                         
                                         <!-- Badge -->
-                                        <Border x:Name="Badge" Background="LightGray" CornerRadius="3"
-                                                BorderThickness="0.5" BorderBrush="#333"
+                                        <Border x:Name="Badge" Background="{DynamicResource BrushNeutralLight}" CornerRadius="3"
+                                                BorderThickness="0.5" BorderBrush="{DynamicResource ControlBorderBrushNeutral}"
                                                 Height="12" VerticalAlignment="Top" Margin="2,0,0,0">
-                                            <TextBlock Text="{Binding NumIncomingRequests}" Foreground="Black"
+                                            <TextBlock Text="{Binding NumIncomingRequests}" Foreground="{DynamicResource TextDark}"
                                                        Margin="2,0" FontSize="9"/>
                                         </Border>
                                     </StackPanel>
@@ -63,6 +64,11 @@
                                             <Setter TargetName="Badge" Property="Visibility" Value="Collapsed"/>
                                         </DataTrigger>
                                     </DataTemplate.Triggers>
+                                </DataTemplate>
+
+                                <!-- Recents header -->
+                                <DataTemplate DataType="{x:Type vm:RecentPlayersViewModel}">
+                                    <TextBlock Text="Recents"/>
                                 </DataTemplate>
                             </ContentControl.Resources>
                         </ContentControl>

@@ -12,6 +12,7 @@ using H2MLauncher.Core.Game.Memory;
 using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Networking;
 using H2MLauncher.Core.Networking.GameServer;
 using H2MLauncher.Core.Networking.GameServer.HMW;
@@ -27,9 +28,6 @@ using H2MLauncher.Core.Utilities.SignalR;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Services;
 using H2MLauncher.UI.ViewModels;
-
-using MatchmakingServer.Core.Party;
-using MatchmakingServer.Core.Social;
 
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
@@ -48,6 +46,8 @@ namespace H2MLauncher.UI
     public partial class App : Application
     {
         public static IServiceProvider ServiceProvider { get; private set; } = null!;
+        public static CustomizationManager CustomizationManager { get; private set; } = null!;
+
         private H2MLauncherSettings _defaultSettings = null!;
 
         protected override void OnStartup(StartupEventArgs e)
@@ -80,6 +80,9 @@ namespace H2MLauncher.UI
             // NOTE: this is really stupid but necessary to have the latest urls we just set above available
             config.Reload();
 
+            CustomizationManager = ServiceProvider.GetRequiredService<CustomizationManager>();
+            ServiceProvider.GetRequiredService<ThemeFileWatcher>();
+
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
 
@@ -100,6 +103,7 @@ namespace H2MLauncher.UI
         private void ConfigureServices(IServiceCollection services, IConfigurationRoot config)
         {
             services.AddSingleton<IConfiguration>(config);
+            services.AddSingleton<IConfigurationRoot>(config); // add configuration root for WritableOptions to reload
 
             services.ConfigureWritableWithExplicitPath<H2MLauncherSettings>(
                 section: config.GetSection(Constants.LauncherSettingsSection),
@@ -148,8 +152,20 @@ namespace H2MLauncher.UI
             // game server communication
             services.AddTransient<UdpGameServerCommunication>();
             services.AddKeyedTransient(typeof(IGameServerInfoService<>), "TCP", typeof(HttpGameServerInfoService<>));
-            services.AddKeyedTransient(typeof(IGameServerInfoService<>), "UDP", typeof(GameServerCommunicationService<>));
-            services.AddTransient(typeof(IGameServerInfoService<>), typeof(TcpUdpDynamicGameServerInfoService<>));
+
+            services.AddSingleton(typeof(GameServerCommunicationService<>));
+
+            services.AddKeyedSingleton<IGameServerInfoService<IServerConnectionDetails>>("UDP", (sp, key) =>
+                sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
+
+            services.AddKeyedSingleton<IGameServerStatusService<IServerConnectionDetails>>("UDP", (sp, key) =>
+                sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
+
+            services.AddKeyedSingleton<IGameServerCommunicationService<IServerConnectionDetails>>("UDP", (sp, key) =>
+                sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
+
+            services.AddTransient<IGameServerInfoService<IServerConnectionDetails>, 
+                TcpUdpDynamicGameServerInfoService<IServerConnectionDetails>>();
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();
@@ -157,6 +173,7 @@ namespace H2MLauncher.UI
             services.AddSingleton<IGameCommunicationService, H2MGameMemoryCommunicationService>();
             services.AddSingleton<GameDirectoryService>();
             services.AddSingleton<IPlayerNameProvider, ConfigPlayerNameProvider>();
+            services.AddSingleton<IGameConfigProvider, GameDirectoryService>(sp => sp.GetRequiredService<GameDirectoryService>());
             services.AddSingleton<IMapsProvider, InstalledMapsProvider>();
             services.AddMemoryCache();
 
@@ -170,6 +187,7 @@ namespace H2MLauncher.UI
             services.AddTransient<SocialOverviewViewModel>();
             services.AddSingleton<CustomizationManager>();
             services.AddTransient<CustomizationDialogViewModel>();
+            services.AddSingleton<ThemeFileWatcher>();
 
             // online services
             services.AddSingleton<OnlineServiceManager>();
@@ -195,14 +213,17 @@ namespace H2MLauncher.UI
                         new JsonSerializerOptions(JsonSerializerDefaults.Web)
                         {
                             Converters = { new JsonStringEnumConverter() }
-                        })
+                        }),
+                    HttpMessageHandlerFactory = () =>
+                        Core.Utilities.Http.HttpClientBuilderExtensions.CustomMessageHandlerFactory(sp)
                 })
-                .ConfigureMatchmakingClient();
+                .ConfigureMatchmakingClient(trimTrailingSlashes: true);
 
             // authentication
             services.AddTransient<AuthenticationService>();
             services.AddHttpClient<AuthenticationService>()
-                .ConfigureMatchmakingClient();
+                .ConfigureMatchmakingClient()
+                .ConfigureCertificateValidationIgnore();
 
             services.AddSingleton(sp =>
             {
@@ -219,7 +240,8 @@ namespace H2MLauncher.UI
             services.AddTransient<CachedServerDataService>();
             services.AddTransient<IPlaylistService, CachedServerDataService>(sp => sp.GetRequiredService<CachedServerDataService>());
             services.AddHttpClient<CachedServerDataService>()
-                .ConfigureMatchmakingClient();
+                .ConfigureMatchmakingClient()
+                .ConfigureCertificateValidationIgnore();
 
             // hub clients
             services.AddHubClient<QueueingService, IMatchmakingHub>((sp, manager) => manager.QueueingHubConnection);
@@ -277,7 +299,7 @@ namespace H2MLauncher.UI
                 try
                 {
                     var dialogService = ServiceProvider?.GetService<DialogService>();
-                    if (dialogService != null)
+                    if (dialogService is not null)
                     {
                         dialogService.OpenTextDialog("Error", e.Exception.Message);
                     }
@@ -285,6 +307,19 @@ namespace H2MLauncher.UI
                     {
                         MessageBox.Show(e.Exception.Message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
+
+                    // reset theme just in case so the next restart works
+                    ServiceProvider?.GetRequiredService<IWritableOptions<H2MLauncherSettings>>().Update((settings) =>
+                    {
+                        return settings with
+                        {
+                            Customization = settings.Customization is null ? null : settings.Customization with
+                            {
+                                Themes = [],
+                                BackgroundImagePath = null
+                            }
+                        };
+                    });
                 }
                 catch (Exception ex)
                 {

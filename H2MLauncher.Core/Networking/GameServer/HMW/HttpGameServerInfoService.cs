@@ -219,14 +219,15 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
                 MaxClients = info.MaxClients,
                 IsPrivate = info.IsPrivate == 1,
                 PrivilegedSlots = info.PrivateClients,
-                ModName = "",
+                ModName = "HMW",
                 HostName = info.HostName,
                 GameName = info.Game,
                 GameType = info.GameType,
                 MapName = info.MapName,
                 PlayMode = info.PlayMode,
                 Protocol = info.Protocol,
-                Ping = ping
+                Players = info.Players.Select(p => new GamePlayerStatus(0, p.Ping, p.Name)).ToArray(),
+                Ping = ping,
             };
         }
 

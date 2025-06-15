@@ -11,8 +11,8 @@
              Height="Auto"
              Width="330"
              d:DataContext="{d:DesignInstance Type=vm:ServerFilterViewModel}"
-             d:Foreground="White"
-             d:Background="Black">
+             d:Foreground="{DynamicResource TextLight}"
+             d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
         <Style TargetType="{x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
@@ -27,9 +27,9 @@
 
         <Style TargetType="{x:Type TextBox}">
             <Style.Setters>
-                <Setter Property="Foreground" Value="White"/>
-                <Setter Property="Background" Value="#333"/>
-                <Setter Property="CaretBrush" Value="White"/>
+                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+                <Setter Property="Background" Value="{DynamicResource ControlBackground}"/>
+                <Setter Property="CaretBrush" Value="{DynamicResource TextLight}"/>
             </Style.Setters>
         </Style>
     </UserControl.Resources>
@@ -93,13 +93,13 @@
                   Height="22" Grid.Row="6" Grid.Column="1" Margin="0,0,0,0">
             <controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent>
                 <ContentControl IsHitTestVisible="False">
-                    <TextBlock Text="{Binding SelectedMapPacks}" Foreground="White" />
+                    <TextBlock Text="{Binding SelectedMapPacks}" Foreground="{DynamicResource TextLight}" />
                 </ContentControl>
             </controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltContent>
             <ComboBox.ItemTemplate>
                 <ItemContainerTemplate>
                     <CheckBox 
-                        Foreground="White"
+                        Foreground="{DynamicResource TextLight}"
                         Content="{Binding Path=Name}"
                         IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
                 </ItemContainerTemplate>
@@ -114,7 +114,7 @@
             <ComboBox.ItemTemplate>
                 <DataTemplate>
                     <CheckBox 
-                    Foreground="White"
+                    Foreground="{DynamicResource TextLight}"
                     Content="{Binding Path=Name}"
                     IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
                 </DataTemplate>
@@ -125,7 +125,7 @@
         <TextBlock Text="Max Ping:" Grid.Row="8" Margin="15,10" HorizontalAlignment="Right"/>
         <DockPanel Grid.Row="8" Grid.Column="1">
             <TextBox Text="{Binding MaxPing, UpdateSourceTrigger=PropertyChanged}" Width="30" PreviewTextInput="PingTextBox_PreviewTextInput" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="#222" Foreground="White" Padding="3" BorderThickness="0"/>
+                     Background="{DynamicResource ControlBackground}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
             <Slider Minimum="0" Maximum="999"  Value="{Binding MaxPing}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 
@@ -146,7 +146,7 @@
                                 <Border BorderThickness="{TemplateBinding Border.BorderThickness}"
                                         Padding="{TemplateBinding Control.Padding}"
                                         BorderBrush="{TemplateBinding Border.BorderBrush}"
-                                        Background="{TemplateBinding Panel.Background}"
+                                        Background="{TemplateBinding Border.Background}"
                                         Name="Bd"
                                         SnapsToDevicePixels="True">
                                     <ContentPresenter Content="{TemplateBinding ContentControl.Content}"
@@ -171,7 +171,7 @@
                                 Content="✖" Foreground="DarkRed" DockPanel.Dock="Right"/>
 
                         <CheckBox 
-                            Foreground="White"
+                            Foreground="{DynamicResource TextLight}"
                             Content="{Binding Path=Name}"
                             IsChecked="{Binding Path=IsSelected, Mode=TwoWay}"/>
                     </DockPanel>
@@ -185,7 +185,7 @@
                     
                     <!-- Hint -->
                     <TextBlock IsHitTestVisible="False" Text="Enter new keyword" 
-                               VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" Margin="0,0,0,0" Foreground="DarkGray">
+                               VerticalAlignment="Center" HorizontalAlignment="Stretch" Padding="3,0,0,0" Margin="0,0,0,0" Foreground="{DynamicResource TextHint}">
                         <TextBlock.Style>
                             <Style TargetType="{x:Type TextBlock}">
                                 <Setter Property="Visibility" Value="Collapsed"/>

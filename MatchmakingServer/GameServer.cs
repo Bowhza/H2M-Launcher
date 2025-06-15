@@ -9,9 +9,18 @@ namespace MatchmakingServer
 {
     public class GameServer : IServerConnectionDetails, ISimpleServerInfo
     {
-        public required string ServerIp { get; init; }
+        private readonly Dictionary<Player, DateTimeOffset> _knownPlayers = [];
 
+        internal readonly object PlayerCollectionLock = new();
+
+        public string Id { get; init; } = "";
+
+        public required string ServerIp { get; init; }
         public required int ServerPort { get; init; }
+
+        string IServerConnectionDetails.Ip => ServerIp;
+        int IServerConnectionDetails.Port => ServerPort;
+
 
         private string? _serverName;
         public string ServerName
@@ -28,35 +37,73 @@ namespace MatchmakingServer
             }
         }
 
+        #region Queueing
+
         public ConcurrentLinkedQueue<Player> PlayerQueue { get; } = [];
 
+        /// <summary>
+        /// Players that are currently joining this server from the queue.
+        /// </summary>
         public IEnumerable<Player> JoiningPlayers => PlayerQueue.Where(p => p.State is PlayerState.Joining);
 
+        /// <summary>
+        /// Players that are currently queued to join this server.
+        /// </summary>
         public IEnumerable<Player> QueuedPlayers => PlayerQueue.Where(p => p.State is PlayerState.Queued);
 
+        /// <summary>
+        /// The number of players currently joining this server from the queue.
+        /// </summary>
         public int JoiningPlayerCount { get; set; }
 
-        string IServerConnectionDetails.Ip => ServerIp;
+        /// <summary>
+        /// When this server object was created.
+        /// </summary>
+        public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
 
-        int IServerConnectionDetails.Port => ServerPort;
+        /// <summary>
+        /// The current server queue processing task.
+        /// </summary>
+        public Task? ProcessingTask { get; set; }
 
-        public DateTimeOffset LastSuccessfulPingTimestamp { get; set; }
-        public GameServerInfo? LastServerInfo { get; set; }
-        public GameServerStatus? LastStatusResponse { get; set; }
+        /// <summary>
+        /// Cancellation token source used to cancel the queue processing task.
+        /// </summary>
+        public CancellationTokenSource ProcessingCancellation { get; set; } = new();
+
+        /// <summary>
+        /// The queue processing state.
+        /// </summary>
+        public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
+
+        /// <summary>
+        /// Event that gets triggered when players joined the idle server queue.
+        /// </summary>
+        public AsyncManualResetEvent PlayersAvailable { get; } = new(false);
 
         public List<string> ActualPlayers { get; } = [];
 
-        public string InstanceId { get; init; } = "";
+        #endregion
 
-        public DateTimeOffset SpawnDate { get; init; } = DateTimeOffset.Now;
 
-        public Task? ProcessingTask { get; set; }
+        public IReadOnlyDictionary<Player, DateTimeOffset> KnownPlayers
+        {
+            get
+            {
+                // return a thread-safe snapshot
+                lock (PlayerCollectionLock)
+                {
+                    return _knownPlayers.ToDictionary();
+                }
+            }
+        }
+        
+        
+        public DateTimeOffset? LastServerInfoTimestamp { get; set; }
+        public DateTimeOffset? LastServerStatusTimestamp { get; set; }
+        public GameServerInfo? LastServerInfo { get; set; }
+        public GameServerStatus? LastStatusResponse { get; set; }
 
-        public CancellationTokenSource ProcessingCancellation { get; set; } = new();
-
-        public QueueProcessingState ProcessingState { get; set; } = QueueProcessingState.Stopped;
-
-        public AsyncManualResetEvent PlayersAvailable { get; } = new(false);
 
         public int PrivilegedSlots { get; init; }
 
@@ -70,6 +117,38 @@ namespace MatchmakingServer
                 }
 
                 return JoiningPlayerCount + LastServerInfo.PrivilegedSlots;
+            }
+        }
+        
+        internal bool AddPlayerInternal(Player player)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.TryAdd(player, DateTimeOffset.Now);
+            }
+        }
+
+        internal bool RemovePlayerInternal(Player player, out DateTimeOffset startTime)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.Remove(player, out startTime);
+            }
+        }
+
+        public bool ContainsPlayer(Player player)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.ContainsKey(player);
+            }
+        }
+
+        public bool TryGetPlayerJoinDate(Player player, out DateTimeOffset joinDate)
+        {
+            lock (PlayerCollectionLock)
+            {
+                return _knownPlayers.TryGetValue(player, out joinDate);
             }
         }
 

@@ -1,0 +1,33 @@
+﻿<ContentControl x:Class="H2MLauncher.UI.View.Controls.MarqueeTextBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:H2MLauncher.UI.View.Controls"
+             xmlns:view="clr-namespace:H2MLauncher.UI.View"
+             xmlns:ui="clr-namespace:H2MLauncher.UI"
+             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="150" d:DesignWidth="800" Height="Auto" HorizontalAlignment="Stretch">
+    <ContentControl.Template>
+        <ControlTemplate>
+            <Canvas x:Name="container" Grid.Row="1" Grid.ColumnSpan="2" Width="{Binding ActualWidth, RelativeSource={RelativeSource AncestorType=ContentControl}}" Margin="{TemplateBinding Margin}" 
+                    ClipToBounds="True" Background="{TemplateBinding Background}"
+                    Visibility="{TemplateBinding Visibility}" Height="{Binding ActualHeight, ElementName=textBox}"
+                    SizeChanged="Container_SizeChanged" HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    >
+                <TextBlock x:Name="textBox" SizeChanged="TextBox_SizeChanged" Canvas.Left="0" 
+                           MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}"
+                           TextWrapping="NoWrap" Height="{TemplateBinding Height}"
+                           TextAlignment="{Binding TextAlignment, RelativeSource={RelativeSource TemplatedParent}}"
+                           VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                           Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}"
+                           ui:TextBlockExtensions.BindableInlines="{Binding Inlines, RelativeSource={RelativeSource TemplatedParent}}">
+                    <TextBlock.RenderTransform>
+                        <TranslateTransform X="0"/>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+            </Canvas>
+        </ControlTemplate>
+    </ContentControl.Template>
+</ContentControl>

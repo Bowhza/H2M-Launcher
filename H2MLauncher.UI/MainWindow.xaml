@@ -36,40 +36,6 @@
         </i:EventTrigger>
     </i:Interaction.Triggers>
     <Window.Resources>
-        <Style TargetType="DataGridCell">
-            <Setter Property="TextBlock.TextAlignment" Value="Left" />
-            <Setter Property="TextBlock.VerticalAlignment" Value="Center" />
-            <Setter Property="TextBlock.Foreground" Value="White" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="VerticalAlignment" Value="Stretch"/>
-            <Setter Property="Padding" Value="0"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="BorderThickness" Value="0"/>
-            <Setter Property="VerticalContentAlignment" Value="Center"/>
-
-            <!-- Custom template to center content -->
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type DataGridCell}">
-                        <Grid Background="{TemplateBinding Background}">
-                            <ContentPresenter VerticalAlignment="Center" />
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-
-            <!-- Disable focus for cells -->
-            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
-            <Setter Property="Focusable" Value="True"/>
-            <Setter Property="IsTabStop" Value="False"/>
-
-            <Style.Triggers>
-                <Trigger Property="IsSelected" Value="True">
-                    <!-- Selection background -->
-                    <Setter Property="Background" Value="#252525"></Setter>
-                </Trigger>
-            </Style.Triggers>
-        </Style>
         <converters:PingColorConverter x:Key="PingColorConverter"/>
         <converters:BooleanToStarConverter x:Key="BooleanToStarConverter"/>
         <converters:BooleanToPrivateStatusConverter x:Key="BooleanToPrivateStatusConverter"/>
@@ -98,23 +64,77 @@
         <KeyBinding view:InputBinding.Shortcut="{Binding Shortcuts.ToggleOverlay}" Command="{Binding ToggleOverlayCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
     </Window.InputBindings>
     <Grid>
-        <Border CornerRadius="10" Padding="10,10" Background="Black"/>
-        <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged">
-            <Grid RenderTransformOrigin="0.5, 0.5">
+        <!-- Workaround to bind to dynamic resources -->
+        <FrameworkElement x:Name="BackgroundBlurGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundImageBlurRadius}" />
+        <FrameworkElement x:Name="BackgroundMediaUriGetter" Visibility="Collapsed" DataContext="{DynamicResource BackgroundVideoSource}" />
+
+        <Border CornerRadius="10" 
+                Background="{DynamicResource MainWindowBackgroundBrush}" 
+                BorderBrush="{DynamicResource MainWindowBorderBrush}" 
+                BorderThickness="1" />
+        <Border CornerRadius="10" ClipToBounds="True" SizeChanged="Border_SizeChanged" Style="{DynamicResource BackgroundImageContainerStyle}">
+            <Grid x:Name="ImageContainer" RenderTransformOrigin="0.5, 0.5">
+                <Grid.Resources>
+                    <Storyboard x:Key="FadeInStoryboard">
+                        <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                         From="0.0" To="1.0" Duration="0:0:0.5"/>
+                    </Storyboard>
+                </Grid.Resources>
                 <Grid.Background>
                     <VisualBrush Stretch="UniformToFill">
                         <VisualBrush.Visual>
-                            <Image x:Name="BackgroundImageBrush" Source="{Binding Customization.BackgroundImage, ElementName=mainWindow}" Opacity="1"
-                                d:Source="/Assets/Background.jpg" Stretch="UniformToFill"/>
+                            <!-- Stack image and video inside a grid - make sure it always fills the parent container -->
+                            <Grid Width="{Binding Path=ActualWidth, ElementName=ImageContainer}" HorizontalAlignment="Stretch"
+                                  Height="{Binding Path=ActualHeight, ElementName=ImageContainer}" VerticalAlignment="Stretch">
+
+                                <!-- Background image -->
+                                <Image x:Name="BackgroundImageBrush" Opacity="1" Stretch="UniformToFill" >
+                                    <Image.Source>
+                                        <DynamicResource ResourceKey="{x:Static local:Constants.BackgroundImageSourceKey}"/>
+                                    </Image.Source>
+                                </Image>
+
+                                <!-- Background video -->
+                                <controls:LoopingMediaElement 
+                                              Stretch="UniformToFill" d:Source="Assets/Background.jpg"
+                                              MediaFailed="MediaElement_MediaFailed"
+                                              MediaOpened="MediaElement_MediaOpened"
+                                              LoadedBehavior="Play"
+                                              UnloadedBehavior="Manual"
+                                              IsMuted="True"
+                                              Opacity="0">
+                                    <controls:LoopingMediaElement.Source>
+                                        <MultiBinding Converter="{StaticResource UrlCombinerConverter}">
+                                            <Binding Path="Customization.CurrentThemeDirectory" ElementName="mainWindow" />
+                                            <Binding Path="DataContext" ElementName="BackgroundMediaUriGetter"/>
+                                        </MultiBinding>
+                                    </controls:LoopingMediaElement.Source>
+                                    <controls:LoopingMediaElement.Style>
+                                        <Style TargetType="MediaElement">
+                                            <Style.Triggers>
+                                                <!-- Fade in video once loaded -->
+                                                <EventTrigger RoutedEvent="MediaElement.MediaOpened">
+                                                    <BeginStoryboard Storyboard="{StaticResource FadeInStoryboard}"/>
+                                                </EventTrigger>
+
+                                                <!-- Hide video if no url -->
+                                                <DataTrigger Binding="{Binding DataContext, ElementName=BackgroundMediaUriGetter}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </controls:LoopingMediaElement.Style>
+                                </controls:LoopingMediaElement>
+                            </Grid>
                         </VisualBrush.Visual>
                     </VisualBrush>
                 </Grid.Background>
                 <Grid.Style>
                     <Style TargetType="Grid">
-                        <!-- Compensate for the blur effect by non-linearly zooming in to prevent dark edges -->
+                        <!--Compensate for the blur effect by non-linearly zooming in to prevent dark edges-->
                         <Setter Property="Margin" 
-                                Value="{Binding Customization.BackgroundBlur, 
-                                                ElementName=mainWindow, 
+                                Value="{Binding DataContext, 
+                                                ElementName=BackgroundBlurGetter, 
                                                 Converter={StaticResource CompensateBlurConverter}}"/>
                     </Style>
                 </Grid.Style>
@@ -122,8 +142,11 @@
 
             <!-- Apply blur to the border AFTER the image fills the background -->
             <Border.Effect>
-                <BlurEffect Radius="{Binding Customization.BackgroundBlur, ElementName=mainWindow}" KernelType="Gaussian"/>
+                <BlurEffect Radius="{DynamicResource BackgroundImageBlurRadius}" KernelType="Gaussian"/>
             </Border.Effect>
+        </Border>
+        <Border CornerRadius="10">
+            <ContentPresenter ContentTemplate="{DynamicResource BackgroundControlTemplate}" Content="{Binding }"/>
         </Border>
         <Border CornerRadius="10" Padding="10,10">
             <Grid Margin="0,0,0,0">
@@ -141,22 +164,22 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="85" />
                     </Grid.ColumnDefinitions>
-                    
+
                     <!-- Title -->
-                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="White"/>
+                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Foreground="{DynamicResource TextLight}"/>
 
                     <!-- Socials -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
                         <Button VerticalAlignment="Center" Style="{StaticResource DiscordWindowButtonStyle}" HorizontalAlignment="Left"
                                 Height="27" Width="27" Margin="0,0,5,0"
-                                Background="#22FFFFFF" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
+                                Background="{DynamicResource TransparentLight100}" ToolTip="Join our Discord server" Command="{Binding Socials.JoinDiscordCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Assets/discord-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </StackPanel>
                         </Button>
                         <Button VerticalAlignment="Center" HorizontalAlignment="Left"
                                 Height="27" Width="27" Style="{StaticResource WindowButtonStyle}"
-                                Background="#22FFFFFF" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
+                                Background="{DynamicResource TransparentLight100}" ToolTip="H2MLauncher on GitHub" Command="{Binding Socials.OpenGitHubCommand}">
                             <StackPanel Orientation="Horizontal">
                                 <Image Source="Assets/github-mark-white.png" Stretch="Uniform" Height="13" RenderOptions.BitmapScalingMode="HighQuality"/>
                             </StackPanel>
@@ -164,7 +187,7 @@
                     </StackPanel>
 
                     <!-- Update -->
-                    <TextBlock Grid.Column="3" Text="{Binding UpdateStatusText}" Foreground="White" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
+                    <TextBlock Grid.Column="3" Text="{Binding UpdateStatusText}" Foreground="{DynamicResource TextLight}" FontSize="20" HorizontalAlignment="Right" FontWeight="Bold" Padding="5">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Style.Triggers>
@@ -234,10 +257,10 @@
 
                     <!-- Player / Server count -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
-                        <Label Content="Total Players:" Foreground="White" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
-                        <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="White" />
-                        <Label Content="Total Servers:" Foreground="White"/>
-                        <Label Content="{Binding SelectedTab.TotalServers}" Foreground="White" />
+                        <Label Content="Total Players:" Foreground="{DynamicResource TextLight}" HorizontalAlignment="Left" Margin="-5,0,0,0"/>
+                        <Label Content="{Binding SelectedTab.TotalPlayers}" Foreground="{DynamicResource TextLight}" />
+                        <Label Content="Total Servers:" Foreground="{DynamicResource TextLight}"/>
+                        <Label Content="{Binding SelectedTab.TotalServers}" Foreground="{DynamicResource TextLight}" />
                     </StackPanel>
 
                     <!-- Text Filter -->
@@ -249,7 +272,7 @@
                         <!-- Hint -->
                         <TextBlock IsHitTestVisible="False" Text="Enter keywords to filter servers"
                                    VerticalAlignment="Center" HorizontalAlignment="Stretch" 
-                                   Padding="3,0,0,0" Margin="10,0,10,0" Foreground="DarkGray">
+                                   Padding="3,0,0,0" Margin="10,0,10,0" Foreground="{DynamicResource TextHint}">
                             <TextBlock.Style>
                                 <Style TargetType="{x:Type TextBlock}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
@@ -282,7 +305,7 @@
                 <Grid Grid.Row="2">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3.5*"/>
-                        <ColumnDefinition x:Name="partyColumn" Width="290"/>
+                        <ColumnDefinition x:Name="partyColumn" Width="300"/>
                     </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -291,8 +314,7 @@
 
                     <!-- Server tabs -->
                     <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
-                            Grid.RowSpan="2" Margin="0,10,0,5" BorderThickness="1" 
-                            BorderBrush="DarkGray" Background="Transparent" >
+                                Grid.RowSpan="2" Margin="0,10,0,5" Style="{DynamicResource ServerTabControlStyle}" >
                         <TabControl.ItemTemplate>
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <TextBlock Text="{Binding TabName}"/>
@@ -302,9 +324,11 @@
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <Grid>
                                     <!-- Opaque background for the header row -->
-                                    <Rectangle VerticalAlignment="Top" Fill="Black" Opacity="0.9" Height="23" Margin="0, 0, 0, 5"></Rectangle>
+                                    <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="0, 0, 0, 5"></Rectangle>
                                     <view:CustomDataGrid
                                         x:Name="serverDataGrid" 
+                                        Style="{DynamicResource ServerDataGridStyle}" 
+                                        CellStyle="{DynamicResource ServerDataGridCellStyle}"
                                         ItemsSource="{Binding ServerCollectionView}" 
                                         FontFamily="Consolas"
                                         Margin="-2,-2,-2,-2" 
@@ -320,15 +344,11 @@
                                         GridLinesVisibility="None"
                                         SelectionUnit="FullRow"
                                         HorizontalScrollBarVisibility="Hidden"
-                                        BorderThickness="0"
-                                        Background="Black"
-                                        Opacity="0.90"
                                         SelectionMode="Single"
                                         CanUserResizeColumns="true"
                                         HeadersVisibility="Column"
                                         VerticalScrollBarVisibility="Hidden"
-                                        SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}"
-                                        RowBackground="Transparent">
+                                        SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
                                         <DataGrid.Resources>
                                             <DataGridTextColumn 
                                             x:Key="ThatPeskyColumn"
@@ -343,26 +363,15 @@
                                             <KeyBinding Key="Return" Command="{Binding JoinServerCommand}" />
                                         </DataGrid.InputBindings>
                                         <DataGrid.ItemContainerStyle>
-                                            <Style TargetType="DataGridRow">
+                                            <Style TargetType="DataGridRow" BasedOn="{StaticResource ServerDataGridRowStyle}">
                                                 <!-- Enable focus and tab navigation for row -->
                                                 <Setter Property="IsTabStop" Value="True"/>
                                                 <Setter Property="Focusable" Value="True"/>
-                                                <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
-                                                <Setter Property="Opacity" Value="0.9"></Setter>
 
                                                 <!-- Click handlers -->
                                                 <EventSetter Event="MouseDoubleClick" Handler="DataGridRow_MouseDoubleClick"/>
                                                 <EventSetter Event="MouseRightButtonDown" Handler="DataGridRow_MouseRightButtonDown"/>
                                                 <EventSetter Event="GotFocus" Handler="DataGridRow_GotFocus"/>
-
-                                                <Style.Triggers>
-                                                    <!-- Selection box -->
-                                                    <Trigger Property="IsSelected" Value="True">
-                                                        <Setter Property="BorderBrush" Value="LawnGreen" />
-                                                        <Setter Property="BorderThickness" Value="0 1" />
-                                                        <Setter Property="Background" Value="#454545"></Setter>
-                                                    </Trigger>
-                                                </Style.Triggers>
                                             </Style>
                                         </DataGrid.ItemContainerStyle>
 
@@ -448,18 +457,19 @@
                                             <DataGridTemplateColumn Header="Favourite" MinWidth="69" SortMemberPath="IsFavorite" CanUserResize="False">
                                                 <DataGridTemplateColumn.CellTemplate>
                                                     <DataTemplate>
-                                                        <Button Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
-                                                        Command="{Binding DataContext.ToggleFavouriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                                        CommandParameter="{Binding}"
-                                                        HorizontalAlignment="Center" 
-                                                        VerticalAlignment="Center"
-                                                        FontSize="16"
-                                                        Background="Transparent"
-                                                        BorderThickness="0"
-                                                        Margin="5,0,0,0"
-                                                        Focusable="False"
-                                                        IsTabStop="False" 
-                                                        Cursor="Hand"/>
+                                                        <Button Style="{StaticResource LinkButtonStyle}"
+                                                                Content="{Binding IsFavorite, Converter={StaticResource BooleanToStarConverter}}"
+                                                                Command="{Binding DataContext.ToggleFavouriteCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                                CommandParameter="{Binding}"
+                                                                HorizontalAlignment="Center" 
+                                                                VerticalAlignment="Center"
+                                                                FontSize="16"
+                                                                Background="Transparent"
+                                                                BorderThickness="0"
+                                                                Margin="5,0,0,0"
+                                                                Focusable="False"
+                                                                IsTabStop="False" 
+                                                                Cursor="Hand"/>
                                                     </DataTemplate>
                                                 </DataGridTemplateColumn.CellTemplate>
                                             </DataGridTemplateColumn>
@@ -498,7 +508,7 @@
                                 <!-- Party Status -->
                                 <TextBlock DataContext="{Binding SocialOverviewViewModel.Friends}" 
                                            Text="{Binding PartyStatus, StringFormat={}Party: {0}}" 
-                                           Foreground="White" VerticalAlignment="Center" Margin="5,0,0,0">
+                                           Foreground="{DynamicResource TextLight}" VerticalAlignment="Center" Margin="5,0,0,0">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -523,7 +533,7 @@
                             <!-- Expand / collapse -->
                             <ToggleButton Height="23" Width="20" Margin="0,0,2,0" Grid.Column="1"
                                           HorizontalAlignment="Right" VerticalAlignment="Center" ToolTip="Show / hide party"
-                                          Foreground="White" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow, Mode=TwoWay}">
+                                          Foreground="{DynamicResource TextLight}" IsChecked="{Binding IsPartyExpanded, ElementName=mainWindow, Mode=TwoWay}">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton" BasedOn="{StaticResource {x:Type ToggleButton}}">
                                         <Setter Property="Content" Value="&#10094;"/>
@@ -552,7 +562,7 @@
                     </controls:SocialOverviewControl>
                 </Grid>
 
-                <StatusBar Grid.Row="3" Background="Transparent" Foreground="#eee">
+                <StatusBar Grid.Row="3" Style="{DynamicResource MainStatusBarStyle}">
                     <StatusBar.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Grid>

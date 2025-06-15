@@ -8,7 +8,7 @@ namespace H2MLauncher.Core.Models
 {
     [JsonConverter(typeof(ServerConnectionDetailsJsonConverter))]
     [TypeConverter(typeof(ServerConnectionDetailsTypeConverter))]
-    public record struct ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails
+    public record ServerConnectionDetails(string Ip, int Port) : IServerConnectionDetails
     {
         public static implicit operator (string Ip, int Port)(ServerConnectionDetails value)
         {
@@ -40,7 +40,7 @@ namespace H2MLauncher.Core.Models
             return true;
         }
 
-        public readonly override string ToString()
+        public override string ToString()
         {
             return $"{Ip}:{Port}";
         }

@@ -3,8 +3,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Headers;
 using System.Security.Claims;
 
+using H2MLauncher.Core.Social;
+
 using MatchmakingServer.Authentication.JWT;
-using MatchmakingServer.Core.Social;
 using MatchmakingServer.Database;
 using MatchmakingServer.SignalR;
 

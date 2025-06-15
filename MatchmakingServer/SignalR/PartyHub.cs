@@ -3,7 +3,6 @@
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 
-using MatchmakingServer.Core.Party;
 using MatchmakingServer.Parties;
 
 using Microsoft.AspNetCore.Authentication.JwtBearer;

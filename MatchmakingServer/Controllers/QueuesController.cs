@@ -30,7 +30,7 @@ namespace MatchmakingServer.Controllers
             {
                 return new
                 {
-                    s.InstanceId,
+                    s.Id,
                     s.ServerIp,
                     s.ServerPort,
                     Players = s.PlayerQueue.Select(p =>
@@ -67,7 +67,7 @@ namespace MatchmakingServer.Controllers
         [HttpPost("{instanceId}/clear")]
         public async Task<IActionResult> ClearQueue(string instanceId)
         {
-            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.InstanceId == instanceId);
+            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.Id == instanceId);
 
             return server is null ? NotFound() : Ok(await _queueingService.ClearQueue(server));
         }
@@ -76,7 +76,7 @@ namespace MatchmakingServer.Controllers
         [HttpPost("{instanceId}/halt")]
         public async Task<IActionResult> HaltQueue(string instanceId)
         {
-            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.InstanceId == instanceId);
+            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.Id == instanceId);
 
             if (server is null)
             {
@@ -92,7 +92,7 @@ namespace MatchmakingServer.Controllers
         [HttpDelete("{instanceId}")]
         public async Task<IActionResult> DestroyQueue(string instanceId)
         {
-            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.InstanceId == instanceId);
+            GameServer? server = _queueingService.QueuedServers.FirstOrDefault(s => s.Id == instanceId);
 
             if (server is null)
             {

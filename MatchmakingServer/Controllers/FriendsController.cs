@@ -1,11 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
-using System.Threading;
 
 using FxKit;
 
+using H2MLauncher.Core.Social;
+
 using MatchmakingServer.Authorization;
-using MatchmakingServer.Core.Social;
-using MatchmakingServer.Database.Migrations;
 using MatchmakingServer.Social;
 
 using Microsoft.AspNetCore.Authorization;

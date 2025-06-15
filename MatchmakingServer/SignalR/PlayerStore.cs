@@ -22,6 +22,8 @@ public class PlayerStore
         public Player Player { get; } = player;
 
         public HashSet<string> Connections { get; } = [];
+
+        public required CancellationTokenSource DisconnectCancellation { get; init; }
     }
 
     public async Task<Player> GetOrAdd(string userId, string userName, string connectionId, string playerName)
@@ -36,16 +38,22 @@ public class PlayerStore
                 return connectionInfo.Player;
             }
 
+            CancellationTokenSource disconnectCancellation = new();
+
             Player player = new()
             {
                 Id = userId,
                 UserName = userName,
                 Name = playerName,
-                State = PlayerState.Connected
+                State = PlayerState.Connected,
+                DisconnectedToken = disconnectCancellation.Token,
             };
-
-            connectionInfo = new(player);
-            connectionInfo.Connections.Add(connectionId);
+            
+            connectionInfo = new(player)
+            {
+                DisconnectCancellation = disconnectCancellation,
+                Connections = { connectionId }
+            };            
 
             _connectedPlayers.TryAdd(userId, connectionInfo);
             _lastConnections[userId] = DateTimeOffset.Now;
@@ -73,6 +81,7 @@ public class PlayerStore
             {
                 _connectedPlayers.Remove(userId);
                 connectionInfo.Player.State = PlayerState.Disconnected;
+                await connectionInfo.DisconnectCancellation.CancelAsync();
             }
 
             return connectionInfo.Player;

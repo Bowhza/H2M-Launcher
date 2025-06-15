@@ -1,0 +1,210 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+					xmlns:system="clr-namespace:System;assembly=mscorlib"
+					xmlns:view="clr-namespace:H2MLauncher.UI.View;assembly=H2MLauncher.UI"
+					xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels;assembly=H2MLauncher.UI" 
+					xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls;assembly=H2MLauncher.UI"
+                    xmlns:converters="clr-namespace:H2MLauncher.UI.Converters;assembly=H2MLauncher.UI" 
+                    xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views;assembly=H2MLauncher.UI" 
+                    xmlns:gif="clr-namespace:XamlAnimatedGif;assembly=XamlAnimatedGif">
+
+    <!-- Contrast Colors -->
+	<Color x:Key="ColorLight">White</Color>
+	<Color x:Key="ColorBlack">Black</Color>
+
+	<!-- Neutral Color Palette -->
+	<Color x:Key="ColorNeutral50">GhostWhite</Color>
+	<Color x:Key="ColorNeutral100">#e7e7e7</Color>
+	<Color x:Key="ColorNeutral250">LightGray</Color>
+	<Color x:Key="ColorNeutral200">#CCC</Color>
+	<Color x:Key="ColorNeutral300">DarkGray</Color>
+	<Color x:Key="ColorNeutral400">#888888</Color>
+	<Color x:Key="ColorNeutral500">#6d6d6d</Color>
+	<Color x:Key="ColorNeutral600">#444</Color>
+	<Color x:Key="ColorNeutral700">#373737</Color>
+	<Color x:Key="ColorNeutral800">#262626</Color>
+	<Color x:Key="ColorNeutral900">#171717</Color>
+	<Color x:Key="ColorNeutral950">#0a0a0a</Color>
+
+	<!-- Primary Color Palette -->
+	<Color x:Key="ColorPrimary100">#fbeafd</Color>
+	<Color x:Key="ColorPrimary200">#f7d4fa</Color>
+	<Color x:Key="ColorPrimary300">#f7d4fa</Color>
+	<Color x:Key="ColorPrimary400">#ed85ed</Color>
+	<Color x:Key="ColorPrimary500">#de4ede</Color>
+	<Color x:Key="ColorPrimary600">#c336c0</Color>
+	<Color x:Key="ColorPrimary700">#a12a9c</Color>
+	<Color x:Key="ColorPrimary800">#84247f</Color>
+	<Color x:Key="ColorPrimary900">#6d2267</Color>
+	<Color x:Key="ColorPrimary950">#470b42</Color>
+
+	<!-- Secondary Color Palette -->
+	<Color x:Key="ColorSecondary100">#f4f7ca</Color>
+    <Color x:Key="ColorSecondary200">#f0f197</Color>
+    <Color x:Key="ColorSecondary300">#f0f197</Color>
+    <Color x:Key="ColorSecondary400">#e1d42e</Color>
+    <Color x:Key="ColorSecondary500">#d1bd21</Color>
+    <Color x:Key="ColorSecondary600">#b4961a</Color>
+    <Color x:Key="ColorSecondary700">#906e18</Color>
+    <Color x:Key="ColorSecondary800">#78581b</Color>
+    <Color x:Key="ColorSecondary900">#66491d</Color>
+    <Color x:Key="ColorSecondary950">#3b270d</Color>
+
+	<!-- Basic Brushes -->
+	<SolidColorBrush x:Key="TextDark" Color="{DynamicResource ColorBlack}" />
+	<SolidColorBrush x:Key="TextLight" Color="{DynamicResource ColorLight}" />
+	<SolidColorBrush x:Key="TextHint" Color="{DynamicResource ColorNeutral300}" />
+
+	<SolidColorBrush x:Key="ControlBackground" Color="{DynamicResource ColorNeutral700}" />
+	<SolidColorBrush x:Key="ControlBackgroundDisabled" Color="{DynamicResource ColorNeutral600}" />
+	<SolidColorBrush x:Key="ControlForegroundDisabled" Color="{DynamicResource ColorNeutral200}" />
+	<SolidColorBrush x:Key="ControlBorderBrush" Color="{DynamicResource ColorNeutral300}" />
+	<SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
+	
+	<SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
+	<SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
+
+	<!-- Primary Brushes -->
+	<SolidColorBrush x:Key="BrushPrimary100" Color="{DynamicResource ColorPrimary100}" />
+	<SolidColorBrush x:Key="BrushPrimary200" Color="{DynamicResource ColorPrimary200}" />
+	<SolidColorBrush x:Key="BrushPrimary300" Color="{DynamicResource ColorPrimary300}" />
+	<SolidColorBrush x:Key="BrushPrimary400" Color="{DynamicResource ColorPrimary400}" />
+	<SolidColorBrush x:Key="BrushPrimary500" Color="{DynamicResource ColorPrimary500}" />
+	<SolidColorBrush x:Key="BrushPrimary600" Color="{DynamicResource ColorPrimary600}" />
+	<SolidColorBrush x:Key="BrushPrimary700" Color="{DynamicResource ColorPrimary700}" />
+	<SolidColorBrush x:Key="BrushPrimary800" Color="{DynamicResource ColorPrimary800}" />
+	<SolidColorBrush x:Key="BrushPrimary900" Color="{DynamicResource ColorPrimary900}" />
+	<SolidColorBrush x:Key="BrushPrimary950" Color="{DynamicResource ColorPrimary950}" />
+	
+	<SolidColorBrush x:Key="ControlPrimary" Color="{DynamicResource ColorPrimary500}" />
+	<SolidColorBrush x:Key="ControlPrimaryHover" Color="{DynamicResource ColorPrimary400}" />
+	<SolidColorBrush x:Key="ControlPrimarySelected" Color="{DynamicResource ColorPrimary500}" />
+	<SolidColorBrush x:Key="ControlPrimaryPressed" Color="{DynamicResource ColorPrimary600}" />
+	<SolidColorBrush x:Key="ControlPrimaryForeground" Color="{DynamicResource ColorBlack}" />
+
+	<!-- Secondary Brushes -->
+	<SolidColorBrush x:Key="BrushSecondary" Color="{DynamicResource ColorSecondary500}"/>
+	<SolidColorBrush x:Key="BrushSecondary100" Color="{DynamicResource ColorSecondary100}"/>
+	<SolidColorBrush x:Key="BrushSecondary200" Color="{DynamicResource ColorSecondary200}"/>
+	<SolidColorBrush x:Key="BrushSecondary300" Color="{DynamicResource ColorSecondary300}"/>
+	<SolidColorBrush x:Key="BrushSecondary400" Color="{DynamicResource ColorSecondary400}"/>
+	<SolidColorBrush x:Key="BrushSecondary500" Color="{DynamicResource ColorSecondary500}"/>
+	<SolidColorBrush x:Key="BrushSecondary600" Color="{DynamicResource ColorSecondary600}"/>
+	<SolidColorBrush x:Key="BrushSecondary700" Color="{DynamicResource ColorSecondary700}"/>
+	<SolidColorBrush x:Key="BrushSecondary800" Color="{DynamicResource ColorSecondary800}"/>
+	<SolidColorBrush x:Key="BrushSecondary900" Color="{DynamicResource ColorSecondary900}"/>
+	<SolidColorBrush x:Key="BrushSecondary950" Color="{DynamicResource ColorSecondary950}"/>
+
+	<!-- Neutral Brushes -->
+	<SolidColorBrush x:Key="BrushNeutral" Color="{DynamicResource ColorNeutral400}"/>
+	<SolidColorBrush x:Key="BrushNeutralLight" Color="{DynamicResource ColorNeutral250}"/>
+	<SolidColorBrush x:Key="BrushNeutralDark" Color="{DynamicResource ColorNeutral700}"/>
+	<SolidColorBrush x:Key="BrushNeutral100" Color="{DynamicResource ColorNeutral100}"/>
+	<SolidColorBrush x:Key="BrushNeutral200" Color="{DynamicResource ColorNeutral200}"/>
+	<SolidColorBrush x:Key="BrushNeutral250" Color="{DynamicResource ColorNeutral250}"/>
+	<SolidColorBrush x:Key="BrushNeutral300" Color="{DynamicResource ColorNeutral300}"/>
+	<SolidColorBrush x:Key="BrushNeutral400" Color="{DynamicResource ColorNeutral400}"/>
+	<SolidColorBrush x:Key="BrushNeutral500" Color="{DynamicResource ColorNeutral500}"/>
+	<SolidColorBrush x:Key="BrushNeutral600" Color="{DynamicResource ColorNeutral600}"/>
+	<SolidColorBrush x:Key="BrushNeutral700" Color="{DynamicResource ColorNeutral700}"/>
+	<SolidColorBrush x:Key="BrushNeutral800" Color="{DynamicResource ColorNeutral800}"/>
+	<SolidColorBrush x:Key="BrushNeutral900" Color="{DynamicResource ColorNeutral900}"/>
+	<SolidColorBrush x:Key="BrushNeutral950" Color="{DynamicResource ColorNeutral950}"/>
+
+	<!-- TextBox Brushes -->
+	<SolidColorBrush x:Key="TextBoxBackgroundDark" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
+	<SolidColorBrush x:Key="TextBoxBorderBrush" Color="{DynamicResource ColorNeutral400}"/>
+
+	<!-- Transparent Item Brushes -->
+	<SolidColorBrush x:Key="ItemTransparentHover" Color="{DynamicResource ColorLight}" Opacity="0.07"/>
+	<SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
+	<SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
+
+	<!-- Transparent Dark Brushes -->
+	<SolidColorBrush x:Key="TransparentDark100" Color="{DynamicResource ColorBlack}" Opacity="0.1"/>
+	<SolidColorBrush x:Key="TransparentDark200" Color="{DynamicResource ColorBlack}" Opacity="0.2"/>
+	<SolidColorBrush x:Key="TransparentDark300" Color="{DynamicResource ColorBlack}" Opacity="0.3"/>
+	<SolidColorBrush x:Key="TransparentDark400" Color="{DynamicResource ColorBlack}" Opacity="0.4"/>
+	<SolidColorBrush x:Key="TransparentDark500" Color="{DynamicResource ColorBlack}" Opacity="0.5"/>
+	<SolidColorBrush x:Key="TransparentDark600" Color="{DynamicResource ColorBlack}" Opacity="0.6"/>
+	<SolidColorBrush x:Key="TransparentDark700" Color="{DynamicResource ColorBlack}" Opacity="0.7"/>
+	<SolidColorBrush x:Key="TransparentDark800" Color="{DynamicResource ColorBlack}" Opacity="0.8"/>
+	<SolidColorBrush x:Key="TransparentDark900" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
+
+	<!-- Transparent White Brushes -->
+	<SolidColorBrush x:Key="TransparentLight100" Color="{DynamicResource ColorLight}" Opacity="0.1"/>
+	<SolidColorBrush x:Key="TransparentLight200" Color="{DynamicResource ColorLight}" Opacity="0.2"/>
+	<SolidColorBrush x:Key="TransparentLight300" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
+	<SolidColorBrush x:Key="TransparentLight400" Color="{DynamicResource ColorLight}" Opacity="0.4"/>
+	<SolidColorBrush x:Key="TransparentLight500" Color="{DynamicResource ColorLight}" Opacity="0.5"/>
+	<SolidColorBrush x:Key="TransparentLight600" Color="{DynamicResource ColorLight}" Opacity="0.6"/>
+	<SolidColorBrush x:Key="TransparentLight700" Color="{DynamicResource ColorLight}" Opacity="0.7"/>
+	<SolidColorBrush x:Key="TransparentLight800" Color="{DynamicResource ColorLight}" Opacity="0.8"/>
+	<SolidColorBrush x:Key="TransparentLight900" Color="{DynamicResource ColorLight}" Opacity="0.9"/>
+
+	<!-- Default style for all controls -->
+	<Style TargetType="{x:Type Control}">
+		<Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+		<Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+	</Style>
+	
+	<!-- Main Window -->
+	
+	<!-- Brush for the background of the main window behind the image -->
+	<SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="{DynamicResource ColorNeutral800}" Opacity="0.7"/>
+    <SolidColorBrush x:Key="MainWindowBorderBrush" Color="{DynamicResource ColorNeutral200}" Opacity="1"/>
+	
+	<!-- Background image / video container -->
+	<Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
+		<!-- Hide this container to hide the background image / video and expose the background brush -->
+		<Setter Property="Visibility" Value="Collapsed"/>
+		<Setter Property="Opacity" Value="0.8"/>
+	</Style>
+	
+	<!-- Background image (set to relative path in theme pack) -->
+	<!-- <ImageSource x:Key="BackgroundImageSource">background.jpg</ImageSource> -->
+	
+	<!-- Background blur (applies to image and video) -->
+	<!-- <system:Double x:Key="BackgroundImageBlurRadius">10</system:Double> -->
+	
+	<!-- Background video source (set to relative path in theme pack) -->
+	<!-- <system:String x:Key="BackgroundVideoSource">video.mp4</system:String> -->
+	
+	<!-- Hide user-customized background video -->
+	<!-- <system:String x:Key="BackgroundVideoSource">-</system:String> -->
+	
+	<!-- Background controls (put any elements or media here) -->
+	<DataTemplate x:Key="BackgroundControlTemplate" DataType="{x:Type vm:ServerBrowserViewModel}">
+		<Grid>
+			<!-- Gif that is only visible when the game is running -->
+			<Image gif:AnimationBehavior.SourceUri="https://media.tenor.com/NzrqQHFBVz8AAAAj/kitty-transparent.gif"
+				   gif:AnimationBehavior.RepeatBehavior="Forever"
+                   Width="100" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,11,46"
+				   Visibility="{Binding GameState.IsGameRunning, Converter={StaticResource booleanToVisibilityConverter}}"/>
+			<!-- Sound you only hear when the user is not inside a match -->
+			<!-- <controls:LoopingMediaElement Loop="True" Source="music.mp3">
+				<controls:LoopingMediaElement.Style>
+					<Style TargetType="controls:LoopingMediaElement">
+						<Setter Property="Volume" Value="0.3"/>
+						<Style.Triggers>
+							<DataTrigger Binding="{Binding GameState.IsConnected}" Value="True">
+								<Setter Property="Volume" Value="0"/>
+							</DataTrigger>
+						</Style.Triggers>
+					</Style>
+				</controls:LoopingMediaElement.Style>
+			</controls:LoopingMediaElement> -->
+		</Grid>
+	</DataTemplate>
+	
+	<!-- Server List -->
+	<Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
+		<Setter Property="RowBackground" Value="Transparent"/>
+		<Setter Property="Background" Value="{DynamicResource TransparentDark800}"/>
+		<Setter Property="Opacity" Value="0.9"/>
+		<Setter Property="BorderThickness" Value="0"/>
+	</Style>
+	
+	<!-- Background brush for header of the server list -->
+	<SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
+</ResourceDictionary>
