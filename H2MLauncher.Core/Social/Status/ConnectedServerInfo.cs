@@ -1,4 +1,4 @@
-﻿namespace H2MLauncher.Core.Social
+﻿namespace H2MLauncher.Core.Social.Status
 {
     /// <summary>
     /// Information about the game server the client is connected to.

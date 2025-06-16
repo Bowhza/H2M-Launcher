@@ -7,6 +7,8 @@ using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Social.Friends;
+using H2MLauncher.Core.Social.Status;
 using H2MLauncher.Core.Utilities.SignalR;
 
 using Microsoft.AspNetCore.SignalR.Client;

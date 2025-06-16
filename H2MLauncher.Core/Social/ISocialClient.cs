@@ -1,4 +1,8 @@
-﻿namespace H2MLauncher.Core.Social;
+﻿using H2MLauncher.Core.Social.Friends;
+using H2MLauncher.Core.Social.Player;
+using H2MLauncher.Core.Social.Status;
+
+namespace H2MLauncher.Core.Social;
 
 public interface ISocialClient
 {

@@ -10,7 +10,7 @@ using FxKit.Extensions;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 using MatchmakingServer.SignalR;
 
@@ -21,7 +21,7 @@ namespace MatchmakingServer.Social;
 /// </summary>
 public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrackingService
 {
-    private const int CHECKING_INTERVAL_MS = 3000;
+    private const int CHECKING_INTERVAL_MS = 15000;
 
     /// <summary>
     /// Whether to stop tracking players and remove them from the server when client reports no connected server.

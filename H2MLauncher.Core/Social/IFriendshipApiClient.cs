@@ -1,4 +1,6 @@
-﻿using Refit;
+﻿using H2MLauncher.Core.Social.Friends;
+
+using Refit;
 
 namespace H2MLauncher.Core.Social;
 

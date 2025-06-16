@@ -1,6 +1,6 @@
 ﻿using System.Windows.Data;
 
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Friends;
 
 namespace H2MLauncher.UI.Converters
 {

@@ -13,6 +13,8 @@ using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Friends;
+using H2MLauncher.Core.Social.Status;
 using H2MLauncher.UI.Dialog;
 
 using Microsoft.Extensions.Options;

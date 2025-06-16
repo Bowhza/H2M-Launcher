@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.Messaging;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Player;
 using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels

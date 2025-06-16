@@ -1,5 +1,5 @@
 ﻿using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Player;
 
 namespace H2MLauncher.Core.Settings
 {

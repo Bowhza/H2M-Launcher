@@ -1,5 +1,5 @@
 ﻿using H2MLauncher.Core.Party;
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 namespace MatchmakingServer;
 

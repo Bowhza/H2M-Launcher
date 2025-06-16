@@ -4,6 +4,7 @@ using System.Reactive.Subjects;
 
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 using MatchmakingServer.Parties;
 using MatchmakingServer.SignalR;
@@ -75,7 +76,7 @@ public class SocialService
                 onError: (ex) => _logger.LogError(ex, "Error in player status change notification pipe")
             );
 
-        // Use another obersvable pipe to throttle handling INCOMING server connection updates to prevent matching during map changes etc.
+        // Use another observable pipe to throttle handling INCOMING server connection updates to prevent matching during map changes etc.
         _playerConnectedServerChanges
            // group by player to get a sequence for each player change
            .GroupBy(x => x.Player.Id)
@@ -83,7 +84,7 @@ public class SocialService
            // debounce each player group, then merge into a single sequence
            .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(2)))
 
-           // handle server connectino update
+           // handle server connection update
            .SelectMany(x =>
                Observable.FromAsync((ct) =>
                    _playerServerTrackingService.HandlePlayerConnectionUpdate(x.Player, x.ConnectedServer, ct)
