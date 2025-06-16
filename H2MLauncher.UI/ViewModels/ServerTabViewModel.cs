@@ -25,7 +25,7 @@ public interface IServerTabViewModel
 
 public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel where TServerViewModel : ServerViewModel
 {
-    new TServerViewModel? SelectedServer { get; }
+    new TServerViewModel? SelectedServer { get; set; }
 
     new ICollection<TServerViewModel> Servers { get; }
 

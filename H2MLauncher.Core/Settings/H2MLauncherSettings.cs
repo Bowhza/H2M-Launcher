@@ -1,4 +1,5 @@
 ﻿using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Social;
 
 namespace H2MLauncher.Core.Settings
 {
@@ -13,6 +14,8 @@ namespace H2MLauncher.Core.Settings
         public List<SimpleServerInfo> FavouriteServers { get; init; } = [];
 
         public List<RecentServerInfo> RecentServers { get; init; } = [];
+
+        public List<RecentPlayerInfo> RecentPlayers { get; init; } = [];
 
         public ServerFilterSettings ServerFilter { get; init; } = new();
 

@@ -255,7 +255,20 @@ namespace H2MLauncher.UI.ViewModels
                 () => CanJoinParty && PartyId is not null);
 
             InviteToPartyCommand = new AsyncRelayCommand(
-                () => partyClient.InviteToParty(Id),
+                async () =>
+                {
+                    InviteInfo? invite = await partyClient.InviteToParty(Id!);
+                    if (invite is not null)
+                    {
+                        _ = Application.Current.Dispatcher.InvokeAsync(() =>
+                               dialogService.OpenTextDialog("Social", $"Sent invite to {Name!}!"));
+                    }
+                    else
+                    {
+                        _ = Application.Current.Dispatcher.InvokeAsync(() =>
+                           dialogService.OpenTextDialog("Error", $"Could not send invite to {Name}!"));
+                    }
+                },
                 () => CanInvite && partyClient.IsPartyActive);
 
             JoinServerCommand = new AsyncRelayCommand(

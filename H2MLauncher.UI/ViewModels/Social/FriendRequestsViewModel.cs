@@ -49,7 +49,7 @@ public sealed partial class FriendRequestsViewModel : ObservableObject, IDisposa
 
         RequestsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendRequestViewModel.Status), ListSortDirection.Ascending));
         RequestsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendRequestViewModel.Created), ListSortDirection.Descending));
-
+        
         // Finally, group by the Status property
         RequestsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FriendRequestViewModel.Status), new FriendRequestStatusConverter()));
 

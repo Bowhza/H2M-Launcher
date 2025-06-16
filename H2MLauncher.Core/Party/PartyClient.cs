@@ -330,28 +330,30 @@ namespace H2MLauncher.Core.Party
             PartyPrivacyChanged?.Invoke(partyPrivacy);
         }
 
-        public async Task InviteToParty(string id)
+        public async Task<InviteInfo?> InviteToParty(string id)
         {
             if (_currentParty is null)
             {
-                return;
+                return null;
             }
 
             if (!await StartConnection())
             {
-                return;
+                return null;
             }
 
             InviteInfo? invite = await Hub.CreateInvite(id);
             if (invite is null)
             {
                 _logger.LogDebug("Could not invite {playerId} to party", id);
-                return;
+                return null;
             }
 
             _currentParty.Invites.Add(invite);
 
             UserInvited?.Invoke(invite);
+
+            return invite;
         }
 
         public bool IsSelf(PartyPlayerInfo member)

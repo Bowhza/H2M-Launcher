@@ -349,6 +349,9 @@
                                         HeadersVisibility="Column"
                                         VerticalScrollBarVisibility="Hidden"
                                         SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
+                                        <i:Interaction.Behaviors>
+                                            <local:ScrollIntoViewBehavior />
+                                        </i:Interaction.Behaviors>
                                         <DataGrid.Resources>
                                             <DataGridTextColumn 
                                             x:Key="ThatPeskyColumn"
