@@ -35,7 +35,7 @@ public static class PlayerDtoExtensions
     /// <param name="player">The player in the info.</param>
     /// <param name="joinDate">When the player joined the server.</param>
     /// <param name="encounteringPlayerJoinDate">When another player this info is created for joined the server.</param>
-    public static ServerPlayerInfo ToServerPlayerInfo(this Player player, 
+    public static ServerPlayerInfo ToServerPlayerInfo(this Player player,
         DateTimeOffset joinDate, DateTimeOffset? encounteringPlayerJoinDate)
     {
         DateTimeOffset encounterDate;
@@ -51,6 +51,12 @@ public static class PlayerDtoExtensions
                 : joinDate;
         }
 
-        return new ServerPlayerInfo(player.Id, player.UserName, player.Name, encounterDate);
+        return new ServerPlayerInfo
+        {
+            Id = player.Id,
+            UserName = player.UserName,
+            PlayerName = player.Name,
+            EncounterDate = encounterDate
+        };
     }
 }

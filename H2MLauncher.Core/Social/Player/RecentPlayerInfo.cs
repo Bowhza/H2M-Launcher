@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Models;
+﻿using System.Diagnostics.CodeAnalysis;
+
+using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.Core.Social.Player;
 
@@ -12,5 +14,11 @@ public record RecentPlayerInfo : ServerPlayerInfo
     /// </summary>
     public required SimpleServerInfo Server { get; init; }
 
-    public RecentPlayerInfo(ServerPlayerInfo serverPlayer) : base(serverPlayer) { }
+    [SetsRequiredMembers]
+    public RecentPlayerInfo(ServerPlayerInfo serverPlayer, SimpleServerInfo server) : base(serverPlayer)
+    {
+        Server = server;
+    }
+
+    public RecentPlayerInfo() { }
 }

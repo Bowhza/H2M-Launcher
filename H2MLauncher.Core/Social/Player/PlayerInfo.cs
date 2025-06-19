@@ -3,7 +3,11 @@
 /// <summary>
 /// Simple information about a player.
 /// </summary>
-/// <param name="Id">The user id of the player.</param>
-/// <param name="UserName">The user name of the player.</param>
-/// <param name="PlayerName">The current in-game name of the player.</param>
-public record PlayerInfo(string Id, string UserName, string? PlayerName);
+public record PlayerInfo
+{
+    public required string Id { get; init; }
+
+    public required string UserName { get; init; }
+
+    public string? PlayerName { get; init; }
+}

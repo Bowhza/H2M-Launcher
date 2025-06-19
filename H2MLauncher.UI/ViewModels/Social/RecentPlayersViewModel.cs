@@ -6,11 +6,11 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
 
-using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
 using H2MLauncher.Core.Social.Player;
 using H2MLauncher.UI.Dialog;
+
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -33,31 +33,15 @@ namespace H2MLauncher.UI.ViewModels
             _socialClient = socialClient;
             _dialogService = dialogService;
 
-            _socialClient.RecentPlayersChanged += SocialClient_RecentPlayersChanged;
-
-            Players.Add(new(new ServerConnectionDetails("212.232.18.45", 7780), partyClient, socialClient, dialogService, WeakReferenceMessenger.Default)
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "Test1",
-                UserName = "FunnyBloke39",
-                ServerName = "[4XP] [EU] Sniper Lobby Best Maps 24/7",
-                EncounteredAt = DateTime.Now.AddMinutes(-5)
-            });
-
-            Players.Add(new(new ServerConnectionDetails("212.232.18.45", 7780), partyClient, socialClient, dialogService, WeakReferenceMessenger.Default)
-            {
-                Id = Guid.NewGuid().ToString(),
-                Name = "CoolUser",
-                UserName = "CryingYeti84",
-                ServerName = "[EU] ^1Rasselbande ^7 | ^1Vanilla KC/ TDM ^7 | ^1MW2 / MW3 Best Maps",
-                EncounteredAt = DateTime.Now.AddMinutes(-10)
-            });
+            _socialClient.RecentPlayersChanged += RefreshRecentPlayerList;            
 
             ICollectionView collectionView = CollectionViewSource.GetDefaultView(Players);
             collectionView.SortDescriptions.Add(new SortDescription(nameof(RecentPlayerViewModel.EncounteredAt), ListSortDirection.Descending));
+
+            RefreshRecentPlayerList();
         }
 
-        private void SocialClient_RecentPlayersChanged()
+        private void RefreshRecentPlayerList()
         {
             Application.Current.Dispatcher.Invoke(() =>
             {
@@ -86,7 +70,7 @@ namespace H2MLauncher.UI.ViewModels
 
         public void Dispose()
         {
-            _socialClient.RecentPlayersChanged -= SocialClient_RecentPlayersChanged;
+            _socialClient.RecentPlayersChanged -= RefreshRecentPlayerList;
         }
     }
 }

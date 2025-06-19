@@ -3,6 +3,7 @@
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.Joining;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Services;
@@ -509,10 +510,9 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             foreach (ServerPlayerInfo player in serverPlayers)
             {
                 // Only remember last encounter (for now)
-                _recentPlayers[player.Id] = new RecentPlayerInfo(player)
-                {
-                    Server = new(matchStatus.Server, matchStatus.ServerName)
-                };
+                _recentPlayers[player.Id] = new RecentPlayerInfo(
+                    player,
+                    new SimpleServerInfo(matchStatus.Server, matchStatus.ServerName));
             }
 
             // Store updated list of recent players

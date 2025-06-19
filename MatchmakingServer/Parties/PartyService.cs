@@ -345,6 +345,7 @@ namespace MatchmakingServer.Parties
             if (invitedPlayer.PartyHubId is null)
             {
                 // The invited player is not connected to the party hub
+
                 return null;
             }
 
