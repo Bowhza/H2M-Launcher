@@ -8,6 +8,7 @@
              xmlns:converters="clr-namespace:H2MLauncher.UI.Converters"
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             Style="{DynamicResource SocialControlStyle}"
              mc:Ignorable="d" d:Background="#242"
              d:DataContext="{d:DesignInstance Type=vm:FriendRequestsViewModel}"
              d:DesignHeight="450" d:DesignWidth="250">

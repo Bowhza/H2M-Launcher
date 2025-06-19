@@ -78,6 +78,7 @@
     <SolidColorBrush x:Key="ControlBorderBrush" Color="{DynamicResource ColorNeutral300}" />
     <SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
 
+    <SolidColorBrush x:Key="DialogForeground" Color="{DynamicResource ColorLight}"/>
     <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
 
@@ -160,6 +161,9 @@
     <SolidColorBrush x:Key="ItemTransparentHover" Color="{DynamicResource ColorLight}" Opacity="0.07"/>
     <SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
     <SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
+
+    <!-- Color of the online status (Online, In Match, Offline) -->
+    <SolidColorBrush x:Key="OnlineStatusColor" Color="{DynamicResource ColorNeutral300}"/>
 
     <!-- Main Window -->
     
@@ -984,6 +988,7 @@
     </Style>
 
 
+    <!-- Style for the border that holds the social panel -->
     <Style x:Key="SocialPanelBorderStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="5,5,0,0"/>
         <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
@@ -991,6 +996,7 @@
         <Setter Property="BorderThickness" Value="0"/>
     </Style>
 
+    <!-- Style for the social tab control -->
     <Style x:Key="SocialTabControlStyle" TargetType="TabControl">
         <Setter Property="Background" Value="{DynamicResource TransparentDark400}"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -1002,7 +1008,10 @@
         </Style.Resources>
     </Style>
 
+    <!-- Style for each control of the social tabs (Friends, Requests, Recents) -->
+    <Style x:Key="SocialControlStyle" TargetType="Control"/>
 
+    <!-- Tab control of the server tabs -->
     <Style x:Key="ServerTabControlStyle" TargetType="TabControl">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -1010,6 +1019,7 @@
     </Style>
 
 
+    <!-- A solid background color behind the header of the server data grid -->
     <SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
 
     <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
@@ -1077,9 +1087,17 @@
         </Style.Setters>
     </Style>
 
-    <SolidColorBrush x:Key="DialogForeground" Color="{DynamicResource ColorLight}"/>
-
+    <!-- TextBlock used inside every dialog -->
     <Style x:Key="DialogTextBlockStyle" TargetType="TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource DialogForeground}" />
+    </Style>
+
+    <!-- General style for the content of each dialog (use to override resources in that scope) -->
+    <Style x:Key="DialogContentStyle" TargetType="Border"/>
+
+    <!-- Popup for details used in social controls -->
+    <Style x:Key="DetailsPopupBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BrushNeutral900}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource DialogBorderBrush}"/>
     </Style>
 </ResourceDictionary>

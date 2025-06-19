@@ -9,6 +9,7 @@
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              MinWidth="180"
+             Style="{DynamicResource SocialControlStyle}"
              mc:Ignorable="d"
              d:Background="#242"
              d:DesignHeight="450" d:DesignWidth="250" d:DataContext="{d:DesignInstance Type=vm:FriendsViewModel}">
@@ -501,7 +502,7 @@
                                     </TextBlock>
 
                                     <TextBlock Text="{Binding DetailedStatus}" Grid.Row="1"  
-                                               Foreground="{DynamicResource TextHint}" FontSize="10"  FontWeight="SemiBold"
+                                               Foreground="{DynamicResource OnlineStatusColor}" FontSize="10"  FontWeight="SemiBold"
                                                VerticalAlignment="Center" Margin="0,2,0,2">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -581,9 +582,8 @@
                                            Opened="DetailsPopup_Opened"
                                            MouseDown="DetailsPopup_MouseDown"
                                            Width="200">
-                                        <Border Focusable="True" Background="{DynamicResource BrushNeutral900}" 
-                                                BorderBrush="{DynamicResource DialogBorderBrush}" BorderThickness="1" CornerRadius="7"
-                                                Opacity="1">
+                                        <Border Focusable="True" BorderThickness="1" CornerRadius="7"
+                                                Opacity="1" Style="{DynamicResource DetailsPopupBorderStyle}">
                                             <StackPanel Margin="12">
                                                 <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"/>
                                                 <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
@@ -678,7 +678,6 @@
                                                         Padding="5" Margin="0,5"/>
                                                 <Button Content="Join Party" Command="{Binding JoinPartyCommand}" Visibility="{Binding CanJoinParty, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
-                                                <!--<Button Content="Join Game" Command="{Binding JoinGameCommand}" Visibility="{Binding CanJoinGame, Converter={StaticResource booleanToVisibilityConverter}}"/>-->
                                                 <Separator Margin="0,5" Visibility="{Binding IsSelf, Converter={StaticResource InverseBoolToVisibilityConverter}}" />
                                                 <Button Content="Add Friend" Command="{Binding AddFriendCommand}" Visibility="{Binding CanAddFriend, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
