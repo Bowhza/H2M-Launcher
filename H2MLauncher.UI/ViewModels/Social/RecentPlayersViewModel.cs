@@ -1,4 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Data;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Messaging;
@@ -11,7 +14,7 @@ using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels
 {
-    public sealed partial class RecentPlayersViewModel : ObservableObject
+    public sealed partial class RecentPlayersViewModel : ObservableObject, IDisposable
     {
         private readonly PartyClient _partyClient;
         private readonly SocialClient _socialClient;
@@ -30,6 +33,8 @@ namespace H2MLauncher.UI.ViewModels
             _socialClient = socialClient;
             _dialogService = dialogService;
 
+            _socialClient.RecentPlayersChanged += SocialClient_RecentPlayersChanged;
+
             Players.Add(new(new ServerConnectionDetails("212.232.18.45", 7780), partyClient, socialClient, dialogService, WeakReferenceMessenger.Default)
             {
                 Id = Guid.NewGuid().ToString(),
@@ -47,6 +52,23 @@ namespace H2MLauncher.UI.ViewModels
                 ServerName = "[EU] ^1Rasselbande ^7 | ^1Vanilla KC/ TDM ^7 | ^1MW2 / MW3 Best Maps",
                 EncounteredAt = DateTime.Now.AddMinutes(-10)
             });
+
+            ICollectionView collectionView = CollectionViewSource.GetDefaultView(Players);
+            collectionView.SortDescriptions.Add(new SortDescription(nameof(RecentPlayerViewModel.EncounteredAt), ListSortDirection.Descending));
+        }
+
+        private void SocialClient_RecentPlayersChanged()
+        {
+            Application.Current.Dispatcher.Invoke(() =>
+            {
+                Players.Clear();
+                foreach (RecentPlayerInfo recentPlayer in _socialClient.RecentPlayers)
+                {
+                    AddRecentPlayer(recentPlayer);
+                }
+
+                OnPropertyChanged(nameof(HasPlayers));
+            });
         }
 
         private void AddRecentPlayer(RecentPlayerInfo recentPlayerInfo)
@@ -60,6 +82,11 @@ namespace H2MLauncher.UI.ViewModels
                     ServerName = recentPlayerInfo.Server.ServerName,
                     EncounteredAt = recentPlayerInfo.EncounterDate.LocalDateTime,
                 });
+        }
+
+        public void Dispose()
+        {
+            _socialClient.RecentPlayersChanged -= SocialClient_RecentPlayersChanged;
         }
     }
 }

@@ -18,5 +18,5 @@ public interface ISocialClient
 
     Task OnUnfriended(string byFriendId);
 
-    Task OnMatchStatusUpdated(MatchStatusDto? matchStatus);
+    Task OnMatchStatusUpdated(MatchStatusDto? matchStatus, IEnumerable<ServerPlayerInfo> serverPlayers);
 }

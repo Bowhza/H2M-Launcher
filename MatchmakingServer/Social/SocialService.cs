@@ -41,6 +41,7 @@ public class SocialService
         _playerServerTrackingService = playerServerTrackingService;
         _playerServerTrackingService.PlayerJoinedServer += PlayerServerTrackingService_PlayerJoinedServer;
         _playerServerTrackingService.PlayerLeftServer += PlayerServerTrackingService_PlayerLeftServer;
+        _playerServerTrackingService.ServerRefreshed += PlayerServerTrackingService_ServerRefreshed;
 
         _partyService = partyService;
         _partyService.PartyClosed += PartyService_PartyClosed;
@@ -195,13 +196,19 @@ public class SocialService
         {
             await TryNotifyOnlineFriendsOfStatusChange(notification.Player, serviceScope);
 
-
             if (notification.NotifySelf && notification.StatusChange is StatusChange.MatchStatus)
             {
                 // Match status update
                 await _hubContext.Clients
                     .User(notification.Player.Id)
-                    .OnMatchStatusUpdated(notification.Player.ToMatchStatusDto());
+                    .OnMatchStatusUpdated(
+                        notification.Player.ToMatchStatusDto(),
+                        notification.Player.PlayingServer?.KnownPlayers
+                            .Where(p => p.Key.Id != notification.Player.Id) // not self
+                            .Select(p =>
+                                p.Key.ToServerPlayerInfo(
+                                    joinDate: p.Value,
+                                    encounteringPlayerJoinDate: notification.Player.PlayingServerJoinDate)) ?? []);
             }
         }
         catch (Exception ex)
@@ -306,6 +313,14 @@ public class SocialService
         _playerStatusChanges.OnNext(StatusChangeNotification.ForOne(e.Player, StatusChange.MatchStatus, notifySelf: true));
     }
 
+    private void PlayerServerTrackingService_ServerRefreshed(GameServer server)
+    {
+        // Notify each player and his friends of the new match status + encountered players
+        _playerStatusChanges.OnNext(
+            StatusChangeNotification.ForMany(server.KnownPlayers.Keys, StatusChange.MatchStatus, notifySelf: true)
+        );
+    }
+
     private enum StatusChange
     {
         OnlineStatus,
@@ -322,7 +337,7 @@ public class SocialService
         public static StatusChangeNotification[] ForOne(Player player, StatusChange statusChange, bool notifySelf = false)
         {
             return [new StatusChangeNotification(player, statusChange) {
-                NotifySelf = notifySelf 
+                NotifySelf = notifySelf
             }];
         }
 
