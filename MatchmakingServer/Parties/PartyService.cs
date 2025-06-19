@@ -342,6 +342,12 @@ namespace MatchmakingServer.Parties
                 return null;
             }
 
+            if (invitedPlayer.PartyHubId is null)
+            {
+                // The invited player is not connected to the party hub
+                return null;
+            }
+
             // Ensure the invited player is not already in the party
             if (party.Members.Any(m => m.Id == invitedPlayer.Id))
             {
