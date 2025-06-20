@@ -185,16 +185,6 @@
                                                                 PropertyName="IsChecked" Value="False" />
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
-                            <!--<ToggleButton.Style>
-                                <Style TargetType="{x:Type ToggleButton}">
-                                    <Setter Property="Background" Value="Transparent"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="{DynamicResource TransparentLight100}"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </ToggleButton.Style>-->
 
                             <Grid Height="65">
                                 <Grid.ColumnDefinitions>

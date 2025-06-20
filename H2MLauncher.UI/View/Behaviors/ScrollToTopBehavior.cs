@@ -4,66 +4,8 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 
-using Microsoft.Xaml.Behaviors;
-
 namespace H2MLauncher.UI
 {
-    public class ScrollIntoViewBehavior : Behavior<Selector>
-    {
-        /// <summary>
-        ///  When Behavior is attached
-        /// </summary>
-        protected override void OnAttached()
-        {
-            base.OnAttached();
-            AssociatedObject.SelectionChanged += AssociatedObject_SelectionChanged;
-        }
-
-        /// <summary>
-        /// On Selection Changed
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        void AssociatedObject_SelectionChanged(object sender,
-                                               SelectionChangedEventArgs e)
-        {
-            if (sender is not Selector selector)
-            {
-                return;
-            }
-
-            if (selector.SelectedItem is null)
-            {
-                return;
-            }
-
-            selector.Dispatcher.BeginInvoke(() =>
-            {
-                selector.UpdateLayout();
-                if (selector.SelectedItem is null) return;
-
-                switch (selector)
-                {
-                    case DataGrid dataGrid: 
-                        dataGrid.ScrollIntoView(selector.SelectedItem);
-                        break;
-                    case ListBox listBox:
-                        listBox.ScrollIntoView(selector.SelectedItem);
-                        break;
-                }                
-            });
-        }
-        /// <summary>
-        /// When behavior is detached
-        /// </summary>
-        protected override void OnDetaching()
-        {
-            base.OnDetaching();
-            AssociatedObject.SelectionChanged -= AssociatedObject_SelectionChanged;
-
-        }
-    }
-
     public static class ScrollToTopBehavior
     {
         public static readonly DependencyProperty ScrollToTopProperty =
@@ -74,14 +16,17 @@ namespace H2MLauncher.UI
                 typeof(ScrollToTopBehavior),
                 new UIPropertyMetadata(false, OnScrollToTopPropertyChanged)
             );
+
         public static bool GetScrollToTop(DependencyObject obj)
         {
             return (bool)obj.GetValue(ScrollToTopProperty);
         }
+
         public static void SetScrollToTop(DependencyObject obj, bool value)
         {
             obj.SetValue(ScrollToTopProperty, value);
         }
+
         private static void OnScrollToTopPropertyChanged(DependencyObject dpo, DependencyPropertyChangedEventArgs e)
         {
             ItemsControl? itemsControl = dpo as ItemsControl;
@@ -102,7 +47,8 @@ namespace H2MLauncher.UI
                 }
             }
         }
-        static void ItemsSourceChanged(object? sender, EventArgs e)
+
+        private static void ItemsSourceChanged(object? sender, EventArgs e)
         {
             if (sender is not ItemsControl itemsControl) return;
 
@@ -111,7 +57,8 @@ namespace H2MLauncher.UI
             {
                 if (itemsControl.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
                 {
-                    ScrollViewer? scrollViewer = GetVisualChild<ScrollViewer>(itemsControl) as ScrollViewer;
+                    // Once containers finished generating scroll to top
+                    ScrollViewer? scrollViewer = GetVisualChild<ScrollViewer>(itemsControl);
                     scrollViewer?.ScrollToTop();
                     itemsControl.ItemContainerGenerator.StatusChanged -= eventHandler;
                 }
