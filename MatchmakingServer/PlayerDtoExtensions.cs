@@ -1,6 +1,7 @@
 ﻿using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social.Player;
 using H2MLauncher.Core.Social.Status;
+using H2MLauncher.Core.Utilities;
 
 namespace MatchmakingServer;
 
@@ -37,10 +38,12 @@ public static class PlayerDtoExtensions
     /// <param name="encounteringPlayerJoinDate">When another player this info is created for joined the server.</param>
     public static ServerPlayerInfo ToServerPlayerInfo(this Player player,
         DateTimeOffset joinDate, DateTimeOffset? encounteringPlayerJoinDate)
-    {
-        // The maximum of both dates is when they met
-        DateTimeOffset encounterDate = encounteringPlayerJoinDate > joinDate
-            ? encounteringPlayerJoinDate.Value
+    {        
+        DateTimeOffset encounterDate = encounteringPlayerJoinDate.HasValue
+            // The maximum of both dates is when they met
+            ? GenericComparison.Max(encounteringPlayerJoinDate.Value, joinDate)
+
+            // Just take the join date of the player
             : joinDate;
 
         return new ServerPlayerInfo
