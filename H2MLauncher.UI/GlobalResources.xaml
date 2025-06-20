@@ -990,6 +990,35 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Template for group expander header displayed as {Name} — {Count} -->
+    <DataTemplate x:Key="GroupExpanderHeaderTemplate">
+        <Border CornerRadius="5" Height="25">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
+                       VerticalAlignment="Center">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{} {0} — {1}">
+                            <Binding Path="Name" />
+                            <Binding Path="ItemCount" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </DataTemplate>
+
+    <!-- Style for the expanders of the social list groups -->
+    <Style x:Key="SocialExpanderBaseStyle" TargetType="{x:Type controls:CustomExpander}">
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Margin" Value="0,5,0,3"/>
+        <Setter Property="HeaderTemplate" Value="{StaticResource GroupExpanderHeaderTemplate}"/>
+        <Setter Property="IsExpanded" Value="True"/>
+    </Style>
 
     <!-- Style for the border that holds the social panel -->
     <Style x:Key="SocialPanelBorderStyle" TargetType="Border">
@@ -1102,5 +1131,6 @@
     <Style x:Key="DetailsPopupBorderStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource BrushNeutral900}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource DialogBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
     </Style>
 </ResourceDictionary>

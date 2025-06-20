@@ -8,133 +8,14 @@
              xmlns:converters="clr-namespace:H2MLauncher.UI.Converters"
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+             Style="{DynamicResource SocialControlStyle}"
              mc:Ignorable="d" d:Background="#242"
              d:DataContext="{d:DesignInstance Type=vm:RecentPlayersViewModel}"
              d:DesignHeight="450" d:DesignWidth="250">
     <UserControl.Resources>
-        <converters:PartySizeIconConverter x:Key="PartySizeIconConverter"/>
-
-        <!-- Smooth Easing -->
-        <SineEase x:Key="EaseOut" EasingMode="EaseOut"/>
-
-        <Style x:Key="SleekExpanderHeaderStyle" TargetType="{x:Type ToggleButton}">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type ToggleButton}">
-                        <Grid Background="Transparent">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="Auto"/>
-                            </Grid.ColumnDefinitions>
-                            <ContentPresenter Grid.Column="0" 
-                                              Content="{TemplateBinding Content}" 
-                                              ContentTemplate="{TemplateBinding ContentTemplate}"
-                                              VerticalAlignment="Center"
-                                              Margin="5,0"/>
-                            <Path x:Name="arrow" Data="M 0 0 L 6 6 L 12 0"
-                                  Stroke="{DynamicResource TextLight}" Opacity="0.8" Margin="12,0"
-                                  StrokeThickness="1.8"
-                                  HorizontalAlignment="Right"
-                                  VerticalAlignment="Center"
-                                  RenderTransformOrigin="0.5,0.5">
-                                <Path.RenderTransform>
-                                    <RotateTransform x:Name="ArrowRotate" Angle="0"/>
-                                </Path.RenderTransform>
-                            </Path>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate"
-                                                         Storyboard.TargetProperty="Angle"
-                                                         To="0" Duration="0:0:0.2"
-                                                         EasingFunction="{StaticResource EaseOut}"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                                <Trigger.ExitActions>
-                                    <BeginStoryboard>
-                                        <Storyboard>
-                                            <DoubleAnimation Storyboard.TargetName="ArrowRotate"
-                                                         Storyboard.TargetProperty="Angle"
-                                                         To="180" Duration="0:0:0.2"
-                                                         EasingFunction="{StaticResource EaseOut}"/>
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.ExitActions>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="TextElement.Foreground" Value="#CCCCCC"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
-        <Style x:Key="SleekExpanderStyle" TargetType="{x:Type Expander}">
-            <Setter Property="HeaderTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <Border CornerRadius="5" Height="25">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
-                                           VerticalAlignment="Center">
-                                    <TextBlock.Text>
-                                        <MultiBinding StringFormat="{} {0} — {1}">
-                                            <Binding Path="Name" />
-                                            <Binding Path="ItemCount" />
-                                        </MultiBinding>
-                                    </TextBlock.Text>
-                                </TextBlock>
-                            </Grid>
-                        </Border>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="{x:Type Expander}">
-                        <Grid>
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="*"/>
-                            </Grid.RowDefinitions>
-
-                            <ToggleButton x:Name="HeaderSite" 
-                                  Grid.Row="0"
-                                  Content="{TemplateBinding Header}"
-                                  ContentTemplate="{TemplateBinding HeaderTemplate}"
-                                  IsChecked="{Binding Path=IsExpanded, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
-                                  Style="{StaticResource SleekExpanderHeaderStyle}"/>
-
-                            <ContentPresenter x:Name="ExpandSite" 
-                                      Grid.Row="1"
-                                      Visibility="Collapsed" 
-                                      Focusable="False" 
-                                      Margin="10,5,10,0"/>
-                        </Grid>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsExpanded" Value="True">
-                                <Setter TargetName="ExpandSite" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-                            <DataTrigger Binding="{Binding Name}" Value="Party">
-                                <Setter TargetName="HeaderSite" Property="Style" Value="{StaticResource SleekExpanderHeaderStyleNoArrow}"/>
-                            </DataTrigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
     </UserControl.Resources>
-    <Grid Grid.Row="1" x:Name="FriendRequestsPanel" Margin="6" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Stretch"
-                TextBlock.FontFamily="Consolas">
+    <Grid Grid.Row="1" x:Name="RecentPlayersPanel" Margin="6" TextBlock.Foreground="{DynamicResource TextLight}" VerticalAlignment="Stretch"
+          TextBlock.FontFamily="Consolas">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -149,40 +30,23 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Hidden">
 
             <!-- Recent players list -->
-            <ItemsControl ItemsSource="{Binding Players, UpdateSourceTrigger=PropertyChanged}" Margin="0,5" Padding="0,5" Background="{DynamicResource TransparentDark400}"
-                          BorderBrush="{DynamicResource ControlBorderBrushNeutral}" Visibility="{Binding HasPlayers, Converter={StaticResource booleanToVisibilityConverter}}"
-                          KeyboardNavigation.DirectionalNavigation="Contained" VerticalAlignment="Top"
-                          x:Name="RecentPlayersItemsControl">
-                <ItemsControl.GroupStyle>
-                    <GroupStyle>
-                        <GroupStyle.ContainerStyle>
-                            <Style TargetType="{x:Type GroupItem}">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="{x:Type GroupItem}">
-                                            <Expander IsExpanded="True"
-                                                      Header="{Binding}"
-                                                      Background="Transparent" 
-                                                      Foreground="{DynamicResource TextLight}" 
-                                                      BorderBrush="{DynamicResource TransparentLight200}" BorderThickness="0,0,0,1" Margin="0,5,0,3"
-                                                      Style="{StaticResource SleekExpanderStyle}">
-                                                <ItemsPresenter/>
-                                            </Expander>
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </GroupStyle.ContainerStyle>
-                    </GroupStyle>
-                </ItemsControl.GroupStyle>
+            <ItemsControl x:Name="RecentPlayersItemsControl"
+                          ItemsSource="{Binding Players, UpdateSourceTrigger=PropertyChanged}" 
+                          Margin="0,5" 
+                          Padding="0,5" 
+                          Background="{DynamicResource TransparentDark400}"
+                          BorderBrush="{DynamicResource ControlBorderBrushNeutral}" 
+                          Visibility="{Binding HasPlayers, Converter={StaticResource booleanToVisibilityConverter}}"
+                          KeyboardNavigation.DirectionalNavigation="Contained" 
+                          VerticalAlignment="Top">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ToggleButton x:Name="border" Padding="7,5,5,5" Margin="10,0" Style="{StaticResource TransparentItemToggleButton}">
+                        <ToggleButton x:Name="itemButton" Padding="7,5,5,5" Margin="10,0" Style="{StaticResource TransparentItemToggleButton}">
                             <!-- Deselect item when popup closes -->
                             <i:Interaction.Triggers>
                                 <i:EventTrigger EventName="Closed">
                                     <i:ChangePropertyAction TargetObject="{Binding RelativeSource={RelativeSource AncestorType=ToggleButton}}"
-                                                                PropertyName="IsChecked" Value="False" />
+                                                            PropertyName="IsChecked" Value="False" />
                                 </i:EventTrigger>
                             </i:Interaction.Triggers>
 
@@ -245,26 +109,25 @@
 
                                 <!-- Details Popup -->
                                 <Popup x:Name="DetailsPopup"
-                                           IsOpen="{Binding RelativeSource={RelativeSource AncestorType=ToggleButton}, Path=IsChecked}"
-                                           AllowsTransparency="True"
-                                           PlacementTarget="{Binding ElementName=border}"
-                                           Placement="Left"
-                                           PlacementRectangle="-10,0,0,0"
-                                           HorizontalOffset="5" 
-                                           VerticalOffset="0"
-                                           StaysOpen="False" 
-                                           PopupAnimation="Fade"
-                                           Opened="DetailsPopup_Opened"
-                                           MouseDown="DetailsPopup_MouseDown"
-                                           Width="250">
+                                       IsOpen="{Binding RelativeSource={RelativeSource AncestorType=ToggleButton}, Path=IsChecked}"
+                                       AllowsTransparency="True"
+                                       PlacementTarget="{Binding ElementName=itemButton}"
+                                       Placement="Left"
+                                       PlacementRectangle="-10,0,0,0"
+                                       HorizontalOffset="5" 
+                                       VerticalOffset="0"
+                                       StaysOpen="False" 
+                                       PopupAnimation="Fade"
+                                       Opened="DetailsPopup_Opened"
+                                       MouseDown="DetailsPopup_MouseDown"
+                                       Width="250">
                                     <Popup.Resources>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
                                         </Style>
                                     </Popup.Resources>
-                                    <Border Focusable="True" Background="{DynamicResource BrushNeutral900}" 
-                                                BorderBrush="{DynamicResource DialogBorderBrush}" BorderThickness="1" CornerRadius="7"
-                                                Opacity="1">
+                                    <Border Style="{DynamicResource DetailsPopupBorderStyle}" Focusable="True"
+                                            CornerRadius="7" Opacity="1">
                                         <StackPanel Margin="12">
                                             <TextBlock Text="{Binding Name}" FontSize="18" FontWeight="Bold"/>
                                             <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
@@ -292,7 +155,7 @@
 
                                             <!-- Met on Server -->
                                             <Border Padding="7" CornerRadius="5" Background="{DynamicResource TransparentLight200}" Margin="0,5">
-                                                 <TextBlock Margin="0,0,0,0" FontSize="10" Foreground="{DynamicResource BrushNeutral200}" TextWrapping="Wrap"
+                                                <TextBlock Margin="0,0,0,0" FontSize="10" Foreground="{DynamicResource BrushNeutral200}" TextWrapping="Wrap"
                                                             ui:TextBlockExtensions.BindableInlines="{Binding ServerName, Converter={StaticResource HostNameColorConverter}}"/>
                                             </Border>
 
@@ -322,8 +185,7 @@
                                             </Button>
                                             <Separator Margin="0,5" />
                                             <Button Content="Copy User ID" Command="{Binding CopyUserIdCommand}" 
-                                                        Padding="5" Margin="0,5,0,0" />
-
+                                                    Padding="5" Margin="0,5,0,0" />
                                         </StackPanel>
                                     </Border>
                                 </Popup>

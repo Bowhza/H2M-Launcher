@@ -325,7 +325,7 @@
                                 <Grid>
                                     <!-- Opaque background for the header row -->
                                     <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="-2, -2, -2, 5"></Rectangle>
-                                    <view:CustomDataGrid
+                                    <controls:CustomDataGrid
                                         x:Name="serverDataGrid" 
                                         Style="{DynamicResource ServerDataGridStyle}" 
                                         CellStyle="{DynamicResource ServerDataGridCellStyle}"
@@ -489,7 +489,7 @@
                                                 </DataGridTextColumn.ElementStyle>
                                             </DataGridTextColumn>
                                         </DataGrid.Columns>
-                                    </view:CustomDataGrid>
+                                    </controls:CustomDataGrid>
                                 </Grid>
                             </DataTemplate>
                         </TabControl.ContentTemplate>
