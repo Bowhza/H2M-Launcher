@@ -621,17 +621,11 @@
                                                 </Separator>
 
                                                 <!-- Playing Server -->
-                                                <Border Padding="7" CornerRadius="5" Background="{DynamicResource TransparentDark200}" Margin="0,5">
-                                                    <Border.Style>
-                                                        <Style TargetType="Border">
-                                                            <Setter Property="Visibility" Value="Visible"/>
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding PlayingServer}" Value="{x:Null}">
-                                                                    <Setter Property="Visibility" Value="Collapsed"/>
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </Border.Style>
+                                                <Button Grid.Row="2" Background="{DynamicResource TransparentDark200}" 
+                                                        VerticalAlignment="Bottom" Padding="7" HorizontalContentAlignment="Stretch"
+                                                        Margin="0,5"  Style="{StaticResource LinkButtonStyle}"
+                                                        Command="{Binding SelectServerCommand}" ToolTip="Go to server"
+                                                        Visibility="{Binding HasPlayingServer, Converter={StaticResource booleanToVisibilityConverter}}">
                                                     <Grid HorizontalAlignment="Stretch">
                                                         <Grid.RowDefinitions>
                                                             <RowDefinition/>
@@ -661,8 +655,7 @@
                                                                 <Style TargetType="Button" BasedOn="{StaticResource WindowButtonStyle}">
                                                                     <Setter Property="Visibility" 
                                                                             Value="{Binding IsMouseOver, 
-                                                                                            RelativeSource={RelativeSource AncestorType=Border,
-                                                                                                                           AncestorLevel=1}, 
+                                                                                            RelativeSource={RelativeSource AncestorType=Button}, 
                                                                                             Converter={StaticResource booleanToVisibilityConverter}}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsSelf}" Value="True">
@@ -673,7 +666,8 @@
                                                             </Button.Style>
                                                         </Button>
                                                     </Grid>
-                                                </Border>
+                                                </Button>
+
                                                 <Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
                                                 <Button Content="Join Party" Command="{Binding JoinPartyCommand}" Visibility="{Binding CanJoinParty, Converter={StaticResource booleanToVisibilityConverter}}"

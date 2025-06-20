@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Friends;
 using H2MLauncher.UI.Dialog;
 
 

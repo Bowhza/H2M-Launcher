@@ -9,6 +9,7 @@ using CommunityToolkit.Mvvm.Input;
 
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Friends;
 using H2MLauncher.UI.Converters;
 using H2MLauncher.UI.Dialog;
 
@@ -49,7 +50,7 @@ public sealed partial class FriendRequestsViewModel : ObservableObject, IDisposa
 
         RequestsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendRequestViewModel.Status), ListSortDirection.Ascending));
         RequestsGrouped.SortDescriptions.Add(new SortDescription(nameof(FriendRequestViewModel.Created), ListSortDirection.Descending));
-
+        
         // Finally, group by the Status property
         RequestsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(nameof(FriendRequestViewModel.Status), new FriendRequestStatusConverter()));
 

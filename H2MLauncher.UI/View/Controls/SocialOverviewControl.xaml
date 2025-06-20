@@ -31,9 +31,7 @@
                         <local:FriendRequestsControl />
                     </DataTemplate>
                     <DataTemplate DataType="{x:Type vm:RecentPlayersViewModel}">
-                        <TextBlock VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource TextLight}">
-                            Coming soon :)
-                        </TextBlock>
+                        <local:RecentPlayersControl />
                     </DataTemplate>
                 </TabControl.Resources>
                 <TabControl.ItemTemplate>
