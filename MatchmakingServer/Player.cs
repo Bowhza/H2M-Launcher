@@ -1,7 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
 using H2MLauncher.Core.Matchmaking.Models;
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 using MatchmakingServer.Parties;
 
@@ -9,6 +9,9 @@ namespace MatchmakingServer
 {
     public class Player
     {
+        private Party? _party = null;
+        private GameServer? _playingServer = null;
+
         public required string Id { get; init; }
         public required string Name { get; set; }
         public required string UserName { get; init; }
@@ -44,10 +47,32 @@ namespace MatchmakingServer
 
         /// <summary>
         /// The server the player is currently playing on.
-        /// </summary>
-        public GameServer? PlayingServer { get; set; }
+        /// </summary>        
+        public GameServer? PlayingServer
+        {
+            get => _playingServer;
+            set
+            {
+                if (value is null)
+                {
+                    PlayingServerJoinDate = null;
+                }
+                else
+                {
+                    PlayingServerJoinDate = value.TryGetPlayerJoinDate(this, out DateTimeOffset joinDate)
+                        ? joinDate
+                        : throw new InvalidOperationException("Could not get player join date when assigning player to server.");
+                }
 
-        private Party? _party = null;
+                _playingServer = value;
+            }
+        }
+
+        /// <summary>
+        /// The time when the player was tracked as playing on the <see cref="PlayingServer"/>. <br/>
+        /// (This might be later than when he actually joined, because the matching might happen at a later point).
+        /// </summary>
+        public DateTimeOffset? PlayingServerJoinDate { get; private set; }
 
         /// <summary>
         /// The party the player is currently in;

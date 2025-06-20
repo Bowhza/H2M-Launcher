@@ -56,7 +56,7 @@ public sealed class GameServerService
         // If maxAge is null, or the cached info is too old, fetch a fresh one
         if (maxAge is null ||
             gameServer.LastServerInfoTimestamp is null ||
-            (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge)
+            (DateTimeOffset.Now - gameServer.LastServerInfoTimestamp) > maxAge)
         {
             return FetchFreshInfoInternalAsync(gameServer, cancellationToken);
         }
@@ -79,7 +79,7 @@ public sealed class GameServerService
         ILookup<bool, GameServer> servers = gameServers.ToLookup(gameServer =>
         {
             return maxAge is null ||
-                   gameServer.LastServerInfoTimestamp is null ||
+                   gameServer.LastServerStatusTimestamp is null ||
                    (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge;
         });
 
@@ -134,7 +134,7 @@ public sealed class GameServerService
         {
             return maxAge is null ||
                    gameServer.LastServerInfoTimestamp is null ||
-                   (DateTimeOffset.Now - gameServer.LastServerStatusTimestamp) > maxAge;
+                   (DateTimeOffset.Now - gameServer.LastServerInfoTimestamp) > maxAge;
         });
 
 

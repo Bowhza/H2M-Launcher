@@ -3,12 +3,15 @@ using System.Windows;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
 
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 using H2MLauncher.UI.Dialog;
+using H2MLauncher.UI.Messages;
 
 namespace H2MLauncher.UI.ViewModels
 {
@@ -165,6 +168,7 @@ namespace H2MLauncher.UI.ViewModels
         private GameStatus _gameStatus;
 
         [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
+        [NotifyCanExecuteChangedFor(nameof(SelectServerCommand))]
         [NotifyPropertyChangedFor(nameof(DetailedStatus))]
         [NotifyPropertyChangedFor(nameof(HasPlayingServer))]
         [ObservableProperty]
@@ -232,6 +236,8 @@ namespace H2MLauncher.UI.ViewModels
 
         public IAsyncRelayCommand JoinServerCommand { get; }
 
+        public IRelayCommand SelectServerCommand { get; }
+
         public IAsyncRelayCommand AddFriendCommand { get; }
         public IAsyncRelayCommand RemoveFriendCommand { get; }
 
@@ -255,7 +261,20 @@ namespace H2MLauncher.UI.ViewModels
                 () => CanJoinParty && PartyId is not null);
 
             InviteToPartyCommand = new AsyncRelayCommand(
-                () => partyClient.InviteToParty(Id),
+                async () =>
+                {
+                    InviteInfo? invite = await partyClient.InviteToParty(Id!);
+                    if (invite is not null)
+                    {
+                        _ = Application.Current.Dispatcher.InvokeAsync(() =>
+                               dialogService.OpenTextDialog("Social", $"Sent invite to {Name!}!"));
+                    }
+                    else
+                    {
+                        _ = Application.Current.Dispatcher.InvokeAsync(() =>
+                           dialogService.OpenTextDialog("Error", $"Could not send invite to {Name}!"));
+                    }
+                },
                 () => CanInvite && partyClient.IsPartyActive);
 
             JoinServerCommand = new AsyncRelayCommand(
@@ -300,6 +319,13 @@ namespace H2MLauncher.UI.ViewModels
                 },
                 () => CanRemoveFriend);
 
+            SelectServerCommand = new RelayCommand(() =>
+            {
+                if (PlayingServer is not null)
+                {
+                    WeakReferenceMessenger.Default.Send(new SelectServerMessage(PlayingServer));
+                }
+            }, () => HasPlayingServer);
             CopyUserIdCommand = new RelayCommand(() => Clipboard.SetText(Id));
             CopyUserNameCommand = new RelayCommand(() => Clipboard.SetText(UserName), () => !string.IsNullOrEmpty(UserName));
         }

@@ -4,6 +4,7 @@ using System.Reactive.Subjects;
 
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 using MatchmakingServer.Parties;
 using MatchmakingServer.SignalR;
@@ -40,6 +41,7 @@ public class SocialService
         _playerServerTrackingService = playerServerTrackingService;
         _playerServerTrackingService.PlayerJoinedServer += PlayerServerTrackingService_PlayerJoinedServer;
         _playerServerTrackingService.PlayerLeftServer += PlayerServerTrackingService_PlayerLeftServer;
+        _playerServerTrackingService.ServerRefreshed += PlayerServerTrackingService_ServerRefreshed;
 
         _partyService = partyService;
         _partyService.PartyClosed += PartyService_PartyClosed;
@@ -75,7 +77,7 @@ public class SocialService
                 onError: (ex) => _logger.LogError(ex, "Error in player status change notification pipe")
             );
 
-        // Use another obersvable pipe to throttle handling INCOMING server connection updates to prevent matching during map changes etc.
+        // Use another observable pipe to throttle handling INCOMING server connection updates to prevent matching during map changes etc.
         _playerConnectedServerChanges
            // group by player to get a sequence for each player change
            .GroupBy(x => x.Player.Id)
@@ -83,7 +85,7 @@ public class SocialService
            // debounce each player group, then merge into a single sequence
            .SelectMany(grp => grp.Throttle(TimeSpan.FromSeconds(2)))
 
-           // handle server connectino update
+           // handle server connection update
            .SelectMany(x =>
                Observable.FromAsync((ct) =>
                    _playerServerTrackingService.HandlePlayerConnectionUpdate(x.Player, x.ConnectedServer, ct)
@@ -194,13 +196,19 @@ public class SocialService
         {
             await TryNotifyOnlineFriendsOfStatusChange(notification.Player, serviceScope);
 
-
             if (notification.NotifySelf && notification.StatusChange is StatusChange.MatchStatus)
             {
                 // Match status update
                 await _hubContext.Clients
                     .User(notification.Player.Id)
-                    .OnMatchStatusUpdated(notification.Player.ToMatchStatusDto());
+                    .OnMatchStatusUpdated(
+                        notification.Player.ToMatchStatusDto(),
+                        notification.Player.PlayingServer?.KnownPlayers
+                            .Where(p => p.Key.Id != notification.Player.Id) // not self
+                            .Select(p =>
+                                p.Key.ToServerPlayerInfo(
+                                    joinDate: p.Value,
+                                    encounteringPlayerJoinDate: notification.Player.PlayingServerJoinDate)) ?? []);
             }
         }
         catch (Exception ex)
@@ -305,6 +313,14 @@ public class SocialService
         _playerStatusChanges.OnNext(StatusChangeNotification.ForOne(e.Player, StatusChange.MatchStatus, notifySelf: true));
     }
 
+    private void PlayerServerTrackingService_ServerRefreshed(GameServer server)
+    {
+        // Notify each player and his friends of the new match status + encountered players
+        _playerStatusChanges.OnNext(
+            StatusChangeNotification.ForMany(server.KnownPlayers.Keys, StatusChange.MatchStatus, notifySelf: true)
+        );
+    }
+
     private enum StatusChange
     {
         OnlineStatus,
@@ -321,7 +337,7 @@ public class SocialService
         public static StatusChangeNotification[] ForOne(Player player, StatusChange statusChange, bool notifySelf = false)
         {
             return [new StatusChangeNotification(player, statusChange) {
-                NotifySelf = notifySelf 
+                NotifySelf = notifySelf
             }];
         }
 

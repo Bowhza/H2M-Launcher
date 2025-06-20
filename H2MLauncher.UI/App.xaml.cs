@@ -184,6 +184,7 @@ namespace H2MLauncher.UI
             services.AddTransient<PartyViewModel>();
             services.AddTransient<FriendsViewModel>();
             services.AddTransient<FriendRequestsViewModel>();
+            services.AddTransient<RecentPlayersViewModel>();
             services.AddTransient<SocialOverviewViewModel>();
             services.AddSingleton<CustomizationManager>();
             services.AddTransient<CustomizationDialogViewModel>();

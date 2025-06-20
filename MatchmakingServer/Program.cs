@@ -104,7 +104,9 @@ builder.Services.AddSingleton<PartyService>();
 builder.Services.AddSingleton<PartyMatchmakingService>();
 builder.Services.AddSingleton<SocialService>();
 builder.Services.AddSingleton<GameServerService>();
-builder.Services.AddSingleton<IPlayerServerTrackingService, PlayerServerTrackingService>();
+builder.Services.AddSingleton<PlayerServerTrackingService>();
+builder.Services.AddSingleton<IPlayerServerTrackingService>(p => p.GetRequiredService<PlayerServerTrackingService>());
+builder.Services.AddHostedService(p => p.GetRequiredService<PlayerServerTrackingService>());
 builder.Services.AddMemoryCache();
 
 // Social

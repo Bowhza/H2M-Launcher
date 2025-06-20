@@ -2,7 +2,7 @@
 
 using FxKit;
 
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Friends;
 
 using MatchmakingServer.Authorization;
 using MatchmakingServer.Social;

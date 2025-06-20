@@ -1,5 +1,4 @@
-﻿
-using H2MLauncher.Core.Social;
+﻿using H2MLauncher.Core.Social.Status;
 
 namespace MatchmakingServer.Social
 {
@@ -14,6 +13,7 @@ namespace MatchmakingServer.Social
         event Action<Player, GameServer>? PlayerJoinedServer;
         event Action<PlayerServerTrackingService.PlayerLeftEventArgs>? PlayerLeftServer;
         event Action<GameServer>? ServerTimeout;
+        event Action<GameServer>? ServerRefreshed;
 
         /// <summary>
         /// Handles server connection updates sent by the client for the given <paramref name="player"/> by finding a matching server

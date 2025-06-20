@@ -10,7 +10,7 @@ using FxKit.Extensions;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Services;
-using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 using MatchmakingServer.SignalR;
 
@@ -21,7 +21,7 @@ namespace MatchmakingServer.Social;
 /// </summary>
 public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrackingService
 {
-    private const int CHECKING_INTERVAL_MS = 3000;
+    private const int CHECKING_INTERVAL_MS = 15000;
 
     /// <summary>
     /// Whether to stop tracking players and remove them from the server when client reports no connected server.
@@ -78,6 +78,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     public event Action<GameServer>? ServerTimeout;
     public event Action<PlayerLeftEventArgs>? PlayerLeftServer;
     public event Action<Player, GameServer>? PlayerJoinedServer;
+    public event Action<GameServer>? ServerRefreshed;
 
     private readonly record struct TrackedPlayerInfo
     {
@@ -129,17 +130,22 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
             _logger.LogInformation("Checking tracked servers ({numTrackedServers}) and players ({numTrackedPlayers})...",
                 _trackedGameServers.Count, _trackedPlayers.Count);
 
-            IAsyncEnumerable<GameServer> refreshedServers = _gameServerService.GetServerInfoAsync(
-                gameServers: _trackedGameServers,
-                maxAge: TrackingServerStatusMaxAge,
-                cancellationToken: cancellationToken);
+            List<GameServer> refreshedServers = await _gameServerService
+                .GetServerInfoAsync(
+                    gameServers: _trackedGameServers,
+                    maxAge: TrackingServerStatusMaxAge,
+                    cancellationToken: cancellationToken)
+                .ToListAsync(cancellationToken);
 
-            await foreach (GameServer server in refreshedServers.ConfigureAwait(false))
+            _logger.LogInformation("Refreshed info for tracked servers ({numRefreshed} / {numTrackedServers} responding).",
+                refreshedServers.Count, _trackedGameServers.Count);
+
+            foreach (GameServer server in _trackedGameServers)
             {
-                if (server.LastStatusResponse is null) continue;
+                if (server.LastServerInfo is null) continue;
 
                 // Verify server is still online
-                if (server.LastServerStatusTimestamp < DateTimeOffset.Now.Subtract(ServerStatusTimeout))
+                if (server.LastServerInfoTimestamp < DateTimeOffset.Now.Subtract(ServerStatusTimeout))
                 {
                     // Server is not responding with status anymore -> remove
                     _logger.LogDebug("Declaring server {server} timed out", server);
@@ -158,7 +164,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                 // Verify players still on server
                 foreach (Player player in server.KnownPlayers.Keys)
                 {
-                    if (!server.LastStatusResponse.Players.Any(p => p.PlayerName == player.Name))
+                    if (!server.LastServerInfo.Players.Any(p => p.PlayerName == player.Name))
                     {
                         // Player not on server anymore (TODO: check what happens with name changes)
                         await RemovePlayerFromServer(player, server);
@@ -189,7 +195,8 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                 }
 
                 // Now handle normal updates of server state
-            }
+                ServerRefreshed?.Invoke(server);
+            }            
         }
         finally
         {
@@ -431,7 +438,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
 
             int numPlayersRemoved = results.Count(success => success is true);
 
-            _logger.LogInformation("Removed server {server} from tracking with {numPlayersRemoved}",
+            _logger.LogInformation("Removed server {server} from tracking with {numPlayersRemoved} players.",
                 server, numPlayersRemoved);
         }
 

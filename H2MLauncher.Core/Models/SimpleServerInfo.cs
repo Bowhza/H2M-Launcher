@@ -1,4 +1,6 @@
-﻿namespace H2MLauncher.Core.Models
+﻿using System.Diagnostics.CodeAnalysis;
+
+namespace H2MLauncher.Core.Models
 {
     public class SimpleServerInfo : ISimpleServerInfo
     {
@@ -10,5 +12,15 @@
         // Explicit implementation for compatibility with stored settings
         string IServerConnectionDetails.Ip => ServerIp;
         int IServerConnectionDetails.Port => ServerPort;
+
+        public SimpleServerInfo() { }
+
+        [SetsRequiredMembers]
+        public SimpleServerInfo(IServerConnectionDetails server, string serverName)
+        {
+            ServerIp = server.Ip;
+            ServerPort = server.Port;
+            ServerName = serverName;
+        }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using H2MLauncher.Core.Social;
+using H2MLauncher.Core.Social.Status;
 
 using MatchmakingServer.Social;
 
