@@ -38,18 +38,10 @@ public static class PlayerDtoExtensions
     public static ServerPlayerInfo ToServerPlayerInfo(this Player player,
         DateTimeOffset joinDate, DateTimeOffset? encounteringPlayerJoinDate)
     {
-        DateTimeOffset encounterDate;
-        if (encounteringPlayerJoinDate is null)
-        {
-            encounterDate = joinDate;
-        }
-        else
-        {
-            // The maximum of both dates is when they met
-            encounterDate = encounteringPlayerJoinDate.Value > joinDate
-                ? encounteringPlayerJoinDate.Value
-                : joinDate;
-        }
+        // The maximum of both dates is when they met
+        DateTimeOffset encounterDate = encounteringPlayerJoinDate > joinDate
+            ? encounteringPlayerJoinDate.Value
+            : joinDate;
 
         return new ServerPlayerInfo
         {
