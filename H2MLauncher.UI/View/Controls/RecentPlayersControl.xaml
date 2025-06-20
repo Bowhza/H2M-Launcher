@@ -298,8 +298,9 @@
 
                                             <Separator Margin="0,5"/>
 
-                                            <Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
-                                                        Padding="5" Margin="0,5"/>
+                                            <!-- Invites disabled as there is currently no way to display them for strangers -->
+                                            <!--<Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
+                                                        Padding="5" Margin="0,5"/>-->
 
                                             <Button Content="Send Friend Request" Command="{Binding AddFriendCommand}" Visibility="{Binding CanAddFriend, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5">
