@@ -28,7 +28,7 @@ namespace H2MLauncher.Core.Social;
 
 public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDisposable
 {
-    private const int MaxRecentPlayersToStore = 30;
+    private const int MaxRecentPlayersToStore = 50;
 
     private readonly IDisposable _clientRegistration;
 
