@@ -86,7 +86,7 @@ services:
 
   postgres:
     image: postgres:17-alpine
-    user: ${UID:-1001}:${GID:-1001}
+    user: postgres:postgres
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
