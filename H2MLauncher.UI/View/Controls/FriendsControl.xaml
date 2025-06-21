@@ -364,7 +364,6 @@
 
                                     <TextBlock Grid.Column="1" Style="{StaticResource PartySizeTextBlockStyle}" />
 
-
                                     <StackPanel Orientation="Horizontal" Grid.Column="1">
                                         <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" 
                                                         HorizontalAlignment="Right" Grid.Column="1" Margin="3,0"

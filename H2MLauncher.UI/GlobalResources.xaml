@@ -197,8 +197,7 @@
     <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
     
     <!-- Background video source -->
-    <x:Null x:Key="BackgroundVideoSource"></x:Null>
-    <!--<system:String x:Key="BackgroundVideoSource">preview.gif</system:String>-->
+    <x:Null x:Key="{x:Static local:Constants.BackgroundVideoSourceKey}"></x:Null>
 
     <!-- Background controls (put any elements or media here) -->
     <DataTemplate x:Key="BackgroundControlTemplate" DataType="{x:Type vm:ServerBrowserViewModel}">
