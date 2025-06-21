@@ -176,9 +176,14 @@
     <!-- Main Window -->
     
     <Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
-        <!-- Hide this container to hide the background image and expose the background brush -->
+        <!-- Hide this container to hide the background image + video and expose the background brush -->
         <Setter Property="Visibility" Value="Visible"/>
-        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <!-- Style for the actual background image -->
+    <Style x:Key="BackgroundImageStyle" TargetType="Image">
+        <!-- Hide this to hide the background image and expose the background brush -->
+        <Setter Property="Visibility" Value="Visible"/>
     </Style>
 
     <!-- Brush for the background of the main window behind the image -->

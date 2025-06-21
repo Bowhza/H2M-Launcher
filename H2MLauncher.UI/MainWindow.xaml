@@ -88,7 +88,8 @@
                                   Height="{Binding Path=ActualHeight, ElementName=ImageContainer}" VerticalAlignment="Stretch">
 
                                 <!-- Background image -->
-                                <Image x:Name="BackgroundImageBrush" Opacity="1" Stretch="UniformToFill" >
+                                <Image x:Name="BackgroundImageBrush" Style="{DynamicResource BackgroundImageStyle}" 
+                                       Stretch="UniformToFill" >
                                     <Image.Source>
                                         <DynamicResource ResourceKey="{x:Static local:Constants.BackgroundImageSourceKey}"/>
                                     </Image.Source>
@@ -96,7 +97,7 @@
 
                                 <!-- Background video -->
                                 <controls:LoopingMediaElement 
-                                              Stretch="UniformToFill" d:Source="Assets/Background.jpg"
+                                              Stretch="UniformToFill"
                                               MediaFailed="MediaElement_MediaFailed"
                                               MediaOpened="MediaElement_MediaOpened"
                                               LoadedBehavior="Play"
