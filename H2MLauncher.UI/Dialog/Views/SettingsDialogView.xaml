@@ -87,9 +87,9 @@
                     <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
                 </Button>
                 <TextBox Text="{Binding MwrLocation}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextBoxForegroundDark}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
-                        <Style TargetType="TextBox">
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                             <Style.Triggers>
                                 <Trigger Property="IsFocused" Value="True">
                                     <Setter Property="BorderThickness" Value="0"/>
@@ -134,13 +134,13 @@
         <StackPanel Orientation="Horizontal" Grid.Row="7" Grid.Column="1" IsEnabled="{Binding FpsLimiterEnabled}" Margin="5,5,0,0">
             <Label Content="In Menu:" VerticalAlignment="Center" Margin="0,0,5,0" ToolTip="The FPS limit applied while in the game's main menu."/>
             <TextBox x:Name="MenuFpsLimit" Text="{Binding LimitedFpsLimit, UpdateSourceTrigger=PropertyChanged}" Width="35" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="{DynamicResource ControlBackground}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
+                     Padding="3"/>
 
             <Label Content="General:" VerticalAlignment="Center" Margin="0,0,5,0" ToolTip="The FPS limit applied while inside a match."/>
             <TextBox x:Name="GeneralFpsLimit" 
                      Text="{Binding GeneralFpsLimit, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource UnsetFpsLimitConverter}, ConverterParameter=Auto}" 
                      Width="35" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="{DynamicResource ControlBackground}" Foreground="{DynamicResource TextLight}" Padding="3" BorderThickness="0"/>
+                     Padding="3"/>
         </StackPanel>
 
         <Grid Grid.Row="8" Grid.ColumnSpan="2" Margin="0,25,0,15">

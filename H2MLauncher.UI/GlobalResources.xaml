@@ -1129,6 +1129,7 @@
             <Setter Property="Foreground" Value="{DynamicResource TextBoxForegroundDark}"/>
             <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource TextBoxForegroundDark}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrush}"/>
         </Style.Setters>
     </Style>
 
