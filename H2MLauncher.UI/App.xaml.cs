@@ -285,7 +285,8 @@ namespace H2MLauncher.UI
 
             coolerBuilder
                 .AddJsonFile("appsettings.local.json", optional: true)
-                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true);
+                .AddJsonFile(Constants.LauncherSettingsFilePath, optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables();
 
             return coolerBuilder.Build();
         }

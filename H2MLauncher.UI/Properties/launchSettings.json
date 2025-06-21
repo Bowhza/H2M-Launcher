@@ -1,9 +1,41 @@
 {
   "profiles": {
-    "H2MLauncher.UI": {
+    "UI (production)": {
       "commandName": "Project",
       "environmentVariables": {
-        "NETCORE_ENVIRONMENT": "Development"
+        "NETCORE_ENVIRONMENT": "Development",
+        "Matchmaking__UseRandomCliendId": "false"
+      }
+    },
+    "UI (local server)": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "NETCORE_ENVIRONMENT": "Development",
+        "Matchmaking__MatchmakingServerApiUrl": "http://localhost:5041/api/",
+        "Matchmaking__QueueingHubUrl": "http://localhost:5041/Queue",
+        "Matchmaking__PartyHubUrl": "http://localhost:5041/Party",
+        "Matchmaking__SocialHubUrl": "http://localhost:5041/Social"
+      }
+    },
+    "UI (staging)": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "NETCORE_ENVIRONMENT": "Staging",
+        "Matchmaking__MatchmakingServerApiUrl": "http://codserverbrowser.com:9200/api/",
+        "Matchmaking__QueueingHubUrl": "http://codserverbrowser.com:9200/Queue",
+        "Matchmaking__PartyHubUrl": "http://codserverbrowser.com:9200/Party",
+        "Matchmaking__SocialHubUrl": "http://codserverbrowser.com:9200/Social"
+      }
+    },
+    "UI (local nginx)": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "NETCORE_ENVIRONMENT": "Development",
+        "Matchmaking__MatchmakingServerApiUrl": "https://api.codserverbrowser.local",
+        "Matchmaking__QueueingHubUrl": "https://matchmaking.codserverbrowser.local",
+        "Matchmaking__PartyHubUrl": "https://party-hub.codserverbrowser.local",
+        "Matchmaking__SocialHubUrl": "https://social-hub.codserverbrowser.local",
+        "Matchmaking__DisableCertificateValidation": "true"
       }
     }
   }
