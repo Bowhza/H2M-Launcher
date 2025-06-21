@@ -79,6 +79,7 @@ namespace H2MLauncher.UI.ViewModels
         {
             _options = options;
             _customization = customization;
+            _logger = logger;
 
             BackgroundImageUrl = options.CurrentValue.Customization?.BackgroundImagePath;
             LoadedThemePath = Path.GetFileName(options.CurrentValue.Customization?.Themes?.FirstOrDefault());
@@ -93,7 +94,6 @@ namespace H2MLauncher.UI.ViewModels
             _dialogService = dialogService;
 
             LoadThemesCommand.Execute(null);
-            _logger = logger;
         }
 
 
@@ -254,6 +254,7 @@ namespace H2MLauncher.UI.ViewModels
                 IEnumerable<IGrouping<string, string>> resourcesGroupedByThemeFolder =
                 ResourceHelper
                     .GetResourcesUnder(Constants.EmbeddedThemesRelativePath)
+                    .Where(r => r.Contains('/'))
                     .GroupBy(r => r[..r.IndexOf('/')], r => r.Substring(r.IndexOf('/') + 1));
 
                 foreach (IGrouping<string, string> grp in resourcesGroupedByThemeFolder)

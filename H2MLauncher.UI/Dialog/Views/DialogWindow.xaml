@@ -11,15 +11,22 @@
         Title="DialogWindow" 
         Height="Auto" Width="Auto"
         AllowsTransparency="True"
+        Foreground="{DynamicResource DialogForeground}"
         Background="Transparent"
         SizeToContent="WidthAndHeight"
         ResizeMode="NoResize"
-        Foreground="{DynamicResource TextLight}"
         WindowStartupLocation="CenterOwner" Loaded="Window_Loaded" WindowStyle="None">
+    <Window.Resources>
+        <Style TargetType="TextBlock" BasedOn="{StaticResource DialogTextBlockStyle}" />
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="{DynamicResource DialogForeground}"/>
+        </Style>
+    </Window.Resources>
     <Window.Template>
         <ControlTemplate TargetType="{x:Type Window}">
-            <Border CornerRadius="10" BorderBrush="{DynamicResource DialogBorderBrush}" BorderThickness="1" Background="{DynamicResource DialogBackground}" Opacity="1">
-                <ContentPresenter Content="{TemplateBinding Content}"/>
+            <Border CornerRadius="10" BorderBrush="{DynamicResource DialogBorderBrush}" BorderThickness="1" Background="{DynamicResource DialogBackground}" Opacity="1"
+                    Style="{DynamicResource DialogContentStyle}">
+                <ContentPresenter Content="{TemplateBinding Content}" />
             </Border>
         </ControlTemplate>
     </Window.Template>

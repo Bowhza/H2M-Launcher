@@ -25,7 +25,7 @@ public interface IServerTabViewModel
 
 public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel where TServerViewModel : ServerViewModel
 {
-    new TServerViewModel? SelectedServer { get; }
+    new TServerViewModel? SelectedServer { get; set; }
 
     new ICollection<TServerViewModel> Servers { get; }
 
@@ -97,7 +97,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
     {
         TabName = tabName;
 
-        // initalize collection view
+        // initialize collection view
         _collectionViewSource = new()
         {
             Source = Servers,

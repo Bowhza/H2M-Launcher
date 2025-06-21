@@ -11,16 +11,11 @@ namespace H2MLauncher.UI.ViewModels
 
         public ObservableCollection<ObservableObject> Tabs { get; }
 
-        public SocialOverviewViewModel(FriendsViewModel friendsViewModel, FriendRequestsViewModel friendRequestsViewModel)
+        public SocialOverviewViewModel(FriendsViewModel friendsViewModel, FriendRequestsViewModel friendRequestsViewModel, RecentPlayersViewModel recentPlayersViewModel)
         {
             Friends = friendsViewModel;
             FriendRequests = friendRequestsViewModel;
-            Tabs = [Friends, FriendRequests, new RecentPlayersViewModel()];
+            Tabs = [Friends, FriendRequests, recentPlayersViewModel];
         }
-    }
-
-    public sealed partial class RecentPlayersViewModel : ObservableObject
-    {
-        
     }
 }

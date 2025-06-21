@@ -3,16 +3,22 @@
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.Joining;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.OnlineServices.Authentication;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Settings;
+using H2MLauncher.Core.Social.Friends;
+using H2MLauncher.Core.Social.Player;
+using H2MLauncher.Core.Social.Status;
+using H2MLauncher.Core.Utilities;
 using H2MLauncher.Core.Utilities.SignalR;
 
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
+
+using Nogic.WritableOptions;
 
 using Refit;
 
@@ -22,12 +28,14 @@ namespace H2MLauncher.Core.Social;
 
 public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDisposable
 {
+    private const int MaxRecentPlayersToStore = 30;
+
     private readonly IDisposable _clientRegistration;
 
     private readonly IPlayerNameProvider _playerNameProvider;
     private readonly IGameCommunicationService _gameCommunicationService;
     private readonly IFriendshipApiClient _friendshipApiClient;
-    private readonly IOptionsMonitor<H2MLauncherSettings> _settings;
+    private readonly IWritableOptions<H2MLauncherSettings> _settings;
 
     private readonly IServerJoinService _serverJoinService;
     private readonly IMasterServerService _masterServerService;
@@ -48,12 +56,15 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
 
     private List<FriendDto> _friends = [];
     private List<FriendRequestDto> _friendRequests = [];
+    private readonly Dictionary<string, RecentPlayerInfo> _recentPlayers = [];
 
     public IReadOnlyList<FriendDto> Friends => _friends.AsReadOnly();
     public IReadOnlyList<FriendRequestDto> FriendRequests => _friendRequests.AsReadOnly();
+    public IReadOnlyCollection<RecentPlayerInfo> RecentPlayers => _recentPlayers.Values;
 
     public event Action? FriendsChanged;
     public event Action? FriendRequestsChanged;
+    public event Action? RecentPlayersChanged;
     public event Action<FriendRequestDto>? FriendRequestReceived;
     public event Action<FriendDto>? FriendChanged;
 
@@ -74,7 +85,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         [FromKeyedServices("HMW")] IMasterServerService masterServerService,
         ILogger<SocialClient> logger,
         HubConnection hubConnection,
-        IOptionsMonitor<H2MLauncherSettings> settings) : base(hubConnection)
+        IWritableOptions<H2MLauncherSettings> settings) : base(hubConnection)
     {
         _clientRegistration = hubConnection.Register<ISocialClient>(this);
 
@@ -87,6 +98,8 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         _masterServerService = masterServerService;
         _logger = logger;
         _settings = settings;
+
+        _recentPlayers = settings.CurrentValue.RecentPlayers.ToDictionary(p => p.Id);
     }
 
     protected override ISocialHub CreateHubProxy(HubConnection hubConnection, CancellationToken hubCancellationToken)
@@ -111,7 +124,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         if (gameState.ConnectionState is not ConnectionState.CA_ACTIVE ||
             gameState.Endpoint is null ||
             gameState.IsPrivateMatch || // for now do not track private matches
-            gameState.IsInMainMenu) 
+            gameState.IsInMainMenu)
         {
             // game state has no connected endpoint
             return null;
@@ -154,7 +167,7 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
             if (GameStatus is GameStatus.InMatch)
             {
                 connectedServer = GetConnectedServerInfo(state);
-            }            
+            }
 
             await Hub.UpdateGameStatus(GameStatus, connectedServer);
 
@@ -487,9 +500,34 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         return Task.CompletedTask;
     }
 
-    Task ISocialClient.OnMatchStatusUpdated(MatchStatusDto? matchStatus)
+    Task ISocialClient.OnMatchStatusUpdated(MatchStatusDto? matchStatus, IEnumerable<ServerPlayerInfo> serverPlayers)
     {
         MatchStatus = matchStatus;
+
+        if (matchStatus is not null)
+        {
+            // Update recent player list
+            foreach (ServerPlayerInfo player in serverPlayers)
+            {
+                // Only remember last encounter (for now)
+                _recentPlayers[player.Id] = new RecentPlayerInfo(
+                    player,
+                    new SimpleServerInfo(matchStatus.Server, matchStatus.ServerName));
+            }
+
+            // Store updated list of recent players
+            List<RecentPlayerInfo> recentPlayersToSave = RecentPlayers
+                .OrderByDescending(r => r.EncounterDate)
+                .Take(MaxRecentPlayersToStore)
+                .ToList();
+
+            _settings.Update((H2MLauncherSettings settings) =>
+            {
+                return settings with { RecentPlayers = recentPlayersToSave };
+            }, reload: false);
+
+            RecentPlayersChanged?.Invoke();
+        }
 
         StatusChanged?.Invoke();
 

@@ -8,6 +8,8 @@ using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Mvvm.Messaging;
+using CommunityToolkit.Mvvm.Messaging.Messages;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Game;
@@ -23,6 +25,7 @@ using H2MLauncher.Core.Settings;
 using H2MLauncher.Core.Utilities;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
+using H2MLauncher.UI.Messages;
 using H2MLauncher.UI.Services;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -33,7 +36,7 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.UI.ViewModels;
 
-public partial class ServerBrowserViewModel : ObservableObject, IDisposable
+public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<SelectServerMessage>, IDisposable
 {
     private readonly IMasterServerService _hmwMaster;
     private readonly IGameServerInfoService<IServerConnectionDetails> _tcpGameServerCommunicationService;
@@ -264,6 +267,8 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         _onlineService.StateChanged += OnlineService_StateChanged;
 
         socialOverviewViewModel.Friends.CreatePartyCommand.Execute(null);
+
+        IsActive = true;
     }
 
     private void OnlineService_StateChanged(PlayerState oldState, PlayerState newState)
@@ -902,6 +907,20 @@ public partial class ServerBrowserViewModel : ObservableObject, IDisposable
         return AllServersTab.Servers.FirstOrDefault(s =>
                 (server.Ip == s.Ip || server.Ip == s.GameServerInfo?.Address?.Address?.GetRealAddress()?.ToString()) &&
                 server.Port == s.Port);
+    }
+
+    public void Receive(SelectServerMessage message)
+    {
+        if (SelectedTab != HMWServersTab)
+        {
+            SelectedTab = HMWServersTab;
+        }
+
+        ServerViewModel? serverViewModel = FindServerViewModel(message.Value);
+        if (serverViewModel is not null && SelectedTab.Servers.Contains(serverViewModel))
+        {
+            HMWServersTab.SelectedServer = serverViewModel;
+        }
     }
 
     private void LaunchH2M()

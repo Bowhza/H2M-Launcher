@@ -13,6 +13,7 @@ This document will guide you through what you can do with this theming system.
 - [Customizing specific controls](#customizing-specific-controls)
 - [Custom Functional Elements](#custom-functional-elements)
 - **[Creating a Theme Pack](#creating-a-theme-pack)**
+- **[Importing a Theme Pack](#importing-a-theme-pack)**
 
 ![](theming-example-screenshot.png)
 
@@ -36,7 +37,7 @@ The following files might be useful:
 
 Theme files can be loaded in the **Customization Settings** (wand icon on the bottom right) of the launcher by opening them in the **Custom Theme** selection. 
 
-Note that this is only really intended for testing and creating themes, as the files are not imported like theme packs. Also, this will override any theme pack selected.
+Note that this is only really intended for testing and creating themes, as the files are not imported like theme packs. Also, this will override the effects of any theme pack selected.
 
 **To create a real theme pack, see [Creating a Theme Pack](#creating-a-theme-pack).**
 
@@ -52,7 +53,7 @@ Next, we will describe the resources in detail and how to customize them.
 
 The launcher defines three different sets of color palettes and two contrast colors to ensure visual consistency. 
 
-Our color palettes are designed to work as a system, not just as a bunch of individual color values. Each palettee includes a range of shades from very light (100) to very dark (900 or 950).
+Our color palettes are designed to work as a system, not just as a bunch of individual color values. Each palette includes a range of shades from very light (100) to very dark (900 or 950).
 
 You can find all color definitions at the top of the default theme or [in the example theme](ThemingExample.xaml#L11).
 
@@ -68,7 +69,7 @@ Just Black and White. Used mostly for text, backgrounds, and overlays where maxi
 
 ### Neutral Color Palette
 
-The Neutral Palette provides a range of grays from very light to very dark. These colors are primarily used for backgrounds, borders, controls, and text.
+The Neutral Palette provides a range of grays from very light to very dark. These colors are primarily used for backgrounds, borders, controls (like buttons), and text.
 
 | Shade | Color      | Swatch |
 |-------|------------|--------|
@@ -362,3 +363,17 @@ Typical file names: background.png, bg.jpg, video.mp4
 Additional files that support the theme, such as gifs or other media.
 
 > **Make sure to include any images and videos used in your .xaml theme and reference them with a relative path.**
+
+## Importing a Theme Pack
+
+To import a theme pack you downloaded:
+- Go to the **Customization Settings** (wand icon on the bottom right)
+- Click on **"Import Theme..."**
+- Select the **.zip** file
+
+The theme pack will be extracted to `%localappdata\BetterH2MLauncher\themes`.
+
+> Importing a .xaml theme file directly is also possible, but does not include any resources like images used!
+> 
+> For developing themes it is recommended to simply select it in the "Custom Theme" field (see [Loading Theme Files](#loading-theme-files))
+> or by creating all the files yourself in the themes folder.

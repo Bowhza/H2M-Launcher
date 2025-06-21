@@ -23,6 +23,7 @@
     <converters:DefaultStringValueConverter x:Key="DefaultStringValueConverter" />
     <converters:StringUriConverter x:Key="StringUriConverter"/>
     <converters:UrlCombinerConverter x:Key="UrlCombinerConverter" />
+    <converters:HumanizeDateConverter x:Key="HumanizeDateConverter" />
 
     <!-- Contrast Colors -->
     <Color x:Key="ColorLight">White</Color>
@@ -78,6 +79,7 @@
     <SolidColorBrush x:Key="ControlBorderBrush" Color="{DynamicResource ColorNeutral300}" />
     <SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
 
+    <SolidColorBrush x:Key="DialogForeground" Color="{DynamicResource ColorLight}"/>
     <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
 
@@ -161,12 +163,27 @@
     <SolidColorBrush x:Key="ItemTransparentPressed" Color="{DynamicResource ColorLight}" Opacity="0.13"/>
     <SolidColorBrush x:Key="ItemTransparentChecked" Color="{DynamicResource ColorLight}" Opacity="0.3"/>
 
-    <!-- Main Window -->    
+    <!-- Color of the online status (Online, In Match, Offline) -->
+    <SolidColorBrush x:Key="OnlineStatusColor" Color="{DynamicResource ColorNeutral300}"/>
+
+    <!-- Color used for errors, delete actions, etc. -->
+    <SolidColorBrush x:Key="DangerColorBrush" Color="DarkRed"/>
+    
+    <!-- Color used for success states etc. -->
+    <SolidColorBrush x:Key="SuccessColorBrush" Color="LimeGreen"/>
+
+
+    <!-- Main Window -->
     
     <Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
-        <!-- Hide this container to hide the background image and expose the background brush -->
+        <!-- Hide this container to hide the background image + video and expose the background brush -->
         <Setter Property="Visibility" Value="Visible"/>
-        <Setter Property="Opacity" Value="1"/>
+    </Style>
+
+    <!-- Style for the actual background image -->
+    <Style x:Key="BackgroundImageStyle" TargetType="Image">
+        <!-- Hide this to hide the background image and expose the background brush -->
+        <Setter Property="Visibility" Value="Visible"/>
     </Style>
 
     <!-- Brush for the background of the main window behind the image -->
@@ -180,8 +197,7 @@
     <system:Double x:Key="{x:Static local:Constants.BackgroundImageBlurRadiusKey}">0</system:Double>
     
     <!-- Background video source -->
-    <x:Null x:Key="BackgroundVideoSource"></x:Null>
-    <!--<system:String x:Key="BackgroundVideoSource">preview.gif</system:String>-->
+    <x:Null x:Key="{x:Static local:Constants.BackgroundVideoSourceKey}"></x:Null>
 
     <!-- Background controls (put any elements or media here) -->
     <DataTemplate x:Key="BackgroundControlTemplate" DataType="{x:Type vm:ServerBrowserViewModel}">
@@ -194,7 +210,19 @@
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
     </Style>
-    
+
+
+    <!-- Title -->
+    <Style x:Key="TitleStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+    </Style>
+
+    <!-- Sub Title (player count etc.) -->
+    <Style x:Key="SubTitleStyle" TargetType="FrameworkElement">
+        <Setter Property="TextBlock.Foreground" Value="{DynamicResource TextLight}"/>
+    </Style>
+
+    <Style x:Key="CountNumberStyle" TargetType="{x:Type FrameworkElement}" BasedOn="{StaticResource SubTitleStyle}"/>
 
     <!-- Status Bar -->
     <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
@@ -215,7 +243,9 @@
                             Padding="{TemplateBinding Padding}">
                         <Grid>
                             <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,0" />
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                              Margin="0,0,0,0" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -462,8 +492,8 @@
                             Padding="{TemplateBinding Padding}">
                         <ContentPresenter x:Name="MyContentPresenter" 
                                           Content="{TemplateBinding Content}" 
-                                          HorizontalAlignment="Center" 
-                                          VerticalAlignment="Center" 
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
                                           Margin="0,0,0,0" />
                     </Border>
                     <ControlTemplate.Triggers>
@@ -813,7 +843,7 @@
                              Margin="3,3,23,3"
                              Focusable="True" 
                              Background="{DynamicResource ComboBoxBackgroundColor}"
-                             Foreground="Green"
+                             Foreground="{DynamicResource ComboBoxForegroundColor}"
                              Visibility="Hidden"
                              IsReadOnly="{TemplateBinding IsReadOnly}"/>
 
@@ -971,7 +1001,37 @@
         </Style.Triggers>
     </Style>
 
+    <!-- Template for group expander header displayed as {Name} — {Count} -->
+    <DataTemplate x:Key="GroupExpanderHeaderTemplate">
+        <Border CornerRadius="5" Height="25">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Foreground="{DynamicResource TextLight}" Opacity="0.8" FontSize="12"
+                       VerticalAlignment="Center">
+                    <TextBlock.Text>
+                        <MultiBinding StringFormat="{} {0} — {1}">
+                            <Binding Path="Name" />
+                            <Binding Path="ItemCount" />
+                        </MultiBinding>
+                    </TextBlock.Text>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </DataTemplate>
 
+    <!-- Style for the expanders of the social list groups -->
+    <Style x:Key="SocialExpanderBaseStyle" TargetType="{x:Type controls:CustomExpander}">
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Margin" Value="0,5,0,3"/>
+        <Setter Property="HeaderTemplate" Value="{StaticResource GroupExpanderHeaderTemplate}"/>
+        <Setter Property="IsExpanded" Value="True"/>
+    </Style>
+
+    <!-- Style for the border that holds the social panel -->
     <Style x:Key="SocialPanelBorderStyle" TargetType="Border">
         <Setter Property="CornerRadius" Value="5,5,0,0"/>
         <Setter Property="Background" Value="{DynamicResource TransparentDark200}"/>
@@ -979,6 +1039,7 @@
         <Setter Property="BorderThickness" Value="0"/>
     </Style>
 
+    <!-- Style for the social tab control -->
     <Style x:Key="SocialTabControlStyle" TargetType="TabControl">
         <Setter Property="Background" Value="{DynamicResource TransparentDark400}"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -990,7 +1051,10 @@
         </Style.Resources>
     </Style>
 
+    <!-- Style for each control of the social tabs (Friends, Requests, Recents) -->
+    <Style x:Key="SocialControlStyle" TargetType="Control"/>
 
+    <!-- Tab control of the server tabs -->
     <Style x:Key="ServerTabControlStyle" TargetType="TabControl">
         <Setter Property="Background" Value="Transparent"/>
         <Setter Property="BorderThickness" Value="1"/>
@@ -998,6 +1062,7 @@
     </Style>
 
 
+    <!-- A solid background color behind the header of the server data grid -->
     <SolidColorBrush x:Key="ServerDataGridHeaderBackground" Color="{DynamicResource ColorBlack}" Opacity="0.9"/>
 
     <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
@@ -1063,5 +1128,20 @@
             <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource TextBoxForegroundDark}"/>
         </Style.Setters>
+    </Style>
+
+    <!-- TextBlock used inside every dialog -->
+    <Style x:Key="DialogTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource DialogForeground}" />
+    </Style>
+
+    <!-- General style for the content of each dialog (use to override resources in that scope) -->
+    <Style x:Key="DialogContentStyle" TargetType="Border"/>
+
+    <!-- Popup for details used in social controls -->
+    <Style x:Key="DetailsPopupBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BrushNeutral900}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource DialogBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
     </Style>
 </ResourceDictionary>

@@ -16,14 +16,17 @@ namespace H2MLauncher.UI
                 typeof(ScrollToTopBehavior),
                 new UIPropertyMetadata(false, OnScrollToTopPropertyChanged)
             );
+
         public static bool GetScrollToTop(DependencyObject obj)
         {
             return (bool)obj.GetValue(ScrollToTopProperty);
         }
+
         public static void SetScrollToTop(DependencyObject obj, bool value)
         {
             obj.SetValue(ScrollToTopProperty, value);
         }
+
         private static void OnScrollToTopPropertyChanged(DependencyObject dpo, DependencyPropertyChangedEventArgs e)
         {
             ItemsControl? itemsControl = dpo as ItemsControl;
@@ -44,7 +47,8 @@ namespace H2MLauncher.UI
                 }
             }
         }
-        static void ItemsSourceChanged(object? sender, EventArgs e)
+
+        private static void ItemsSourceChanged(object? sender, EventArgs e)
         {
             if (sender is not ItemsControl itemsControl) return;
 
@@ -53,7 +57,8 @@ namespace H2MLauncher.UI
             {
                 if (itemsControl.ItemContainerGenerator.Status == GeneratorStatus.ContainersGenerated)
                 {
-                    ScrollViewer? scrollViewer = GetVisualChild<ScrollViewer>(itemsControl) as ScrollViewer;
+                    // Once containers finished generating scroll to top
+                    ScrollViewer? scrollViewer = GetVisualChild<ScrollViewer>(itemsControl);
                     scrollViewer?.ScrollToTop();
                     itemsControl.ItemContainerGenerator.StatusChanged -= eventHandler;
                 }
