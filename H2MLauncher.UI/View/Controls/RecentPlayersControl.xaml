@@ -65,7 +65,7 @@
                                 <TextBlock Foreground="{DynamicResource TextLight}" FontSize="13"
                                            VerticalAlignment="Center" Margin="0,0,0,0">
                                     <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
+                                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                                             <Setter Property="FontWeight" Value="SemiBold"/>
                                             <Setter Property="ui:TextBlockExtensions.BindableInlines" Value="{Binding Name, Converter={StaticResource HostNameColorConverter}}"/>
                                         </Style>
@@ -94,16 +94,16 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <Button Grid.Row="2" Background="{DynamicResource TransparentDark400}" 
-                                            VerticalAlignment="Bottom" Padding="5" HorizontalContentAlignment="Left"
+                                            VerticalAlignment="Bottom" Padding="5" HorizontalContentAlignment="Stretch"
                                             Margin="0,0,3,2"  Style="{StaticResource LinkButtonStyle}"
                                             Command="{Binding SelectServerCommand}">
 
                                         <!-- Server name -->
-                                        <TextBlock FontSize="10" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis"
-                                                   HorizontalAlignment="Left" Grid.Column="0" ToolTip="{Binding ServerName}"
-                                                   Grid.Row="2" ui:TextBlockExtensions.BindableInlines="{Binding ServerName, Converter={StaticResource HostNameColorConverter}}"
-                                                   VerticalAlignment="Center">
-                                        </TextBlock>
+                                        <local:MarqueeTextBox FontSize="10"
+                                            TextAlignment="Left" Grid.Column="0" ToolTip="{Binding SanitizedServerName}"
+                                            Grid.Row="2" Inlines="{Binding ServerName, Converter={StaticResource HostNameColorConverter}}"
+                                            VerticalAlignment="Center">
+                                        </local:MarqueeTextBox>
                                     </Button>
                                 </Grid>
 

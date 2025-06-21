@@ -168,9 +168,7 @@
                 </ItemsControl.GroupStyle>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <ToggleButton Padding="7,5,10,0" 
-                                      Foreground="{DynamicResource TextLight}" 
-                                      Style="{DynamicResource TransparentItemToggleButton}">
+                        <ContentControl Padding="7,5,10,0" Style="{DynamicResource TransparentItem}">
                             <Grid Height="50">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -243,7 +241,7 @@
                                            VerticalAlignment="Bottom">
                                 </TextBlock>
                             </Grid>
-                        </ToggleButton>
+                        </ContentControl>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
