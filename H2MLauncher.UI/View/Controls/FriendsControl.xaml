@@ -16,7 +16,7 @@
     <UserControl.Resources>
         <converters:PartySizeIconConverter x:Key="PartySizeIconConverter"/>
         
-        <Style x:Key="PartySizeTextBlockStyle" TargetType="TextBlock">
+        <Style x:Key="PartySizeTextBlockStyle" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
             <Setter Property="RenderTransformOrigin" Value="0.5,0.5"/>
             <Setter Property="RenderTransform">
                 <Setter.Value>
@@ -362,7 +362,7 @@
                                         </TextBlock.Style>
                                     </TextBlock>
 
-                                    <TextBlock Grid.Column="1" Style="{StaticResource PartySizeTextBlockStyle}" />
+                                    <TextBlock Grid.Column="1" Style="{StaticResource PartySizeTextBlockStyle}" Foreground="{DynamicResource TextLight}" />
 
                                     <StackPanel Orientation="Horizontal" Grid.Column="1">
                                         <Button Content="Kick" Command="{Binding KickCommand}" Padding="5,0" 
@@ -498,7 +498,7 @@
                                                         </local:MarqueeTextBox>
 
                                                         <!-- Join Button -->
-                                                        <Button Command="{Binding JoinServerCommand }"
+                                                        <!--<Button Command="{Binding JoinServerCommand }"
                                                                 Content="▶️" ToolTip="Join server" 
                                                                 Grid.Row="0" Grid.RowSpan="3" HorizontalAlignment="Right" VerticalAlignment="Bottom"
                                                                 Width="25" Height="25">
@@ -510,15 +510,17 @@
                                                                                             Converter={StaticResource booleanToVisibilityConverter}}"/>
                                                                     <Style.Triggers>
                                                                         <DataTrigger Binding="{Binding IsSelf}" Value="True">
-                                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                                            <Setter Property="Opacity" Value="0.5"/>
                                                                         </DataTrigger>
                                                                     </Style.Triggers>
                                                                 </Style>
                                                             </Button.Style>
-                                                        </Button>
+                                                        </Button>-->
                                                     </Grid>
                                                 </Button>
-
+                                                <Button Content="▶️ Join Server" Command="{Binding JoinServerCommand}" 
+                                                        Visibility="{Binding CanJoinServer, Converter={StaticResource booleanToVisibilityConverter}}"
+                                                        Padding="5" Margin="0,5"/>
                                                 <Button Content="Invite to Party" Command="{Binding InviteToPartyCommand}" Visibility="{Binding CanInvite, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
                                                 <Button Content="Join Party" Command="{Binding JoinPartyCommand}" Visibility="{Binding CanJoinParty, Converter={StaticResource booleanToVisibilityConverter}}"

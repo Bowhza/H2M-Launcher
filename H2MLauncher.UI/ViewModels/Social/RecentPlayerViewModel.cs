@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Text.RegularExpressions;
+using System.Windows;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -27,6 +28,8 @@ namespace H2MLauncher.UI.ViewModels
         [ObservableProperty]
         [NotifyCanExecuteChangedFor(nameof(AddFriendCommand))]
         private bool _hasFriendRequested = false;
+
+        public string SanitizedServerName => ColorCodeSequenceRegex().Replace(ServerName, "");
 
         public IRelayCommand SelectServerCommand { get; }
 
@@ -78,5 +81,8 @@ namespace H2MLauncher.UI.ViewModels
             CopyUserIdCommand = new RelayCommand(() => Clipboard.SetText(Id));
             CopyUserNameCommand = new RelayCommand(() => Clipboard.SetText(UserName), () => !string.IsNullOrEmpty(UserName));
         }
+
+        [GeneratedRegex(@"(\^\d)")]
+        private static partial Regex ColorCodeSequenceRegex();
     }
 }

@@ -1,12 +1,10 @@
-﻿using System.Text.RegularExpressions;
-using System.Windows;
+﻿using System.Windows;
 
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
 
 using H2MLauncher.Core.Joining;
-using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Party;
 using H2MLauncher.Core.Social;
 using H2MLauncher.Core.Social.Status;
@@ -20,45 +18,6 @@ namespace H2MLauncher.UI.ViewModels
         Party,
         Online,
         Offline,
-    }
-
-    public partial class PlayingServerViewModel : ObservableObject, ISimpleServerInfo
-    {
-        public required string Ip { get; init; }
-
-        public required int Port { get; init; }
-
-        public required string ServerName { get; init; }
-
-        [ObservableProperty]
-        private string _mapDisplayName = "";
-
-        [ObservableProperty]
-        private string _gameTypeDisplayName = "";
-
-        public required DateTimeOffset JoinedAt { get; init; }
-
-        [ObservableProperty]
-        private TimeSpan _playingTime = TimeSpan.Zero;
-
-        public string Status => this switch
-        {
-            { GameTypeDisplayName: not null, MapDisplayName: not null } =>
-                $"{GameTypeDisplayName} on {MapDisplayName}",
-            { MapDisplayName: not null } => $"Playing on {MapDisplayName}",
-            _ => ""
-        };
-
-        public string SanitizedServerName => ColorCodeSequenceRegex().Replace(ServerName, "");
-
-
-        public void RecalculatePlayingTime()
-        {
-            PlayingTime = DateTimeOffset.Now - JoinedAt;
-        }
-
-        [GeneratedRegex(@"(\^\d)")]
-        private static partial Regex ColorCodeSequenceRegex();
     }
 
     public partial class FriendViewModel : ObservableObject
@@ -171,6 +130,7 @@ namespace H2MLauncher.UI.ViewModels
         [NotifyCanExecuteChangedFor(nameof(SelectServerCommand))]
         [NotifyPropertyChangedFor(nameof(DetailedStatus))]
         [NotifyPropertyChangedFor(nameof(HasPlayingServer))]
+        [NotifyPropertyChangedFor(nameof(CanJoinServer))]
         [ObservableProperty]
         private PlayingServerViewModel? _playingServer;
 
@@ -198,6 +158,8 @@ namespace H2MLauncher.UI.ViewModels
         public bool CanRemoveFriend => IsFriend;
 
         public bool CanJoinParty => !IsInParty && (IsPartyOpen || HasInvited);
+
+        public bool CanJoinServer => !IsSelf && HasPlayingServer;
 
         public string DetailedStatus
         {
@@ -279,7 +241,7 @@ namespace H2MLauncher.UI.ViewModels
 
             JoinServerCommand = new AsyncRelayCommand(
                 () => serverJoinService.JoinServer(PlayingServer!, JoinKind.Normal),
-                () => PlayingServer is not null);
+                () => CanJoinServer);
 
             AddFriendCommand = new AsyncRelayCommand(
                 async () =>
