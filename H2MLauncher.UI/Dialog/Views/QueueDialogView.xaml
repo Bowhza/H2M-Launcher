@@ -199,7 +199,7 @@
 
                 <!-- Loading -->
                 <DataTemplate x:Key="LoadingTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
-                    <ProgressBar IsIndeterminate="True" Foreground="LimeGreen" />
+                    <ProgressBar IsIndeterminate="True" Foreground="{DynamicResource BrushSecondary600}" />
                 </DataTemplate>
 
                 <!-- Error -->

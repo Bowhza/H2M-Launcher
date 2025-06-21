@@ -97,7 +97,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
     {
         TabName = tabName;
 
-        // initalize collection view
+        // initialize collection view
         _collectionViewSource = new()
         {
             Source = Servers,
