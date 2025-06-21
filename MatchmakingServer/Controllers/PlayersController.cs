@@ -1,4 +1,5 @@
-﻿using H2MLauncher.Core.Social;
+﻿using H2MLauncher.Core.Models;
+using H2MLauncher.Core.Social.Player;
 
 using MatchmakingServer.Authentication;
 using MatchmakingServer.Core.Social;
@@ -47,7 +48,19 @@ public class PlayersController : ControllerBase
             player.UserName,
             player.Name,
             player.GameStatus,
-            player.Party?.Id
+            player.Party?.Id,
+            player.PlayingServer is not null
+                ? CreatePlayingServerDto(player.PlayingServer, player.PlayingServerJoinDate)
+                : null
         );
+    }
+
+    private static PlayingServerDto CreatePlayingServerDto(GameServer gameServer, DateTimeOffset? joinedAt)
+    {
+        return new(
+            gameServer.ServerIp,
+            gameServer.ServerPort,
+            gameServer.LastServerInfo?.HostName ?? gameServer.ServerName,
+            joinedAt ?? default);
     }
 }
