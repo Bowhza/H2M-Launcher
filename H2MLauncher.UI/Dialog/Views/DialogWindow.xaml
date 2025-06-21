@@ -21,6 +21,14 @@
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="{DynamicResource DialogForeground}"/>
         </Style>
+        <Style TargetType="Label">
+            <Setter Property="Foreground" Value="{DynamicResource DialogForeground}"/>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="{DynamicResource DialogForegroundDisabled}" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
     </Window.Resources>
     <Window.Template>
         <ControlTemplate TargetType="{x:Type Window}">

@@ -80,6 +80,7 @@
     <SolidColorBrush x:Key="ControlBorderBrushNeutral" Color="{DynamicResource ColorNeutral600}" />
 
     <SolidColorBrush x:Key="DialogForeground" Color="{DynamicResource ColorLight}"/>
+    <SolidColorBrush x:Key="DialogForegroundDisabled" Color="{DynamicResource ColorNeutral600}"/>
     <SolidColorBrush x:Key="DialogBackground" Color="{DynamicResource ColorBlack}" />
     <SolidColorBrush x:Key="DialogBorderBrush" Color="{DynamicResource ColorNeutral50}" />
 
@@ -206,10 +207,11 @@
 
 
     <!-- Default style for all controls -->
-    <Style TargetType="{x:Type Control}">
+    <Style x:Key="DefaultStyle" TargetType="{x:Type Control}">
         <Setter Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
         <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
     </Style>
+    <Style TargetType="CheckBox" BasedOn="{StaticResource DefaultStyle}"/>
 
 
     <!-- Title -->
@@ -1127,6 +1129,7 @@
             <Setter Property="Foreground" Value="{DynamicResource TextBoxForegroundDark}"/>
             <Setter Property="Background" Value="{DynamicResource TextBoxBackgroundDark}"/>
             <Setter Property="CaretBrush" Value="{DynamicResource TextBoxForegroundDark}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrush}"/>
         </Style.Setters>
     </Style>
 

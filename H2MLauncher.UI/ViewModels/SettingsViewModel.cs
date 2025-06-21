@@ -29,6 +29,15 @@ public partial class SettingsViewModel : DialogViewModelBase
     [ObservableProperty]
     private bool _serverQueueingEnabled = false;
 
+    [ObservableProperty]
+    private bool _fpsLimiterEnabled = false;
+
+    [ObservableProperty]
+    private int _generalFpsLimit;
+
+    [ObservableProperty]
+    private int _limitedFpsLimit;
+
     public bool CanEnableServerQueueing => GameCommunicationEnabled;
 
     public ShortcutsViewModel Shortcuts { get; }
@@ -44,6 +53,9 @@ public partial class SettingsViewModel : DialogViewModelBase
         HmwMasterServerUrl = options.CurrentValue.HMWMasterServerUrl;
         GameCommunicationEnabled = options.CurrentValue.GameMemoryCommunication;
         ServerQueueingEnabled = options.CurrentValue.ServerQueueing;
+        FpsLimiterEnabled = options.CurrentValue.FpsLimiterEnabled;
+        GeneralFpsLimit = options.CurrentValue.MaxFps;
+        LimitedFpsLimit = options.CurrentValue.MaxFpsLimited;
 
         Shortcuts = new();
         Shortcuts.ResetViewModel(options.CurrentValue.KeyBindings);
@@ -58,6 +70,9 @@ public partial class SettingsViewModel : DialogViewModelBase
                 GameMemoryCommunication = GameCommunicationEnabled,
                 ServerQueueing = ServerQueueingEnabled,
                 KeyBindings = Shortcuts.ToDictionary(),
+                FpsLimiterEnabled = FpsLimiterEnabled,
+                MaxFps = GeneralFpsLimit,
+                MaxFpsLimited = LimitedFpsLimit,
             }, reload: true);
 
             CloseCommand.Execute(true);
@@ -91,6 +106,7 @@ public partial class SettingsViewModel : DialogViewModelBase
         if (!value)
         {
             ServerQueueingEnabled = false;
+            FpsLimiterEnabled = false;
         }
     }
 }
