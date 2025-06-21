@@ -429,7 +429,7 @@
                                                     <Style TargetType="TextBlock">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding HasMap}" Value="False">
-                                                                <Setter Property="Foreground" Value="DarkRed" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource DangerColorBrush}" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -606,10 +606,10 @@
                                            Text="{Binding DisplayText}" VerticalAlignment="Center" />
                                 <DataTemplate.Triggers>
                                     <DataTrigger Binding="{Binding IsGameRunning}" Value="true">
-                                        <Setter TargetName="ConnectionString" Property="Foreground" Value="LimeGreen"/>
+                                        <Setter TargetName="ConnectionString" Property="Foreground" Value="{DynamicResource SuccessColorBrush}"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsGameRunning}" Value="false">
-                                        <Setter TargetName="ConnectionString" Property="Foreground" Value="DarkRed"/>
+                                        <Setter TargetName="ConnectionString" Property="Foreground" Value="{DynamicResource DangerColorBrush}"/>
                                     </DataTrigger>
                                 </DataTemplate.Triggers>
                             </DataTemplate>

@@ -166,6 +166,13 @@
     <!-- Color of the online status (Online, In Match, Offline) -->
     <SolidColorBrush x:Key="OnlineStatusColor" Color="{DynamicResource ColorNeutral300}"/>
 
+    <!-- Color used for errors, delete actions, etc. -->
+    <SolidColorBrush x:Key="DangerColorBrush" Color="DarkRed"/>
+    
+    <!-- Color used for success states etc. -->
+    <SolidColorBrush x:Key="SuccessColorBrush" Color="LimeGreen"/>
+
+
     <!-- Main Window -->
     
     <Style x:Key="BackgroundImageContainerStyle" TargetType="Border">
@@ -832,7 +839,7 @@
                              Margin="3,3,23,3"
                              Focusable="True" 
                              Background="{DynamicResource ComboBoxBackgroundColor}"
-                             Foreground="Green"
+                             Foreground="{DynamicResource ComboBoxForegroundColor}"
                              Visibility="Hidden"
                              IsReadOnly="{TemplateBinding IsReadOnly}"/>
 

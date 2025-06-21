@@ -523,7 +523,7 @@
                                                 <Button Content="Add Friend" Command="{Binding AddFriendCommand}" Visibility="{Binding CanAddFriend, Converter={StaticResource booleanToVisibilityConverter}}"
                                                         Padding="5" Margin="0,5"/>
                                                 <Button Content="Unfriend" Command="{Binding RemoveFriendCommand}" Visibility="{Binding CanRemoveFriend, Converter={StaticResource booleanToVisibilityConverter}}" 
-                                                        Foreground="DarkRed"
+                                                        Foreground="{DynamicResource DangerColorBrush}"
                                                         Padding="5" Margin="0,5"/>
                                                 <Separator Margin="0,5" />
                                                 <Button Content="Copy User ID" Command="{Binding CopyUserIdCommand}" 

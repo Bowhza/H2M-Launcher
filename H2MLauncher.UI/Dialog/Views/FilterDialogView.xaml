@@ -168,7 +168,7 @@
                         <Button Style="{StaticResource LinkButtonStyle}" 
                                 Command="{Binding RemoveCommand}" 
                                 Click="Button_Click"
-                                Content="✖" Foreground="DarkRed" DockPanel.Dock="Right"/>
+                                Content="✖" Foreground="{DynamicResource DangerColorBrush}" DockPanel.Dock="Right"/>
 
                         <CheckBox 
                             Foreground="{DynamicResource TextLight}"

@@ -160,7 +160,7 @@
             </DockPanel>
         </Border>
 
-        <TextBlock Text="Error while loading background image." Grid.Row="2" Grid.Column="1" Foreground="DarkRed" Margin="0,0,0,10"
+        <TextBlock Text="Error while loading background image." Grid.Row="2" Grid.Column="1" Foreground="{DynamicResource DangerColorBrush}" Margin="0,0,0,10"
                    Visibility="{Binding Customization.BackgroundImageLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
 
         <TextBlock Text="Background Blur:" Grid.Row="3" Margin="15,10" HorizontalAlignment="Left"/>
@@ -211,7 +211,7 @@
             </DockPanel>
         </Border>
 
-        <TextBlock Text="Error while loading theme." Grid.Row="5" Grid.Column="1" Foreground="DarkRed" Margin="0,0,0,10"
+        <TextBlock Text="Error while loading theme." Grid.Row="5" Grid.Column="1" Foreground="{DynamicResource DangerColorBrush}" Margin="0,0,0,10"
            Visibility="{Binding Customization.ThemeLoadingError, Converter={StaticResource booleanToVisibilityConverter}}"/>
 
         <CheckBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" 
@@ -315,7 +315,7 @@
                                                              Foreground="{DynamicResource DialogForeground}" />
 
                                                     <MenuItem Command="{Binding DeleteCommand}" Visibility="{Binding IsDefault, Converter={StaticResource InverseBoolToVisibilityConverter}}"
-                                                            Padding="5,2" Margin="0,2,0,0" Foreground="DarkRed" HorizontalContentAlignment="Center"
+                                                            Padding="5,2" Margin="0,2,0,0" Foreground="{DynamicResource DangerColorBrush}" HorizontalContentAlignment="Center"
                                                             Header="Delete" Icon="❌"
                                                             />
                                                 </Menu>
