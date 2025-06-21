@@ -429,6 +429,11 @@
                                            Opened="DetailsPopup_Opened"
                                            MouseDown="DetailsPopup_MouseDown"
                                            Width="200">
+                                        <Popup.Resources>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextLight}"/>
+                                            </Style>
+                                        </Popup.Resources>
                                         <Border Focusable="True" CornerRadius="7"
                                                 Opacity="1" Style="{DynamicResource DetailsPopupBorderStyle}">
                                             <StackPanel Margin="12">
