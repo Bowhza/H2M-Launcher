@@ -29,6 +29,12 @@ namespace H2MLauncher.Core.Settings
 
         public bool PublicPlayerName { get; init; } = true;
 
+        public int MaxFpsLimited { get; init; } = 30;
+
+        public int MaxFps { get; init; } = -1;
+
+        public bool FpsLimiterEnabled { get; init; } = false;
+
         public Dictionary<string, string> KeyBindings { get; init; } = [];
         public LauncherCustomizationSettings? Customization { get; init; } = null;
     }
