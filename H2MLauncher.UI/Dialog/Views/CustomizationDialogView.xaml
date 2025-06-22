@@ -30,8 +30,7 @@
             <Setter Property="MaxWidth" Value="400" />
         </Style>
 
-
-
+        <Style TargetType="TextBox" BasedOn="{StaticResource TransparentDarkTextBoxStyle}"/>
 
         <Style x:Key="{x:Type ComboBox}" TargetType="{x:Type ComboBox}">
             <Setter Property="SnapsToDevicePixels" Value="true" />
@@ -134,9 +133,9 @@
                 </StackPanel>
 
                 <TextBox Text="{Binding BackgroundImageUrl, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Image'}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource DialogForeground}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
-                        <Style TargetType="TextBox">
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                             <Style.Triggers>
                                 <Trigger Property="IsFocused" Value="True">
                                     <Setter Property="BorderThickness" Value="0"/>
@@ -166,7 +165,7 @@
         <TextBlock Text="Background Blur:" Grid.Row="3" Margin="15,10" HorizontalAlignment="Left"/>
         <DockPanel Grid.Row="3" Grid.Column="1">
             <TextBox Text="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" Width="40" Margin="0,0,10,0" VerticalAlignment="Center" 
-                     Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource DialogForeground}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
+                     Background="{DynamicResource BrushNeutral800}" Foreground="{DynamicResource TextBoxForegroundDark}" Padding="3" BorderThickness="0" PreviewTextInput="TextBox_PreviewTextInput"/>
             <Slider Minimum="0" Maximum="200" Value="{Binding Customization.BackgroundBlur, UpdateSourceTrigger=PropertyChanged}" Width="Auto" VerticalAlignment="Center" />
         </DockPanel>
 
@@ -185,9 +184,9 @@
                 </StackPanel>
 
                 <TextBox Text="{Binding LoadedThemePath, Converter={StaticResource DefaultStringValueConverter}, ConverterParameter='Default Theme'}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource DialogForeground}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
-                        <Style TargetType="TextBox">
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                             <Style.Triggers>
                                 <Trigger Property="IsFocused" Value="True">
                                     <Setter Property="BorderThickness" Value="0"/>

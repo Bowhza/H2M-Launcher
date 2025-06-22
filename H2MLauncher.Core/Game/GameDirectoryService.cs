@@ -33,11 +33,13 @@ namespace H2MLauncher.Core.Services
         public ConfigMpContent? CurrentConfigMp { get; private set; }
 
 
-        public event Action<string, ConfigMpContent?>? ConfigMpChanged;
+        public event ConfigChangedEventHandler? ConfigMpChanged;
 
         public event Action<string?, IReadOnlyList<string>>? UsermapsChanged;
 
         public event Action<string, string>? FastFileChanged;
+
+        public delegate void ConfigChangedEventHandler(string filePath, ConfigMpContent? config);
 
 
         public GameDirectoryService(IOptionsMonitor<H2MLauncherSettings> optionsMonitor, ILogger<GameDirectoryService> logger)
