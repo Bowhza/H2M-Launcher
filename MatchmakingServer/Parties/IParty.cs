@@ -9,5 +9,8 @@ namespace MatchmakingServer.Parties
         PartyPrivacy Privacy { get; }
         Player Leader { get; }
         IReadOnlySet<Player> Members { get; }
+
+        IReadOnlyDictionary<string, DateTime> Invites { get; }
+        IEnumerable<string> ValidInvites { get; }
     }
 }

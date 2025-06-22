@@ -1,0 +1,66 @@
+﻿@using Dashboard.Database.Entities;
+@rendermode InteractiveServer
+
+<div class="tag-download-chart">
+    <h4>Latest Download Count: @LatestDownloadCount</h4>
+
+    @if (DownloadHistory != null && DownloadHistory.Any())
+    {
+        <div class="chart-container">
+            <ApexChart TItem="DownloadCount"
+                       Title="Download Count"
+                       Options="_options">
+
+                <ApexPointSeries TItem="DownloadCount"
+                                 Items="DownloadHistory"
+                                 Name="Downloads"
+                                 SeriesType="SeriesType.Line"
+                                 XValue="e => e.Timestamp"
+                                 YValue="e => e.Count" />
+            </ApexChart>
+        </div>
+    }
+    else
+    {
+        <p>No data available for tag: @Tag</p>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public required string Tag { get; set; }
+
+    [Parameter]
+    public required int LatestDownloadCount { get; set; }
+
+    [Parameter]
+    public List<DownloadCount> DownloadHistory { get; set; } = [];
+
+
+    private ApexChartOptions<DownloadCount> _options = null!;
+
+    protected override void OnInitialized()
+    {
+        _options = new ApexChartOptions<DownloadCount>();
+        _options.Xaxis = new XAxis
+        {
+            // Labels = new XAxisLabels
+            // {
+            //     Formatter = @"function (value) {
+            //         if (value === undefined) {return '';}
+            //         return moment(value).format('DD-MM-YYYY');}"
+            // },
+            Type = XAxisType.Datetime,
+        };
+
+        _options.Tooltip = new ApexCharts.Tooltip
+        {
+            X = new TooltipX
+            {
+                Formatter = @"function(value, opts) {
+                    if (value === undefined) {return '';}
+                    return  moment(value).format('DD-MM-YYYY HH:mm');}"
+            }
+        };
+    }
+}

@@ -8,6 +8,7 @@ namespace MatchmakingServer.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Route("[controller]")] // NOTE: for compatibility
     public class QueuesController : ControllerBase
     {
         private readonly QueueingService _queueingService;

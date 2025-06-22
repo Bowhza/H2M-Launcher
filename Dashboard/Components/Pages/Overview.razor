@@ -1,0 +1,210 @@
+﻿@page "/"
+@using Dashboard.Downloads
+@using Dashboard.Party
+@using H2MLauncher.Core.Party
+@inject DownloadCountService DownloadCountService
+@inject IEventBus EventBus;
+@inject IPartiesApiClient PartiesApi
+@implements IDisposable;
+@rendermode InteractiveServer
+
+<h3>Overview</h3>
+
+@* Dashboard Cards Section *@
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3 shadow">
+            <div class="card-header">Latest Release Downloads</div>
+            <div class="card-body">
+                <h5 class="card-title display-4 text-center">@_dashboardStats.LatestReleaseDownloadCount.ToString("N0")</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-success mb-3 shadow">
+            <div class="card-header">Total Downloads</div>
+            <div class="card-body">
+                <h5 class="card-title display-4 text-center">@_dashboardStats.TotalDownloadCount.ToString("N0")</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-info mb-3 shadow">
+            <div class="card-header">Downloads Today</div>
+            <div class="card-body">
+                <h5 class="card-title display-4 text-center">@_dashboardStats.TotalDownloadsToday.ToString("N0")</h5>
+            </div>
+        </div>
+    </div>
+</div>
+
+@* Party Statistics Cards Section *@
+<div class="row mb-4 g-3">
+    <div class="col-md-4">
+        <div class="card text-white bg-dark mb-3 shadow">
+            <div class="card-header">Total Active Parties</div>
+            <div class="card-body">
+                @if (isLoading)
+                {
+                    <h5 class="card-title display-4 text-center">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </h5>
+                }
+                else if (parties != null)
+                {
+                    <h5 class="card-title display-4 text-center">@TotalActiveParties.ToString("N0")</h5>
+                }
+                else
+                {
+                    <h5 class="card-title display-4 text-center text-danger">Error</h5>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning mb-3 shadow">
+            <div class="card-header">Players in Parties</div>
+            <div class="card-body">
+                @if (isLoading)
+                {
+                    <h5 class="card-title display-4 text-center">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </h5>
+                }
+                else if (parties != null)
+                {
+                    <h5 class="card-title display-4 text-center">@TotalPlayersInParties.ToString("N0")</h5>
+                }
+                else
+                {
+                    <h5 class="card-title display-4 text-center text-danger">Error</h5>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-white bg-secondary mb-3 shadow">
+            <div class="card-header">Average Party Size</div>
+            <div class="card-body">
+                @if (isLoading)
+                {
+                    <h5 class="card-title display-4 text-center">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Loading...
+                    </h5>
+                }
+                else if (parties != null)
+                {
+                    <h5 class="card-title display-4 text-center">@AveragePartySize.ToString("N1")</h5>
+                }
+                else
+                {
+                    <h5 class="card-title display-4 text-center text-danger">Error</h5>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Dictionary<string, LauncherRelease> _groupedHistory = [];
+    private DashboardStats _dashboardStats = new DashboardStats();
+
+    private IEnumerable<PartyInfo>? parties;
+
+    private bool isLoading = true;
+    private IDisposable? _downloadCountNotificationSubscription;
+
+    private int TotalActiveParties => parties?.Count() ?? 0;
+    private int TotalPlayersInParties => parties?.Sum(p => p.Members.Count) ?? 0;
+    private double AveragePartySize
+    {
+        get
+        {
+            if (parties == null || !parties.Any())
+            {
+                return 0;
+            }
+            return (double)TotalPlayersInParties / TotalActiveParties;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        await LoadGroupedHistory();
+        await LoadDashboardStats();
+        await FetchAllPartiesAndCalculateStats();
+        isLoading = false; // Now set isLoading to false after all data is loaded
+
+        // Keep this if DownloadCountService.OnDataUpdated signifies an update to ALL grouped data
+        _downloadCountNotificationSubscription = EventBus.Subscribe<DownloadCountAddedNotification>(async notification =>
+        {
+            if (_groupedHistory.TryGetValue(notification.NewDownloadCount.Tag, out var downloadCounts))
+            {
+                downloadCounts.DownloadCounts.Add(notification.NewDownloadCount);
+            }
+            else
+            {
+                _groupedHistory.Add(notification.NewDownloadCount.Tag, new LauncherRelease()
+                {
+                    Tag = notification.NewDownloadCount.Tag,
+                    DownloadCounts = [notification.NewDownloadCount],
+                    ReleaseDate = notification.NewDownloadCount.ReleaseDate,
+                });
+            }
+
+            isLoading = true;
+            // Re-load dashboard stats on new download to keep them up-to-date
+            await LoadDashboardStats();
+            await InvokeAsync(StateHasChanged);
+            isLoading = false;
+        });
+    }
+
+    private async Task LoadGroupedHistory()
+    {
+        var history = await DownloadCountService.GetHistoryAsync(CancellationToken.None);
+        _groupedHistory = history.ToDictionary(x => x.Tag);
+        await InvokeAsync(StateHasChanged);
+    }
+
+
+    private async Task LoadDashboardStats()
+    {
+        // Recalculate dashboard stats from the updated _groupedHistory
+        _dashboardStats = DownloadStatsCalculator.CalculateStats(_groupedHistory.Values);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task FetchAllPartiesAndCalculateStats()
+    {
+        try
+        {
+            var response = await PartiesApi.GetParties(); // Fetch all parties
+
+            if (response.IsSuccessStatusCode && response.Content != null)
+            {
+                parties = response.Content; // Store the fetched parties
+            }
+            else
+            {
+                Console.WriteLine($"Error fetching parties: {response.StatusCode} - {response.Error?.Content}");
+                parties = null; // Indicate error
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"General Exception while fetching parties: {ex.Message}");
+            parties = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        _downloadCountNotificationSubscription?.Dispose();
+    }
+}
