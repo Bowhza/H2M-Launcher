@@ -115,7 +115,7 @@ services:
   pgbackups:
     image: prodrigestivill/postgres-backup-local
     restart: always
-    user: postgres:postgres
+    user: ${UID:-postgres}:${GID:-postgres}
     volumes:
         - ${DB_BACKUP_DIR:-./pgbackup}:/backups
     links:
