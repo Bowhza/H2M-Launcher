@@ -204,7 +204,7 @@
 
                 <!-- Error -->
                 <DataTemplate x:Key="ErrorTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
-                    <TextBlock Text="{Binding ErrorText}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding ErrorText}" HorizontalAlignment="Center" TextWrapping="Wrap"/>
                 </DataTemplate>
             </StackPanel.Resources>
             <ContentControl Content="{Binding }">
