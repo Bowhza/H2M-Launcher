@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Models;
+﻿using System.Text.Json.Serialization;
+
+using H2MLauncher.Core.Models;
 
 namespace H2MLauncher.Core.Matchmaking.Models
 {
@@ -18,12 +20,13 @@ namespace H2MLauncher.Core.Matchmaking.Models
 
         public List<ServerConnectionDetails>? Servers { get; init; } = [];
 
+        [JsonIgnore]
         public int ServerCount
         {
             get => Servers?.Count ?? _serverCount;
             init => _serverCount = ServerCount;
         }
-
-        public int CurrentPlayerCount { get; init; }
+        
+        public int? CurrentPlayerCount { get; init; }
     }
 }

@@ -143,7 +143,7 @@ namespace MatchmakingServer.Parties
                 Description = customPlaylist.Description,
                 GameModes = customPlaylist.GameModes,
                 MapPacks = customPlaylist.MapPacks,
-                Servers = customPlaylist.Servers
+                Servers = customPlaylist.Servers.ToList()
             };
             
             if (customPlaylist.Servers.Count == 0)
