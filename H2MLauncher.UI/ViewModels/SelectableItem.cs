@@ -12,6 +12,9 @@ namespace H2MLauncher.UI.ViewModels
         private bool _isSelected;
 
         [ObservableProperty]
+        private bool _isSelectable = true;
+
+        [ObservableProperty]
         private string _name = "";
 
         [JsonIgnore]
@@ -26,7 +29,7 @@ namespace H2MLauncher.UI.ViewModels
             if (onRemove != null)
             {
                 RemoveCommand = new RelayCommand(onRemove);
-            }            
+            }
         }
     }
 }

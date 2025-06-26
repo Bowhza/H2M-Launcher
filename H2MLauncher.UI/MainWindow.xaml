@@ -327,29 +327,29 @@
                                     <!-- Opaque background for the header row -->
                                     <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="-2, -2, -2, 5"></Rectangle>
                                     <controls:CustomDataGrid
-                                        x:Name="serverDataGrid" 
-                                        Style="{DynamicResource ServerDataGridStyle}" 
-                                        CellStyle="{DynamicResource ServerDataGridCellStyle}"
-                                        ItemsSource="{Binding ServerCollectionView}" 
-                                        FontFamily="Consolas"
-                                        Margin="-2,-2,-2,-2" 
-                                        Height="Auto" 
-                                        KeyboardNavigation.TabNavigation="Once"
-                                        TabIndex="2"
-                                        CanUserReorderColumns="False" 
-                                        CanUserAddRows="False" 
-                                        CanUserDeleteRows="False" 
-                                        CanUserSortColumns="True" 
-                                        IsReadOnly="True"
-                                        AutoGenerateColumns="False"
-                                        GridLinesVisibility="None"
-                                        SelectionUnit="FullRow"
-                                        HorizontalScrollBarVisibility="Hidden"
-                                        SelectionMode="Single"
-                                        CanUserResizeColumns="true"
-                                        HeadersVisibility="Column"
-                                        VerticalScrollBarVisibility="Hidden"
-                                        SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
+                                            x:Name="serverDataGrid" 
+                                            Style="{DynamicResource ServerDataGridStyle}" 
+                                            CellStyle="{DynamicResource ServerDataGridCellStyle}"
+                                            ItemsSource="{Binding ServerCollectionView}" 
+                                            FontFamily="Consolas"
+                                            Margin="-2,-2,-2,-2" 
+                                            Height="Auto" 
+                                            KeyboardNavigation.TabNavigation="Once"
+                                            TabIndex="2"
+                                            CanUserReorderColumns="False" 
+                                            CanUserAddRows="False" 
+                                            CanUserDeleteRows="False" 
+                                            CanUserSortColumns="True" 
+                                            IsReadOnly="True"
+                                            AutoGenerateColumns="False"
+                                            GridLinesVisibility="None"
+                                            SelectionUnit="FullRow"
+                                            HorizontalScrollBarVisibility="Hidden"
+                                            SelectionMode="Single"
+                                            CanUserResizeColumns="true"
+                                            HeadersVisibility="Column"
+                                            VerticalScrollBarVisibility="Hidden"
+                                            SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
                                         <i:Interaction.Behaviors>
                                             <local:ScrollIntoViewBehavior />
                                         </i:Interaction.Behaviors>
@@ -368,6 +368,78 @@
                                         </DataGrid.InputBindings>
                                         <DataGrid.ItemContainerStyle>
                                             <Style TargetType="DataGridRow" BasedOn="{StaticResource ServerDataGridRowStyle}">
+                                                <Setter Property="Tag" Value="{Binding ElementName=serverDataGrid, Path=DataContext}"/>
+                                                <Setter Property="ContextMenu">
+                                                    <Setter.Value>
+                                                        <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}"
+                                                                     x:Name="serverContextMenu">
+                                                            <ContextMenu.Resources>
+                                                                <CollectionViewSource x:Key="SelectablePlaylistsCollection" Source="{Binding SelectablePlaylists}"/>
+                                                            </ContextMenu.Resources>
+                                                            
+                                                            <!-- Add to playlist -->
+                                                            <MenuItem Icon="➕" Header="Add to Playlist">
+                                                                <MenuItem.ItemsSource>
+                                                                    <CompositeCollection>
+                                                                        <!-- New playlist -->
+                                                                        <MenuItem Icon="➕" Header="New Playlist"
+                                                                                  Command="{Binding AddToNewPlaylistCommand}"
+                                                                                  CommandParameter="{Binding SelectedServer}"/>
+                                                                        <Separator/>
+                                                                        
+                                                                        <!-- Existing playlists -->
+                                                                        <CollectionContainer Collection="{Binding Source={StaticResource SelectablePlaylistsCollection}}" />
+                                                                    </CompositeCollection>
+                                                                </MenuItem.ItemsSource>
+
+                                                                <MenuItem.ItemContainerStyle>
+                                                                    <Style TargetType="MenuItem">
+                                                                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+                                                                        <!-- Properties for existing templates -->
+                                                                        <Setter Property="Header" Value="{Binding Name}" />
+                                                                        <!--<Setter Property="Command" Value="{Binding AddServerCommand}" />-->
+                                                                        <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+                                                                        <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                                                        <Setter Property="IsCheckable" Value="True"/>
+                                                                    </Style>
+                                                                </MenuItem.ItemContainerStyle>
+                                                            </MenuItem>
+
+                                                            <!-- Remove from playlist -->
+                                                            <MenuItem Icon="❌"
+                                                                      HeaderStringFormat="Remove from '{0}'">
+                                                                <!--<MenuItem.Visibility>
+                                                                    <Binding Path="."
+                                                                             Converter="{StaticResource TypeVisibilityConverter}"
+                                                                             ConverterParameter="{x:Type vm:CustomServerTabViewModel}"/>
+                                                                </MenuItem.Visibility>-->
+                                                                <MenuItem.Style>
+                                                                    <Style TargetType="MenuItem">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Value="True">
+                                                                                <DataTrigger.Binding>
+                                                                                    <Binding Path="."
+                                                                                             Converter="{StaticResource TypeConverter}"
+                                                                                             ConverterParameter="{x:Type vm:CustomServerTabViewModel}"/>
+                                                                                </DataTrigger.Binding>
+                                                                                <DataTrigger.Setters>
+                                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                                    <Setter Property="Header" Value="{Binding Playlist.Name}"/>
+                                                                                    <Setter Property="Command" Value="{Binding RemoveServerCommand}"/>
+                                                                                    <Setter Property="CommandParameter" Value="{Binding SelectedServer}"/>
+                                                                                </DataTrigger.Setters>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </MenuItem.Style>
+                                                            </MenuItem>
+                                                        </ContextMenu>
+                                                    </Setter.Value>
+                                                </Setter>
+
                                                 <!-- Enable focus and tab navigation for row -->
                                                 <Setter Property="IsTabStop" Value="True"/>
                                                 <Setter Property="Focusable" Value="True"/>
