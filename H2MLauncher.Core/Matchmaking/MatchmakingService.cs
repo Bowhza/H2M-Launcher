@@ -292,7 +292,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
             SearchAttempts = 0;
 
             bool success = playlist is CustomPlaylist customPlaylist
-                ? await Hub.SearchMatch(initialSearchCriteria, customPlaylist)
+                ? await Hub.SearchMatchCustom(initialSearchCriteria, customPlaylist)
                 : await Hub.SearchMatch(initialSearchCriteria, playlist.Id);
 
             if (!success)

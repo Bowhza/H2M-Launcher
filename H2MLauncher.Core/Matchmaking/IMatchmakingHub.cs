@@ -13,7 +13,7 @@ namespace H2MLauncher.Core
 
         Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, string playlistId);
 
-        Task<bool> SearchMatch(MatchSearchCriteria searchPreferences, CustomPlaylist customPlaylist);
+        Task<bool> SearchMatchCustom(MatchSearchCriteria searchPreferences, CustomPlaylist customPlaylist);
 
         Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings);
     }
