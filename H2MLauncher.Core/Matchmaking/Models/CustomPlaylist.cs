@@ -12,11 +12,5 @@ public record CustomPlaylist : Playlist
         init => base.Servers = value;
     }
 
-    [SetsRequiredMembers]
-    public CustomPlaylist(string name, IEnumerable<ServerConnectionDetails> servers)
-    {
-        Id = Guid.NewGuid().ToString();
-        Name = name ?? "Custom Playlist";
-        Servers = [.. servers];
-    }
+    public override bool IsCustom { get; } = true;
 }

@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +13,7 @@ using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Services;
+using H2MLauncher.UI.Converters;
 using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels
@@ -112,7 +115,13 @@ namespace H2MLauncher.UI.ViewModels
 
         public string QueuePositionText => $"{QueuePosition} / {TotalPlayersInQueue}";
 
-        public ObservableCollection<Playlist> Playlists { get; } = [
+
+        public CompositeReadOnlyObservableCollection<Playlist> Playlists { get; set; } = [];
+
+        public ICollectionView PlaylistsGrouped { get; private set; }
+
+        public ObservableCollection<CustomPlaylist> CustomPlaylists { get; } = [];
+        public ObservableCollection<Playlist> PublicPlaylists { get; } = [
             new Playlist()
             {
                 Id = "Default",
@@ -199,7 +208,16 @@ namespace H2MLauncher.UI.ViewModels
             PlaylistName = matchmakingService.Playlist?.Name ?? "";
             IsConnectingToOnlineService = matchmakingService.IsConnecting;
             IsConnectedToOnlineService = matchmakingService.IsConnected;
-            SelectedPlaylist = Playlists.FirstOrDefault();
+            SelectedPlaylist = PublicPlaylists.FirstOrDefault();
+
+            Playlists.AddSubCollection(PublicPlaylists);
+            Playlists.AddSubCollection(CustomPlaylists);
+
+            PlaylistsGrouped = CollectionViewSource.GetDefaultView(Playlists);
+            PlaylistsGrouped.SortDescriptions.Add(new SortDescription(nameof(Playlist.IsCustom), ListSortDirection.Ascending));
+            PlaylistsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(
+                nameof(Playlist.IsCustom),
+                new DelegateValueConverter<bool>((isCustom) => isCustom ? "Custom" : "Public")));
 
             if (queueingService.QueuedServer is not null)
             {
@@ -255,12 +273,16 @@ namespace H2MLauncher.UI.ViewModels
                     return;
                 }
 
-                Playlists.Clear();
+                PublicPlaylists.Clear();
                 foreach (Playlist playlist in playlists)
                 {
-                    Playlists.Add(playlist);
+                    PublicPlaylists.Add(playlist);
                 }
-                SelectedPlaylist = Playlists.FirstOrDefault();
+
+                if (SelectedPlaylist is null)
+                {
+                    SelectedPlaylist = PublicPlaylists.FirstOrDefault();
+                }
             }
             catch
             {

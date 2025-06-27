@@ -10,7 +10,6 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using CommunityToolkit.Mvvm.Messaging.Messages;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Game;
@@ -105,7 +104,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     [ObservableProperty]
     private MatchmakingViewModel? _matchmakingViewModel;
 
-    public IReadOnlyCollection<CustomPlaylistInfo> CustomPlaylists => _customPlaylists.Values;    
+    public IReadOnlyCollection<CustomPlaylistInfo> CustomPlaylists => _customPlaylists.Values;
 
     public SocialOverviewViewModel SocialOverviewViewModel { get; }
 
@@ -272,7 +271,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         AdvancedServerFilter.ResetViewModel(_h2MLauncherOptions.CurrentValue.ServerFilter);
 
         // initialize shortcut key bindings with stored values
-        Shortcuts.ResetViewModel(_h2MLauncherOptions.CurrentValue.KeyBindings);        
+        Shortcuts.ResetViewModel(_h2MLauncherOptions.CurrentValue.KeyBindings);
 
         _h2MCommunicationService.GameDetection.GameDetected += H2MCommunicationService_GameDetected;
         _h2MCommunicationService.GameDetection.GameExited += H2MCommunicationService_GameExited;
@@ -496,7 +495,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
         ServerTabs.Add(tabViewModel);
         return true;
-    }    
+    }
 
     // Method to get the user's favorites from the settings.
     public List<SimpleServerInfo> GetFavoritesFromSettings()
@@ -646,13 +645,13 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
 
         CustomPlaylistInfo customPlaylist = new(playlistName, [serverViewModel.ToServerConnectionDetails()]);
-        
+
         // Add playlist to settings and save
         if (!_customPlaylists.TryAdd(customPlaylist.Id, customPlaylist))
         {
             return;
         }
-        
+
         SaveCustomPlaylists();
         OnPropertyChanged(nameof(CustomPlaylists));
 
@@ -664,7 +663,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
 
         tabViewModel.Servers.Add(serverViewModel);
-    }    
+    }
 
     private void SaveCustomPlaylists()
     {
@@ -1055,6 +1054,22 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             _onlineService,
             _serverDataService,
             _serverJoinService);
+
+        if (SelectedTab is CustomServerTabViewModel customServerTab)
+        {
+            CustomPlaylist playlist = new()
+            {
+                Id = customServerTab.Playlist.Id,
+                Name = customServerTab.Playlist.Name,
+                Servers = [.. customServerTab.Playlist.Servers],
+                MapPacks = [.. AdvancedServerFilter.MapPacks.Where(item => item.IsSelected).Select(item => item.Model.Id)],
+                GameModes = [.. AdvancedServerFilter.GameModes.Where(item => item.IsSelected).Select(item => item.Model.Name)],
+                CurrentPlayerCount = customServerTab.TotalPlayers,
+            };
+
+            MatchmakingViewModel.CustomPlaylists.Add(playlist);
+            MatchmakingViewModel.SelectedPlaylist = playlist;
+        }
 
         _dialogService.OpenDialog<QueueDialogView>(MatchmakingViewModel);
 

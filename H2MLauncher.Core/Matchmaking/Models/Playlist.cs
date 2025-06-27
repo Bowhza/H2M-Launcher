@@ -28,5 +28,8 @@ namespace H2MLauncher.Core.Matchmaking.Models
         }
         
         public int? CurrentPlayerCount { get; init; }
+
+        [JsonIgnore]
+        public virtual bool IsCustom { get; } = false;
     }
 }

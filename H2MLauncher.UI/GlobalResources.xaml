@@ -723,8 +723,8 @@
                                 Background="{DynamicResource ComboBoxBackgroundColor}"
                                 BorderThickness="1"
                                 BorderBrush="{DynamicResource ComboBoxPopupBorderColor}"/>
-                                <ScrollViewer Margin="4,6,4,6" SnapsToDevicePixels="True">
-                                    <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                <ScrollViewer x:Name="DropDownScrollViewer" Margin="4,6,4,6" SnapsToDevicePixels="True">
+                                    <ItemsPresenter x:Name="ItemsPresenster" KeyboardNavigation.DirectionalNavigation="Contained" />
                                 </ScrollViewer>
                             </Grid>
                         </Popup>
@@ -802,6 +802,12 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
     </Style>
 
     <Style x:Key="NoSelectComboBoxStyle" TargetType="{x:Type ComboBox}" BasedOn="{StaticResource {x:Type ComboBox}}">
@@ -953,6 +959,11 @@
     <SolidColorBrush x:Key="MenuItem.Highlight.Border" Color="#FF26A0DA"/>
     <SolidColorBrush x:Key="MenuItem.Highlight.Disabled.Background" Color="#0A000000"/>
     <SolidColorBrush x:Key="MenuItem.Highlight.Disabled.Border" Color="#21000000"/>
+
+    <Style TargetType="MenuItem">
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
 
     <!-- Style for the menu item with sub menu -->
     <ControlTemplate x:Key="{x:Static MenuItem.SubmenuHeaderTemplateKey}" TargetType="{x:Type MenuItem}">
