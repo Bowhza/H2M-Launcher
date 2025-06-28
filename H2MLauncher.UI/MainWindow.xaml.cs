@@ -110,7 +110,7 @@ namespace H2MLauncher.UI
 
         private void ServerBrowserViewModel_ServerFilterChanged()
         {
-            _viewModel.SelectedTab.ServerCollectionView.Refresh();
+            _viewModel.SelectedTab?.ServerCollectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -144,7 +144,7 @@ namespace H2MLauncher.UI
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _viewModel.SelectedTab.ServerCollectionView.Refresh();
+            _viewModel.SelectedTab?.ServerCollectionView.Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)

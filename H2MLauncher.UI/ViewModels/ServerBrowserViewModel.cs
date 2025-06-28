@@ -84,7 +84,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsRecentsSelected))]
-    private IServerTabViewModel _selectedTab;
+    private IServerTabViewModel? _selectedTab;
 
     [ObservableProperty]
     private GameStateViewModel _gameState = new();
@@ -108,7 +108,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
     public SocialOverviewViewModel SocialOverviewViewModel { get; }
 
-    public bool IsRecentsSelected => SelectedTab.TabName == RecentsTab.TabName;
+    public bool IsRecentsSelected => SelectedTab?.TabName == RecentsTab.TabName;
 
     public bool IsMatchmakingEnabled =>
         _h2MCommunicationService.GameDetection.IsGameDetectionRunning &&
@@ -492,7 +492,8 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             AddToNewPlaylistCommand = new RelayCommand<ServerViewModel>(AddServerToNewPlaylist),
             AddServerCommand = new RelayCommand<ServerViewModel>((server) => AddServerToPlaylist(playlist.Id, server)),
             RemoveServerCommand = new RelayCommand<ServerViewModel>((server) => RemoveServerFromPlaylist(playlist.Id, server)),
-            EditCommand = new RelayCommand(() => EditPlaylist(playlist.Id))
+            EditCommand = new RelayCommand(() => EditPlaylist(playlist.Id)),
+            RemoveCommand = new RelayCommand(() => RemovePlaylist(playlist.Id)),
         };
 
         ServerTabs.Add(tabViewModel);
@@ -770,6 +771,37 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
     }
 
+    public void RemovePlaylist(string playlistId)
+    {
+        if (!_customPlaylists.TryGetValue(playlistId, out CustomPlaylistInfo? playlist))
+        {
+            return;
+        }
+
+        bool? dialogResult = _dialogService.OpenTextDialog(
+            "Remove Playlist",
+            $"Are you sure you want to delete the playlist '{playlist.Name}'?",
+            MessageBoxButton.YesNo);
+
+        if (dialogResult == true)
+        {
+            // Remove
+            if (_customPlaylists.Remove(playlistId))
+            {
+                SaveCustomPlaylists();
+            }
+
+            // Remove tab
+            CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.Playlist.Id == playlistId);
+            if (customTab is null)
+            {
+                return;
+            }
+
+            ServerTabs.Remove(customTab);
+        }
+    }
+
     private void DoRestartCommand()
     {
         Process.Start(LauncherService.LauncherPath);
@@ -802,7 +834,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     {
         if (server is null)
         {
-            if (SelectedTab.SelectedServer is null)
+            if (SelectedTab?.SelectedServer is null)
                 return;
 
             server = SelectedTab.SelectedServer;
@@ -822,9 +854,9 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     private async Task SaveServersAsync()
     {
         // Create a list of "Ip:Port" strings
-        List<string> ipPortList = SelectedTab.Servers.Where(ServerFilter)
+        List<string> ipPortList = SelectedTab?.Servers.Where(ServerFilter)
                                          .Select(server => $"{server.Ip}:{server.Port}")
-                                         .ToList();
+                                         .ToList() ?? [];
 
         // Serialize the list into JSON format
         string jsonString = JsonSerializer.Serialize(ipPortList, JsonContext.Default.ListString);

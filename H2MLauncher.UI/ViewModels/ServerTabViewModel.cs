@@ -61,6 +61,8 @@ public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewMod
 
     public required IRelayCommand EditCommand { get; set; }
 
+    public required IRelayCommand RemoveCommand { get; set; }
+
     public override IEnumerable<SelectablePlaylist> SelectablePlaylists => 
         base.SelectablePlaylists.Select(item =>
         {

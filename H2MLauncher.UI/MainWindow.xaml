@@ -325,7 +325,7 @@
                                 </Button>
 
                                 <Button x:Name="remove" Content="❌" VerticalAlignment="Center"
-                                        FontSize="10" ToolTip="Remove" Command="{Binding EditCommand}"
+                                        FontSize="10" ToolTip="Remove" Command="{Binding RemoveCommand}"
                                         Margin="3,0,0,0" Visibility="Collapsed">
                                     <Button.Style>
                                         <Style TargetType="Button" BasedOn="{StaticResource LinkButtonStyle}">
@@ -784,7 +784,7 @@
                                                                 </Button>
 
                                                                 <Button x:Name="remove" Content="❌" VerticalAlignment="Center"
-                                                                        FontSize="10" ToolTip="Remove" Command="{Binding EditCommand}"
+                                                                        FontSize="10" ToolTip="Remove" Command="{Binding RemoveCommand}"
                                                                         Margin="1,0,0,0" Visibility="{Binding Converter={StaticResource TypeVisibilityConverter}, ConverterParameter={x:Type vm:CustomServerTabViewModel}}"
                                                                         Grid.Column="2" Style="{DynamicResource WindowButtonStyle}"
                                                                         Padding="5">
