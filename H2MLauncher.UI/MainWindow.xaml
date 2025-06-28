@@ -20,8 +20,8 @@
         ResizeMode="CanResizeWithGrip"
         MinHeight="576"
         MinWidth="1030"
-        Width="1030"
-        Height="576"
+        Width="1280"
+        Height="720"
         Background="Transparent"
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
@@ -336,19 +336,16 @@
                                 </Button>
                             </StackPanel>
 
-                            <DataTemplate.Triggers>
+                            <!-- Disable for now -->
+                            <!--<DataTemplate.Triggers>
                                 <MultiDataTrigger>
                                     <MultiDataTrigger.Conditions>
                                         <Condition Binding="{Binding Path=IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/>
-                                        <Condition Binding="{Binding Path=IsSelected, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/>
                                     </MultiDataTrigger.Conditions>
                                     <Setter TargetName="edit" Property="Visibility" Value="Visible" />
                                     <Setter TargetName="remove" Property="Visibility" Value="Visible" />
                                 </MultiDataTrigger>
-                                <!--<DataTrigger Binding="{Binding Path=IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True">
-                                    <Setter TargetName="edit" Property="Visibility" Value="Visible" />
-                                </DataTrigger>-->
-                            </DataTemplate.Triggers>
+                            </DataTemplate.Triggers>-->
                         </DataTemplate>
 
                         <view:ServerTabItemTemplateSelector x:Key="ServerTabItemTemplateSelector"
