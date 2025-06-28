@@ -486,11 +486,13 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             return false;
         }
 
-        tabViewModel = new(playlist, this, JoinServer, AdvancedServerFilter.ApplyFilter)
+        var tabVm = tabViewModel = new(playlist, this, JoinServer, AdvancedServerFilter.ApplyFilter)
         {
             ToggleFavouriteCommand = new RelayCommand<ServerViewModel>(ToggleFavorite),
             AddToNewPlaylistCommand = new RelayCommand<ServerViewModel>(AddServerToNewPlaylist),
-            RemoveServerCommand = new RelayCommand<ServerViewModel>((server) => RemoveServerFromPlaylist(playlist.Id, server))
+            AddServerCommand = new RelayCommand<ServerViewModel>((server) => AddServerToPlaylist(playlist.Id, server)),
+            RemoveServerCommand = new RelayCommand<ServerViewModel>((server) => RemoveServerFromPlaylist(playlist.Id, server)),
+            EditCommand = new RelayCommand(() => EditPlaylist(playlist.Id))
         };
 
         ServerTabs.Add(tabViewModel);
@@ -735,6 +737,37 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
 
         customTab.Servers.Remove(serverViewModel);
+    }
+
+    public void EditPlaylist(string playlistId)
+    {
+        if (!_customPlaylists.TryGetValue(playlistId, out CustomPlaylistInfo? playlist))
+        {
+            return;
+        }
+
+        string? newName = _dialogService.OpenInputDialog("Edit Playlist", "New name:", playlist.Name);
+        if (newName is not null)
+        {
+            CustomPlaylistInfo editedPlaylist = playlist with
+            {
+                Name = newName
+            };
+
+            // Update in settings
+            _customPlaylists[playlistId] = editedPlaylist;
+            SaveCustomPlaylists();
+
+            // Update tab
+            CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.Playlist.Id == playlistId);
+            if (customTab is null)
+            {
+                return;
+            }
+
+            customTab.TabName = editedPlaylist.Name;
+            customTab.Playlist = editedPlaylist;
+        }
     }
 
     private void DoRestartCommand()

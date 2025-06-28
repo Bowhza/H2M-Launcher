@@ -49,18 +49,7 @@ public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
     }
 }
 
-//public partial class CustomPlaylistItemViewModel(CustomPlaylist customPlaylist) : ObservableObject
-//{    
-//    public string PlaylistId { get; } = customPlaylist.Id;
-
-//    [ObservableProperty]
-//    private string _playlistName = customPlaylist.Name;
-
-//    [ObservableProperty]
-//    private bool _isPresentInPlaylist; 
-
-//    SelectableItem<>
-//}
+public class SelectablePlaylist(CustomPlaylistInfo customPlaylist) : SelectableItem<CustomPlaylistInfo>(customPlaylist);
 
 public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
@@ -68,9 +57,11 @@ public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewMod
     private CustomPlaylistInfo _playlist;
 
     public required IRelayCommand<ServerViewModel> RemoveServerCommand { get; set; }
-    public IRelayCommand<ServerViewModel>? AddServerCommand { get; set; }
+    public required IRelayCommand<ServerViewModel> AddServerCommand { get; set; }
 
-    public override IEnumerable<SelectableItem<CustomPlaylistInfo>> SelectablePlaylists => 
+    public required IRelayCommand EditCommand { get; set; }
+
+    public override IEnumerable<SelectablePlaylist> SelectablePlaylists => 
         base.SelectablePlaylists.Select(item =>
         {
             if (item.Model.Id == Playlist.Id)
@@ -140,10 +131,12 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
     public ServerBrowserViewModel Parent { get; }
 
+    public bool IsSelected => Parent.SelectedTab == this;
+
     /// <summary>
     /// Gets a computed collection of playlists selectable for the currently selected server.
     /// </summary>
-    public virtual IEnumerable<SelectableItem<CustomPlaylistInfo>> SelectablePlaylists
+    public virtual IEnumerable<SelectablePlaylist> SelectablePlaylists
     {
         get
         {
@@ -154,7 +147,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
             return Parent.CustomPlaylists.Select(p =>
             {
-                SelectableItem<CustomPlaylistInfo> item = new(p)
+                SelectablePlaylist item = new(p)
                 {
                     Name = p.Name,
                     IsSelected = p.Servers.Contains(SelectedServer.ToServerConnectionDetails())
@@ -169,9 +162,9 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
     private void PlaylistItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(SelectableItem<CustomPlaylist>.IsSelected))
+        if (e.PropertyName == nameof(SelectablePlaylist.IsSelected))
         {
-            if (sender is not SelectableItem<CustomPlaylist> item)
+            if (sender is not SelectablePlaylist item)
             {
                 return;
             }
@@ -230,6 +223,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
         }
 
         Servers.CollectionChanged += OnServersCollectionChanged;
+        Parent.PropertyChanged += Parent_PropertyChanged;
 
         _onServerJoin = onServerJoin;
 
@@ -242,6 +236,14 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
             }
 
         }, (server) => (server ?? SelectedServer) is not null);
+    }
+
+    private void Parent_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ServerBrowserViewModel.SelectedTab))
+        {
+            OnPropertyChanged(nameof(IsSelected));
+        }
     }
 
     private void OnServersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

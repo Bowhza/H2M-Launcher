@@ -244,7 +244,9 @@
                             Background="{TemplateBinding Background}"
                             Padding="{TemplateBinding Padding}">
                         <Grid>
-                            <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
+                            <ContentPresenter x:Name="MyContentPresenter" 
+                                              Content="{TemplateBinding Content}"
+                                              ContentStringFormat="{TemplateBinding ContentStringFormat}"
                                               HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
                                               VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
                                               Margin="0,0,0,0" />
@@ -341,7 +343,9 @@
                             BorderThickness="{TemplateBinding BorderThickness}">
                         <Grid>
                             <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
-                                          HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,0" />
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                              Margin="0,0,0,0" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -539,11 +543,13 @@
             <Setter.Value>
                 <ControlTemplate TargetType="{x:Type ToggleButton}">
                     <Border CornerRadius="4" Background="{TemplateBinding Background}"
-                            BorderBrush="{TemplateBinding BorderBrush}"
+                            Padding="{TemplateBinding Padding}"
+                            BorderBrush="{TemplateBinding BorderBrush}" 
                             BorderThickness="{TemplateBinding BorderThickness}">
                         <Grid>
                             <ContentPresenter Content="{TemplateBinding Content}"
-                                              HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,0,0,0" />
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}" Margin="0,0,0,0" />
                         </Grid>
                     </Border>
                     <ControlTemplate.Triggers>
@@ -572,6 +578,53 @@
             </Setter.Value>
         </Setter>
     </Style>
+
+    <Style x:Key="WindowToggleButtonStyle" TargetType="{x:Type ToggleButton}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <Border CornerRadius="4" x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            Padding="{TemplateBinding Padding}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}">
+                        <Grid>
+                            <ContentPresenter x:Name="MyContentPresenter" Content="{TemplateBinding Content}"
+                                          HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" 
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}" 
+                                          Margin="0,0,0,0" />
+                        </Grid>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource TransparentLight400}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
+                        </Trigger>
+
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimaryPressed}" />
+                            <Setter Property="Foreground" Value="{DynamicResource TextLight}" />
+                        </Trigger>
+
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlBackgroundDisabled}" />
+                            <Setter TargetName="border" Property="Opacity" Value="0.7" />
+                            <Setter Property="Foreground" Value="{DynamicResource ControlForegroundDisabled}" />
+                        </Trigger>
+
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{DynamicResource ControlPrimarySelected}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 
     <Style x:Key="LinkToggleButtonStyle" TargetType="{x:Type ToggleButton}">
         <Setter Property="Background" Value="Transparent" />

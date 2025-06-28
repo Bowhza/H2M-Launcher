@@ -93,6 +93,9 @@ namespace H2MLauncher.UI.ViewModels
         private string _errorText = "";
 
         [ObservableProperty]
+        private bool _isRefreshingPlaylists = false;
+
+        [ObservableProperty]
         private MatchmakingPreferencesViewModel _matchmakingPreferences = new();
 
         private Playlist? _lastPlaylist = null;
@@ -267,6 +270,8 @@ namespace H2MLauncher.UI.ViewModels
         {
             try
             {
+                IsRefreshingPlaylists = true;
+
                 IReadOnlyList<Playlist>? playlists = await _serverDataService.GetPlaylists(CancellationToken.None);
                 if (playlists is null)
                 {
@@ -286,6 +291,7 @@ namespace H2MLauncher.UI.ViewModels
             }
             catch
             {
+                IsRefreshingPlaylists = false;
                 IsError = true;
                 ErrorText = "Failed to fetch the playlists. Please try again later.";
                 ErrorTitle = "Error";

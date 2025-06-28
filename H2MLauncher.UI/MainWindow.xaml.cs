@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -11,6 +12,7 @@ using H2MLauncher.Core.Game;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 using H2MLauncher.UI.Services;
+using H2MLauncher.UI.View.Controls;
 using H2MLauncher.UI.ViewModels;
 
 
@@ -224,6 +226,42 @@ namespace H2MLauncher.UI
         private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
         {
             Customization.OnBackgroundMediaLoaded();
+        }
+
+        private void OverflowedTabMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem) return;
+            if (menuItem.DataContext is IServerTabViewModel tabViewModel)
+            {
+                _viewModel.SelectedTab = tabViewModel;
+                return;
+            }
+
+            if (menuItem.DataContext is not TabItem tabItem) return;
+
+            tabItem.IsSelected = true;
+        }
+
+        private CustomPopupPlacement[] PlaceTabsOverflowPopup(Size popupSize, Size targetSize, Point offset)
+        {
+            // Bottom-right relative to the placement target
+            Point bottomRight = new Point(targetSize.Width - popupSize.Width, targetSize.Height);
+
+            // Ensure popup is placed at bottom-right
+            return [new CustomPopupPlacement(bottomRight, PopupPrimaryAxis.Horizontal)];
+        }
+
+        private void ServerTabControl_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Set the max width of the tab header panel to be left of overflow button
+            if (ServerTabControl.Template.FindName("HeaderPanel", ServerTabControl) is OverflowTabPanel overflowTabPanel)
+            {
+                var relativeButtonPosition = HeaderControlsBorder
+                    .TransformToVisual(ServerTabControl)
+                    .Transform(new(-5, 0));
+
+                overflowTabPanel.MaxWidth = relativeButtonPosition.X;
+            }
         }
     }
 }
