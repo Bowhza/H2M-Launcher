@@ -122,12 +122,23 @@
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock>
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="{}{0} ({1} players)">
-                                    <Binding Path="Name" />
-                                    <Binding Path="CurrentPlayerCount" />
-                                </MultiBinding>
-                            </TextBlock.Text>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text">
+                                        <Setter.Value>
+                                            <MultiBinding StringFormat="{}{0} ({1} players)">
+                                                <Binding Path="Name" />
+                                                <Binding Path="CurrentPlayerCount" />
+                                            </MultiBinding>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentPlayerCount}" Value="{x:Null}">
+                                            <Setter Property="Text" Value="{Binding Name}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
                         </TextBlock>
                     </StackPanel>
                 </DataTemplate>
@@ -269,7 +280,6 @@
                     <!-- Matchmaking Buttons -->
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
                             <ColumnDefinition/>
                         </Grid.ColumnDefinitions>
                         <Button Content="Leave Matchmaking" Height="25" Width="200" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
