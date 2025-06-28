@@ -108,12 +108,12 @@
                 <GroupStyle>
                     <GroupStyle.ContainerStyle>
                         <Style TargetType="GroupItem">
-                            <Setter Property="Margin" Value="0,0,0,0"/>
+                            <Setter Property="Margin" Value="0,0,0,3"/>
                         </Style>
                     </GroupStyle.ContainerStyle>
                     <GroupStyle.HeaderTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding Name}" Margin="0,3" FontWeight="Bold"/>
+                            <TextBlock Text="{Binding Name}" Margin="0,0,0,3" FontWeight="Bold"/>
                         </DataTemplate>
                     </GroupStyle.HeaderTemplate>
                 </GroupStyle>

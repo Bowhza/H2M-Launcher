@@ -308,15 +308,8 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             if (oldState is PlayerState.Disconnected or PlayerState.Connected or PlayerState.Joined &&
                 newState is PlayerState.Matchmaking or PlayerState.Queued)
             {
-                MatchmakingViewModel = new(
-                    _matchmakingService,
-                    _queueingService,
-                    _onlineService,
-                    _serverDataService,
-                    _serverJoinService)
-                {
-                    CloseOnLeave = newState is PlayerState.Queued
-                };
+                MatchmakingViewModel = CreateMatchmakingViewModel();
+                MatchmakingViewModel.CloseOnLeave = newState is PlayerState.Queued;
 
                 // Fire and forget dialog to not block the event raising thread
                 _dialogService.ShowDialogAsync<QueueDialogView>(MatchmakingViewModel)
@@ -1104,7 +1097,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         return false;
     }
 
-    private async Task EnterMatchmaking()
+    private Task EnterMatchmaking()
     {
 #if DEBUG == false
         if (!CheckGameRunning())
@@ -1113,14 +1106,39 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
 #endif
 
-        MatchmakingViewModel = new(
+        MatchmakingViewModel ??= CreateMatchmakingViewModel();
+
+        if (SelectedTab is CustomServerTabViewModel customServerTab)
+        {
+            // Automatically enter matchmaking with selected playlist
+            CustomPlaylist? customPlaylist = MatchmakingViewModel.CustomPlaylists
+                .FirstOrDefault(p => p.Id == customServerTab.Playlist.Id);
+
+            if (customPlaylist is not null &&
+                MatchmakingViewModel.EnterMatchmakingCommand.CanExecute(null))
+            {
+                MatchmakingViewModel.SelectedPlaylist = customPlaylist;
+                MatchmakingViewModel.EnterMatchmakingCommand.Execute(customPlaylist);
+            }
+        }
+
+        _dialogService.OpenDialog<QueueDialogView>(MatchmakingViewModel);
+
+        MatchmakingViewModel = null;
+
+        return Task.CompletedTask;
+    }
+
+    private MatchmakingViewModel CreateMatchmakingViewModel()
+    {
+        MatchmakingViewModel matchmakingViewModel = new(
             _matchmakingService,
             _queueingService,
             _onlineService,
             _serverDataService,
             _serverJoinService);
 
-        if (SelectedTab is CustomServerTabViewModel customServerTab)
+        foreach (var customServerTab in CustomServerTabs)
         {
             CustomPlaylist playlist = new()
             {
@@ -1132,15 +1150,10 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
                 CurrentPlayerCount = customServerTab.TotalPlayers,
             };
 
-            MatchmakingViewModel.CustomPlaylists.Add(playlist);
-            MatchmakingViewModel.SelectedPlaylist = playlist;
+            matchmakingViewModel.CustomPlaylists.Add(playlist);
         }
 
-        _dialogService.OpenDialog<QueueDialogView>(MatchmakingViewModel);
-
-        MatchmakingViewModel = null;
-
-        await Task.CompletedTask;
+        return matchmakingViewModel;
     }
 
     private ServerViewModel? FindServerViewModel(IServerConnectionDetails server)

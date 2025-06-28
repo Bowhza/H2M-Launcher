@@ -169,7 +169,7 @@ namespace H2MLauncher.UI.ViewModels
 
         public IAsyncRelayCommand ConnectToServiceCommand { get; }
 
-        public IAsyncRelayCommand EnterMatchmakingCommand { get; }
+        public IAsyncRelayCommand<Playlist?> EnterMatchmakingCommand { get; }
 
         public IAsyncRelayCommand LeaveQueueCommand { get; }
 
@@ -191,7 +191,7 @@ namespace H2MLauncher.UI.ViewModels
 
             AbortCommand = new AsyncRelayCommand(Abort);
             ForceJoinCommand = new AsyncRelayCommand(ForceJoin, () => !IsJoining && !string.IsNullOrEmpty(ServerIp) && ServerPort > 0);
-            EnterMatchmakingCommand = new AsyncRelayCommand<Playlist?>(EnterMatchmaking, (_) => CanEnterMatchmaking);
+            EnterMatchmakingCommand = new AsyncRelayCommand<Playlist?>(EnterMatchmaking, (_) => CanEnterMatchmaking || !IsConnectedToOnlineService);
             ConnectToServiceCommand = new AsyncRelayCommand(ConnectToService, () => !IsConnectingToOnlineService && !IsConnectedToOnlineService);
             RetryCommand = new AsyncRelayCommand(TryAgain, () => !IsConnectingToOnlineService);
             LeaveQueueCommand = new AsyncRelayCommand(LeaveQueue);
@@ -395,8 +395,15 @@ namespace H2MLauncher.UI.ViewModels
 
             if (!_matchmakingService.IsConnected)
             {
-                using var reg = cancellationToken.Register(ConnectToServiceCommand.Cancel);
-                await ConnectToServiceCommand.ExecuteAsync(null);
+                if (ConnectToServiceCommand.IsRunning && ConnectToServiceCommand.ExecutionTask is not null)
+                {
+                    await ConnectToServiceCommand.ExecutionTask;
+                }
+                else
+                {
+                    using var reg = cancellationToken.Register(ConnectToServiceCommand.Cancel);
+                    await ConnectToServiceCommand.ExecuteAsync(null);
+                }
             }
 
             if (cancellationToken.IsCancellationRequested)
