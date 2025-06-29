@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 
@@ -11,6 +12,7 @@ using H2MLauncher.Core.Game;
 using H2MLauncher.UI.Dialog;
 using H2MLauncher.UI.Dialog.Views;
 using H2MLauncher.UI.Services;
+using H2MLauncher.UI.View.Controls;
 using H2MLauncher.UI.ViewModels;
 
 
@@ -108,7 +110,7 @@ namespace H2MLauncher.UI
 
         private void ServerBrowserViewModel_ServerFilterChanged()
         {
-            _viewModel.SelectedTab.ServerCollectionView.Refresh();
+            _viewModel.SelectedTab?.ServerCollectionView.Refresh();
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -142,7 +144,7 @@ namespace H2MLauncher.UI
 
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            _viewModel.SelectedTab.ServerCollectionView.Refresh();
+            _viewModel.SelectedTab?.ServerCollectionView.Refresh();
         }
 
         private void DataGridRow_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -224,6 +226,75 @@ namespace H2MLauncher.UI
         private void MediaElement_MediaOpened(object sender, RoutedEventArgs e)
         {
             Customization.OnBackgroundMediaLoaded();
+        }
+
+        private void OverflowedTabMenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not MenuItem menuItem) return;
+            if (menuItem.DataContext is IServerTabViewModel tabViewModel)
+            {
+                _viewModel.SelectedTab = tabViewModel;
+                return;
+            }
+
+            if (menuItem.DataContext is not TabItem tabItem) return;
+
+            tabItem.IsSelected = true;
+        }
+
+        private CustomPopupPlacement[] PlaceTabsOverflowPopup(Size popupSize, Size targetSize, Point offset)
+        {
+            // Bottom-right relative to the placement target
+            Point bottomRight = new Point(targetSize.Width - popupSize.Width, targetSize.Height);
+
+            // Ensure popup is placed at bottom-right
+            return [new CustomPopupPlacement(bottomRight, PopupPrimaryAxis.Horizontal)];
+        }
+
+        private void ServerTabControl_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Set the max width of the tab header panel to be left of overflow button
+            if (ServerTabControl.Template.FindName("HeaderPanel", ServerTabControl) is OverflowTabPanel overflowTabPanel)
+            {
+                var relativeButtonPosition = HeaderControlsBorder
+                    .TransformToVisual(ServerTabControl)
+                    .Transform(new(-5, 0));
+
+                overflowTabPanel.MaxWidth = relativeButtonPosition.X;
+            }
+        }
+
+        private void TabItem_PreviewMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!(e.Source is TabItem tabItem))
+            {
+                return;
+            }
+
+            if (Mouse.PrimaryDevice.LeftButton == MouseButtonState.Pressed)
+            {
+                DragDrop.DoDragDrop(tabItem, tabItem, DragDropEffects.All);
+            }
+        }
+
+        private void TabItem_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Source is TabItem tabItemTarget &&
+                e.Data.GetData(typeof(TabItem)) is TabItem tabItemSource &&
+                !tabItemTarget.Equals(tabItemSource) &&
+                tabItemTarget.Parent is TabControl tabControl)
+            {
+                int targetIndex = tabControl.Items.IndexOf(tabItemTarget);
+
+                tabControl.Items.Remove(tabItemSource);
+                tabControl.Items.Insert(targetIndex, tabItemSource);
+                tabItemSource.IsSelected = true;
+            }
+        }
+
+        private void DropDownButton_PreviewDragEnter(object sender, DragEventArgs e)
+        {
+            e.Handled = true;
         }
     }
 }

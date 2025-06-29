@@ -1,4 +1,5 @@
-﻿using H2MLauncher.Core.Models;
+﻿using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Models;
 using H2MLauncher.Core.Social.Player;
 
 namespace H2MLauncher.Core.Settings
@@ -16,6 +17,8 @@ namespace H2MLauncher.Core.Settings
         public List<RecentServerInfo> RecentServers { get; init; } = [];
 
         public List<RecentPlayerInfo> RecentPlayers { get; init; } = [];
+
+        public List<CustomPlaylistInfo> CustomPlaylists { get; init; } = [];
 
         public ServerFilterSettings ServerFilter { get; init; } = new();
 

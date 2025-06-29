@@ -6,10 +6,17 @@ using System.Windows.Data;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
+using H2MLauncher.Core.Matchmaking.Models;
+using H2MLauncher.Core.Utilities;
+
+using Microsoft.IdentityModel.Tokens;
+
 namespace H2MLauncher.UI.ViewModels;
 
 public interface IServerTabViewModel
 {
+    ServerBrowserViewModel Parent { get; }
+
     string TabName { get; }
 
     int TotalServers { get; }
@@ -36,16 +43,78 @@ public interface IServerTabViewModel<TServerViewModel> : IServerTabViewModel whe
 
 public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
-    public ServerTabViewModel(string tabName, Func<ServerViewModel, Task> onServerJoin, 
-        Predicate<ServerViewModel>? filterPredicate = null) : base(tabName, onServerJoin, filterPredicate)
+    public ServerTabViewModel(string tabName, ServerBrowserViewModel parent, Func<ServerViewModel, Task> onServerJoin,
+        Predicate<ServerViewModel>? filterPredicate = null) : base(tabName, parent, onServerJoin, filterPredicate)
     {
+    }
+}
+
+
+
+public class SelectablePlaylist(CustomPlaylistInfo customPlaylist) : SelectableItem<CustomPlaylistInfo>(customPlaylist);
+
+public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewModel>
+{
+    [ObservableProperty]
+    private string _playlistId;
+
+    public required IRelayCommand<ServerViewModel> RemoveServerCommand { get; set; }
+    public required IRelayCommand<ServerViewModel> AddServerCommand { get; set; }
+
+    public required IRelayCommand EditCommand { get; set; }
+
+    public required IRelayCommand RemoveCommand { get; set; }
+
+    public override IEnumerable<SelectablePlaylist> SelectablePlaylists =>
+        base.SelectablePlaylists.Select(item =>
+        {
+            if (item.Model.Id == PlaylistId)
+            {
+                item.IsSelectable = false;
+            }
+
+            return item;
+        });
+
+    public CustomServerTabViewModel(
+            CustomPlaylistInfo playlist,
+            ServerBrowserViewModel parent,
+            Func<ServerViewModel, Task> onServerJoin,
+            Predicate<ServerViewModel>? filterPredicate = null) : base(playlist.Name, parent, onServerJoin, filterPredicate)
+    {
+        _playlistId = playlist.Id;
+    }
+
+    partial void OnPlaylistIdChanged(string value)
+    {
+        if (Parent.ShowCustomPlaylistsAsTabs)
+        {
+            return;
+        }
+
+        // Get servers from new playlist
+        Servers.Clear();
+
+        CustomPlaylistViewModel? playlistViewModel = Parent.CustomPlaylists.FirstOrDefault(p => p.Id == value);
+        if (playlistViewModel is null)
+        {
+            return;
+        }
+
+        TabName = playlistViewModel.Name;
+
+        foreach (ServerViewModel serverViewModel in Parent.AllServersTab.Servers
+            .Where(s => playlistViewModel.Model.Servers.Contains(s.ToServerConnectionDetails())))
+        {
+            Servers.Add(serverViewModel);
+        }
     }
 }
 
 public class RecentServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
-    public RecentServerTabViewModel(Func<ServerViewModel, Task> onServerJoin, 
-        Predicate<ServerViewModel>? filterPredicate = null) : base("Recents", onServerJoin, filterPredicate)
+    public RecentServerTabViewModel(ServerBrowserViewModel parent, Func<ServerViewModel, Task> onServerJoin,
+        Predicate<ServerViewModel>? filterPredicate = null) : base("Recents", parent, onServerJoin, filterPredicate)
     {
     }
 
@@ -72,6 +141,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(JoinServerCommand))]
+    [NotifyPropertyChangedFor(nameof(SelectablePlaylists))]
     private TServerViewModel? _selectedServer;
 
     private readonly CollectionViewSource _collectionViewSource;
@@ -86,6 +156,59 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
     public IAsyncRelayCommand<TServerViewModel> JoinServerCommand { get; set; }
 
+    public required IRelayCommand<TServerViewModel> AddToNewPlaylistCommand { get; init; }
+
+    public ServerBrowserViewModel Parent { get; }
+
+    public bool IsSelected => Parent.SelectedTab == this;
+
+    /// <summary>
+    /// Gets a computed collection of playlists selectable for the currently selected server.
+    /// </summary>
+    public virtual IEnumerable<SelectablePlaylist> SelectablePlaylists
+    {
+        get
+        {
+            if (SelectedServer is null)
+            {
+                return [];
+            }
+
+            return Parent.CustomPlaylists.Select(p =>
+            {
+                SelectablePlaylist item = new(p.Model)
+                {
+                    Name = p.Name,
+                    IsSelected = p.Model.Servers.Contains(SelectedServer.ToServerConnectionDetails())
+                };
+
+                item.PropertyChanged += PlaylistItem_PropertyChanged;
+
+                return item;
+            });
+        }
+    }
+
+    private void PlaylistItem_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(SelectablePlaylist.IsSelected))
+        {
+            if (sender is not SelectablePlaylist item)
+            {
+                return;
+            }
+
+            if (item.IsSelected)
+            {
+                Parent.AddServerToPlaylist(item.Model.Id, SelectedServer);
+            }
+            else
+            {
+                Parent.RemoveServerFromPlaylist(item.Model.Id, SelectedServer);
+            }
+        }
+    }
+
     ServerViewModel? IServerTabViewModel.SelectedServer => SelectedServer;
 
     protected virtual IEnumerable<SortDescription> DefaultSorting { get; } = [
@@ -93,9 +216,14 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
         new SortDescription(nameof(ServerViewModel.Ping), ListSortDirection.Ascending)
     ];
 
-    public ServerTabViewModel(string tabName, Func<ServerViewModel, Task> onServerJoin, Predicate<TServerViewModel>? filterPredicate = null)
+    public ServerTabViewModel(
+        string tabName,
+        ServerBrowserViewModel parent,
+        Func<ServerViewModel, Task> onServerJoin,
+        Predicate<TServerViewModel>? filterPredicate = null)
     {
         TabName = tabName;
+        Parent = parent;
 
         // initialize collection view
         _collectionViewSource = new()
@@ -124,6 +252,7 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
         }
 
         Servers.CollectionChanged += OnServersCollectionChanged;
+        Parent.PropertyChanged += Parent_PropertyChanged;
 
         _onServerJoin = onServerJoin;
 
@@ -136,6 +265,14 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
             }
 
         }, (server) => (server ?? SelectedServer) is not null);
+    }
+
+    private void Parent_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(ServerBrowserViewModel.SelectedTab))
+        {
+            OnPropertyChanged(nameof(IsSelected));
+        }
     }
 
     private void OnServersCollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)

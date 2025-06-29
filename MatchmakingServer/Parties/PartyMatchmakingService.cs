@@ -134,6 +134,27 @@ namespace MatchmakingServer.Parties
             return EnterMatchmaking(player, searchPreferences, playlist.Servers, playlist);
         }
 
+        public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, CustomPlaylist customPlaylist)
+        {
+            PlaylistDbo? playlist = new()
+            {
+                Id = Guid.NewGuid().ToString(),
+                Name = customPlaylist.Name,
+                Description = customPlaylist.Description,
+                GameModes = customPlaylist.GameModes,
+                MapPacks = customPlaylist.MapPacks,
+                Servers = customPlaylist.Servers.ToList()
+            };
+            
+            if (customPlaylist.Servers.Count == 0)
+            {
+                // custom playlist must have servers
+                return false;
+            }
+
+            return EnterMatchmaking(player, searchPreferences, playlist.Servers, playlist);
+        }
+
         public bool EnterMatchmaking(Player player, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> preferredServers, PlaylistDbo? playlist = null)
         {
             // select players for the ticket

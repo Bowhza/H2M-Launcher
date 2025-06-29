@@ -26,7 +26,7 @@ public class PlaylistDbo
             Description = Description,
             GameModes = GameModes,
             MapPacks = MapPacks,
-            Servers = Servers,
+            Servers = Servers.ToList(),
             CurrentPlayerCount = playerCount,
         };
     }

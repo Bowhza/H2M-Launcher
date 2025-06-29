@@ -20,8 +20,8 @@
         ResizeMode="CanResizeWithGrip"
         MinHeight="576"
         MinWidth="1030"
-        Width="1030"
-        Height="576"
+        Width="1280"
+        Height="720"
         Background="Transparent"
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
@@ -304,6 +304,203 @@
                 </Grid>
 
                 <Grid Grid.Row="2">
+                    <Grid.Resources>
+                        <DataTemplate x:Key="DefaultTabItemTemplate" DataType="{x:Type vm:IServerTabViewModel}">
+                            <TextBlock Text="{Binding TabName}"/>
+                        </DataTemplate>
+
+                        <DataTemplate x:Key="CustomTabItemTemplate" DataType="{x:Type vm:CustomServerTabViewModel}">
+                            <DataTemplate.Resources>
+                                <DataTemplate x:Key="ComboBoxTemplate">
+                                    <ComboBox SelectedValue="{Binding PlaylistId, Mode=TwoWay}"
+                                              SelectedValuePath="Id"
+                                              local:ComboBoxItemsSourceDecorator.ItemsSource="{Binding Parent.CustomPlaylists}"
+                                              Width="Auto" 
+                                              Background="Transparent" 
+                                              Foreground="{Binding Foreground, RelativeSource={RelativeSource FindAncestor, AncestorType=TabItem}}"
+                                              Margin="0,-5">
+                                        <!--<i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="SelectionChanged">
+                                                <i:ChangePropertyAction TargetObject="{Binding Parent}" PropertyName="SelectedTab" Value="{Binding }"/>
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>-->
+
+                                        <controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name, StringFormat={}🧩 {0}}" />
+                                            </DataTemplate>
+                                        </controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltTemplate>
+
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" Margin="0,5"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+
+                                        <ComboBox.Style>
+                                            <Style TargetType="{x:Type ComboBox}">
+                                                <Setter Property="Background" Value="{DynamicResource ComboBoxBackgroundColor}" />
+                                                <Setter Property="SnapsToDevicePixels" Value="True" />
+                                                <Setter Property="VerticalContentAlignment" Value="Center" />
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="{x:Type ComboBox}">
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                    <ColumnDefinition Width="Auto"/>
+                                                                </Grid.ColumnDefinitions>
+                                                                <ToggleButton
+                                                                        Name="ToggleButton"
+                                                                        Grid.Column="1"
+                                                                        Focusable="false"
+                                                                        BorderThickness="1"
+                                                                        Background="Transparent"
+                                                                        Padding="5,7"
+                                                                        Foreground="{TemplateBinding Foreground}"
+                                                                        IsChecked="{Binding Path=IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}"
+                                                                        ClickMode="Press">
+                                                                    <ToggleButton.Template>
+                                                                        <ControlTemplate>
+                                                                            <Border x:Name="Border" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="5"
+                                                                                    Padding="{TemplateBinding Padding}"
+                                                                                    Background="{TemplateBinding Background}">
+
+                                                                                <Path
+                                                                                    x:Name="Arrow"
+                                                                                    Grid.Column="1"
+                                                                                    Fill="{TemplateBinding Foreground}"
+                                                                                    HorizontalAlignment="Center"
+                                                                                    VerticalAlignment="Center"
+                                                                                    Data="{StaticResource ComboBoxDropDownArrow}" />
+                                                                            </Border>
+                                                                            <ControlTemplate.Triggers>
+                                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                                    <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+                                                                                    <Setter TargetName="Border" Property="BorderThickness" Value="1"/>
+                                                                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource TransparentLight400}"/>
+                                                                                </Trigger>
+                                                                                <Trigger Property="ToggleButton.IsChecked" Value="True">
+                                                                                    <Setter TargetName="Border" Property="BorderBrush" Value="{DynamicResource ControlBorderBrush}"/>
+                                                                                    <Setter TargetName="Border" Property="BorderThickness" Value="1"/>
+                                                                                    <Setter TargetName="Border" Property="Background" Value="{DynamicResource TransparentLight700}"/>
+                                                                                </Trigger>
+                                                                            </ControlTemplate.Triggers>
+                                                                        </ControlTemplate>
+                                                                    </ToggleButton.Template>
+                                                                    <ToggleButton.Style>
+                                                                        <Style TargetType="ToggleButton" BasedOn="{StaticResource WindowToggleButtonStyle}"/>
+                                                                    </ToggleButton.Style>
+                                                                </ToggleButton>
+
+                                                                <ContentPresenter IsHitTestVisible="False"
+                                                                                  Content="{TemplateBinding SelectionBoxItem}"
+                                                                                  ContentTemplate="{TemplateBinding controls:ComboBoxSelectionBoxAltTemplateBehaviour.SelectionBoxAltTemplate}"
+                                                                                  ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                                                                  Margin="0,0,4,0"
+                                                                                  VerticalAlignment="Center"
+                                                                                  HorizontalAlignment="Left" />
+
+                                                                <Popup Name="Popup"
+                                                                       Placement="Bottom"
+                                                                       IsOpen="{TemplateBinding IsDropDownOpen}"
+                                                                       AllowsTransparency="True"
+                                                                       Focusable="False"
+                                                                       PopupAnimation="Slide">
+
+                                                                    <Grid Name="DropDown"
+                                                                          SnapsToDevicePixels="True"                
+                                                                          MinWidth="{TemplateBinding ActualWidth}"
+                                                                          MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                                                        <Border 
+                                                                            x:Name="DropDownBorder"
+                                                                            Background="{DynamicResource ComboBoxBackgroundColor}"
+                                                                            BorderThickness="1"
+                                                                            BorderBrush="{DynamicResource ComboBoxPopupBorderColor}"/>
+                                                                        <ScrollViewer x:Name="DropDownScrollViewer" Margin="4,6,4,6" SnapsToDevicePixels="True" Foreground="{DynamicResource ComboBoxForegroundColor}">
+                                                                            <ItemsPresenter x:Name="ItemsPresenster" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                                                        </ScrollViewer>
+                                                                    </Grid>
+                                                                </Popup>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="HasItems" Value="false">
+                                                                    <Setter TargetName="DropDownBorder" Property="MinHeight" Value="95" />
+                                                                </Trigger>
+                                                                <Trigger Property="IsEnabled" Value="false">
+                                                                    <Setter Property="Foreground" Value="{DynamicResource BrushNeutral}" />
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ComboBox.Style>
+                                    </ComboBox>
+                                </DataTemplate>
+                                <DataTemplate x:Key="NormalTemplate">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding TabName, StringFormat={}🧩 {0}}" />
+
+                                        <Button x:Name="edit" Content="✏️" VerticalAlignment="Center"
+                                                FontSize="10" ToolTip="Edit" Command="{Binding EditCommand}"
+                                                Margin="3,0,0,0" Visibility="Collapsed">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource LinkButtonStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabItem}}"/>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+
+                                        <Button x:Name="remove" Content="❌" VerticalAlignment="Center"
+                                                FontSize="10" ToolTip="Remove" Command="{Binding RemoveCommand}"
+                                                Margin="3,0,0,0" Visibility="Collapsed">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource LinkButtonStyle}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Setter Property="Foreground" Value="{Binding Foreground, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=TabItem}}"/>
+                                                </Style>
+                                            </Button.Style>
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataTemplate.Resources>
+                            <ContentControl Content="{Binding }">
+                                <ContentControl.Style>
+                                    <Style TargetType="ContentControl">
+                                        <Setter Property="ContentTemplate" Value="{StaticResource NormalTemplate}"/>
+                                        <Style.Triggers>
+                                            <MultiDataTrigger>
+                                                <MultiDataTrigger.Conditions>
+                                                    <Condition Binding="{Binding Parent.ShowCustomPlaylistsAsTabs}" Value="False"/>
+                                                    <!--<Condition Binding="{Binding IsSelected}" Value="True"/>-->
+                                                </MultiDataTrigger.Conditions>
+                                                <Setter Property="ContentTemplate" Value="{StaticResource ComboBoxTemplate}"/>
+                                            </MultiDataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ContentControl.Style>
+
+                            </ContentControl>
+
+
+                            <!-- Disable for now -->
+                            <!--<DataTemplate.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding Path=IsMouseOver, RelativeSource={RelativeSource TemplatedParent}}" Value="True"/>
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter TargetName="edit" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="remove" Property="Visibility" Value="Visible" />
+                                    </MultiDataTrigger>
+                                </DataTemplate.Triggers>-->                          
+                        </DataTemplate>
+
+                        <view:ServerTabItemTemplateSelector x:Key="ServerTabItemTemplateSelector"
+                                                            Default="{StaticResource DefaultTabItemTemplate}"
+                                                            Custom="{StaticResource CustomTabItemTemplate}"/>
+                    </Grid.Resources>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="3.5*"/>
                         <ColumnDefinition x:Name="partyColumn" Width="300"/>
@@ -314,42 +511,97 @@
                     </Grid.RowDefinitions>
 
                     <!-- Server tabs -->
-                    <TabControl ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
-                                Grid.RowSpan="2" Margin="0,10,0,5" Style="{DynamicResource ServerTabControlStyle}" >
-                        <TabControl.ItemTemplate>
-                            <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
-                                <TextBlock Text="{Binding TabName}"/>
-                            </DataTemplate>
-                        </TabControl.ItemTemplate>
+                    <TabControl x:Name="ServerTabControl" ItemsSource="{Binding ServerTabs}" SelectedItem="{Binding SelectedTab}" 
+                                Grid.RowSpan="2" Margin="0,10,0,5" Style="{DynamicResource ServerTabControlStyle}"
+                                ItemTemplateSelector="{StaticResource ServerTabItemTemplateSelector}"
+                                SizeChanged="ServerTabControl_SizeChanged"
+                                view:DragDropHelper.IsDragSource="true"
+                                view:DragDropHelper.IsDropTarget="true"
+                                PreviewDragEnter="DropDownButton_PreviewDragEnter"
+                                >
+                        <TabControl.ItemContainerStyle>
+                            <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                <Setter Property="DataContext"
+                                        Value="{Binding RelativeSource={RelativeSource Self}}" />
+                            </Style>
+                        </TabControl.ItemContainerStyle>
+                        <TabControl.Template>
+                            <ControlTemplate TargetType="{x:Type TabControl}">
+                                <Grid                       
+                                    ClipToBounds="True"
+                                    SnapsToDevicePixels="True"
+                                    KeyboardNavigation.TabNavigation="Local">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="*"/>
+                                    </Grid.RowDefinitions>
+
+                                    <Grid Grid.Row="0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <controls:OverflowTabPanel 
+                                            x:Name="HeaderPanel"
+                                            IsItemsHost="True"
+                                            Grid.Column="0"
+                                            Margin="2,2,2,0"
+                                            Panel.ZIndex="1"
+                                            KeyboardNavigation.TabIndex="1"
+                                            HorizontalAlignment="Left"/>
+                                    </Grid>
+
+                                    <Border BorderThickness="{TemplateBinding Border.BorderThickness}"
+                                            BorderBrush="{TemplateBinding Border.BorderBrush}"
+                                            Background="{TemplateBinding Panel.Background}"
+                                            Name="ContentPanel"
+                                            KeyboardNavigation.TabIndex="2"
+                                            KeyboardNavigation.TabNavigation="Local"
+                                            KeyboardNavigation.DirectionalNavigation="Contained"
+                                            Grid.Column="0"
+                                            Grid.Row="1">
+                                        <ContentPresenter Content="{TemplateBinding TabControl.SelectedContent}"
+                                          ContentTemplate="{TemplateBinding TabControl.SelectedContentTemplate}"
+                                          ContentStringFormat="{TemplateBinding TabControl.SelectedContentStringFormat}"
+                                          ContentSource="SelectedContent"
+                                          Name="PART_SelectedContentHost"
+                                          Margin="{TemplateBinding Control.Padding}"
+                                          SnapsToDevicePixels="{TemplateBinding UIElement.SnapsToDevicePixels}" />
+                                    </Border>
+                                </Grid>
+                            </ControlTemplate>
+                        </TabControl.Template>
+
                         <TabControl.ContentTemplate>
                             <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
                                 <Grid>
                                     <!-- Opaque background for the header row -->
                                     <Rectangle Fill="{DynamicResource ServerDataGridHeaderBackground}" VerticalAlignment="Top" Height="23" Margin="-2, -2, -2, 5"></Rectangle>
                                     <controls:CustomDataGrid
-                                        x:Name="serverDataGrid" 
-                                        Style="{DynamicResource ServerDataGridStyle}" 
-                                        CellStyle="{DynamicResource ServerDataGridCellStyle}"
-                                        ItemsSource="{Binding ServerCollectionView}" 
-                                        FontFamily="Consolas"
-                                        Margin="-2,-2,-2,-2" 
-                                        Height="Auto" 
-                                        KeyboardNavigation.TabNavigation="Once"
-                                        TabIndex="2"
-                                        CanUserReorderColumns="False" 
-                                        CanUserAddRows="False" 
-                                        CanUserDeleteRows="False" 
-                                        CanUserSortColumns="True" 
-                                        IsReadOnly="True"
-                                        AutoGenerateColumns="False"
-                                        GridLinesVisibility="None"
-                                        SelectionUnit="FullRow"
-                                        HorizontalScrollBarVisibility="Hidden"
-                                        SelectionMode="Single"
-                                        CanUserResizeColumns="true"
-                                        HeadersVisibility="Column"
-                                        VerticalScrollBarVisibility="Hidden"
-                                        SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
+                                            x:Name="serverDataGrid" 
+                                            Style="{DynamicResource ServerDataGridStyle}" 
+                                            CellStyle="{DynamicResource ServerDataGridCellStyle}"
+                                            ItemsSource="{Binding ServerCollectionView}" 
+                                            FontFamily="Consolas"
+                                            Margin="-2,-2,-2,-2" 
+                                            Height="Auto" 
+                                            KeyboardNavigation.TabNavigation="Once"
+                                            TabIndex="2"
+                                            CanUserReorderColumns="False" 
+                                            CanUserAddRows="False" 
+                                            CanUserDeleteRows="False" 
+                                            CanUserSortColumns="True" 
+                                            IsReadOnly="True"
+                                            AutoGenerateColumns="False"
+                                            GridLinesVisibility="None"
+                                            SelectionUnit="FullRow"
+                                            HorizontalScrollBarVisibility="Hidden"
+                                            SelectionMode="Single"
+                                            CanUserResizeColumns="true"
+                                            HeadersVisibility="Column"
+                                            VerticalScrollBarVisibility="Hidden"
+                                            SelectedItem="{Binding SelectedServer, UpdateSourceTrigger=PropertyChanged}">
                                         <i:Interaction.Behaviors>
                                             <local:ScrollIntoViewBehavior />
                                         </i:Interaction.Behaviors>
@@ -368,6 +620,84 @@
                                         </DataGrid.InputBindings>
                                         <DataGrid.ItemContainerStyle>
                                             <Style TargetType="DataGridRow" BasedOn="{StaticResource ServerDataGridRowStyle}">
+                                                <Setter Property="Tag" Value="{Binding ElementName=serverDataGrid, Path=DataContext}"/>
+                                                <Setter Property="ContextMenu">
+                                                    <Setter.Value>
+                                                        <ContextMenu DataContext="{Binding PlacementTarget.Tag, RelativeSource={RelativeSource Self}}"
+                                                                     x:Name="serverContextMenu">
+                                                            <ContextMenu.Resources>
+                                                                <CollectionViewSource x:Key="SelectablePlaylistsCollection" Source="{Binding SelectablePlaylists}"/>
+                                                            </ContextMenu.Resources>
+
+                                                            <!-- Add to playlist -->
+                                                            <MenuItem Icon="➕" Header="Add to Playlist">
+                                                                <MenuItem.ItemsSource>
+                                                                    <CompositeCollection>
+                                                                        <!-- New playlist -->
+                                                                        <MenuItem Icon="➕" Header="New Playlist"
+                                                                                  Command="{Binding AddToNewPlaylistCommand}"
+                                                                                  CommandParameter="{Binding SelectedServer}"/>
+                                                                        <Separator/>
+
+                                                                        <!-- Existing playlists -->
+                                                                        <CollectionContainer Collection="{Binding Source={StaticResource SelectablePlaylistsCollection}}" />
+                                                                    </CompositeCollection>
+                                                                </MenuItem.ItemsSource>
+
+                                                                <MenuItem.ItemContainerStyle>
+                                                                    <Style TargetType="MenuItem">
+                                                                        <Setter Property="HorizontalContentAlignment" Value="Left"/>
+                                                                        <Setter Property="VerticalContentAlignment" Value="Center"/>
+
+                                                                        <!-- Properties for existing templates -->
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding Converter={StaticResource TypeConverter}, ConverterParameter={x:Type vm:SelectablePlaylist}}" 
+                                                                                         Value="True">
+                                                                                <DataTrigger.Setters>
+                                                                                    <Setter Property="Header" Value="{Binding Name}" />
+                                                                                    <Setter Property="IsEnabled" Value="{Binding IsSelectable}" />
+                                                                                    <Setter Property="IsChecked" Value="{Binding IsSelected, Mode=TwoWay}"/>
+                                                                                    <Setter Property="IsCheckable" Value="True"/>
+                                                                                </DataTrigger.Setters>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </MenuItem.ItemContainerStyle>
+                                                            </MenuItem>
+
+                                                            <!-- Remove from playlist -->
+                                                            <MenuItem Icon="❌"
+                                                                      HeaderStringFormat="Remove from '{0}'">
+                                                                <!--<MenuItem.Visibility>
+                                                                    <Binding Path="."
+                                                                             Converter="{StaticResource TypeVisibilityConverter}"
+                                                                             ConverterParameter="{x:Type vm:CustomServerTabViewModel}"/>
+                                                                </MenuItem.Visibility>-->
+                                                                <MenuItem.Style>
+                                                                    <Style TargetType="MenuItem">
+                                                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Value="True">
+                                                                                <DataTrigger.Binding>
+                                                                                    <Binding Path="."
+                                                                                             Converter="{StaticResource TypeConverter}"
+                                                                                             ConverterParameter="{x:Type vm:CustomServerTabViewModel}"/>
+                                                                                </DataTrigger.Binding>
+                                                                                <DataTrigger.Setters>
+                                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                                    <Setter Property="Header" Value="{Binding Playlist.Name}"/>
+                                                                                    <Setter Property="Command" Value="{Binding RemoveServerCommand}"/>
+                                                                                    <Setter Property="CommandParameter" Value="{Binding SelectedServer}"/>
+                                                                                </DataTrigger.Setters>
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </MenuItem.Style>
+                                                            </MenuItem>
+                                                        </ContextMenu>
+                                                    </Setter.Value>
+                                                </Setter>
+
                                                 <!-- Enable focus and tab navigation for row -->
                                                 <Setter Property="IsTabStop" Value="True"/>
                                                 <Setter Property="Focusable" Value="True"/>
@@ -497,9 +827,10 @@
                     </TabControl>
 
 
-                    <!-- Party Header -->
+                    <!-- Header Controls (over tabs) -->
                     <Border Grid.Column="0" Height="35" Padding="2" HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="4"
-                            Margin="0,3,0,5" BorderThickness="0.5" >
+                            Margin="0,3,0,5" BorderThickness="0.5"
+                            x:Name="HeaderControlsBorder">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition/>
@@ -508,6 +839,155 @@
 
                             <StackPanel Height="Auto" HorizontalAlignment="Right" VerticalAlignment="Center"
                                         Margin="1,0,5,0" Orientation="Horizontal" >
+
+                                <!-- Overflowed Tabs Button -->
+                                <controls:DropDownButton 
+                                            x:Name="ServerTabsOverflowButton"
+                                            Grid.Column="1" 
+                                            Width="Auto" Padding="7,0"
+                                            Foreground="{DynamicResource TextLight}"
+                                            DataContext="{Binding }"
+                                            ToolTip="Show all tabs"
+                                            Margin="0,0,5,0"
+                                            HorizontalAlignment="Left"
+                                            HorizontalContentAlignment="Stretch">
+                                    <controls:DropDownButton.Style>
+                                        <Style TargetType="{x:Type controls:DropDownButton}" BasedOn="{StaticResource WindowToggleButtonStyle}"/>
+                                    </controls:DropDownButton.Style>
+                                    <controls:DropDownButton.Content>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text=""
+                                                               FontWeight="Normal"
+                                                               TextAlignment="Center"/>
+                                            <Path Data="M 0 0 L 5 5 L 10 0"
+                                                  Stroke="{DynamicResource TextLight}"
+                                                  StrokeThickness="2"
+                                                  Stretch="None"
+                                                  SnapsToDevicePixels="True"
+                                                  StrokeLineJoin="Round"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0,1,0,0"
+                                                  Grid.Column="1"/>
+                                        </Grid>
+                                    </controls:DropDownButton.Content>
+                                    <controls:DropDownButton.Menu>
+                                        <Popup StaysOpen="False"
+                                               AllowsTransparency="True"
+                                               PopupAnimation="Fade"
+                                               Placement="Custom"
+                                               CustomPopupPlacementCallback="PlaceTabsOverflowPopup"
+                                               Tag="{Binding ElementName=mainWindow, Path=DataContext}">
+                                            <Border ClipToBounds="True"
+                                                    Style="{DynamicResource PopupBorderStyle}"
+                                                    BorderThickness="1"
+                                                    CornerRadius="7"
+                                                    Focusable="True"
+                                                >
+                                                <StackPanel>
+
+                                                    <ContentControl Margin="5"
+                                                                    Padding="7,5,5,5"
+                                                                    Style="{StaticResource TransparentItem}"
+                                                                    ToolTip="If enabled, custom playlists will be displayed as individual tabs. &#10;Otherwise, a single tab will be displayed.">
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition MinWidth="150"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+
+                                                            <Label Content="Show playlists as tabs"
+                                                                   VerticalAlignment="Center"
+                                                                   Foreground="{DynamicResource TextLight}"
+                                                                   Padding="0"
+                                                                   Target="{Binding ElementName=CheckBox}"/>
+                                                            <CheckBox x:Name="CheckBox"
+                                                                      Grid.Column="2"
+                                                                      Foreground="{DynamicResource TextLight}"
+                                                                      IsChecked="{Binding ShowCustomPlaylistsAsTabs, Mode=TwoWay}"
+                                                                      VerticalContentAlignment="Center"/>
+                                                        </Grid>
+                                                    </ContentControl>
+
+                                                    <Grid Margin="0,5">
+                                                        <Separator Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="Tabs" FontWeight="Bold" FontSize="10" Grid.Row="5" Grid.ColumnSpan="2"
+                                                                   HorizontalAlignment="Center" Background="{DynamicResource ControlBackground}" Padding="6,0"/>
+                                                    </Grid>
+
+                                                    <ItemsControl ItemsSource="{Binding ServerTabs}"
+                                                                  Margin="5"
+                                                                  TextBlock.Foreground="{DynamicResource TextLight}">
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="{x:Type vm:IServerTabViewModel}">
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition MinWidth="150"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                        <ColumnDefinition Width="Auto"/>
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Button Style="{DynamicResource WindowButtonStyle}"
+                                                                            HorizontalContentAlignment="Left"
+                                                                            Padding="7,5,5,5"
+                                                                            Foreground="{DynamicResource TextLight}">
+                                                                        <i:Interaction.Triggers>
+                                                                            <i:EventTrigger EventName="Click">
+                                                                                <i:ChangePropertyAction TargetObject="{Binding Parent}" PropertyName="SelectedTab" Value="{Binding }" />
+                                                                            </i:EventTrigger>
+                                                                        </i:Interaction.Triggers>
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto"/>
+                                                                                <ColumnDefinition/>
+                                                                            </Grid.ColumnDefinitions>
+
+                                                                            <TextBlock Text="🧩" Margin="0,0,5,0"
+                                                                                       Visibility="{Binding Converter={StaticResource TypeVisibilityConverter}, ConverterParameter={x:Type vm:CustomServerTabViewModel}}"/>
+
+                                                                            <TextBlock x:Name="Text" Text="{Binding TabName}" VerticalAlignment="Center"
+                                                                                       Grid.Column="1">
+                                                                                <TextBlock.Style>
+                                                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                                                                                <Setter Property="FontWeight" Value="Bold"/>
+                                                                                                <!--<Setter Property="Foreground" Value="{DynamicResource ControlPrimarySelected}"/>-->
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </TextBlock.Style>
+                                                                            </TextBlock>
+                                                                        </Grid>
+                                                                    </Button>
+                                                                    <Button x:Name="edit" Content="✏️" VerticalAlignment="Center"
+                                                                            FontSize="10" ToolTip="Edit" Command="{Binding EditCommand}"
+                                                                            Margin="3,0,0,0" Visibility="{Binding Converter={StaticResource TypeVisibilityConverter}, ConverterParameter={x:Type vm:CustomServerTabViewModel}}"
+                                                                            Grid.Column="1" Style="{DynamicResource WindowButtonStyle}"
+                                                                            Padding="5">
+                                                                    </Button>
+
+                                                                    <Button x:Name="remove" Content="❌" VerticalAlignment="Center"
+                                                                            FontSize="10" ToolTip="Remove" Command="{Binding RemoveCommand}"
+                                                                            Margin="1,0,0,0" Visibility="{Binding Converter={StaticResource TypeVisibilityConverter}, ConverterParameter={x:Type vm:CustomServerTabViewModel}}"
+                                                                            Grid.Column="2" Style="{DynamicResource WindowButtonStyle}"
+                                                                            Padding="5">
+                                                                    </Button>
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </StackPanel>
+                                            </Border>
+                                        </Popup>
+                                    </controls:DropDownButton.Menu>
+                                </controls:DropDownButton>
+
+                                <Separator Style="{StaticResource {x:Static ToolBar.SeparatorStyleKey}}"
+                                           Background="{DynamicResource TransparentLight500}"/>
 
                                 <!-- Party Status -->
                                 <TextBlock DataContext="{Binding SocialOverviewViewModel.Friends}" 

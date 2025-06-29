@@ -291,10 +291,13 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 
             SearchAttempts = 0;
 
-            bool success = await Hub.SearchMatch(initialSearchCriteria, playlist.Id);
+            bool success = playlist is CustomPlaylist customPlaylist
+                ? await Hub.SearchMatchCustom(initialSearchCriteria, customPlaylist)
+                : await Hub.SearchMatch(initialSearchCriteria, playlist.Id);
+
             if (!success)
             {
-                _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}'", playlist.Id);
+                _logger.LogDebug("Could not enter matchmaking for playlist '{playlist}'", playlist.Name);
                 return false;
             }
 
@@ -310,7 +313,7 @@ public class MatchmakingService : HubClient<IMatchmakingHub>, IMatchmakingClient
 
             MatchSearchCriteriaChanged?.Invoke(_currentMetadata.SearchPreferences);
 
-            _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}'", playlist.Id);
+            _logger.LogInformation("Entered matchmaking queue for playlist '{playlist}'", playlist.Name);
 
             return true;
         }

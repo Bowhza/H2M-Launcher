@@ -3,7 +3,6 @@
 using H2MLauncher.Core;
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
-using H2MLauncher.Core.Services;
 
 using MatchmakingServer.Matchmaking.Models;
 using MatchmakingServer.Playlists;
@@ -30,8 +29,7 @@ public class MatchmakingService : BackgroundService
     private readonly ServerStore _serverStore;
     private readonly IHubContext<QueueingHub, IClient> _hubContext;
     private readonly QueueingService _queueingService;
-    private readonly GameServerCommunicationService<GameServer> _gameServerCommunicationService;
-    private readonly IGameServerInfoService<GameServer> _gameServerInfoService;
+    private readonly GameServerService _gameServerService;
     private readonly ILogger<MatchmakingService> _logger;
 
     private readonly ConcurrentDictionary<IMMTicket, TicketMetadata> _metadata = [];
@@ -47,17 +45,15 @@ public class MatchmakingService : BackgroundService
         ServerStore serverStore,
         IHubContext<QueueingHub, IClient> hubContext,
         QueueingService queueingService,
-        GameServerCommunicationService<GameServer> gameServerCommunicationService,
+        GameServerService gameServerService,
         ILogger<MatchmakingService> logger,
-        IGameServerInfoService<GameServer> gameServerInfoService,
         Matchmaker matchmaker)
     {
         _serverStore = serverStore;
         _hubContext = hubContext;
         _queueingService = queueingService;
-        _gameServerCommunicationService = gameServerCommunicationService;
+        _gameServerService = gameServerService;
         _logger = logger;
-        _gameServerInfoService = gameServerInfoService;
         _matchmaker = matchmaker;
     }
 
@@ -108,37 +104,16 @@ public class MatchmakingService : BackgroundService
         {
             _logger.LogError(ex, "Error in matchmaking loop");
         }
-    }
+    }    
 
     private async Task<List<GameServer>> RefreshServerInfo(IReadOnlyList<GameServer> servers, CancellationToken cancellationToken)
     {
-        List<GameServer> respondingServers = new(servers.Count);
         _logger.LogTrace("Requesting server info for {numServers} servers...", servers.Count);
-        try
-        {
-            // Request server info for all servers part of matchmaking rn
-            Task getInfoCompleted = await _gameServerInfoService.SendGetInfoAsync(servers, (e) =>
-            {
-                e.Server.LastServerInfo = e.ServerInfo;
-                e.Server.LastServerInfoTimestamp = DateTimeOffset.Now;
 
-                respondingServers.Add(e.Server);
-            }, timeoutInMs: 2000, cancellationToken: cancellationToken);
-
-            // Immediately after send info requests send status requests
-            Task getStatusCompleted = await _gameServerCommunicationService.SendGetStatusAsync(servers, (e) =>
-            {
-                e.Server.LastStatusResponse = e.ServerInfo;
-            }, timeoutInMs: 2000, cancellationToken: cancellationToken);
-
-            // Wait for all to complete / time out
-            await Task.WhenAll(getInfoCompleted, getStatusCompleted);
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            // expected timeout
-            return respondingServers;
-        }
+        List<GameServer> respondingServers = await _gameServerService.RefreshInfoAsync(
+            servers, 
+            timeoutInMs: 2000,
+            cancellationToken: cancellationToken);
 
         _logger.LogDebug("Server info received from {numServers}", respondingServers.Count);
 
@@ -146,7 +121,7 @@ public class MatchmakingService : BackgroundService
     }
 
     private MMTicket? PrepareTicketWithMetadata(
-         IReadOnlySet<Player> players, TicketMetadata ticketMetadata, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> servers)
+        IReadOnlySet<Player> players, TicketMetadata ticketMetadata, MatchSearchCriteria searchPreferences, List<ServerConnectionDetails> servers)
     {
         ValidateMetadata(players, servers, ticketMetadata);
 

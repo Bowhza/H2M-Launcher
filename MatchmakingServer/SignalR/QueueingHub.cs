@@ -124,6 +124,16 @@ public class QueueingHub : Hub<IClient>, IMatchmakingHub
         return Task.FromResult(_partyMatchmakingService.EnterMatchmaking(player, searchPreferences, playlistId));
     }
 
+    public Task<bool> SearchMatchCustom(MatchSearchCriteria searchPreferences, CustomPlaylist customPlaylist)
+    {
+        if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))
+        {
+            return Task.FromResult(false);
+        }
+
+        return Task.FromResult(_partyMatchmakingService.EnterMatchmaking(player, searchPreferences, customPlaylist));
+    }
+
     public Task<bool> UpdateSearchSession(MatchSearchCriteria searchPreferences, List<ServerPing> serverPings)
     {
         if (!ConnectedPlayers.TryGetValue(Context.ConnectionId, out Player? player))

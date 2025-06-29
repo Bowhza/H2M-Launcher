@@ -1,5 +1,7 @@
 ﻿using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
+using System.Windows.Data;
 using System.Windows.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -11,6 +13,7 @@ using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 using H2MLauncher.Core.OnlineServices;
 using H2MLauncher.Core.Services;
+using H2MLauncher.UI.Converters;
 using H2MLauncher.UI.Dialog;
 
 namespace H2MLauncher.UI.ViewModels
@@ -90,6 +93,9 @@ namespace H2MLauncher.UI.ViewModels
         private string _errorText = "";
 
         [ObservableProperty]
+        private bool _isRefreshingPlaylists = false;
+
+        [ObservableProperty]
         private MatchmakingPreferencesViewModel _matchmakingPreferences = new();
 
         private Playlist? _lastPlaylist = null;
@@ -112,7 +118,13 @@ namespace H2MLauncher.UI.ViewModels
 
         public string QueuePositionText => $"{QueuePosition} / {TotalPlayersInQueue}";
 
-        public ObservableCollection<Playlist> Playlists { get; } = [
+
+        public CompositeReadOnlyObservableCollection<Playlist> Playlists { get; set; } = [];
+
+        public ICollectionView PlaylistsGrouped { get; private set; }
+
+        public ObservableCollection<CustomPlaylist> CustomPlaylists { get; } = [];
+        public ObservableCollection<Playlist> PublicPlaylists { get; } = [
             new Playlist()
             {
                 Id = "Default",
@@ -157,7 +169,7 @@ namespace H2MLauncher.UI.ViewModels
 
         public IAsyncRelayCommand ConnectToServiceCommand { get; }
 
-        public IAsyncRelayCommand EnterMatchmakingCommand { get; }
+        public IAsyncRelayCommand<Playlist?> EnterMatchmakingCommand { get; }
 
         public IAsyncRelayCommand LeaveQueueCommand { get; }
 
@@ -179,7 +191,7 @@ namespace H2MLauncher.UI.ViewModels
 
             AbortCommand = new AsyncRelayCommand(Abort);
             ForceJoinCommand = new AsyncRelayCommand(ForceJoin, () => !IsJoining && !string.IsNullOrEmpty(ServerIp) && ServerPort > 0);
-            EnterMatchmakingCommand = new AsyncRelayCommand<Playlist?>(EnterMatchmaking, (_) => CanEnterMatchmaking);
+            EnterMatchmakingCommand = new AsyncRelayCommand<Playlist?>(EnterMatchmaking, (_) => CanEnterMatchmaking || !IsConnectedToOnlineService);
             ConnectToServiceCommand = new AsyncRelayCommand(ConnectToService, () => !IsConnectingToOnlineService && !IsConnectedToOnlineService);
             RetryCommand = new AsyncRelayCommand(TryAgain, () => !IsConnectingToOnlineService);
             LeaveQueueCommand = new AsyncRelayCommand(LeaveQueue);
@@ -199,7 +211,16 @@ namespace H2MLauncher.UI.ViewModels
             PlaylistName = matchmakingService.Playlist?.Name ?? "";
             IsConnectingToOnlineService = matchmakingService.IsConnecting;
             IsConnectedToOnlineService = matchmakingService.IsConnected;
-            SelectedPlaylist = Playlists.FirstOrDefault();
+            SelectedPlaylist = PublicPlaylists.FirstOrDefault();
+
+            Playlists.AddSubCollection(PublicPlaylists);
+            Playlists.AddSubCollection(CustomPlaylists);
+
+            PlaylistsGrouped = CollectionViewSource.GetDefaultView(Playlists);
+            PlaylistsGrouped.SortDescriptions.Add(new SortDescription(nameof(Playlist.IsCustom), ListSortDirection.Ascending));
+            PlaylistsGrouped.GroupDescriptions.Add(new PropertyGroupDescription(
+                nameof(Playlist.IsCustom),
+                new DelegateValueConverter<bool>((isCustom) => isCustom ? "Custom" : "Public")));
 
             if (queueingService.QueuedServer is not null)
             {
@@ -249,21 +270,28 @@ namespace H2MLauncher.UI.ViewModels
         {
             try
             {
+                IsRefreshingPlaylists = true;
+
                 IReadOnlyList<Playlist>? playlists = await _serverDataService.GetPlaylists(CancellationToken.None);
                 if (playlists is null)
                 {
                     return;
                 }
 
-                Playlists.Clear();
+                PublicPlaylists.Clear();
                 foreach (Playlist playlist in playlists)
                 {
-                    Playlists.Add(playlist);
+                    PublicPlaylists.Add(playlist);
                 }
-                SelectedPlaylist = Playlists.FirstOrDefault();
+
+                if (SelectedPlaylist is null)
+                {
+                    SelectedPlaylist = PublicPlaylists.FirstOrDefault();
+                }
             }
             catch
             {
+                IsRefreshingPlaylists = false;
                 IsError = true;
                 ErrorText = "Failed to fetch the playlists. Please try again later.";
                 ErrorTitle = "Error";
@@ -367,8 +395,15 @@ namespace H2MLauncher.UI.ViewModels
 
             if (!_matchmakingService.IsConnected)
             {
-                using var reg = cancellationToken.Register(ConnectToServiceCommand.Cancel);
-                await ConnectToServiceCommand.ExecuteAsync(null);
+                if (ConnectToServiceCommand.IsRunning && ConnectToServiceCommand.ExecutionTask is not null)
+                {
+                    await ConnectToServiceCommand.ExecutionTask;
+                }
+                else
+                {
+                    using var reg = cancellationToken.Register(ConnectToServiceCommand.Cancel);
+                    await ConnectToServiceCommand.ExecuteAsync(null);
+                }
             }
 
             if (cancellationToken.IsCancellationRequested)

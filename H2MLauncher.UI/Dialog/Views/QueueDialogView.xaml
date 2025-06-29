@@ -5,6 +5,7 @@
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:local="clr-namespace:H2MLauncher.UI"
+             xmlns:dialogviews="clr-namespace:H2MLauncher.UI.Dialog.Views"
              xmlns:converters="clr-namespace:H2MLauncher.UI.Converters"
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels"
              xmlns:model="clr-namespace:H2MLauncher.Core.Matchmaking.Models;assembly=H2MLauncher.Core"
@@ -40,6 +41,8 @@
             </Style.Resources>
             <Setter Property="MaxWidth" Value="400" />
         </Style>
+
+
 
         <converters:DefaultValueConverter x:Key="UnsetIntConverter">
             <converters:DefaultValueConverter.DefaultValue>
@@ -99,24 +102,49 @@
 
         <!-- Playlist selection -->
         <ComboBox Grid.Row="1" Grid.ColumnSpan="2" Text="Default Playlist" SelectedItem="{Binding SelectedPlaylist}"
-                  Height="25" Width="300" Foreground="{DynamicResource TextLight}" Margin="0,0,0,10" ItemsSource="{Binding Playlists}"
+                  Height="25" Width="300" Foreground="{DynamicResource TextLight}" Margin="0,0,0,10" ItemsSource="{Binding PlaylistsGrouped}"
                   Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
+            <ComboBox.GroupStyle>
+                <GroupStyle>
+                    <GroupStyle.ContainerStyle>
+                        <Style TargetType="GroupItem">
+                            <Setter Property="Margin" Value="0,0,0,3"/>
+                        </Style>
+                    </GroupStyle.ContainerStyle>
+                    <GroupStyle.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Name}" Margin="0,0,0,3" FontWeight="Bold"/>
+                        </DataTemplate>
+                    </GroupStyle.HeaderTemplate>
+                </GroupStyle>
+            </ComboBox.GroupStyle>
             <ComboBox.ItemTemplate>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock>
-                            <TextBlock.Text>
-                                <MultiBinding StringFormat="{}{0} ({1} players)">
-                                    <Binding Path="Name" />
-                                    <Binding Path="CurrentPlayerCount" />
-                                </MultiBinding>
-                            </TextBlock.Text>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text">
+                                        <Setter.Value>
+                                            <MultiBinding StringFormat="{}{0} ({1} players)">
+                                                <Binding Path="Name" />
+                                                <Binding Path="CurrentPlayerCount" />
+                                            </MultiBinding>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding CurrentPlayerCount}" Value="{x:Null}">
+                                            <Setter Property="Text" Value="{Binding Name}"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
                         </TextBlock>
                     </StackPanel>
                 </DataTemplate>
             </ComboBox.ItemTemplate>
         </ComboBox>
-        
+
         <!-- Main view section -->
         <StackPanel Orientation="Vertical" Grid.Row="2" Grid.ColumnSpan="2">
             <StackPanel.Resources>
@@ -204,7 +232,7 @@
 
                 <!-- Error -->
                 <DataTemplate x:Key="ErrorTemplate" DataType="{x:Type vm:MatchmakingViewModel}">
-                    <TextBlock Text="{Binding ErrorText}" HorizontalAlignment="Center"/>
+                    <TextBlock Text="{Binding ErrorText}" HorizontalAlignment="Center" TextWrapping="Wrap"/>
                 </DataTemplate>
             </StackPanel.Resources>
             <ContentControl Content="{Binding }">
@@ -221,11 +249,11 @@
                             <DataTrigger Binding="{Binding State}" Value="{x:Static model:PlayerState.Matchmaking}">
                                 <Setter Property="ContentTemplate" Value="{StaticResource MatchmakingTemplate}" />
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding IsError}" Value="True">
-                                <Setter Property="ContentTemplate" Value="{StaticResource ErrorTemplate}" />
-                            </DataTrigger>
                             <DataTrigger Binding="{Binding IsConnectingToOnlineService}" Value="True">
                                 <Setter Property="ContentTemplate" Value="{StaticResource LoadingTemplate}" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding IsError}" Value="True">
+                                <Setter Property="ContentTemplate" Value="{StaticResource ErrorTemplate}" />
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
@@ -233,64 +261,84 @@
             </ContentControl>
         </StackPanel>
 
-        <!-- Queue / Joining buttons -->
-        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" >
-            <Grid.Style>
-                <Style TargetType="Grid">
-                    <Setter Property="Visibility" Value="Collapsed"/>
+        <!-- Buttons -->
+        <ContentControl Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" Content="{Binding}">
+            <ContentControl.Resources>
+                <!-- Queue / Joining buttons -->
+                <DataTemplate x:Key="QueueTemplate" DataType="vm:MatchmakingViewModel">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Leave Queue" Height="25" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+                        <Button Content="Force Join" Height="25" Command="{Binding ForceJoinCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
+                    </Grid>
+                </DataTemplate>
+
+                <DataTemplate x:Key="MatchmakingTemplate" DataType="vm:MatchmakingViewModel">
+                    <!-- Matchmaking Buttons -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Leave Matchmaking" Height="25" Width="200" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+                    </Grid>
+                </DataTemplate>
+
+                <DataTemplate x:Key="ConnectingTemplate" DataType="vm:MatchmakingViewModel">
+                    <!-- Connecting Buttons -->
+                    <Grid>
+                        <Button Content="Abort" Height="25" Width="200" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+                    </Grid>
+                </DataTemplate>
+
+                <!-- Pre-Matchmaking Buttons -->
+                <DataTemplate x:Key="PreMatchmakingTemplate" DataType="vm:MatchmakingViewModel">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Cancel" Height="25" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+                        <Button Content="Find Match" Height="25" Command="{Binding EnterMatchmakingCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0" />
+                    </Grid>
+                </DataTemplate>
+
+                <DataTemplate x:Key="ErrorTemplate" DataType="vm:MatchmakingViewModel">
+                    <!-- Error Buttons -->
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                        <Button Content="Cancel" Height="25" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
+                        <Button Content="Try again" Height="25" Command="{Binding RetryCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
+                    </Grid>
+                </DataTemplate>
+            </ContentControl.Resources>
+            <ContentControl.Style>
+                <Style TargetType="{x:Type ContentControl}">
+                    <Setter Property="ContentTemplate" Value="{StaticResource PreMatchmakingTemplate}"/>
                     <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsInMatchmaking}" Value="True">
+                            <Setter Property="ContentTemplate" Value="{StaticResource MatchmakingTemplate}"/>
+                        </DataTrigger>
                         <DataTrigger Binding="{Binding IsInQueue}" Value="True">
-                            <Setter Property="Visibility" Value="Visible"/>
+                            <Setter Property="ContentTemplate" Value="{StaticResource QueueTemplate}"/>
                         </DataTrigger>
                         <DataTrigger Binding="{Binding IsJoining}" Value="True">
-                            <Setter Property="Visibility" Value="Visible"/>
+                            <Setter Property="ContentTemplate" Value="{StaticResource QueueTemplate}"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsConnectingToOnlineService}" Value="True">
+                            <Setter Property="ContentTemplate" Value="{StaticResource ConnectingTemplate}"/>
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding IsError}" Value="True">
+                            <Setter Property="ContentTemplate" Value="{StaticResource ErrorTemplate}"/>
                         </DataTrigger>
                     </Style.Triggers>
                 </Style>
-            </Grid.Style>
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
-            <Button Content="Leave Queue" Height="25" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
-            <Button Content="Force Join" Height="25" Command="{Binding ForceJoinCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
-        </Grid>
-        
-        <!-- Matchmaking Buttons -->
-        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
-              Visibility="{Binding IsInMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
-            <Button Content="Leave Matchmaking" Height="25" Width="200" Command="{Binding LeaveQueueCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
-        </Grid>
-
-        <!-- Connecting Buttons -->
-        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
-              Visibility="{Binding IsConnectingToOnlineService, Converter={StaticResource booleanToVisibilityConverter}}">
-            <Button Content="Abort" Height="25" Width="200" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
-        </Grid>
-
-        <!-- Pre-Matchmaking Buttons -->
-        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
-                Visibility="{Binding CanEnterMatchmaking, Converter={StaticResource booleanToVisibilityConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
-            <Button Content="Cancel" Height="25" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
-            <Button Content="Find Match" Height="25" Command="{Binding EnterMatchmakingCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0" />
-        </Grid>
-
-        <!-- Error Buttons -->
-        <Grid Grid.Row="7" Grid.ColumnSpan="2" Margin="0,10,0,15" 
-                Visibility="{Binding IsError, Converter={StaticResource booleanToVisibilityConverter}}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition/>
-                <ColumnDefinition/>
-            </Grid.ColumnDefinitions>
-            <Button Content="Cancel" Height="25" Command="{Binding AbortCommand}" Grid.Column="0" IsCancel="True" Margin="0,0,5,0"/>
-            <Button Content="Try again" Height="25" Command="{Binding RetryCommand}" IsDefault="True" Grid.Column="1" Margin="5,0,0,0"/>
-        </Grid>
+            </ContentControl.Style>
+        </ContentControl>
     </Grid>
 </UserControl>
