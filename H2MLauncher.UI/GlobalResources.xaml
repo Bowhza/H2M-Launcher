@@ -669,7 +669,10 @@
         </Setter>
     </Style>
 
-
+    <Geometry x:Key="ComboBoxDropDownArrow">
+        M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z
+    </Geometry>
+    
     <ControlTemplate x:Key="ComboBoxToggleButton" TargetType="{x:Type ToggleButton}">
         <Grid>
             <Grid.ColumnDefinitions>
@@ -680,16 +683,16 @@
                 x:Name="Border"
                 Grid.ColumnSpan="2"
                 CornerRadius="0"
-                Background="{DynamicResource ControlBackground}"
-                BorderBrush="{DynamicResource ControlBorderBrush}"
-                BorderThickness="0" />
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}" />
             <Path
                 x:Name="Arrow"
                 Grid.Column="1"
-                Fill="{DynamicResource TextLight}"
+                Fill="{TemplateBinding Foreground}"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
-                Data="M0,0 L0,2 L4,6 L8,2 L8,0 L4,4 z" />
+                Data="{StaticResource ComboBoxDropDownArrow}" />
         </Grid>
         <ControlTemplate.Triggers>
             <Trigger Property="ToggleButton.IsMouseOver" Value="true">
@@ -1349,6 +1352,13 @@
     <!-- Popup for details used in social controls -->
     <Style x:Key="DetailsPopupBorderStyle" TargetType="Border">
         <Setter Property="Background" Value="{DynamicResource BrushNeutral900}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource DialogBorderBrush}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <!-- General popups used everywhere -->
+    <Style x:Key="PopupBorderStyle" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource BrushNeutral700}"/>
         <Setter Property="BorderBrush" Value="{DynamicResource DialogBorderBrush}"/>
         <Setter Property="BorderThickness" Value="1"/>
     </Style>

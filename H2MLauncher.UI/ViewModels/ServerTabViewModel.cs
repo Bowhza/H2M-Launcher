@@ -49,12 +49,14 @@ public class ServerTabViewModel : ServerTabViewModel<ServerViewModel>
     }
 }
 
+
+
 public class SelectablePlaylist(CustomPlaylistInfo customPlaylist) : SelectableItem<CustomPlaylistInfo>(customPlaylist);
 
 public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewModel>
 {
     [ObservableProperty]
-    private CustomPlaylistInfo _playlist;
+    private string _playlistId;
 
     public required IRelayCommand<ServerViewModel> RemoveServerCommand { get; set; }
     public required IRelayCommand<ServerViewModel> AddServerCommand { get; set; }
@@ -63,10 +65,10 @@ public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewMod
 
     public required IRelayCommand RemoveCommand { get; set; }
 
-    public override IEnumerable<SelectablePlaylist> SelectablePlaylists => 
+    public override IEnumerable<SelectablePlaylist> SelectablePlaylists =>
         base.SelectablePlaylists.Select(item =>
         {
-            if (item.Model.Id == Playlist.Id)
+            if (item.Model.Id == PlaylistId)
             {
                 item.IsSelectable = false;
             }
@@ -80,7 +82,32 @@ public partial class CustomServerTabViewModel : ServerTabViewModel<ServerViewMod
             Func<ServerViewModel, Task> onServerJoin,
             Predicate<ServerViewModel>? filterPredicate = null) : base(playlist.Name, parent, onServerJoin, filterPredicate)
     {
-        Playlist = playlist;
+        _playlistId = playlist.Id;
+    }
+
+    partial void OnPlaylistIdChanged(string value)
+    {
+        if (Parent.ShowCustomPlaylistsAsTabs)
+        {
+            return;
+        }
+
+        // Get servers from new playlist
+        Servers.Clear();
+
+        CustomPlaylistViewModel? playlistViewModel = Parent.CustomPlaylists.FirstOrDefault(p => p.Id == value);
+        if (playlistViewModel is null)
+        {
+            return;
+        }
+
+        TabName = playlistViewModel.Name;
+
+        foreach (ServerViewModel serverViewModel in Parent.AllServersTab.Servers
+            .Where(s => playlistViewModel.Model.Servers.Contains(s.ToServerConnectionDetails())))
+        {
+            Servers.Add(serverViewModel);
+        }
     }
 }
 
@@ -149,10 +176,10 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
 
             return Parent.CustomPlaylists.Select(p =>
             {
-                SelectablePlaylist item = new(p)
+                SelectablePlaylist item = new(p.Model)
                 {
                     Name = p.Name,
-                    IsSelected = p.Servers.Contains(SelectedServer.ToServerConnectionDetails())
+                    IsSelected = p.Model.Servers.Contains(SelectedServer.ToServerConnectionDetails())
                 };
 
                 item.PropertyChanged += PlaylistItem_PropertyChanged;
@@ -190,9 +217,9 @@ public abstract partial class ServerTabViewModel<TServerViewModel> : ObservableO
     ];
 
     public ServerTabViewModel(
-        string tabName, 
-        ServerBrowserViewModel parent, 
-        Func<ServerViewModel, Task> onServerJoin, 
+        string tabName,
+        ServerBrowserViewModel parent,
+        Func<ServerViewModel, Task> onServerJoin,
         Predicate<TServerViewModel>? filterPredicate = null)
     {
         TabName = tabName;

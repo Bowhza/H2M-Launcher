@@ -36,6 +36,39 @@ using Nogic.WritableOptions;
 
 namespace H2MLauncher.UI.ViewModels;
 
+public partial class CustomPlaylistViewModel : ObservableObject
+{
+    private CustomPlaylistInfo _model;
+
+    public string Id { get; private set; }
+
+    [ObservableProperty]
+    private string _name;
+
+    public CustomPlaylistInfo Model
+    {
+        get => _model;
+        set
+        {
+            if (!SetProperty(ref _model, value))
+            {
+                return;
+            }
+
+            Id = value.Id;
+            Name = value.Name;
+            OnPropertyChanged(nameof(Id));
+        }
+    }
+
+    public CustomPlaylistViewModel(CustomPlaylistInfo model)
+    {
+        Id = model.Id;
+        Name = model.Name;
+        _model = model;
+    }
+}
+
 public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<SelectServerMessage>, IDisposable
 {
     private readonly IMasterServerService _hmwMaster;
@@ -104,7 +137,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     [ObservableProperty]
     private MatchmakingViewModel? _matchmakingViewModel;
 
-    public IReadOnlyCollection<CustomPlaylistInfo> CustomPlaylists => _customPlaylists.Values;
+    public ObservableCollection<CustomPlaylistViewModel> CustomPlaylists { get; }
 
     public SocialOverviewViewModel SocialOverviewViewModel { get; }
 
@@ -115,13 +148,16 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         _h2MLauncherOptions.CurrentValue.GameMemoryCommunication &&
         _h2MLauncherOptions.CurrentValue.ServerQueueing;
 
-    private ServerTabViewModel<ServerViewModel> AllServersTab { get; set; }
+    public ServerTabViewModel<ServerViewModel> AllServersTab { get; private set; }
     private ServerTabViewModel<ServerViewModel> HMWServersTab { get; set; }
     private ServerTabViewModel<ServerViewModel> FavouritesTab { get; set; }
     private ServerTabViewModel<ServerViewModel> RecentsTab { get; set; }
     public ObservableCollection<IServerTabViewModel> ServerTabs { get; set; } = [];
 
     public IEnumerable<CustomServerTabViewModel> CustomServerTabs => ServerTabs.OfType<CustomServerTabViewModel>();
+
+    [ObservableProperty]
+    private bool _showCustomPlaylistsAsTabs = true;
 
 
     public event Action? ServerFilterChanged;
@@ -225,15 +261,28 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
 
         _customPlaylists = _h2MLauncherOptions.CurrentValue.CustomPlaylists.ToDictionary(x => x.Id);
-        foreach (CustomPlaylistInfo customPlaylist in CustomPlaylists)
+        CustomPlaylists = new(_customPlaylists.Values.Select(v => new CustomPlaylistViewModel(v)));
+
+        if (ShowCustomPlaylistsAsTabs)
         {
-            if (!TryAddNewPlaylistTab(customPlaylist, out _))
+            foreach (CustomPlaylistInfo customPlaylist in _customPlaylists.Values)
             {
-                _logger.LogError("Could not add tab for custom playlist {@playlist}", customPlaylist);
+                if (!TryAddNewPlaylistTab(customPlaylist, out _))
+                {
+                    _logger.LogError("Could not add tab for custom playlist {@playlist}", customPlaylist);
+                }
+            }
+        }
+        else if (_customPlaylists.Count > 0)
+        {
+            CustomPlaylistInfo firstPlaylist = _customPlaylists.Values.First();
+            if (!TryAddNewPlaylistTab(firstPlaylist, out _))
+            {
+                _logger.LogError("Could not add tab for custom playlist {@playlist}", firstPlaylist);
             }
         }
 
-        ServerTabs.Remove(allServersTab);
+            ServerTabs.Remove(allServersTab);
         AllServersTab = allServersTab;
         HMWServersTab = hmwServersTab;
         FavouritesTab = favouritesTab;
@@ -473,7 +522,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
     private bool TryAddNewPlaylistTab(CustomPlaylistInfo playlist, [MaybeNullWhen(false)] out CustomServerTabViewModel tabViewModel)
     {
-        if (CustomServerTabs.Any(tab => tab.Playlist.Id.Equals(playlist.Id)))
+        if (CustomServerTabs.Any(tab => tab.PlaylistId.Equals(playlist.Id)))
         {
             tabViewModel = null;
             return false;
@@ -488,6 +537,14 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             EditCommand = new RelayCommand(() => EditPlaylist(playlist.Id)),
             RemoveCommand = new RelayCommand(() => RemovePlaylist(playlist.Id)),
         };
+
+        //tabVm.PropertyChanged += (s, e) =>
+        //{
+        //    if (ShowCustomPlaylistsAsTabs && e.PropertyName == nameof(CustomServerTabViewModel.PlaylistId))
+        //    {
+        //        ((CustomServerTabViewModel)s).PlaylistId
+        //    }
+        //};
 
         ServerTabs.Add(tabViewModel);
         return true;
@@ -649,7 +706,9 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         }
 
         SaveCustomPlaylists();
-        OnPropertyChanged(nameof(CustomPlaylists));
+
+        // Add view model
+        CustomPlaylists.Add(new(customPlaylist));
 
         // Add custom tab for playlist with server
         if (!TryAddNewPlaylistTab(customPlaylist, out CustomServerTabViewModel? tabViewModel))
@@ -665,7 +724,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     {
         _h2MLauncherOptions.Update(settings =>
         {
-            return settings with { CustomPlaylists = [.. CustomPlaylists] };
+            return settings with { CustomPlaylists = [.. _customPlaylists.Values] };
         });
     }
 
@@ -689,10 +748,9 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
         // Save playlists
         SaveCustomPlaylists();
-        OnPropertyChanged(nameof(CustomPlaylists));
 
         // Add to custom tab
-        CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.Playlist.Id == playlistId);
+        CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.PlaylistId == playlistId);
         if (customTab is null)
         {
             return;
@@ -721,10 +779,9 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
         // Save playlists
         SaveCustomPlaylists();
-        OnPropertyChanged(nameof(CustomPlaylists));
 
         // Remove from custom tab
-        CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.Playlist.Id == playlistId);
+        CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.PlaylistId == playlistId);
         if (customTab is null)
         {
             return;
@@ -749,19 +806,36 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             };
 
             // Update in settings
-            _customPlaylists[playlistId] = editedPlaylist;
+            UpdatePlaylist(editedPlaylist);
             SaveCustomPlaylists();
 
             // Update tab
-            CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.Playlist.Id == playlistId);
+            CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.PlaylistId == playlistId);
             if (customTab is null)
             {
                 return;
             }
 
             customTab.TabName = editedPlaylist.Name;
-            customTab.Playlist = editedPlaylist;
+            //customTab.Playlist = editedPlaylist;
         }
+    }
+
+    private void UpdatePlaylist(CustomPlaylistInfo playlist)
+    {
+        _customPlaylists[playlist.Id] = playlist;
+
+        // Update view model
+        CustomPlaylistViewModel? viewModel = GetCustomPlaylistViewModel(playlist.Id);
+        if (viewModel is not null)
+        {
+            viewModel.Model = playlist;
+        }
+    }
+
+    private CustomPlaylistViewModel? GetCustomPlaylistViewModel(string playlistId)
+    {
+        return CustomPlaylists.FirstOrDefault(p => p.Id == playlistId);
     }
 
     public void RemovePlaylist(string playlistId)
@@ -784,14 +858,56 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
                 SaveCustomPlaylists();
             }
 
-            // Remove tab
-            CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.Playlist.Id == playlistId);
-            if (customTab is null)
+            // Remove view model
+            CustomPlaylistViewModel? viewModel = GetCustomPlaylistViewModel(playlistId);
+            if (viewModel is not null)
             {
-                return;
+                CustomPlaylists.Remove(viewModel);
             }
 
-            ServerTabs.Remove(customTab);
+            // Remove tab
+            CustomServerTabViewModel? customTab = CustomServerTabs.FirstOrDefault(t => t.PlaylistId == playlistId);
+            if (customTab is not null)
+            {
+                ServerTabs.Remove(customTab);
+            }
+        }
+    }
+
+    partial void OnShowCustomPlaylistsAsTabsChanged(bool value)
+    {
+        CustomServerTabViewModel? customSelectedTab = SelectedTab as CustomServerTabViewModel;
+
+        if (!value)
+        {
+            CustomServerTabViewModel? tabToKeep = customSelectedTab ?? CustomServerTabs.FirstOrDefault();
+            foreach (CustomServerTabViewModel tab in CustomServerTabs.ToList())
+            {
+                if (tab != tabToKeep)
+                {
+                    ServerTabs.Remove(tab);
+                }
+            }
+        }
+        else
+        {
+            foreach (CustomPlaylistInfo customPlaylist in _customPlaylists.Values)
+            {
+                if (customSelectedTab?.PlaylistId == customPlaylist.Id) continue;
+
+                if (!TryAddNewPlaylistTab(customPlaylist, out CustomServerTabViewModel? addedTab))
+                {
+                    _logger.LogError("Could not add tab for custom playlist {@playlist}", customPlaylist);
+                }
+                else
+                {
+                    foreach (ServerViewModel server in AllServersTab.Servers
+                        .Where(s => customPlaylist.Servers.Contains(s.ToServerConnectionDetails())))
+                    {
+                        addedTab.Servers.Add(server);
+                    }
+                }
+            }
         }
     }
 
@@ -1051,7 +1167,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
 
         foreach (var customServerTab in ServerTabs.OfType<CustomServerTabViewModel>())
         {
-            if (customServerTab.Playlist.Servers.Contains((serverViewModel.Ip, serverViewModel.Port)))
+            if (_customPlaylists[customServerTab.PlaylistId].Servers.Contains((serverViewModel.Ip, serverViewModel.Port)))
             {
                 customServerTab.Servers.Add(serverViewModel);
             }
@@ -1112,7 +1228,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         {
             // Automatically enter matchmaking with selected playlist
             CustomPlaylist? customPlaylist = MatchmakingViewModel.CustomPlaylists
-                .FirstOrDefault(p => p.Id == customServerTab.Playlist.Id);
+                .FirstOrDefault(p => p.Id == customServerTab.PlaylistId);
 
             if (customPlaylist is not null &&
                 MatchmakingViewModel.EnterMatchmakingCommand.CanExecute(null))
@@ -1138,20 +1254,20 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             _serverDataService,
             _serverJoinService);
 
-        foreach (var customServerTab in CustomServerTabs)
-        {
-            CustomPlaylist playlist = new()
+            foreach (CustomPlaylistInfo playlistInfo in _customPlaylists.Values)
             {
-                Id = customServerTab.Playlist.Id,
-                Name = customServerTab.Playlist.Name,
-                Servers = [.. customServerTab.Playlist.Servers],
-                MapPacks = [.. AdvancedServerFilter.MapPacks.Where(item => item.IsSelected).Select(item => item.Model.Id)],
-                GameModes = [.. AdvancedServerFilter.GameModes.Where(item => item.IsSelected).Select(item => item.Model.Name)],
-                CurrentPlayerCount = customServerTab.TotalPlayers,
-            };
+                CustomPlaylist playlist = new()
+                {
+                    Id = playlistInfo.Id,
+                    Name = playlistInfo.Name,
+                    Servers = [.. playlistInfo.Servers],
+                    MapPacks = [.. AdvancedServerFilter.MapPacks.Where(item => item.IsSelected).Select(item => item.Model.Id)],
+                    GameModes = [.. AdvancedServerFilter.GameModes.Where(item => item.IsSelected).Select(item => item.Model.Name)],
+                    CurrentPlayerCount = playlistInfo.Servers.Sum(s => FindServerViewModel(s)?.ClientNum ?? 0),
+                };
 
-            matchmakingViewModel.CustomPlaylists.Add(playlist);
-        }
+                matchmakingViewModel.CustomPlaylists.Add(playlist);
+            }
 
         return matchmakingViewModel;
     }
