@@ -139,6 +139,7 @@ namespace H2MLauncher.UI
 
             services.AddKeyedSingleton<IMasterServerService, H2MServersService>("H2M");
             services.AddKeyedSingleton<IMasterServerService, HMWMasterService>("HMW");
+            services.AddTransient<IMasterServerService, AggregatedMasterServerService>();
             services.AddHttpClient<HMWMasterService>()
                 .ConfigureHttpClient((sp, client) =>
                 {
@@ -164,8 +165,8 @@ namespace H2MLauncher.UI
             services.AddKeyedSingleton<IGameServerCommunicationService<IServerConnectionDetails>>("UDP", (sp, key) =>
                 sp.GetRequiredService<GameServerCommunicationService<IServerConnectionDetails>>());
 
-            services.AddTransient<IGameServerInfoService<IServerConnectionDetails>, 
-                TcpUdpDynamicGameServerInfoService<IServerConnectionDetails>>();
+            services.AddTransient<IGameServerInfoService<IServerConnectionDetails>>(sp => 
+                sp.GetRequiredKeyedService<IGameServerInfoService<IServerConnectionDetails>>("TCP"));
 
             services.AddSingleton<H2MCommunicationService>();
             services.AddSingleton<IEndpointResolver, CachedIpv6EndpointResolver>();

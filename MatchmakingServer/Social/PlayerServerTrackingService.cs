@@ -269,7 +269,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while handling player connetion update");
+            _logger.LogError(ex, "Error while handling player connection update");
         }
     }
 
@@ -285,7 +285,9 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     {
         try
         {
-            IReadOnlySet<ServerConnectionDetails> servers = await _masterServerService.GetServersAsync(cancellationToken);
+            List<ServerConnectionDetails> servers = await _masterServerService
+                .GetServersAsync(cancellationToken)
+                .ToListAsync(cancellationToken);
             HashSet<ServerConnectionDetails> serversMatchingIp = servers.Where(s => s.Ip == connectedServerInfo.Ip).ToHashSet();
 
             if (connectedServerInfo.PortGuess.HasValue)

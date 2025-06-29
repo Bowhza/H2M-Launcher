@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Reactive.Disposables;
 using System.Runtime.CompilerServices;
@@ -16,7 +17,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
     {
         private readonly HttpClient _httpClient;
         private readonly ILogger<HttpGameServerInfoService<TServer>> _logger;
-        private const int MAX_PARALLEL_REQUESTS = 15;
+        private const int MAX_PARALLEL_REQUESTS = 50;
 
         public HttpGameServerInfoService(ILogger<HttpGameServerInfoService<TServer>> logger, HttpClient httpClient)
         {
@@ -44,8 +45,23 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
             int requestTimeoutInMs = 10000,
             CancellationToken cancellationToken = default)
         {
+            if (servers.TryGetNonEnumeratedCount(out int count))
+            {
+                _logger.LogDebug(
+                    "Requesting HTTP server info for {numServers} servers (sendSynchronously: {sendSync}, requestTimeout: {requestTimeout})",
+                    count, sendSynchronously, requestTimeoutInMs);
+            }
+            else
+            {
+                _logger.LogDebug(
+                    "Requesting HTTP server info (sendSynchronously: {sendSync}, requestTimeout: {requestTimeout})",
+                    sendSynchronously, requestTimeoutInMs);
+            }
+
+            Activity activity = new("HttpGetInfoAsync");
             Channel<(TServer server, GameServerInfo? info)> channel = Channel.CreateUnbounded<(TServer, GameServerInfo?)>();
             ConcurrentBag<Task> continuations = [];
+            int responseCount = 0;
 
             Task requestTask = Parallel.ForEachAsync(
                 servers,
@@ -67,6 +83,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
                                         if (t.IsCompletedSuccessfully)
                                         {
                                             channel.Writer.TryWrite((server, t.Result));
+                                            Interlocked.Increment(ref responseCount);
                                         }
                                     },
                                     CancellationToken.None,
@@ -86,7 +103,16 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
                 }).ContinueWith((task) =>
                 {
                     return Task.WhenAll(continuations)
-                               .ContinueWith(t => channel.Writer.TryComplete(t.Exception));
+                               .ContinueWith(t =>
+                               {
+                                   channel.Writer.TryComplete(t.Exception);
+
+                                   _logger.LogDebug(
+                                       "Received HTTP server info from {numServersResponded} servers.", 
+                                       responseCount);
+
+                                   activity?.Dispose();
+                               });
                 });
 
             if (sendSynchronously)
@@ -100,10 +126,27 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
         public async Task GetInfoAsync(IEnumerable<TServer> servers, Action<ServerInfoEventArgs<TServer, GameServerInfo>> onInfoResponse,
             int timeoutInMs = 10000, CancellationToken cancellationToken = default)
         {
+            using Activity activity = new("HttpGetInfoAsync");
+
+            if (servers.TryGetNonEnumeratedCount(out int count))
+            {
+                _logger.LogDebug(
+                    "Requesting HTTP server info for {numServers} servers (requestTimeout: {requestTimeout})",
+                    count, timeoutInMs);
+            }
+            else
+            {
+                _logger.LogDebug(
+                    "Requesting HTTP server info (requestTimeout: {requestTimeout})",
+                    timeoutInMs);
+            }
+
             using CancellationTokenSource timeoutCancellation = new(timeoutInMs);
             using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(timeoutCancellation.Token, cancellationToken);
             try
             {
+                int responseCount = 0;
+
                 await Parallel.ForEachAsync(
                     servers,
                     new ParallelOptions()
@@ -113,13 +156,13 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
                     },
                     async (server, ct) =>
                     {
-
                         try
                         {
                             GameServerInfo? info = await GetInfoAsync(server, linkedCancellation.Token);
                             if (info is not null)
                             {
                                 onInfoResponse(new() { Server = server, ServerInfo = info });
+                                Interlocked.Increment(ref responseCount);
                             }
                         }
                         catch (OperationCanceledException)
@@ -127,10 +170,15 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
                             // canceled
                         }
                     }).ConfigureAwait(false);
+
+                _logger.LogDebug(
+                    "Received HTTP server info from {numServersResponded} servers.",
+                    responseCount);
             }
             catch (OperationCanceledException)
             {
                 // canceled
+                _logger.LogDebug("Requesting HTTP server info canceled.");
             }
             finally
             {
@@ -263,14 +311,7 @@ namespace H2MLauncher.Core.Networking.GameServer.HMW
                 return ReadInfoFromResponseAsync(response, server, timings, cancellationToken);
             }
             catch (OperationCanceledException) { return Task.FromResult<GameServerInfo?>(null); }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while requesting server info from {server}", server);
-
-                return Task.FromResult<GameServerInfo?>(null);
-            }
+            catch { return Task.FromResult<GameServerInfo?>(null); }
         }
-
-
     }
 }

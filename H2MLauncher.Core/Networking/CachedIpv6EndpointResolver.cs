@@ -13,6 +13,8 @@ namespace H2MLauncher.Core.Networking
         private readonly ILogger<CachedIpv6EndpointResolver> _logger = logger;
         private readonly IMemoryCache _memoryCache = memoryCache;
 
+        private const int MaxParallelDnsRequests = 200;
+
         private record struct IpEndpointCacheKey(string IpOrHostName, int Port) { }
 
         /// <summary>
@@ -91,7 +93,7 @@ namespace H2MLauncher.Core.Networking
                 new ParallelOptions()
                 {
                     CancellationToken = cancellationToken,
-                    MaxDegreeOfParallelism = 20
+                    MaxDegreeOfParallelism = MaxParallelDnsRequests
                 },
                 async (server, token) =>
                 {

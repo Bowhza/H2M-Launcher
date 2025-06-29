@@ -12,7 +12,7 @@ namespace H2MLauncher.Core.Services
         private readonly IErrorHandlingService _errorHandlingService = errorHandlingService;
         private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
 
-        public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
+        protected override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersCoreAsync(CancellationToken cancellationToken)
         {
             HttpClient httpClient = _httpClientFactory.CreateClient(nameof(HMWMasterService));
             HashSet<ServerConnectionDetails> servers = [];
