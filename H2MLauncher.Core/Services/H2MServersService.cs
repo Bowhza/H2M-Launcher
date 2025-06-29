@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Net;
+﻿using System.Net;
 
 using H2MLauncher.Core.IW4MAdmin;
 using H2MLauncher.Core.IW4MAdmin.Models;
@@ -21,7 +20,7 @@ namespace H2MLauncher.Core.Services
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
         private readonly IEndpointResolver _endpointResolver = endpointResolver;
 
-        public override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersAsync(CancellationToken cancellationToken)
+        protected override async Task<IReadOnlySet<ServerConnectionDetails>> FetchServersCoreAsync(CancellationToken cancellationToken)
         {
             IServiceScope scope = _serviceScopeFactory.CreateScope();
             try
@@ -51,7 +50,7 @@ namespace H2MLauncher.Core.Services
             }
             catch (Exception ex)
             {
-               _errorHandlingService.HandleException(ex, "Unable to fetch the servers details at this time. Please try again later.");
+                _errorHandlingService.HandleException(ex, "Unable to fetch the servers details at this time. Please try again later.");
             }
             finally
             {

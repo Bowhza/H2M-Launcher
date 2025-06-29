@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
+using System.Reactive.Linq;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Threading;
@@ -9,7 +10,6 @@ using System.Windows.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using CommunityToolkit.Mvvm.Messaging;
-using CommunityToolkit.Mvvm.Messaging.Messages;
 
 using H2MLauncher.Core;
 using H2MLauncher.Core.Game;
@@ -38,7 +38,7 @@ namespace H2MLauncher.UI.ViewModels;
 
 public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<SelectServerMessage>, IDisposable
 {
-    private readonly IMasterServerService _hmwMaster;
+    private readonly IMasterServerService _masterServerService;
     private readonly IGameServerInfoService<IServerConnectionDetails> _tcpGameServerCommunicationService;
     private readonly H2MCommunicationService _h2MCommunicationService;
     private readonly LauncherService _h2MLauncherService;
@@ -61,8 +61,6 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     private readonly IOnlineServices _onlineService;
     private readonly CachedServerDataService _serverDataService;
     private readonly H2MLauncherSettings _defaultSettings;
-
-    private IReadOnlyList<ServerData> _serverData = [];
 
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(UpdateLauncherCommand))]
@@ -136,7 +134,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
     public IAsyncRelayCommand EnterMatchmakingCommand { get; }
 
     public ServerBrowserViewModel(
-        [FromKeyedServices("HMW")] IMasterServerService hmwMasterService,
+        IMasterServerService masterServerService,
         [FromKeyedServices("TCP")] IGameServerInfoService<IServerConnectionDetails> tcpGameServerService,
         H2MCommunicationService h2MCommunicationService,
         LauncherService h2MLauncherService,
@@ -156,7 +154,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         IOnlineServices onlineService,
         SocialOverviewViewModel socialOverviewViewModel)
     {
-        _hmwMaster = hmwMasterService;
+        _masterServerService = masterServerService;
         _tcpGameServerCommunicationService = tcpGameServerService;
         _h2MCommunicationService = h2MCommunicationService;
         _h2MLauncherService = h2MLauncherService;
@@ -690,33 +688,15 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         UpdateStatusText = isUpToDate ? $"" : $"New version available: {_h2MLauncherService.LatestKnownVersion}!";
     }
 
-    private Task UpdateServerDataList(CancellationToken cancellationToken)
-    {
-        return Task.Run(async () =>
-        {
-            try
-            {
-                IReadOnlyList<ServerData>? serverData = await _serverDataService.GetServerDataList(cancellationToken);
-                if (serverData is not null)
-                {
-                    _serverData = serverData;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching server data from matchmaking server.");
-            }
-        });
-    }
-
     private async Task GetServerInfo(
         IGameServerInfoService<IServerConnectionDetails> service,
-        IEnumerable<ServerConnectionDetails> servers,
+        IList<ServerConnectionDetails> servers,
         CancellationToken cancellationToken)
     {
         IAsyncEnumerable<(IServerConnectionDetails, GameServerInfo?)> responses = await service.GetInfoAsync(
             servers,
             sendSynchronously: false,
+            requestTimeoutInMs: 2000,
             cancellationToken: cancellationToken);
 
         // Start by sending info requests to the game servers
@@ -753,7 +733,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         await _loadCancellation.CancelAsync();
 
         _loadCancellation = new();
-        using CancellationTokenSource timeoutCancellation = new(10000);
+        using CancellationTokenSource timeoutCancellation = new(5000);
         using CancellationTokenSource linkedCancellation = CancellationTokenSource.CreateLinkedTokenSource(
             _loadCancellation.Token, timeoutCancellation.Token);
 
@@ -766,16 +746,16 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
             FavouritesTab.Servers.Clear();
             RecentsTab.Servers.Clear();
 
-            // Get servers from the master
-            IReadOnlySet<ServerConnectionDetails> hmwServers = await _hmwMaster.FetchServersAsync(linkedCancellation.Token);
+            // Get servers from the master(s)
 
-            Task hmwServerInfoTask = GetServerInfo(_tcpGameServerCommunicationService, hmwServers, linkedCancellation.Token);
+            Task[] serverInfoTasks = await _masterServerService.FetchServersAsync(linkedCancellation.Token)
+                .ToObservable()
+                .Buffer(TimeSpan.FromSeconds(0.5))
+                .Where(batch => batch.Count > 0)
+                .Select(batch => GetServerInfo(_tcpGameServerCommunicationService, batch, linkedCancellation.Token))
+                .ToArray();
 
-            // artificial delay
-            await Task.WhenAny(hmwServerInfoTask, Task.Delay(1000));
-
-            // Start fetching server data in the background
-            _ = UpdateServerDataList(linkedCancellation.Token);
+            await Task.WhenAll(serverInfoTasks);
 
             StatusText = "Ready";
         }
@@ -796,7 +776,7 @@ public partial class ServerBrowserViewModel : ObservableRecipient, IRecipient<Se
         List<RecentServerInfo> userRecents = GetRecentsFromSettings();
 
         bool isFavorite = userFavorites.Any(fav => fav.ServerIp == server.Ip && fav.ServerPort == server.Port);
-        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);        
+        RecentServerInfo? recentInfo = userRecents.FirstOrDefault(recent => recent.ServerIp == server.Ip && recent.ServerPort == server.Port);
 
         ServerViewModel serverViewModel = new()
         {
