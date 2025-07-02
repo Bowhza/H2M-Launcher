@@ -13,9 +13,9 @@ namespace H2MLauncher.Core.Services
 
         public async IAsyncEnumerable<ServerConnectionDetails> FetchServersAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            var servers = await FetchServersCoreAsync(cancellationToken);
+            IReadOnlySet<ServerConnectionDetails> servers = await FetchServersCoreAsync(cancellationToken);
 
-            foreach (var server in servers)
+            foreach (ServerConnectionDetails server in servers)
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
