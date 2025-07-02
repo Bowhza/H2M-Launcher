@@ -38,7 +38,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
     private readonly IWritableOptions<H2MLauncherSettings> _settings;
 
     private readonly IServerJoinService _serverJoinService;
-    private readonly IMasterServerService _masterServerService;
     private readonly IGameConfigProvider _gameConfigProvider;
 
     private readonly ILogger<SocialClient> _logger;
@@ -82,7 +81,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         IOnlineServices onlineService,
         IFriendshipApiClient friendshipApiClient,
         IServerJoinService serverJoinService,
-        [FromKeyedServices("HMW")] IMasterServerService masterServerService,
         ILogger<SocialClient> logger,
         HubConnection hubConnection,
         IWritableOptions<H2MLauncherSettings> settings) : base(hubConnection)
@@ -95,7 +93,6 @@ public sealed class SocialClient : HubClient<ISocialHub>, ISocialClient, IDispos
         _clientContext = onlineService.ClientContext;
         _friendshipApiClient = friendshipApiClient;
         _serverJoinService = serverJoinService;
-        _masterServerService = masterServerService;
         _logger = logger;
         _settings = settings;
 
