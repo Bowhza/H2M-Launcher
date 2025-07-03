@@ -227,7 +227,7 @@
     <!-- Status Bar -->
     <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
         <Setter Property="Foreground" Value="{DynamicResource BrushNeutral200}" />
-        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Background" Value="{DynamicResource TransparentDark600}"/>
     </Style>
 
     <Style TargetType="{x:Type Button}">
@@ -1067,7 +1067,7 @@
 
     <Style x:Key="ServerDataGridStyle" TargetType="DataGrid">
         <Setter Property="RowBackground" Value="Transparent"/>
-        <Setter Property="Background" Value="{DynamicResource DialogBackground}"/>
+        <Setter Property="Background" Value="{DynamicResource TransparentDark900}"/>
         <Setter Property="Opacity" Value="0.9"/>
         <Setter Property="BorderThickness" Value="0"/>
     </Style>

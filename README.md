@@ -1,13 +1,13 @@
-# H2M Launcher
+# HMW Hub: Queue, Party, Connect (formerly H2M-Launcher)
 
 **This launcher aims to provide features like server queueing, friends and party system to HorizonMW. The project originally started out to address some issues of the in-game server browser in the legacy H2M.**
 
 [<img src="https://img.shields.io/github/v/release/Bowhza/H2M-Launcher">](https://github.com/Bowhza/H2M-Launcher/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Bowhza/H2M-Launcher/total)
 
-### **New Discord for H2M Launcher**
+### **Discord for HMW Hub**
 
-**Join if you want to stay up-to-date with the launcher, have questions, suggestions, or looking for people to play H2M with.**
+**Join if you want to stay up-to-date with the launcher, have questions, suggestions, or looking for people to play HMW with.**
 
 [<img src="https://img.shields.io/discord/1276483126041776192?logo=discord&logoColor=%23FFFFFF&label=Discord&labelColor=%235865F2&link=https%3A%2F%2Fdiscord.gg%2FNeBYKxq5Ru">](https://discord.com/invite/NeBYKxq5Ru)
 
@@ -122,9 +122,9 @@ Pending friend requests will appear in the **Requests** tab and can be accepted 
 ### Settings & Other
 
 - Auto-Updater **(Click on the new version available text to download latest release).**
-- Settings menu to set the master server URL or set the directory of the H2M-Mod Executable.
+- Settings menu to set the master server URL or set the directory of the HMW-Mod Executable.
 - Toggle game communication and server queueing.
-- Change keybindings for reconnect and refresh.
+- Change key bindings for reconnect and refresh.
 
 <img src="./Images/Settings.png">
 
@@ -149,7 +149,7 @@ Pending friend requests will appear in the **Requests** tab and can be accepted 
 
 | Keyboard/Mouse    | Description                              |
 | :---------------- | :--------------------------------------- |
-| `ESC`             | Close the H2M Launcher.                  |
+| `ESC`             | Close the HMW Hub.                       |
 | `TAB`             | Navigate between launcher controls.      |
 | `F5`              | Refresh the server list.                 |
 | `ENTER`           | Join the selected server.                |
@@ -208,7 +208,7 @@ Go to your Windows Settings and search for Clear Clipboard.
 
 **Answer**: Delete the `launchersettings.json` file located at `C:\Users\<YourUserName>\AppData\Local\BetterH2MLauncher`. After deleting the json file, next time you launch the exe it should be created again.
 
-### 7. Game is not detected / "Error launching h2m-mod"
+### 7. Game is not detected / "Error launching hmw-mod"
 
 **Answer**: The mod executable may require administrator privileges to start, so the launcher fails to start or detect it.
 Try to start the launcher with admin privileges too.

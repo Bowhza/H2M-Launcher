@@ -20,8 +20,8 @@
         ResizeMode="CanResizeWithGrip"
         MinHeight="576"
         MinWidth="1030"
-        Width="1030"
-        Height="576"
+        Width="1280"
+        Height="720"
         Background="Transparent"
         mc:Ignorable="d"
         MouseDown="Window_MouseDown"
@@ -29,7 +29,7 @@
         StateChanged="Window_StateChanged"
         Icon="Assets/icon.ico"
         xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
-        Title="Better H2M-Launcher">
+        Title="HMW Hub">
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding CheckUpdateStatusCommand}"/>
@@ -167,7 +167,7 @@
                     </Grid.ColumnDefinitions>
 
                     <!-- Title -->
-                    <TextBlock Grid.Column="0" Text="H2M Launcher" FontSize="30" FontWeight="Bold" Style="{DynamicResource TitleStyle}"/>
+                    <TextBlock Grid.Column="0" Text="HMW Hub" FontSize="30" FontWeight="Bold" Style="{DynamicResource TitleStyle}"/>
 
                     <!-- Socials -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Margin="10,5,0,0">
@@ -566,7 +566,7 @@
                     </controls:SocialOverviewControl>
                 </Grid>
 
-                <StatusBar Grid.Row="3" Style="{DynamicResource MainStatusBarStyle}">
+                <StatusBar Grid.Row="3" Style="{DynamicResource MainStatusBarStyle}" Background="Transparent">
                     <StatusBar.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Grid>
