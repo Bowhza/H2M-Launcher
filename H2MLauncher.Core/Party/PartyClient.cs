@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics.CodeAnalysis;
 
+using AsyncKeyedLock;
+
 using H2MLauncher.Core.Game;
 using H2MLauncher.Core.Joining;
 using H2MLauncher.Core.Matchmaking;
@@ -21,7 +23,7 @@ namespace H2MLauncher.Core.Party
     public sealed class PartyClient : HubClient<IPartyHub>, IPartyClient, IDisposable
     {
         private readonly IDisposable _clientRegistration;
-        private readonly SemaphoreSlim _joinCreateLock = new(1, 1);
+        private readonly AsyncNonKeyedLocker _joinCreateLock = new(1);
 
         private readonly IServerJoinService _serverJoinService;
         private readonly IPlayerNameProvider _playerNameProvider;
@@ -147,7 +149,7 @@ namespace H2MLauncher.Core.Party
 
         public async Task<string?> CreateParty()
         {
-            await _joinCreateLock.WaitAsync();
+            using var _ = await _joinCreateLock.LockAsync().ConfigureAwait(false);
             try
             {
                 if (!await StartConnection())
@@ -172,94 +174,86 @@ namespace H2MLauncher.Core.Party
                 _logger.LogError(ex, "Error while creating party");
                 return null;
             }
-            finally
-            {
-                _joinCreateLock.Release();
-            }
         }
 
         public async Task<bool> JoinParty(string partyId)
         {
-            await _joinCreateLock.WaitAsync();
-            try
+            using (await _joinCreateLock.LockAsync().ConfigureAwait(false))
             {
-                if (!await StartConnection())
+                try
                 {
+                    if (!await StartConnection())
+                    {
+                        return false;
+                    }
+
+                    using var _ = _logger.BeginPropertyScope(partyId);
+                    _logger.LogDebug("Joining party...");
+
+                    PartyInfo? party = await Hub.JoinParty(partyId);
+                    if (party is null)
+                    {
+                        _logger.LogDebug("Could not join party");
+                        return false;
+                    }
+
+                    _currentParty = party;
+                    _isPartyLeader = false;
+                    PartyChanged?.Invoke();
+
+                    _logger.LogInformation("Joined party.");
+
+                    // make sure matchmaking service is connected to allow party matchmaking
+                    await _matchmakingService.StartConnection();
+
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error while joining party");
                     return false;
                 }
-
-                using var _ = _logger.BeginPropertyScope(partyId);
-                _logger.LogDebug("Joining party...");
-
-                PartyInfo? party = await Hub.JoinParty(partyId);
-                if (party is null)
-                {
-                    _logger.LogDebug("Could not join party");
-                    return false;
-                }
-
-                _currentParty = party;
-                _isPartyLeader = false;
-                PartyChanged?.Invoke();
-
-                _logger.LogInformation("Joined party.");
-
-                // make sure matchmaking service is connected to allow party matchmaking
-                await _matchmakingService.StartConnection();
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while joining party");
-                return false;
-            }
-            finally
-            {
-                _joinCreateLock.Release();
             }
         }
 
         public async Task LeaveParty()
         {
-            await _joinCreateLock.WaitAsync();
-            try
+            using (await _joinCreateLock.LockAsync().ConfigureAwait(false))
             {
-                if (_currentParty is null)
+                try
                 {
-                    return;
-                }
+                    if (_currentParty is null)
+                    {
+                        return;
+                    }
 
-                if (!await StartConnection())
+                    if (!await StartConnection())
+                    {
+                        return;
+                    }
+
+                    if (!await Hub.LeaveParty())
+                    {
+                        _logger.LogWarning("Could not leave party {partyId}", _currentParty?.PartyId);
+                    }
+
+                    bool wasPartyLeader = _isPartyLeader;
+
+                    _currentParty = null;
+                    _isPartyLeader = false;
+                    PartyChanged?.Invoke();
+
+                    _logger.LogDebug("Party left");
+
+                    if (_autoCreateParty && !wasPartyLeader)
+                    {
+                        _ = CreateParty();
+                    }
+                }
+                catch (Exception ex)
                 {
-                    return;
+                    _logger.LogError(ex, "Error while leaving party");
                 }
-
-                if (!await Hub.LeaveParty())
-                {
-                    _logger.LogWarning("Could not leave party {partyId}", _currentParty?.PartyId);
-                }
-
-                bool wasPartyLeader = _isPartyLeader;
-
-                _currentParty = null;
-                _isPartyLeader = false;
-                PartyChanged?.Invoke();
-
-                _logger.LogDebug("Party left");
-
-                if (_autoCreateParty && !wasPartyLeader)
-                {
-                    _ = CreateParty();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while leaving party");
-            }
-            finally
-            {
-                _joinCreateLock.Release();
             }
         }
 

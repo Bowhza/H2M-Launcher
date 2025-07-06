@@ -1,4 +1,6 @@
-﻿using H2MLauncher.Core.Matchmaking.Models;
+﻿using AsyncKeyedLock;
+
+using H2MLauncher.Core.Matchmaking.Models;
 
 using MatchmakingServer.Database.Migrations;
 
@@ -8,7 +10,7 @@ public class PlayerStore
 {
     // Maps user id to player and connections
     private readonly Dictionary<string, PlayerConnectionInfo> _connectedPlayers = [];
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly AsyncNonKeyedLocker _semaphore = new(1);
 
     // Maps user id to last connection time
     private readonly Dictionary<string, DateTimeOffset> _lastConnections = [];
@@ -28,111 +30,76 @@ public class PlayerStore
 
     public async Task<Player> GetOrAdd(string userId, string userName, string connectionId, string playerName)
     {
-        await _semaphore.WaitAsync();
-        try
+        using var _ = await _semaphore.LockAsync().ConfigureAwait(false);
+        if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo connectionInfo))
         {
-            if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo connectionInfo))
-            {
-                connectionInfo.Connections.Add(connectionId);
-                _lastConnections[userId] = DateTimeOffset.Now;
-                return connectionInfo.Player;
-            }
-
-            CancellationTokenSource disconnectCancellation = new();
-
-            Player player = new()
-            {
-                Id = userId,
-                UserName = userName,
-                Name = playerName,
-                State = PlayerState.Connected,
-                DisconnectedToken = disconnectCancellation.Token,
-            };
-            
-            connectionInfo = new(player)
-            {
-                DisconnectCancellation = disconnectCancellation,
-                Connections = { connectionId }
-            };            
-
-            _connectedPlayers.TryAdd(userId, connectionInfo);
+            connectionInfo.Connections.Add(connectionId);
             _lastConnections[userId] = DateTimeOffset.Now;
+            return connectionInfo.Player;
+        }
 
-            return player;
-        }
-        finally
+        CancellationTokenSource disconnectCancellation = new();
+
+        Player player = new()
         {
-            _semaphore.Release();
-        }
+            Id = userId,
+            UserName = userName,
+            Name = playerName,
+            State = PlayerState.Connected,
+            DisconnectedToken = disconnectCancellation.Token,
+        };
+
+        connectionInfo = new(player)
+        {
+            DisconnectCancellation = disconnectCancellation,
+            Connections = { connectionId }
+        };
+
+        _connectedPlayers.TryAdd(userId, connectionInfo);
+        _lastConnections[userId] = DateTimeOffset.Now;
+
+        return player;
     }
 
     public async Task<Player?> TryRemove(string userId, string connectionId)
     {
-        await _semaphore.WaitAsync();
-        try
+        using var _ = await _semaphore.LockAsync().ConfigureAwait(false);
+        if (!_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo connectionInfo))
         {
-            if (!_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo connectionInfo))
-            {
-                return null;
-            }
-
-            connectionInfo.Connections.Remove(connectionId);
-            if (connectionInfo.Connections.Count == 0)
-            {
-                _connectedPlayers.Remove(userId);
-                connectionInfo.Player.State = PlayerState.Disconnected;
-                await connectionInfo.DisconnectCancellation.CancelAsync();
-            }
-
-            return connectionInfo.Player;
+            return null;
         }
-        finally
+
+        connectionInfo.Connections.Remove(connectionId);
+        if (connectionInfo.Connections.Count == 0)
         {
-            _semaphore.Release();
+            _connectedPlayers.Remove(userId);
+            connectionInfo.Player.State = PlayerState.Disconnected;
+            await connectionInfo.DisconnectCancellation.CancelAsync();
         }
+
+        return connectionInfo.Player;
     }
 
     public async Task<IList<Player>> GetAllPlayers()
     {
-        await _semaphore.WaitAsync();
-        try
-        {
-            return _connectedPlayers.Values.Select(connectionInfo => connectionInfo.Player).ToList();
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+        using var _ = await _semaphore.LockAsync().ConfigureAwait(false);
+        return _connectedPlayers.Values.Select(connectionInfo => connectionInfo.Player).ToList();
     }
 
     public async Task<Player?> TryGet(string userId)
     {
-        await _semaphore.WaitAsync();
-        try
+        using var _ = await _semaphore.LockAsync().ConfigureAwait(false);
+        if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo info))
         {
-            if (_connectedPlayers.TryGetValue(userId, out PlayerConnectionInfo info))
-            {
-                return info.Player;
-            }
+            return info.Player;
+        }
 
-            return null;
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+        return null;
     }
 
     public async Task Clear()
     {
-        await _semaphore.WaitAsync();
-        try
-        {
-            _connectedPlayers.Clear();
-        }
-        finally
-        {
-            _semaphore.Release();
-        }
+        using var _ = await _semaphore.LockAsync().ConfigureAwait(false);
+        _connectedPlayers.Clear();
     }
 }

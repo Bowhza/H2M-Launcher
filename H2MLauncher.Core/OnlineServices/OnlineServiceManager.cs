@@ -1,4 +1,6 @@
-﻿using Flurl;
+﻿using AsyncKeyedLock;
+
+using Flurl;
 
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.OnlineServices.Authentication;
@@ -21,7 +23,7 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
     private readonly ILogger<OnlineServiceManager> _logger;
     private readonly IOptions<MatchmakingSettings> _options;
     private readonly AuthenticationService _authenticationService;
-    private readonly SemaphoreSlim _authenticationLock = new(1, 1);
+    private readonly AsyncNonKeyedLocker _authenticationLock = new(1);
 
     private readonly List<CustomHubConnection> _hubConnections = [];
 
@@ -105,8 +107,8 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
     private async Task<string?> GetAccessTokenAsync()
     {
         // Use a lock to prevent multiple hubs from logging in at the same time, leading to errors
-        await _authenticationLock.WaitAsync();
-        try
+
+        using (await _authenticationLock.LockAsync().ConfigureAwait(false))
         {
             if (ClientContext.IsAuthenticated)
             {
@@ -115,10 +117,6 @@ public sealed class OnlineServiceManager : IOnlineServices, IAsyncDisposable
             }
 
             return await _authenticationService.LoginAsync();
-        }
-        finally
-        {
-            _authenticationLock.Release();
         }
     }
 
