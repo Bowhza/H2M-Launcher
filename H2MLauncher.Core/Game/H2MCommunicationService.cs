@@ -257,7 +257,7 @@ namespace H2MLauncher.Core.Game
             return ExecuteCommandAsync(["disconnect"]);
         }
 
-        private async Task<bool> ExecuteCommandAsync(string[] commands, bool bringGameWindowToForeground = true)
+        public async Task<bool> ExecuteCommandAsync(string[] commands, bool bringGameWindowToForeground = true)
         {
             Process? h2mModProcess = FindH2MModProcess();
             if (h2mModProcess == null)

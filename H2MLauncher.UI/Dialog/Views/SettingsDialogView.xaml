@@ -7,6 +7,8 @@
              mc:Ignorable="d" 
              xmlns:vm="clr-namespace:H2MLauncher.UI.ViewModels" 
              xmlns:controls="clr-namespace:H2MLauncher.UI.View.Controls" 
+             xmlns:converters="clr-namespace:H2MLauncher.UI.Converters" 
+             xmlns:s="clr-namespace:System;assembly=mscorlib" 
              xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
              MinHeight="250" MinWidth="300"
              Height="Auto"
@@ -15,6 +17,12 @@
              d:Foreground="{DynamicResource TextLight}"
              d:Background="{DynamicResource DialogBackground}">
     <UserControl.Resources>
+        <converters:DefaultValueConverter x:Key="UnsetFpsLimitConverter">
+            <converters:DefaultValueConverter.DefaultValue>
+                <s:Int32>-1</s:Int32>
+            </converters:DefaultValueConverter.DefaultValue>
+        </converters:DefaultValueConverter>
+        
         <Style TargetType="{ x:Type ToggleButton}" BasedOn="{StaticResource {x:Type ToggleButton}}" x:Key="YesNoToggleButtonStyle">
             <Style.Triggers>
                 <Trigger Property="IsChecked" Value="True">
@@ -55,6 +63,8 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -77,9 +87,9 @@
                     <TextBlock Text="📂" Padding="0,0,0,2" FontSize="13"/>
                 </Button>
                 <TextBox Text="{Binding MwrLocation}" BorderThickness="0" IsReadOnly="True" 
-                         FocusVisualStyle="{x:Null}" Foreground="{DynamicResource TextBoxForegroundDark}" Margin="0,3" Background="Transparent">
+                         FocusVisualStyle="{x:Null}" Margin="0,3" Background="Transparent">
                     <TextBox.Style>
-                        <Style TargetType="TextBox">
+                        <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                             <Style.Triggers>
                                 <Trigger Property="IsFocused" Value="True">
                                     <Setter Property="BorderThickness" Value="0"/>
@@ -104,36 +114,54 @@
         </Border>
 
         <CheckBox Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" 
-              Margin="0,7" 
-              VerticalAlignment="Center"
-              Content="Enable game communication" IsChecked="{Binding GameCommunicationEnabled}"
+                  Margin="0,7" 
+                  VerticalAlignment="Center"
+                  Content="Enable game communication" IsChecked="{Binding GameCommunicationEnabled}"
               ToolTip="Enables communication with the game by reading certain values (such as connection state) from the game's memory. This is required for certain features."/>
 
         <CheckBox Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" 
-              Margin="0,7" 
-              VerticalAlignment="Center"
-              Content="Enable server queueing" IsChecked="{Binding ServerQueueingEnabled}" IsEnabled="{Binding CanEnableServerQueueing}"
-              ToolTip="Enables automatically joining into a queue when a server is full (or assumed to be based on predefined privileged slots). Requires 'Game Communication' to be enabled."/>
+                  Margin="0,7" 
+                  VerticalAlignment="Center"
+                  Content="Enable server queueing" IsChecked="{Binding ServerQueueingEnabled}" IsEnabled="{Binding CanEnableServerQueueing}"
+                  ToolTip="Enables automatically joining into a queue when a server is full (or assumed to be based on predefined privileged slots). Requires 'Game Communication' to be enabled."/>
 
-        <Grid Grid.Row="6" Grid.ColumnSpan="2" Margin="0,25,0,15">
+        <CheckBox Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" 
+                  Margin="0,7" 
+                  VerticalAlignment="Center"
+                  Content="Enable FPS limiter" IsChecked="{Binding FpsLimiterEnabled}" IsEnabled="{Binding GameCommunicationEnabled}"
+                  ToolTip="Enables automatically limiting FPS when in main menu. Requires 'Game Communication' to be enabled."/>
+
+        <StackPanel Orientation="Horizontal" Grid.Row="7" Grid.Column="1" IsEnabled="{Binding FpsLimiterEnabled}" Margin="5,5,0,0">
+            <Label Content="In Menu:" VerticalAlignment="Center" Margin="0,0,5,0" ToolTip="The FPS limit applied while in the game's main menu."/>
+            <TextBox x:Name="MenuFpsLimit" Text="{Binding LimitedFpsLimit, UpdateSourceTrigger=PropertyChanged}" Width="35" Margin="0,0,10,0" VerticalAlignment="Center" 
+                     Padding="3"/>
+
+            <Label Content="General:" VerticalAlignment="Center" Margin="0,0,5,0" ToolTip="The FPS limit applied while inside a match."/>
+            <TextBox x:Name="GeneralFpsLimit" 
+                     Text="{Binding GeneralFpsLimit, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource UnsetFpsLimitConverter}, ConverterParameter=Auto}" 
+                     Width="35" Margin="0,0,10,0" VerticalAlignment="Center" 
+                     Padding="3"/>
+        </StackPanel>
+
+        <Grid Grid.Row="8" Grid.ColumnSpan="2" Margin="0,25,0,15">
             <Separator Grid.Row="5" Grid.ColumnSpan="2" VerticalAlignment="Center"/>
             <TextBlock Text="Key Bindings" FontWeight="Bold" FontSize="14" Grid.Row="5" Grid.ColumnSpan="2"
-                   HorizontalAlignment="Center" Background="{DynamicResource DialogBackground}" Padding="12,0" Margin="0,-2,0,0"/>
+                       HorizontalAlignment="Center" Background="{DynamicResource DialogBackground}" Padding="12,0" Margin="0,-2,0,0"/>
         </Grid>
 
-        <TextBlock Text="Reconnect:" Grid.Row="7" Margin="15,10" HorizontalAlignment="Right"/>
-        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.Reconnect}" Grid.Row="7" Grid.Column="1" Height="26"/>
+        <TextBlock Text="Reconnect:" Grid.Row="9" Margin="15,10" HorizontalAlignment="Right"/>
+        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.Reconnect}" Grid.Row="9" Grid.Column="1" Height="26"/>
 
-        <TextBlock Text="Disconnect:" Grid.Row="8" Margin="15,10" HorizontalAlignment="Right"/>
-        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.Disconnect}" Grid.Row="8" Grid.Column="1" Height="26"/>
+        <TextBlock Text="Disconnect:" Grid.Row="10" Margin="15,10" HorizontalAlignment="Right"/>
+        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.Disconnect}" Grid.Row="10" Grid.Column="1" Height="26"/>
 
-        <TextBlock Text="Refresh:" Grid.Row="9" Margin="15,10" HorizontalAlignment="Right"/>
-        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.RefreshServers}" Grid.Row="9" Grid.Column="1" Height="26"/>
+        <TextBlock Text="Refresh:" Grid.Row="11" Margin="15,10" HorizontalAlignment="Right"/>
+        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.RefreshServers}" Grid.Row="11" Grid.Column="1" Height="26"/>
 
-        <TextBlock Text="Toggle Overlay:" Grid.Row="10" Margin="15,10" HorizontalAlignment="Right"/>
-        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.ToggleOverlay}" Grid.Row="10" Grid.Column="1" Height="26"/>
+        <TextBlock Text="Toggle Overlay:" Grid.Row="12" Margin="15,10" HorizontalAlignment="Right"/>
+        <controls:ShortcutTextBox DataContext="{Binding Shortcuts.ToggleOverlay}" Grid.Row="12" Grid.Column="1" Height="26"/>
 
-        <Grid Grid.Row="11" Grid.ColumnSpan="2" Margin="0,20,0,15">
+        <Grid Grid.Row="13" Grid.ColumnSpan="2" Margin="0,20,0,15">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>

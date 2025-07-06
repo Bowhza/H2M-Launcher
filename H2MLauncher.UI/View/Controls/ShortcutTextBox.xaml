@@ -10,7 +10,7 @@
     <Border Background="{Binding Background, ElementName=root}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
         <Border.Style>
             <Style TargetType="Border">
-                <Setter Property="BorderBrush" Value="{DynamicResource BrushNeutral400}"/>
+                <Setter Property="BorderBrush" Value="{DynamicResource TextBoxBorderBrush}"/>
                 <Setter Property="BorderThickness" Value="1"/>
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsEditing}" Value="True">
@@ -25,7 +25,7 @@
                       Width="40" DockPanel.Dock="Right" Margin="2,0,0,0">
                 <TextBlock Text="{Binding IsEditing, Converter={StaticResource BoolToEditConverter}}" Padding="0,0,0,2" FontSize="13">
                     <TextBlock.Style>
-                        <Style TargetType="TextBlock">
+                        <Style TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsEditing}" Value="True">
                                     <Setter Property="Foreground" Value="#a7171a"/>
@@ -40,7 +40,7 @@
                  PreviewKeyDown="ShortcutTextBox_PreviewKeyDown" 
                  PreviewKeyUp="ShortcutTextBox_PreviewKeyUp">
                 <TextBox.Style>
-                    <Style TargetType="TextBox">
+                    <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
                         <Setter Property="Foreground" Value="{DynamicResource TextBoxForegroundDark}" />
                         <Style.Triggers>
                             <Trigger Property="IsFocused" Value="True">

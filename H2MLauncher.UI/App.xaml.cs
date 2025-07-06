@@ -82,6 +82,7 @@ namespace H2MLauncher.UI
 
             CustomizationManager = ServiceProvider.GetRequiredService<CustomizationManager>();
             ServiceProvider.GetRequiredService<ThemeFileWatcher>();
+            ServiceProvider.GetRequiredService<FpsLimiter>();
 
             MainWindow mainWindow = ServiceProvider.GetRequiredService<MainWindow>();
             mainWindow.Show();
@@ -176,6 +177,7 @@ namespace H2MLauncher.UI
             services.AddSingleton<IPlayerNameProvider, ConfigPlayerNameProvider>();
             services.AddSingleton<IGameConfigProvider, GameDirectoryService>(sp => sp.GetRequiredService<GameDirectoryService>());
             services.AddSingleton<IMapsProvider, InstalledMapsProvider>();
+            services.AddSingleton<FpsLimiter>();
             services.AddMemoryCache();
 
             services.AddTransient<IClipBoardService, ClipBoardService>();
