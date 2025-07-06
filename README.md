@@ -229,3 +229,8 @@ dotnet publish -r win-x64 /p:PublishSingleFile=true /p:IncludeNativeLibrariesFor
 ```
 
 3. The executable should now be found under `bin/Release/net8.0/win-x64/publish` and you can copy it into your game directory from there.
+
+## 📸 Credits
+
+- **Background image edited by [JXNPlays](https://www.youtube.com/@jxnplays)** <br/>
+Based on [this original wallpaper](https://www.reddit.com/r/CallOfDuty/comments/4hhmc2/made_a_wallpaper_out_of_my_mwr_cover/)
