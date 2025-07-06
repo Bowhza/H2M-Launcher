@@ -54,7 +54,7 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     private readonly ServerStore _serverStore;
     private readonly ILogger<PlayerServerTrackingService> _logger;
 
-    private readonly SemaphoreSlim _serverCheckLock = new(1, 1);
+    private readonly AsyncNonKeyedLocker _serverCheckLock = new(1);
     private readonly AsyncKeyedLocker<string> _playerLock = new();
 
     private readonly ConcurrentHashSet<GameServer> _trackedGameServers = [];
@@ -124,83 +124,76 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
     /// </summary>
     public async Task CheckServers(CancellationToken cancellationToken)
     {
-        await _serverCheckLock.WaitAsync(cancellationToken);
-        try
+        using var _ = await _serverCheckLock.LockAsync(cancellationToken).ConfigureAwait(false);
+        _logger.LogInformation("Checking tracked servers ({numTrackedServers}) and players ({numTrackedPlayers})...",
+            _trackedGameServers.Count, _trackedPlayers.Count);
+
+        List<GameServer> refreshedServers = await _gameServerService
+            .GetServerInfoAsync(
+                gameServers: _trackedGameServers,
+                maxAge: TrackingServerStatusMaxAge,
+                cancellationToken: cancellationToken)
+            .ToListAsync(cancellationToken);
+
+        _logger.LogInformation("Refreshed info for tracked servers ({numRefreshed} / {numTrackedServers} responding).",
+            refreshedServers.Count, _trackedGameServers.Count);
+
+        foreach (GameServer server in _trackedGameServers)
         {
-            _logger.LogInformation("Checking tracked servers ({numTrackedServers}) and players ({numTrackedPlayers})...",
-                _trackedGameServers.Count, _trackedPlayers.Count);
+            if (server.LastServerInfo is null) continue;
 
-            List<GameServer> refreshedServers = await _gameServerService
-                .GetServerInfoAsync(
-                    gameServers: _trackedGameServers,
-                    maxAge: TrackingServerStatusMaxAge,
-                    cancellationToken: cancellationToken)
-                .ToListAsync(cancellationToken);
-
-            _logger.LogInformation("Refreshed info for tracked servers ({numRefreshed} / {numTrackedServers} responding).",
-                refreshedServers.Count, _trackedGameServers.Count);
-
-            foreach (GameServer server in _trackedGameServers)
+            // Verify server is still online
+            if (server.LastServerInfoTimestamp < DateTimeOffset.Now.Subtract(ServerStatusTimeout))
             {
-                if (server.LastServerInfo is null) continue;
+                // Server is not responding with status anymore -> remove
+                _logger.LogDebug("Declaring server {server} timed out", server);
+                await RemoveServer(server, true);
+                ServerTimeout?.Invoke(server);
+                continue;
+            }
 
-                // Verify server is still online
-                if (server.LastServerInfoTimestamp < DateTimeOffset.Now.Subtract(ServerStatusTimeout))
+            if (server.KnownPlayers.Count == 0)
+            {
+                _logger.LogDebug("Removing tracked server {server} because of no players.", server);
+                await RemoveServer(server, false);
+                continue;
+            }
+
+            // Verify players still on server
+            foreach (Player player in server.KnownPlayers.Keys)
+            {
+                if (!server.LastServerInfo.Players.Any(p => p.PlayerName == player.Name))
                 {
-                    // Server is not responding with status anymore -> remove
-                    _logger.LogDebug("Declaring server {server} timed out", server);
-                    await RemoveServer(server, true);
-                    ServerTimeout?.Invoke(server);
+                    // Player not on server anymore (TODO: check what happens with name changes)
+                    await RemovePlayerFromServer(player, server);
                     continue;
                 }
 
-                if (server.KnownPlayers.Count == 0)
+                if (player.GameStatus is not GameStatus.InMatch || player.State is PlayerState.Disconnected)
                 {
-                    _logger.LogDebug("Removing tracked server {server} because of no players.", server);
-                    await RemoveServer(server, false);
-                    continue;
-                }
+                    // We are tracking this player despite the client reporting not being in a match
+                    // or after he disconnected, so check if we should stop.
 
-                // Verify players still on server
-                foreach (Player player in server.KnownPlayers.Keys)
-                {
-                    if (!server.LastServerInfo.Players.Any(p => p.PlayerName == player.Name))
+                    if (!_trackedPlayers.TryGetValue(player, out TrackedPlayerInfo trackedPlayerInfo))
                     {
-                        // Player not on server anymore (TODO: check what happens with name changes)
+                        // Player is not tracked anymore? Remove him for consistency
                         await RemovePlayerFromServer(player, server);
                         continue;
                     }
 
-                    if (player.GameStatus is not GameStatus.InMatch || player.State is PlayerState.Disconnected)
+                    TimeSpan maxTrackingTimeAdjusted = MaxTrackingTimeAfterDisconnect * trackedPlayerInfo.MatchConfidenceScore;
+
+                    if (trackedPlayerInfo.LastConnectionInfoTimestamp < DateTimeOffset.Now.Subtract(maxTrackingTimeAdjusted))
                     {
-                        // We are tracking this player despite the client reporting not being in a match
-                        // or after he disconnected, so check if we should stop.
-
-                        if (!_trackedPlayers.TryGetValue(player, out TrackedPlayerInfo trackedPlayerInfo))
-                        {
-                            // Player is not tracked anymore? Remove him for consistency
-                            await RemovePlayerFromServer(player, server);
-                            continue;
-                        }
-
-                        TimeSpan maxTrackingTimeAdjusted = MaxTrackingTimeAfterDisconnect * trackedPlayerInfo.MatchConfidenceScore;
-
-                        if (trackedPlayerInfo.LastConnectionInfoTimestamp < DateTimeOffset.Now.Subtract(maxTrackingTimeAdjusted))
-                        {
-                            // Max tracking time exceeded so removing the player because we do not have enough confidence to say
-                            // he is still on there.
-                            await RemovePlayerFromServer(player, server, isTimeout: true);
-                        }
+                        // Max tracking time exceeded so removing the player because we do not have enough confidence to say
+                        // he is still on there.
+                        await RemovePlayerFromServer(player, server, isTimeout: true);
                     }
                 }
+            }
 
-                // Now handle normal updates of server state
-                ServerRefreshed?.Invoke(server);
-            }            
-        }
-        finally
-        {
-            _serverCheckLock.Release();
+            // Now handle normal updates of server state
+            ServerRefreshed?.Invoke(server);
         }
     }
 
@@ -314,7 +307,8 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
                 .OrderByDescending(_ => _.score)
                 .ToList();
 
-            if (scoredServers.Count > 0) {
+            if (scoredServers.Count > 0)
+            {
                 _logger.LogDebug(
                     "Found {numMatchingServers} matching servers for player {player} with connection info {@connectionInfo} (highest score: {highestScore})",
                     scoredServers.Count,
@@ -353,9 +347,9 @@ public class PlayerServerTrackingService : BackgroundService, IPlayerServerTrack
         {
             int score = 0;
 
-            _logger.LogTrace("Matching server {server}: {hostName} | {players}", 
-                s, 
-                s.LastServerInfo?.Players.Select(p => p.PlayerName), 
+            _logger.LogTrace("Matching server {server}: {hostName} | {players}",
+                s,
+                s.LastServerInfo?.Players.Select(p => p.PlayerName),
                 s.LastServerInfo?.HostName);
 
             //if (s.LastStatusResponse is not null &&

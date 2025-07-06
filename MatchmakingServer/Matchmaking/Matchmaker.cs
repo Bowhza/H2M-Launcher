@@ -1,6 +1,8 @@
 ﻿using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 
+using AsyncKeyedLock;
+
 using H2MLauncher.Core.Matchmaking.Models;
 using H2MLauncher.Core.Models;
 
@@ -11,7 +13,7 @@ namespace MatchmakingServer.Matchmaking;
 public class Matchmaker
 {
     private readonly ILogger<Matchmaker> _logger;
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly AsyncNonKeyedLocker _semaphore = new(1);
 
     /// <summary>
     /// Holds the tickets in matchmaking for each server.
@@ -197,49 +199,42 @@ public class Matchmaker
 
     public async IAsyncEnumerable<MMMatch> CheckForMatchesAsync(IEnumerable<GameServer> servers, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        await _semaphore.WaitAsync(cancellationToken);
-        try
+        using var _ = await _semaphore.LockAsync(cancellationToken).ConfigureAwait(false);
+        // Sort servers by quality score
+        List<(GameServer server, double qualityScore)> orderedServers = servers
+            .Select(s => (server: s, qualityScore: CalculateServerQuality(s)))
+            .OrderByDescending(x => x.qualityScore)
+            .ToList();
+
+        _logger.LogDebug("{numPlayers} players in matchmaking queue, selecting players for matchmaking...", _queue.Count);
+
+        List<MMMatch> matches = [];
+        foreach (MMTicket ticket in _queue)
         {
-            // Sort servers by quality score
-            List<(GameServer server, double qualityScore)> orderedServers = servers
-                .Select(s => (server: s, qualityScore: CalculateServerQuality(s)))
-                .OrderByDescending(x => x.qualityScore)
-                .ToList();
+            ticket.PossibleMatches.Clear();
+        }
 
-            _logger.LogDebug("{numPlayers} players in matchmaking queue, selecting players for matchmaking...", _queue.Count);
+        cancellationToken.ThrowIfCancellationRequested();
 
-            List<MMMatch> matches = [];
-            foreach (MMTicket ticket in _queue)
+        do
+        {
+            MMMatch? nextMatch = CreateNextMatch(orderedServers);
+            if (nextMatch.HasValue)
             {
-                ticket.PossibleMatches.Clear();
+                yield return nextMatch.Value;
+            }
+            else
+            {
+                // no more matches in this pass
+                break;
             }
 
             cancellationToken.ThrowIfCancellationRequested();
+        } while (_queue.Count > 0);
 
-            do
-            {
-                MMMatch? nextMatch = CreateNextMatch(orderedServers);
-                if (nextMatch.HasValue)
-                {
-                    yield return nextMatch.Value;
-                }
-                else
-                {
-                    // no more matches in this pass
-                    break;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-            } while (_queue.Count > 0);
-
-            foreach (MMTicket ticket in _queue)
-            {
-                ticket.SearchAttempts++;
-            }
-        }
-        finally
+        foreach (MMTicket ticket in _queue)
         {
-            _semaphore.Release();
+            ticket.SearchAttempts++;
         }
     }
 

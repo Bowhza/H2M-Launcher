@@ -2,6 +2,8 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 
+using AsyncKeyedLock;
+
 using H2MLauncher.Core.Game.Models;
 using H2MLauncher.Core.Services;
 using H2MLauncher.Core.Utilities;
@@ -16,7 +18,7 @@ namespace H2MLauncher.Core.Game.Memory
 
         private readonly ILogger<H2MGameMemoryCommunicationService> _logger;
 
-        private readonly SemaphoreSlim _memorySemaphore = new(1, 1);
+        private readonly AsyncNonKeyedLocker _memorySemaphore = new(1);
         private CancellationTokenSource _gameCommunicationCancellation = new();
         private Task? _gameCommunicationTask;
         private bool _isCommunicationRunning;
@@ -60,33 +62,31 @@ namespace H2MLauncher.Core.Game.Memory
                 return;
             }
 
-            _memorySemaphore.Wait();
-            try
+            using (_memorySemaphore.Lock())
             {
-                if (IsGameCommunicationRunning)
+                try
                 {
-                    return;
+                    if (IsGameCommunicationRunning)
+                    {
+                        return;
+                    }
+
+                    _logger.LogDebug("Starting game memory communication with {processName} ({pid})...",
+                       process.ProcessName, process.Id);
+
+                    _gameMemory = new H1GameMemory(process, Constants.GAME_EXECUTABLE_NAME);
+                    _gameCommunicationCancellation = new CancellationTokenSource();
+                    _gameCommunicationTask = Task.Run(
+                        function: () => GameMemoryCommunicationLoop(_gameMemory, _gameCommunicationCancellation.Token),
+                        cancellationToken: _gameCommunicationCancellation.Token
+                     ).ContinueWith(OnGameCommunicationTerminated);
+
+                    _isCommunicationRunning = true;
                 }
-
-                _logger.LogDebug("Starting game memory communication with {processName} ({pid})...",
-                   process.ProcessName, process.Id);
-
-                _gameMemory = new H1GameMemory(process, Constants.GAME_EXECUTABLE_NAME);
-                _gameCommunicationCancellation = new CancellationTokenSource();
-                _gameCommunicationTask = Task.Run(
-                    function: () => GameMemoryCommunicationLoop(_gameMemory, _gameCommunicationCancellation.Token),
-                    cancellationToken: _gameCommunicationCancellation.Token
-                 ).ContinueWith(OnGameCommunicationTerminated);
-
-                _isCommunicationRunning = true;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error while starting game memory communication");
-            }
-            finally
-            {
-                _memorySemaphore.Release();
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error while starting game memory communication");
+                }
             }
 
             // raise event outside of semaphore to avoid deadlocks
@@ -155,8 +155,7 @@ namespace H2MLauncher.Core.Game.Memory
                 ConnectionState connectionState;
 
                 // read values
-                await _memorySemaphore.WaitAsync(cancellationToken);
-                try
+                using (await _memorySemaphore.LockAsync(cancellationToken).ConfigureAwait(false))
                 {
                     _logger.LogTrace("Reading memory from process {processName} ({pid})...",
                         gameMemory.Process.ProcessName, gameMemory.Process.Id);
@@ -185,10 +184,6 @@ namespace H2MLauncher.Core.Game.Memory
                     }
 
                     virtualLobbyLoaded = gameMemory.GetVirtualLobbyLoaded() ?? false;
-                }
-                finally
-                {
-                    _memorySemaphore.Release();
                 }
 
                 // process values and update state
@@ -219,14 +214,9 @@ namespace H2MLauncher.Core.Game.Memory
                 throw new InvalidOperationException("Game communication not running");
             }
 
-            await _memorySemaphore.WaitAsync();
-            try
+            using (await _memorySemaphore.LockAsync().ConfigureAwait(false))
             {
                 return _gameMemory.GetInGameMaps().ToDictionary(_ => _.id, _ => _.name).AsReadOnly();
-            }
-            finally
-            {
-                _memorySemaphore.Release();
             }
         }
 

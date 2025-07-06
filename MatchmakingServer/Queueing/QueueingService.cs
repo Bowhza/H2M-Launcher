@@ -1,4 +1,8 @@
-﻿using H2MLauncher.Core;
+﻿using System.Threading;
+
+using AsyncKeyedLock;
+
+using H2MLauncher.Core;
 
 using H2MLauncher.Core.IW4MAdmin.Models;
 using H2MLauncher.Core.Matchmaking.Models;
@@ -23,7 +27,7 @@ namespace MatchmakingServer.Queueing
         private readonly ServerInstanceCache _instanceCache;
         private readonly IOptionsMonitor<ServerSettings> _serverSettings;
         private readonly IOptionsMonitor<QueueingSettings> _queueingSettings;
-        private readonly SemaphoreSlim _serverLock = new(1, 1);
+        private readonly AsyncNonKeyedLocker _serverLock = new(1);
 
         public IEnumerable<GameServer> QueuedServers => _serverStore.Servers.Values;
 
@@ -134,7 +138,7 @@ namespace MatchmakingServer.Queueing
                 server.JoiningPlayerCount++;
 
                 JoinServerInfo serverInfo = new(server.GetActualIpAddress(), server.ServerPort, server.LastServerInfo?.HostName ?? "");
-                
+
                 // notify client to join
                 bool joinTriggeredSuccessfully = await _ctx.Clients.Client(player.QueueingHubId!)
                     .NotifyJoin(serverInfo, cancellation.Token);
@@ -190,7 +194,8 @@ namespace MatchmakingServer.Queueing
                         _logger.LogWarning("Player {player} is removed from queue but still in joining state", player);
                     }
                 }
-            };
+            }
+            ;
         }
 
         private async Task UpdateActualPlayersFromWebfront(GameServer server, CancellationToken cancellationToken)
@@ -222,7 +227,8 @@ namespace MatchmakingServer.Queueing
                             _logger.LogInformation("Assumed player {player} joined on server {server}!", joiningPlayer, server);
                         }
                     }
-                };
+                }
+                ;
                 return;
             }
 
@@ -268,8 +274,8 @@ namespace MatchmakingServer.Queueing
             try
             {
                 _logger.LogTrace("Requesting game server info for {server}...", server);
-                
-                GameServerInfo? gameServerInfo =  await _gameServerCommunicationService.GetInfoAsync(server, linkedCancellation.Token);
+
+                GameServerInfo? gameServerInfo = await _gameServerCommunicationService.GetInfoAsync(server, linkedCancellation.Token);
                 if (gameServerInfo is null)
                 {
                     // could not send request
@@ -494,32 +500,25 @@ namespace MatchmakingServer.Queueing
 
             _logger.LogDebug("Halting queue for server {server}", server);
 
-            await _serverLock.WaitAsync();
-            try
+            using var _ = await _serverLock.LockAsync().ConfigureAwait(false);
+            if (server.ProcessingState is QueueProcessingState.Paused)
             {
-                if (server.ProcessingState is QueueProcessingState.Paused)
-                {
-                    return;
-                }
-
-                // cancel processing loop and set state
-                await server.ProcessingCancellation.CancelAsync();
-                server.ProcessingState = QueueProcessingState.Paused;
-
-                // await task to catch potential exceptions
-                var processingTask = server.ProcessingTask;
-                if (processingTask is not null)
-                {
-                    await processingTask;
-                }
-
-                _logger.LogInformation("Server queue for {server} has been halted with {numberOfQueuedPlayers} players.",
-                    server, server.PlayerQueue.Count);
+                return;
             }
-            finally
+
+            // cancel processing loop and set state
+            await server.ProcessingCancellation.CancelAsync();
+            server.ProcessingState = QueueProcessingState.Paused;
+
+            // await task to catch potential exceptions
+            var processingTask = server.ProcessingTask;
+            if (processingTask is not null)
             {
-                _serverLock.Release();
+                await processingTask;
             }
+
+            _logger.LogInformation("Server queue for {server} has been halted with {numberOfQueuedPlayers} players.",
+                server, server.PlayerQueue.Count);
         }
 
         public async Task<int> ClearQueue(GameServer server)
@@ -532,33 +531,26 @@ namespace MatchmakingServer.Queueing
 
             _logger.LogDebug("Clearing queue for server {server}", server);
 
-            await _serverLock.WaitAsync();
-            try
+            using var _ = await _serverLock.LockAsync().ConfigureAwait(false);
+            List<Player> queuedPlayers = server.PlayerQueue.ToList();
+            server.PlayerQueue.Clear();
+            server.JoiningPlayerCount = 0;
+
+            foreach (var player in queuedPlayers)
             {
-                List<Player> queuedPlayers = server.PlayerQueue.ToList();
-                server.PlayerQueue.Clear();
-                server.JoiningPlayerCount = 0;
-
-                foreach (var player in queuedPlayers)
+                if (player.State is PlayerState.Queued or PlayerState.Joining)
                 {
-                    if (player.State is PlayerState.Queued or PlayerState.Joining)
-                    {
-                        player.State = PlayerState.Connected;
-                        player.QueuedAt = null;
-                    }
-
-                    await NotifyPlayerDequeued(player, DequeueReason.Unknown);
+                    player.State = PlayerState.Connected;
+                    player.QueuedAt = null;
                 }
 
-                _logger.LogInformation("Server queue for {server} has been cleared ({numberOfQueuedPlayers} players removed).",
-                    server, queuedPlayers.Count);
+                await NotifyPlayerDequeued(player, DequeueReason.Unknown);
+            }
 
-                return queuedPlayers.Count;
-            }
-            finally
-            {
-                _serverLock.Release();
-            }
+            _logger.LogInformation("Server queue for {server} has been cleared ({numberOfQueuedPlayers} players removed).",
+                server, queuedPlayers.Count);
+
+            return queuedPlayers.Count;
         }
 
         public Task<int> ClearQueue(string serverIp, int serverPort)
@@ -625,46 +617,39 @@ namespace MatchmakingServer.Queueing
                 return;
             }
 
-            await _serverLock.WaitAsync();
-            try
+            using var _ = await _serverLock.LockAsync().ConfigureAwait(false);
+            if (server.ProcessingState is QueueProcessingState.Stopped && !remove)
             {
-                if (server.ProcessingState is QueueProcessingState.Stopped && !remove)
+                return;
+            }
+
+            // cancel processing loop and set state
+            await server.ProcessingCancellation.CancelAsync();
+            server.ProcessingState = QueueProcessingState.Stopped;
+
+            // await task to catch potential exceptions
+            var processingTask = server.ProcessingTask;
+            if (processingTask is not null)
+            {
+                await processingTask;
+            }
+
+            int numberOfQueuedPlayers = 0;
+            foreach (Player player in server.PlayerQueue)
+            {
+                if (player.State is PlayerState.Queued or PlayerState.Joining)
                 {
-                    return;
-                }
-
-                // cancel processing loop and set state
-                await server.ProcessingCancellation.CancelAsync();
-                server.ProcessingState = QueueProcessingState.Stopped;
-
-                // await task to catch potential exceptions
-                var processingTask = server.ProcessingTask;
-                if (processingTask is not null)
-                {
-                    await processingTask;
-                }
-
-                int numberOfQueuedPlayers = 0;
-                foreach (Player player in server.PlayerQueue)
-                {
-                    if (player.State is PlayerState.Queued or PlayerState.Joining)
-                    {
-                        numberOfQueuedPlayers++;
-                        DequeuePlayer(player, PlayerState.Connected, DequeueReason.Unknown, true);
-                    }
-                }
-
-                _logger.LogInformation("Server queue for {server} has been destroyed with {numberOfQueuedPlayers} players.",
-                    server, numberOfQueuedPlayers);
-
-                if (remove)
-                {
-                    TryCleanupServer(server);
+                    numberOfQueuedPlayers++;
+                    DequeuePlayer(player, PlayerState.Connected, DequeueReason.Unknown, true);
                 }
             }
-            finally
+
+            _logger.LogInformation("Server queue for {server} has been destroyed with {numberOfQueuedPlayers} players.",
+                server, numberOfQueuedPlayers);
+
+            if (remove)
             {
-                _serverLock.Release();
+                TryCleanupServer(server);
             }
         }
 
@@ -774,7 +759,7 @@ namespace MatchmakingServer.Queueing
 
             player.State = newState;
             player.QueuedAt = null;
-                        
+
             _ = NotifyPlayerQueuePositions(player.QueuedServer);
 
             if (reason is DequeueReason.UserLeave or DequeueReason.Disconnect || !notifyPlayerDequeued)
@@ -822,7 +807,7 @@ namespace MatchmakingServer.Queueing
             {
                 _logger.LogError(ex, "Failed to notify player joined queue. {player}", player);
             }
-            
+
         }
 
         private async Task NotifyPlayerDequeued(Player player, DequeueReason reason)
