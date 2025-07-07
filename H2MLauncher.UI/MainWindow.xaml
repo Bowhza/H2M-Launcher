@@ -566,7 +566,7 @@
                     </controls:SocialOverviewControl>
                 </Grid>
 
-                <StatusBar Grid.Row="3" Style="{DynamicResource MainStatusBarStyle}" Background="Transparent">
+                <StatusBar Grid.Row="3" Style="{DynamicResource MainStatusBarStyle}">
                     <StatusBar.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Grid>
