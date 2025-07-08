@@ -213,6 +213,13 @@ Go to your Windows Settings and search for Clear Clipboard.
 **Answer**: The mod executable may require administrator privileges to start, so the launcher fails to start or detect it.
 Try to start the launcher with admin privileges too.
 
+### 8. "Connection failed: Invalid protocol" when joining a server
+
+<img src="./Images/ErrorInvalidProtocol.png">
+
+**Answer**: You are probably still running H2M and trying to join a HMW server, which is incompatible.
+Unfortunately, H2M is dead and all servers switched to HMW, so you have to [download HorizonMW](https://horizonmw.org/download.html).
+
 > [!IMPORTANT]
 > **If you encounter any issues not addressed here, please create an issue so it can be resolved and added to the FAQ if needed.**
 > 
