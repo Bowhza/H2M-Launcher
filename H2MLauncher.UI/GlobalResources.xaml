@@ -229,7 +229,7 @@
     <!-- Status Bar -->
     <Style x:Key="MainStatusBarStyle" TargetType="StatusBar">
         <Setter Property="Foreground" Value="{DynamicResource BrushNeutral200}" />
-        <Setter Property="Background" Value="{DynamicResource TransparentDark600}"/>
+        <Setter Property="Background" Value="Transparent"/>
     </Style>
 
     <Style TargetType="{x:Type Button}">
