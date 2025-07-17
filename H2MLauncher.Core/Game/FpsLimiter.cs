@@ -27,7 +27,7 @@ public sealed class FpsLimiter : IDisposable
 
     private readonly IObservable<int> _cfgMaxFpsO;
     private readonly IObservable<H2MLauncherSettings> _settingsO;
-    private readonly IObservable<bool> _applyLimitO;
+    private readonly IObservable<GameState> _gameStateO;
 
     /// <summary>
     /// Whether the game memory communication is running.
@@ -95,8 +95,8 @@ public sealed class FpsLimiter : IDisposable
         // Observable that emits the current config
         _cfgMaxFpsO = CreateMaxFpsObservable(gameDirectoryService);
 
-        // Observable that emits whether the game is in main menu and the limit should be applied
-        _applyLimitO = CreateLimitTriggerObservable(communicationService.GameCommunication);
+        // Observable that emits the current game state
+        _gameStateO = CreateGameStateObservable(communicationService.GameCommunication);
 
         // Observable that emits whether game memory communication is running
         _gameCommunicationRunningSubject = new(communicationService.GameCommunication.IsGameCommunicationRunning);
@@ -152,7 +152,7 @@ public sealed class FpsLimiter : IDisposable
             limiterDisposables.Add(Observable
                 .CombineLatest(_isLimitedSubject.DistinctUntilChanged(), _cfgMaxFpsO, settingsMaxFpsO,
                     (isLimited, cfgMaxFps, settingsMaxFps) => (isLimited, cfgMaxFps, settingsMaxFps))
-                .Throttle(TimeSpan.FromMilliseconds(500)) // debounce a little to let updated settings reload
+                .Throttle(TimeSpan.FromMilliseconds(2500)) // debounce a little to let updated settings reload
                 .TakeUntil(stopLimiterO)
                 .Finally(() => _logger.LogInformation("Max FPS config -> settings sync stopped."))
                 .Subscribe((x) =>
@@ -185,15 +185,14 @@ public sealed class FpsLimiter : IDisposable
                 }));
 
             // Apply fps limit when in main menu
-            limiterDisposables.Add(_applyLimitO
-                .WithLatestFrom(_settingsO)
+            limiterDisposables.Add(Observable
+                .CombineLatest(_gameStateO, _settingsO, GetFpsLimit)
+                .DistinctUntilChanged()
                 .TakeUntil(stopLimiterO)
                 .Finally(() => _logger.LogInformation("FPS limiter stopped."))
-                .SelectMany(values => Observable.FromAsync(async () =>
+                .SelectMany(values => Observable.FromAsync(() =>
                 {
-                    (bool limited, H2MLauncherSettings settings) = values;
-
-                    await ApplyFpsLimit(limited, settings);
+                    return ApplyFpsLimit(values.maxFps, values.isLimited);
                 }))
                 .Subscribe(
                     _ => { },
@@ -236,28 +235,34 @@ public sealed class FpsLimiter : IDisposable
         }
     }
 
-    private async Task ApplyFpsLimit(bool limited, H2MLauncherSettings settings)
+    private static (int maxFps, bool isLimited) GetFpsLimit(GameState gameState, H2MLauncherSettings settings)
+    {
+        bool isLimited = gameState.IsInMainMenu;
+        int maxFps = isLimited
+            ? settings.MaxFpsLimited
+            : settings.MaxFps;
+
+        return (maxFps, isLimited);
+    }
+
+    private async Task ApplyFpsLimit(int maxFps, bool isLimited)
     {
         try
         {
-            int maxFps = limited
-                ? settings.MaxFpsLimited
-                : settings.MaxFps;
-
             if (maxFps < 0)
             {
                 _logger.LogInformation("Skipping applying FPS limit because it is unset.");
                 return;
             }
 
-            _logger.LogDebug("Changing max FPS to {maxFps} (limited: {limited}).", maxFps, limited);
+            _logger.LogDebug("Changing max FPS to {maxFps} (limited: {limited}).", maxFps, isLimited);
 
             bool success = await ExecuteMaxFpsCommand(maxFps);
             if (success)
             {
                 _logger.LogInformation("Successfully changed max FPS to {maxFps}.", maxFps);
                 _limiterStatusSubject.OnNext(FpsLimiterStatus.Active);
-                _isLimitedSubject.OnNext(limited);
+                _isLimitedSubject.OnNext(isLimited);
             }
             else
             {
@@ -340,22 +345,17 @@ public sealed class FpsLimiter : IDisposable
             .StartWith(gameDirectoryService.CurrentConfigMp)
             .Where(cfg => cfg is not null)
             .Select(cfg => cfg!.MaxFps)
-            .DistinctUntilChanged()
-            .Replay(1)
-            .RefCount();
+            .DistinctUntilChanged();
     }
 
-    private static IObservable<bool> CreateLimitTriggerObservable(IGameCommunicationService gameCommunicationService)
+    private static IObservable<GameState> CreateGameStateObservable(IGameCommunicationService gameCommunicationService)
     {
         return Observable
-            .FromEvent<GameState>(
-                (h) => gameCommunicationService.GameStateChanged += h,
-                (h) => gameCommunicationService.GameStateChanged -= h)
-            .StartWith(gameCommunicationService.CurrentGameState)
-            .Select(s => s.IsInMainMenu)
-            .DistinctUntilChanged()
-            .Replay(1)
-            .RefCount();
+           .FromEvent<GameState>(
+               (h) => gameCommunicationService.GameStateChanged += h,
+               (h) => gameCommunicationService.GameStateChanged -= h)
+           .StartWith(gameCommunicationService.CurrentGameState)
+           .DistinctUntilChanged();
     }
 
     public void Dispose()
