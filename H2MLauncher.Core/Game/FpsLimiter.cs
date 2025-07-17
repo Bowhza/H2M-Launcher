@@ -185,16 +185,14 @@ public sealed class FpsLimiter : IDisposable
                 }));
 
             // Apply fps limit when in main menu
-            limiterDisposables.Add(_gameStateO.Select(s => s.IsInMainMenu)
+            limiterDisposables.Add(Observable
+                .CombineLatest(_gameStateO, _settingsO, GetFpsLimit)
                 .DistinctUntilChanged()
-                .WithLatestFrom(_settingsO)
                 .TakeUntil(stopLimiterO)
                 .Finally(() => _logger.LogInformation("FPS limiter stopped."))
-                .SelectMany(values => Observable.FromAsync(async () =>
+                .SelectMany(values => Observable.FromAsync(() =>
                 {
-                    (bool limited, H2MLauncherSettings settings) = values;
-
-                    await ApplyFpsLimit(limited, settings);
+                    return ApplyFpsLimit(values.maxFps, values.isLimited);
                 }))
                 .Subscribe(
                     _ => { },
@@ -237,28 +235,34 @@ public sealed class FpsLimiter : IDisposable
         }
     }
 
-    private async Task ApplyFpsLimit(bool limited, H2MLauncherSettings settings)
+    private static (int maxFps, bool isLimited) GetFpsLimit(GameState gameState, H2MLauncherSettings settings)
+    {
+        bool isLimited = gameState.IsInMainMenu;
+        int maxFps = isLimited
+            ? settings.MaxFpsLimited
+            : settings.MaxFps;
+
+        return (maxFps, isLimited);
+    }
+
+    private async Task ApplyFpsLimit(int maxFps, bool isLimited)
     {
         try
         {
-            int maxFps = limited
-                ? settings.MaxFpsLimited
-                : settings.MaxFps;
-
             if (maxFps < 0)
             {
                 _logger.LogInformation("Skipping applying FPS limit because it is unset.");
                 return;
             }
 
-            _logger.LogDebug("Changing max FPS to {maxFps} (limited: {limited}).", maxFps, limited);
+            _logger.LogDebug("Changing max FPS to {maxFps} (limited: {limited}).", maxFps, isLimited);
 
             bool success = await ExecuteMaxFpsCommand(maxFps);
             if (success)
             {
                 _logger.LogInformation("Successfully changed max FPS to {maxFps}.", maxFps);
                 _limiterStatusSubject.OnNext(FpsLimiterStatus.Active);
-                _isLimitedSubject.OnNext(limited);
+                _isLimitedSubject.OnNext(isLimited);
             }
             else
             {
@@ -341,9 +345,7 @@ public sealed class FpsLimiter : IDisposable
             .StartWith(gameDirectoryService.CurrentConfigMp)
             .Where(cfg => cfg is not null)
             .Select(cfg => cfg!.MaxFps)
-            .DistinctUntilChanged()
-            .Replay(1)
-            .RefCount();
+            .DistinctUntilChanged();
     }
 
     private static IObservable<GameState> CreateGameStateObservable(IGameCommunicationService gameCommunicationService)
@@ -353,9 +355,7 @@ public sealed class FpsLimiter : IDisposable
                (h) => gameCommunicationService.GameStateChanged += h,
                (h) => gameCommunicationService.GameStateChanged -= h)
            .StartWith(gameCommunicationService.CurrentGameState)
-           .DistinctUntilChanged()
-           .Replay(1)
-           .RefCount();
+           .DistinctUntilChanged();
     }
 
     public void Dispose()
